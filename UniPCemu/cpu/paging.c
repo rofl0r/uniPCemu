@@ -9,6 +9,7 @@
 #include "headers/cpu/cpu_execution.h" //Execution phase support!
 #include "headers/cpu/biu.h" //Memory support!
 #include "headers/support/signedness.h" //Sign support!
+#include "headers/cpu/paging.h" //Our own defintions!
 
 extern byte EMU_RUNNING; //1 when paging can be applied!
 
@@ -49,6 +50,7 @@ extern byte EMU_RUNNING; //1 when paging can be applied!
 #define TLB_IGNOREREADMASK 0xC
 //Ignore the accessed bit when reading the TLB?
 #define TLB_IGNOREACCESSMASK 0x20
+#define TLB_NOIGNOREACCESSMASK 0
 
 //1=User, 0=Supervisor
 #define getUserLevel(CPL) ((CPL&1)&(CPL>>1))
@@ -137,12 +139,12 @@ byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch, byte 
 	{
 		if (unlikely(EMULATED_CPU >= CPU_PENTIUM)) //Needs 4MB pages?
 		{
-			if (likely(Paging_readTLB(NULL, address, 1, effectiveUS, 0,markaccess, 1, TLB_IGNOREREADMASK|(markaccess?0:TLB_IGNOREACCESSMASK), &temp, 0))) //Cache hit (non)dirty for reads/writes?
+			if (likely(Paging_readTLB(NULL, address, 1, effectiveUS, 0,markaccess, 1, TLB_IGNOREREADMASK|(markaccess?TLB_NOIGNOREACCESSMASK:TLB_IGNOREACCESSMASK), &temp, 0))) //Cache hit (non)dirty for reads/writes?
 			{
 				return 1; //Valid!
 			}
 		}
-		if (likely(Paging_readTLB(NULL, address, 1, effectiveUS, 0,markaccess,0,TLB_IGNOREREADMASK|(markaccess?0:TLB_IGNOREACCESSMASK), &temp,0))) //Cache hit (non)dirty for reads/writes?
+		if (likely(Paging_readTLB(NULL, address, 1, effectiveUS, 0,markaccess,0,TLB_IGNOREREADMASK|(markaccess?TLB_NOIGNOREACCESSMASK:TLB_IGNOREACCESSMASK), &temp,0))) //Cache hit (non)dirty for reads/writes?
 		{
 			return 1; //Valid!
 		}
@@ -151,12 +153,12 @@ byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch, byte 
 	{
 		if (unlikely(EMULATED_CPU >= CPU_PENTIUM)) //Needs 4MB pages?
 		{
-			if (likely(Paging_readTLB(NULL, address, 1, effectiveUS, 1,markaccess, 1,0|(markaccess?0:TLB_IGNOREACCESSMASK), &temp, 0))) //Cache hit dirty for writes?
+			if (likely(Paging_readTLB(NULL, address, 1, effectiveUS, 1,markaccess, 1,0|(markaccess?TLB_NOIGNOREACCESSMASK:TLB_IGNOREACCESSMASK), &temp, 0))) //Cache hit dirty for writes?
 			{
 				return 1; //Valid!
 			}
 		}
-		if (likely(Paging_readTLB(NULL, address, 1, effectiveUS, 1,markaccess,0,0|(markaccess?0:TLB_IGNOREACCESSMASK), &temp,0))) //Cache hit dirty for writes?
+		if (likely(Paging_readTLB(NULL, address, 1, effectiveUS, 1,markaccess,0,0|(markaccess?TLB_NOIGNOREACCESSMASK:TLB_IGNOREACCESSMASK), &temp,0))) //Cache hit dirty for writes?
 		{
 			return 1; //Valid!
 		}
@@ -266,12 +268,12 @@ uint_32 mappage(uint_32 address, byte iswrite, byte CPL) //Maps a page to real m
 	{
 		if (unlikely(EMULATED_CPU >= CPU_PENTIUM)) //Needs 4MB support?
 		{
-			if (likely(Paging_readTLB(NULL, address, 1, effectiveUS, 1, 1, 1, 0, &result, 1))) //Cache hit for a written dirty entry? Match completely only!
+			if (likely(Paging_readTLB(NULL, address, 1, effectiveUS, 1, 1, 1, 0|TLB_NOIGNOREACCESSMASK, &result, 1))) //Cache hit for a written dirty entry? Match completely only!
 			{
 				return (result | (address&PDE_LARGEACTIVEMASK)); //Give the actual address from the TLB!
 			}
 		}
-		if (likely(Paging_readTLB(NULL,address,1,effectiveUS,1,1,0,0,&result,1))) //Cache hit for a written dirty entry? Match completely only!
+		if (likely(Paging_readTLB(NULL,address,1,effectiveUS,1,1,0,0|TLB_NOIGNOREACCESSMASK,&result,1))) //Cache hit for a written dirty entry? Match completely only!
 		{
 			return (result|(address&PXE_ACTIVEMASK)); //Give the actual address from the TLB!
 		}
@@ -281,12 +283,12 @@ uint_32 mappage(uint_32 address, byte iswrite, byte CPL) //Maps a page to real m
 	{
 		if (unlikely(EMULATED_CPU >= CPU_PENTIUM)) //Needs 4MB support?
 		{
-			if (likely(Paging_readTLB(NULL, address, RW, effectiveUS, RW, 1, 1, TLB_IGNOREREADMASK, &result, 1))) //Cache hit for an the entry, any during reads, Write Dirty on write?
+			if (likely(Paging_readTLB(NULL, address, RW, effectiveUS, RW, 1, 1, TLB_IGNOREREADMASK|TLB_NOIGNOREACCESSMASK, &result, 1))) //Cache hit for an the entry, any during reads, Write Dirty on write?
 			{
 				return (result | (address&PDE_LARGEACTIVEMASK)); //Give the actual address from the TLB!
 			}
 		}
-		if (likely(Paging_readTLB(NULL, address, RW, effectiveUS, RW, 1, 0, TLB_IGNOREREADMASK, &result, 1))) //Cache hit for an the entry, any during reads, Write Dirty on write?
+		if (likely(Paging_readTLB(NULL, address, RW, effectiveUS, RW, 1, 0, TLB_IGNOREREADMASK|TLB_NOIGNOREACCESSMASK, &result, 1))) //Cache hit for an the entry, any during reads, Write Dirty on write?
 		{
 			return (result | (address&PXE_ACTIVEMASK)); //Give the actual address from the TLB!
 		}
@@ -686,7 +688,7 @@ void Paging_TestRegisterWritten(byte TR)
 		{
 			if ((DC == (D ^ 1)) && (UC == (U ^ 1)) && (WC == (W ^ 1)) && P) //Valid complements?
 			{
-				if (Paging_readTLB(&hit, logicaladdress, W, U, D,0,0,0|(TLB_IGNOREACCESSMASK), 0, &result,1)) //Read?
+				if (Paging_readTLB(&hit, logicaladdress, W, U, D,0,0,0|(TLB_IGNOREACCESSMASK), &result,1)) //Read?
 				{
 					++hit; //Hit where!
 				}
@@ -712,11 +714,11 @@ void Paging_TestRegisterWritten(byte TR)
 			{
 				if (CPU[activeCPU].registers->TR6 & 0x10) //Hit?
 				{
-					Paging_writeTLB((sbyte)((CPU[activeCPU].registers->TR7 >> 2) & 3), logicaladdress, W, U, D, 1, 0, (result&PXE_ADDRESSMASK)); //Write to the associated block!
+					Paging_writeTLB((sbyte)((CPU[activeCPU].registers->TR7 >> 2) & 3), logicaladdress, W, U, D, 0, 0, (result&PXE_ADDRESSMASK)); //Write to the associated block!
 				}
 				else //LRU algorithm?
 				{
-					Paging_writeTLB(-1, logicaladdress, W, U, D, 1, 0, (result&PXE_ADDRESSMASK)); //Write to the associated block!
+					Paging_writeTLB(-1, logicaladdress, W, U, D, 0, 0, (result&PXE_ADDRESSMASK)); //Write to the associated block!
 				}
 			}
 		}
