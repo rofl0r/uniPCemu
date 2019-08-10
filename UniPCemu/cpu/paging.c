@@ -98,34 +98,61 @@ byte verifyCPL(byte iswrite, byte userlevel, byte PDERW, byte PDEUS, byte PTERW,
 {
 	byte uslevel; //Combined US level! 0=Supervisor, 1=User
 	byte rwlevel; //Combined RW level! 1=Writable, 0=Not writable
-	uslevel = ((PDEUS&PTEUS) & 1); //User level page?
-	if (userlevel) //User level?
+	byte combinedrwlevel;
+	uslevel = ((PDEUS&PTEUS) & 1); //User level page? This is the combined U/S!
+	combinedrwlevel = ((PDERW&PTERW) & 1); //Are we writable is the combination of both flags? This is the combined R/W!
+	if (uslevel) //User level?
 	{
-		rwlevel = ((PDERW&PTERW)&1); //Are we writable?
+		rwlevel = combinedrwlevel; //Use the combined R/W level!
 	}
 	else //System? Allow read/write if supervisor only! Otherwise, fault!
 	{
-		rwlevel = 1; //Are we writable, from either kernel or user perspective?
+		rwlevel = 1; //Are we writable, from either kernel or user perspective? This is the combined R/W!
+	}
+	if (userlevel == 0) //Are we a kernel access? This has some extra stuff to take care of!
+	{
 		//We're the kernel? Special privileges to apply!
 		rwlevel |= ((CPU[activeCPU].registers->CR0 & 0x10000) && (EMULATED_CPU >= CPU_80486)) ? 2 : 0; //Set bit 2 when to inhibit writes at kernel level, otherwise legacy, allow all writes on kernel level!
 	}
-	//Now that we know the read/write permissions and user level, determine errors!
+//Now that we know the read/write permissions and user level, determine errors!
 	if ((uslevel==0) && userlevel) //System access by user isn't allowed!
 	{
-		return 0; //Fault: system access by user!
+		return 0; //Fault: system access by user privilege!
 	}
 	//rwlevel: 
 	if ((rwlevel!=1) && iswrite) //Write to read-only user page for any privilege level?
 	{
-		if (userlevel || ((rwlevel&2) && (!((PDERW&PTERW) & 1)))) //We're at user level or write-protect enabled supervisor? Invalid!
+		if (userlevel || ((rwlevel&2) && (!combinedrwlevel))) //We're at user level or write-protect enabled supervisor which is supposed to error out on writes? Fault!
 		{
 			return 0; //Fault: read-only write by user/supervisor!
 		}
-		else if (!userlevel) //We're at kernel level? Allow!
+		else //Allow all writes to said page! At this point we're sure it's a writable page for the kernel level and a kernel level access!
 		{
-			rwlevel = 1; //Force allow on kernel level!
+			rwlevel = 1; //Force allow on kernel level for this and any future writes to this entry in the TLB!
 		}
 	}
+	//Read accesses are always valid if reached here. Do some special Read access+CR0.WP check!
+	else if ((rwlevel == 3) && (!iswrite)) //Read, but special case for kernel read access with CR0.WP is to be applied for the cached TLB? Don't error out, as this read access is valid!
+	{
+		/*
+		We check out as being accessable (whether by kernel privileges or not) during a read, but mark us read-only when the combined
+		level isn't writable due to CR0.WP being in effect.
+		Take the usual combined R/W level for kernel pages as well for any future references after this access. This prevents
+		writes when not allowed to pass through when cached during reads, but error checking to be done again(due to TLB mismatch)
+		when a write occurs after the read is cached.
+		This provides supervisor-mode sensitivity to write-protected pages, no matter if it's supervisor-level or user-level.
+		*/
+		rwlevel = combinedrwlevel; //Become the combined R/W level for storing in the TLB after all(as per the WP bit). 
+	}
+	/*
+	Otherwise, either a non-CR0.WP read-only page(always valid to cache normally, being value of 0) or a non-CR0.WP writable page(being value 1) without the CR0.WP being in effect, so nothing special needs to be done.
+	Values 2 and 3 for writes are already handled by the first check.
+	Value 2 for reads has the writeable bit already cleared, so no problems with newer writes.
+	Value 3 for reads is handles by the else-clause, translating to the combined R/W level.
+	So all the cases result in a rwlevel of 1 when writable(and not errored out) or 0/2 when readable.
+	Thus bit 0 is always the writeability of said page, even during CR0.WP being in effect.
+	*/
+
 	*isWritable = (rwlevel&1); //Are we writable?
 	return 1; //OK: verified!
 }
