@@ -105,25 +105,30 @@ byte verifyCPL(byte iswrite, byte userlevel, byte PDERW, byte PDEUS, byte PTERW,
 	}
 	else //System? Allow read/write if supervisor only! Otherwise, fault!
 	{
-		rwlevel = 1; //Ignore read/write, make us a writable page!
+		rwlevel = 1; //Are we writable, from either kernel or user perspective?
+	}
+	if (userlevel == 0) //We're the kernel? Special privileges to apply!
+	{
+		rwlevel |= ((CPU[activeCPU].registers->CR0 & 0x10000) && (EMULATED_CPU >= CPU_80486)) ? 2 : 0; //Set bit 2 when to inhibit writes at kernel level, otherwise legacy, allow all writes on kernel level!
 	}
 	//Now that we know the read/write permissions and user level, determine errors!
 	if ((uslevel==0) && userlevel) //System access by user isn't allowed!
 	{
 		return 0; //Fault: system access by user!
 	}
-	if ((rwlevel==0) && iswrite) //Write to read-only user page for any privilege level?
+	//rwlevel: 
+	if ((rwlevel!=1) && iswrite) //Write to read-only user page for any privilege level?
 	{
-		if (userlevel || ((CPU[activeCPU].registers->CR0&0x10000) && (EMULATED_CPU>=CPU_80486))) //We're at user level or write-protect enabled supervisor? Invalid!
+		if (userlevel || ((rwlevel&2) && (!((PDERW&PTERW) & 1)))) //We're at user level or write-protect enabled supervisor? Invalid!
 		{
-			return 0; //Fault: read-only write by user!
+			return 0; //Fault: read-only write by user/supervisor!
 		}
 		else //We're at kernel level? Allow!
 		{
 			rwlevel = 1; //Force allow on kernel level!
 		}
 	}
-	*isWritable = rwlevel; //Are we writable?
+	*isWritable = (rwlevel&1); //Are we writable?
 	return 1; //OK: verified!
 }
 
