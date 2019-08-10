@@ -148,7 +148,7 @@ byte verifyCPL(byte iswrite, byte userlevel, byte PDERW, byte PDEUS, byte PTERW,
 	Otherwise, either a non-CR0.WP read-only page(always valid to cache normally, being value of 0) or a non-CR0.WP writable page(being value 1) without the CR0.WP being in effect, so nothing special needs to be done.
 	Values 2 and 3 for writes are already handled by the first check.
 	Value 2 for reads has the writeable bit already cleared, so no problems with newer writes.
-	Value 3 for reads is handles by the else-clause, translating to the combined R/W level.
+	Value 3 for reads is handled by the else-clause, translating to the combined R/W level.
 	So all the cases result in a rwlevel of 1 when writable(and not errored out) or 0/2 when readable.
 	Thus bit 0 is always the writeability of said page, even during CR0.WP being in effect.
 	*/
