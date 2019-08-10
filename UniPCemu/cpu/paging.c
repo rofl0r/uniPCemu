@@ -99,7 +99,7 @@ byte verifyCPL(byte iswrite, byte userlevel, byte PDERW, byte PDEUS, byte PTERW,
 	byte uslevel; //Combined US level! 0=Supervisor, 1=User
 	byte rwlevel; //Combined RW level! 1=Writable, 0=Not writable
 	uslevel = ((PDEUS&PTEUS) & 1); //User level page?
-	if (uslevel) //User level?
+	if (userlevel) //User level?
 	{
 		rwlevel = ((PDERW&PTERW)&1); //Are we writable?
 	}
@@ -123,7 +123,7 @@ byte verifyCPL(byte iswrite, byte userlevel, byte PDERW, byte PDEUS, byte PTERW,
 		{
 			return 0; //Fault: read-only write by user/supervisor!
 		}
-		else //We're at kernel level? Allow!
+		else if (!userlevel) //We're at kernel level? Allow!
 		{
 			rwlevel = 1; //Force allow on kernel level!
 		}
