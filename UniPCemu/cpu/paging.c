@@ -113,9 +113,9 @@ byte verifyCPL(byte iswrite, byte userlevel, byte PDERW, byte PDEUS, byte PTERW,
 	return 1; //OK: verified!
 }
 
-void Paging_freeOppositeTLB(sbyte TLB_way, uint_32 logicaladdress, byte W, byte U, byte D, byte S, uint_32 result);
+void Paging_freeOppositeTLB(uint_32 logicaladdress, byte W, byte U, byte D, byte S);
 
-byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch) //Do we have paging without error? userlevel=CPL usually.
+byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch, byte markdirty) //Do we have paging without error? userlevel=CPL usually.
 {
 	word DIR, TABLE;
 	byte PTEUPDATED = 0, PDEUPDATED = 0; //Not update!
@@ -200,7 +200,7 @@ byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch) //Do 
 	//RW=Are we writable?
 	if (likely(isS == 0)) //PTE-only?
 	{
-		if (iswrite) //Writing?
+		if (iswrite && markdirty) //Writing and marking dirty?
 		{
 			if (!(PTE&PTE_D))
 			{
@@ -211,7 +211,7 @@ byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch) //Do 
 	}
 	else //Large page?
 	{
-		if (iswrite) //Writing?
+		if (iswrite && markdirty) //Writing and marking dirty?
 		{
 			if (!(PDE&PDE_Dirty))
 			{
@@ -241,14 +241,14 @@ byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch) //Do 
 	{
 		memory_BIUdirectwdw(((PDE&PXE_ADDRESSMASK)>>PXE_ADDRESSSHIFT)+(TABLE<<2),PTE); //Update in memory!
 	}
-	Paging_freeOppositeTLB(-1, address, RW, effectiveUS, (isS == 0) ? ((PTE&PTE_D) ? 1 : 0) : ((PDE&PDE_Dirty) ? 1 : 0), isS, (((isS == 0) ? (PTE&PXE_ADDRESSMASK) : (PDE&PDE_LARGEADDRESSMASK)))); //Clear the opposite TLB entry from existence!
+	Paging_freeOppositeTLB(address, RW, effectiveUS, (isS == 0) ? ((PTE&PTE_D) ? 1 : 0) : ((PDE&PDE_Dirty) ? 1 : 0), isS); //Clear the opposite TLB entry from existence!
 	Paging_writeTLB(-1,address,RW,effectiveUS,(isS==0)?((PTE&PTE_D)?1:0):((PDE&PDE_Dirty)?1:0),isS,(((isS==0)?(PTE&PXE_ADDRESSMASK):(PDE&PDE_LARGEADDRESSMASK)))); //Save the PTE 32-bit address in the TLB! PDE is always dirty when using 4MB pages!
 	return 1; //Valid!
 }
 
 byte CPU_Paging_checkPage(uint_32 address, byte readflags, byte CPL)
 {
-	return (isvalidpage(address,((readflags&(~0x10))==0),CPL,(readflags&0x10))==0); //Are we an invalid page? We've raised an error! Bit4 is set during Prefetch operations!
+	return (isvalidpage(address,((readflags&(~0x10))==0),CPL,(readflags&0x10),0)==0); //Are we an invalid page? We've raised an error! Bit4 is set during Prefetch operations!
 }
 
 uint_32 mappage(uint_32 address, byte iswrite, byte CPL) //Maps a page to real memory when needed!
@@ -291,7 +291,7 @@ uint_32 mappage(uint_32 address, byte iswrite, byte CPL) //Maps a page to real m
 		else
 		{
 		loadWTLB:
-			if (likely(isvalidpage(address, iswrite, CPL, 0))) //Retry checking if possible!
+			if (likely(isvalidpage(address, iswrite, CPL, 0, 1))) //Retry checking if possible!
 			{
 				goto retrymapping;
 			}
@@ -508,10 +508,10 @@ OPTINLINE byte Paging_matchTLBaddress(uint_32 logicaladdress, uint_32 TAG, uint_
 
 #define SWAP(a,b) if (unlikely(AGEENTRY_SORT(sortarray[b]) < AGEENTRY_SORT(sortarray[a]))) { tmp = sortarray[a]; sortarray[a] = sortarray[b]; sortarray[b] = tmp; }
 
-void Paging_freeOppositeTLB(sbyte TLB_way, uint_32 logicaladdress, byte W, byte U, byte D, byte S, uint_32 result)
+void Paging_freeOppositeTLB(uint_32 logicaladdress, byte W, byte U, byte D, byte S)
 {
-	TLB_ptr *effectiveentry;
-	uint_32 TAG, TAGMASKED;
+	INLINEREGISTER TLB_ptr *effectiveentry, *nextentry;
+	INLINEREGISTER uint_32 TAG, TAGMASKED;
 	uint_32 addrmask, searchmask;
 	sbyte TLB_set;
 	byte indexsize;
@@ -528,12 +528,12 @@ void Paging_freeOppositeTLB(sbyte TLB_way, uint_32 logicaladdress, byte W, byte 
 	effectiveentry = CPU[activeCPU].Paging_TLB.TLB_usedlist_head[TLB_set]; //The first entry to verify, in order of MRU to LRU!
 	for (; effectiveentry;) //Verify from MRU to LRU!
 	{
-		if (TLB_way >= 0) break; //Don't process when a static way is specified!
-		if ((effectiveentry->entry->TAG & searchmask) == TAGMASKED) //Match for our own entry?
+		if (unlikely((effectiveentry->entry->TAG & searchmask) == TAGMASKED)) //Match for our own entry?
 		{
+			nextentry = (TLB_ptr *)(effectiveentry->next); //The next entry to check! Prefetch it, because it will be cleared during the freeing!
 			effectiveentry->entry->TAG = 0; //Clear the entry to unused!
 			freeTLB(TLB_set, effectiveentry); //Free this entry from the TLB!
-			effectiveentry = CPU[activeCPU].Paging_TLB.TLB_usedlist_head[TLB_set]; //The first entry to verify, in order of MRU to LRU!
+			effectiveentry = nextentry; //Process the next entry in the list from the prefetch, because the effectiveentry has it's value cleared!
 		}
 		else
 		{
@@ -544,9 +544,9 @@ void Paging_freeOppositeTLB(sbyte TLB_way, uint_32 logicaladdress, byte W, byte 
 
 void Paging_writeTLB(sbyte TLB_way, uint_32 logicaladdress, byte W, byte U, byte D, byte S, uint_32 result)
 {
-	TLBEntry *curentry=NULL;
-	TLB_ptr *effectiveentry;
-	uint_32 TAG,TAGMASKED;
+	INLINEREGISTER TLBEntry *curentry=NULL;
+	INLINEREGISTER TLB_ptr *effectiveentry;
+	INLINEREGISTER uint_32 TAG,TAGMASKED;
 	uint_32 addrmask, searchmask;
 	sbyte TLB_set;
 	byte indexsize;
