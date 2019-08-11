@@ -703,7 +703,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 	byte is_TSS = 0; //Are we a TSS?
 	byte callgatetype = 0; //Default: no call gate!
 
-	if ((*segmentval&4) && (((GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR])==0) && (segment!=CPU_SEGMENT_LDTR)) || (segment==CPU_SEGMENT_LDTR))) //Invalid LDT segment and LDT is addressed or LDTR in LDT?
+	if ((*segmentval&4) && (((GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR])==0) && (segment!=CPU_SEGMENT_LDTR)) || (segment==CPU_SEGMENT_LDTR) || (segment==CPU_SEGMENT_TR))) //Invalid LDT segment and LDT is addressed or LDTR/TR in LDT?
 	{
 		//if ((segment == CPU_SEGMENT_SS) && (isJMPorCALL&0x200) && ((isJMPorCALL&0x8000)==0)) goto throwSSsegmentval;
 	throwdescsegmentval:
@@ -888,9 +888,11 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 			THROWDESCGP(originalval,((isJMPorCALL&0x400)>>10),(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 		}
 		return NULL; //Not present: limit exceeded!
-	//throwSSoriginalval:
+		/*
+	throwSSoriginalval:
 		THROWDESCSS(originalval,((isJMPorCALL&0x400)>>10),(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 		return NULL; //Not present: limit exceeded!
+		*/
 	}
 	
 	switch (GENERALSEGMENT_TYPE(LOADEDDESCRIPTOR)) //We're a TSS? We're to perform a task switch!
@@ -932,14 +934,10 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		return NULL; //We are a lower privilege level, so don't load!
 	}
 
-	if (is_TSS && (segment==CPU_SEGMENT_TR)) //We're a TSS loading into TR? We're to perform a task switch!
+	if (is_TSS && (*segmentval & 4)) //TSS in LDT detected? That's not allowed!
 	{
-		if (*segmentval & 4) //LDT lookup set?
-		{
-			goto throwdescoriginalval; //Throw error!
-			return NULL; //We're an invalid TSS to call!
-		}
-		//Handle the task switch normally! We're allowed to use the TSS!
+		goto throwdescoriginalval; //Throw error!
+		return NULL; //Error out!
 	}
 
 	if ((segment==CPU_SEGMENT_CS) && is_TSS && ((isJMPorCALL&0x200)==0)) //Special stuff on CS, CPL, Task switch.
@@ -970,53 +968,53 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 	}
 
 	//Handle invalid types to load now!
-	if ((segment==CPU_SEGMENT_CS) &&
-		(getLoadedTYPE(&LOADEDDESCRIPTOR)!=1) //Data or System in CS (non-exec)?
-		)
+	switch (getLoadedTYPE(&LOADEDDESCRIPTOR))
 	{
-		goto throwdescsegmentval; //Throw #GP error!		
+	case 0: //Data descriptor?
+		if ((segment==CPU_SEGMENT_CS) || (segment==CPU_SEGMENT_LDTR) || (segment==CPU_SEGMENT_TR)) //Data descriptor in invalid type?
+		{
+			goto throwdescsegmentval; //Throw #GP error!
+			return NULL; //Not present: invalid descriptor type loaded!
+		}
+		if ((DATASEGMENT_W(LOADEDDESCRIPTOR) == 0) && (segment == CPU_SEGMENT_SS)) //Non-writable SS segment?
+		{
+			goto throwdescsegmentval; //Throw #GP error!
+			return NULL; //Not present: invalid descriptor type loaded!
+		}
+		break;
+	case 1: //Executable descriptor?
+		if ((segment != CPU_SEGMENT_CS) && (EXECSEGMENT_R(LOADEDDESCRIPTOR) == 0)) //Executable non-readable in non-executable segment?
+		{
+			goto throwdescsegmentval; //Throw #GP error!
+			return NULL; //Not present: invalid descriptor type loaded!
+		}
+		if (((segment == CPU_SEGMENT_LDTR) || (segment == CPU_SEGMENT_TR) || (segment == CPU_SEGMENT_SS))) //Executable segment in invalid register?
+		{
+			goto throwdescsegmentval; //Throw #GP error!
+			return NULL; //Not present: invalid descriptor type loaded!
+		}
+		break;
+	case 2: //System descriptor?
+		if ((segment!=CPU_SEGMENT_LDTR) && (segment!=CPU_SEGMENT_TR)) //System descriptor in invalid register?
+		{
+			goto throwdescsegmentval; //Throw #GP error!
+			return NULL; //Not present: invalid descriptor type loaded!
+		}
+		if ((segment == CPU_SEGMENT_LDTR) && (GENERALSEGMENT_TYPE(LOADEDDESCRIPTOR) != AVL_SYSTEM_LDT)) //Invalid LDT load?
+		{
+			goto throwdescsegmentval; //Throw #GP error!
+			return NULL; //Not present: invalid descriptor type loaded!
+		}
+		if ((segment == CPU_SEGMENT_TR) && (is_TSS == 0)) //Non-TSS into task register?
+		{
+			goto throwdescsegmentval; //Throw #GP error!
+			return NULL; //Not present: invalid descriptor type loaded!
+		}
+		break;
+	default: //Unknown descriptor type? Count as invalid!
+		goto throwdescsegmentval; //Throw #GP error!
 		return NULL; //Not present: invalid descriptor type loaded!
-	}
-	else if ((getLoadedTYPE(&LOADEDDESCRIPTOR)==1) && (segment!=CPU_SEGMENT_CS) && (EXECSEGMENT_R(LOADEDDESCRIPTOR)==0)) //Executable non-readable in non-executable segment?
-	{
-		goto throwdescsegmentval; //Throw #GP error!		
-		return NULL; //Not present: invalid descriptor type loaded!
-	}
-	else if ((getLoadedTYPE(&LOADEDDESCRIPTOR)==1) && ((segment==CPU_SEGMENT_LDTR) || (segment==CPU_SEGMENT_TR) || (segment==CPU_SEGMENT_SS))) //Executable segment loaded invalid?
-	{
-		goto throwdescsegmentval; //Throw #GP error!		
-		return NULL; //Not present: invalid descriptor type loaded!
-	}
-	else if (getLoadedTYPE(&LOADEDDESCRIPTOR)==0) //Data descriptor loaded?
-	{
-		if (((segment!=CPU_SEGMENT_DS) && (segment!=CPU_SEGMENT_ES) && (segment!=CPU_SEGMENT_FS) && (segment!=CPU_SEGMENT_GS) && (segment!=CPU_SEGMENT_SS))) //Data descriptor in invalid type?
-		{
-			goto throwdescsegmentval; //Throw #GP error!		
-			return NULL; //Not present: invalid descriptor type loaded!
-		}
-		if ((DATASEGMENT_W(LOADEDDESCRIPTOR)==0) && (segment==CPU_SEGMENT_SS)) //Non-writable SS segment?
-		{
-			goto throwdescsegmentval; //Throw #GP error!		
-			return NULL; //Not present: invalid descriptor type loaded!
-		}
-	}
-	else if (getLoadedTYPE(&LOADEDDESCRIPTOR)==2) //System descriptor loaded?
-	{
-		if ((segment==CPU_SEGMENT_CS) || (segment==CPU_SEGMENT_DS) || (segment==CPU_SEGMENT_ES) || (segment==CPU_SEGMENT_FS) || (segment==CPU_SEGMENT_GS) || (segment==CPU_SEGMENT_SS)) //System descriptor in invalid register?
-		{
-			goto throwdescsegmentval; //Throw #GP error!		
-			return NULL; //Not present: invalid descriptor type loaded!
-		}
-		if ((segment==CPU_SEGMENT_LDTR) && (GENERALSEGMENT_TYPE(LOADEDDESCRIPTOR)!=AVL_SYSTEM_LDT)) //Invalid LDT load?
-		{
-			goto throwdescsegmentval; //Throw #GP error!		
-			return NULL; //Not present: invalid descriptor type loaded!
-		}
-		if ((segment==CPU_SEGMENT_TR) && (is_TSS==0)) //Non-TSS into task register?
-		{
-			goto throwdescsegmentval; //Throw #GP error!		
-			return NULL; //Not present: invalid descriptor type loaded!
-		}
+		break;
 	}
 
 	//Make sure we're present last!
