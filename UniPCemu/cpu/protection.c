@@ -507,8 +507,11 @@ void CPU_calcSegmentPrecalcs(SEGMENT_DESCRIPTOR *descriptor)
 	memcpy(&descriptor->PRECALCS.rwe_errorout[0], &checkrights_conditions_rwe_errorout[descriptor->desc.AccessRights & 0xE][0],sizeof(descriptor->PRECALCS.rwe_errorout));
 }
 
+word LOADDESCRIPTOR_segmentval;
+
 sbyte LOADDESCRIPTOR(int segment, word segmentval, SEGMENT_DESCRIPTOR *container, word isJMPorCALL) //Result: 0=#GP, 1=container=descriptor.
 {
+	LOADDESCRIPTOR_segmentval = segmentval;
 	uint_32 descriptor_address = 0;
 	descriptor_address = (segmentval & 4) ? CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].PRECALCS.base : CPU[activeCPU].registers->GDTR.base; //LDT/GDT selector!
 
@@ -753,13 +756,6 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		}
 	}
 
-	if (isGateDescriptor(&LOADEDDESCRIPTOR)==0) //Invalid descriptor?
-	{
-		//if ((segment == CPU_SEGMENT_SS) && (isJMPorCALL & 0x200) && ((isJMPorCALL & 0x8000) == 0)) goto throwSSsegmentval;
-		goto throwdescsegmentval; //Throw #GP error!
-		return NULL; //We're an invalid descriptor to use!
-	}
-
 	if ((isGateDescriptor(&LOADEDDESCRIPTOR)==1) && (segment == CPU_SEGMENT_CS) && (((isJMPorCALL&0x1FF)==1) || ((isJMPorCALL&0x1FF)==2)) && ((isJMPorCALL&0x200)==0)) //Handling of gate descriptors? Disable on task code/data segment loading!
 	{
 		is_gated = 1; //We're gated!
@@ -855,46 +851,6 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		}
 	}
 
-	//Final descriptor safety check!
-	if (isGateDescriptor(&LOADEDDESCRIPTOR)==0) //Invalid descriptor?
-	{
-		//if ((segment == CPU_SEGMENT_SS) && (isJMPorCALL & 0x200) && ((isJMPorCALL & 0x8000) == 0)) goto throwSSsegmentval;
-		goto throwdescsegmentval; //Throw #GP error!
-		return NULL; //We're an invalid descriptor to use!
-	}
-
-	if (
-		(
-		(segment==CPU_SEGMENT_SS) ||
-		(segment==CPU_SEGMENT_DS) ||
-		(segment==CPU_SEGMENT_ES) ||
-		(segment==CPU_SEGMENT_FS) ||
-		(segment==CPU_SEGMENT_GS) //SS,DS,ES,FS,GS are ...
-		) &&
-		(
-		(getLoadedTYPE(&LOADEDDESCRIPTOR)==2) || //A System segment? OR ...
-		((getLoadedTYPE(&LOADEDDESCRIPTOR)==1) && (EXECSEGMENT_R(LOADEDDESCRIPTOR)==0)) //An execute-only code segment?
-		)
-		)
-	{
-		//if ((segment == CPU_SEGMENT_SS) && (isJMPorCALL & 0x200) && ((isJMPorCALL & 0x8000) == 0)) goto throwSSoriginalval;
-		throwdescoriginalval:
-		if (isJMPorCALL&0x200) //TSS is the cause?
-		{
-			THROWDESCTS(originalval,1,(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
-		}
-		else //Plain #GP?
-		{
-			THROWDESCGP(originalval,((isJMPorCALL&0x400)>>10),(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
-		}
-		return NULL; //Not present: limit exceeded!
-		/*
-	throwSSoriginalval:
-		THROWDESCSS(originalval,((isJMPorCALL&0x400)>>10),(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
-		return NULL; //Not present: limit exceeded!
-		*/
-	}
-	
 	switch (GENERALSEGMENT_TYPE(LOADEDDESCRIPTOR)) //We're a TSS? We're to perform a task switch!
 	{
 	case AVL_SYSTEM_BUSY_TSS16BIT:
@@ -906,11 +862,6 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 	default:
 		is_TSS = 0; //We're no TSS!
 		break;
-	}
-
-	if (is_TSS && (segment==CPU_SEGMENT_CS) && ((isJMPorCALL&0x1FF)==3)) //IRET allowed regardless of privilege?
-	{
-		privilegedone = 1; //Allow us always!
 	}
 
 	byte isnonconformingcode;
@@ -930,8 +881,22 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		)
 	{
 		//if ((segment == CPU_SEGMENT_SS) && (isJMPorCALL & 0x200) && ((isJMPorCALL & 0x8000) == 0)) goto throwSSoriginalval;
-		goto throwdescoriginalval; //Throw error!
-		return NULL; //We are a lower privilege level, so don't load!
+		//if ((segment == CPU_SEGMENT_SS) && (isJMPorCALL & 0x200) && ((isJMPorCALL & 0x8000) == 0)) goto throwSSoriginalval;
+	throwdescoriginalval:
+		if (isJMPorCALL & 0x200) //TSS is the cause?
+		{
+			THROWDESCTS(originalval, 1, (originalval & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Throw error!
+		}
+		else //Plain #GP?
+		{
+			THROWDESCGP(originalval, ((isJMPorCALL & 0x400) >> 10), (originalval & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Throw error!
+		}
+		return NULL; //Not present: limit exceeded!
+		/*
+	throwSSoriginalval:
+		THROWDESCSS(originalval,((isJMPorCALL&0x400)>>10),(originalval&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
+		return NULL; //Not present: limit exceeded!
+		*/
 	}
 
 	if (is_TSS && (*segmentval & 4)) //TSS in LDT detected? That's not allowed!
