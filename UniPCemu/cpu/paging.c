@@ -555,7 +555,6 @@ void Paging_freeOppositeTLB(uint_32 logicaladdress, byte W, byte U, byte D, byte
 	INLINEREGISTER uint_32 TAG, TAGMASKED;
 	uint_32 addrmask, searchmask;
 	sbyte TLB_set;
-	byte indexsize;
 	S = ((~S)&1); //Opposite page size to search!
 	TLB_set = Paging_TLBSet(logicaladdress, S); //Reversed size set!
 
