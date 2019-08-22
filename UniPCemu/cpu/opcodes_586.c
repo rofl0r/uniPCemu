@@ -258,7 +258,7 @@ void CPU80586_OP9C_16() {
 		if (CPU[activeCPU].registers->CR4 & 1) //Virtual 8086 mode in VME?
 		{
 			theflags |= 0x3000; //Set the pushed flags IOPL to 3!
-			theflags &= (theflags&~F_IF) | (FLAG_VIF ? F_IF : 0); //Replace the pushed interrupt flag with the Virtual Interrupt Flag.
+			theflags = (theflags&~F_IF) | (FLAG_VIF ? F_IF : 0); //Replace the pushed interrupt flag with the Virtual Interrupt Flag.
 		}
 		else //Normal handling!
 		{
