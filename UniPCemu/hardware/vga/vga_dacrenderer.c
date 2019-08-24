@@ -128,6 +128,11 @@ OPTINLINE uint_32 color2bw(uint_32 color) //Convert color values to b/w values!
 	return color; //Can't convert: take the original color!
 }
 
+uint_32 GA_color2bw(uint_32 color) //Convert color values to b/w values!
+{
+	return color2bw(color);
+}
+
 byte DAC_whatBWMonitor = 0; //Default: color monitor!
 
 byte DAC_Use_BWMonitor(byte use)

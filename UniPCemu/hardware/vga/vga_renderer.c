@@ -206,7 +206,7 @@ OPTINLINE void drawCGALine(VGA_Type *VGA) //Draw the current CGA line to display
 		drawx = 0; //Start index to draw at!
 		for (;;) //Render all pixels!
 		{
-			drawPixel_real(*bufferpos,drawx,VGA->CRTC.y); //Render the converted CGA output signal!
+			drawPixel_real(GA_color2bw(*bufferpos),drawx,VGA->CRTC.y); //Render the converted CGA output signal!
 			if (unlikely(++bufferpos==finalpos)) break; //Stop processing when finished!
 			++drawx; //Next line index!
 		}
@@ -675,11 +675,11 @@ void VGA_ActiveDisplay_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_At
 		//Now draw in the selected color depth!
 		if (VGA->precalcs.DACmode&1) //16-bit color?
 		{
-			DACcolor = CLUT16bit[(Sequencer->lastDACcolor&0xFFFF)]; //Draw the 16-bit color pixel!
+			DACcolor = GA_color2bw(CLUT16bit[(Sequencer->lastDACcolor&0xFFFF)]); //Draw the 16-bit color pixel!
 		}
 		else //15-bit color?
 		{
-			DACcolor = CLUT15bit[(Sequencer->lastDACcolor&0xFFFF)]; //Draw the 15-bit color pixel!
+			DACcolor = GA_color2bw(CLUT15bit[(Sequencer->lastDACcolor&0xFFFF)]); //Draw the 15-bit color pixel!
 		}
 	}
 	else //VGA compatibility mode? 8-bit color!

@@ -6,6 +6,7 @@
 
 void DAC_updateEntry(VGA_Type *VGA, byte entry); //Update a DAC entry for rendering!
 void DAC_updateEntries(VGA_Type *VGA); //Update all DAC entries for rendering!
+uint_32 GA_color2bw(uint_32 color); //Convert color values to b/w values!
 
 void VGA_DUMPColors(); //Dumps the full DAC and Attribute colors!
 
