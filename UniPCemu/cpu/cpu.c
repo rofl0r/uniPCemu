@@ -1820,12 +1820,12 @@ uint_32 CPU_exec_EIP, CPU_debugger_EIP; //OPCode EIP
 word CPU_exec_lastCS=0; //OPCode CS
 uint_32 CPU_exec_lastEIP=0; //OPCode EIP
 
-void CPU_beforeexec()
+void CPU_filterflags()
 {
 	//This applies to all processors:
 	INLINEREGISTER uint_32 tempflags;
 	tempflags = CPU[activeCPU].registers->EFLAGS; //Load the flags to set/clear!
-	tempflags &= ~(8|32); //Clear bits 3&5!
+	tempflags &= ~(8 | 32); //Clear bits 3&5!
 
 	switch (EMULATED_CPU) //What CPU flags to emulate?
 	{
@@ -1879,7 +1879,11 @@ void CPU_beforeexec()
 	}
 	tempflags |= 2; //Clear bit values 8&32(unmapped bits 3&5) and set bit value 2!
 	CPU[activeCPU].registers->EFLAGS = tempflags; //Update the flags!
+}
 
+void CPU_beforeexec()
+{
+	CPU_filterflags();
 	if (CPU[activeCPU].instructionfetch.CPU_isFetching && (CPU[activeCPU].instructionfetch.CPU_fetchphase==1)) //Starting a new instruction?
 	{
 		CPU[activeCPU].trapped = FLAG_TF; //Are we to be trapped this instruction?

@@ -1163,6 +1163,8 @@ void CPU_JMPabs(uint_32 addr, byte useAddressSize);
 uint_32 CPU_EIPmask(byte useAddressSize);
 byte CPU_EIPSize(byte useAddressSize);
 
+void CPU_filterflags();
+
 byte CPU_apply286cycles(); //Apply the 80286+ cycles method. Result: 0 when to apply normal cycles. 1 when 80286+ cycles are applied!
 
 void CPU_tickPendingReset(); //Tick a pending CPU reset!
