@@ -1,4 +1,7 @@
 /*
+
+Copyright (C) 2019  Superfury
+
 This file is part of UniPCemu.
 
 UniPCemu is free software: you can redistribute it and/or modify
