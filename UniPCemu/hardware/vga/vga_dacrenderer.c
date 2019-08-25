@@ -67,17 +67,38 @@ void VGA_DUMPColors() //Dumps the full DAC and Color translation tables!
 }
 
 byte DAC_whatBWColor = 0; //Default: none!
-
-byte DAC_BWColor(byte use) //What B/W color to use?
-{
-	if (use < 4) DAC_whatBWColor = use; //Use?
-	return DAC_whatBWColor;
-}
+typedef uint_32(*BWconversion_handler)(uint_32 color); //A B/W conversion handler, if used!
 
 byte BWconversion_ready = 0; //Are we to initialise our tables?
 uint_32 BWconversion_white[0x10000]; //Conversion table for b/w totals(white)!
 uint_32 BWconversion_green[0x10000]; //Green channel conversion!
 uint_32 BWconversion_amber[0x10000]; //Amber channel conversion!
+uint_32* BWconversion_palette = &BWconversion_white[0];
+
+
+byte DAC_BWColor(byte use) //What B/W color to use?
+{
+	if (use < 4)
+	{
+		DAC_whatBWColor = use; //Use?
+		switch (DAC_whatBWColor) //What color scheme?
+		{
+		case BWMONITOR_WHITE: //Black/white?
+			BWconversion_palette = &BWconversion_white[0]; //RGB Greyscale!
+			break;
+		case BWMONITOR_GREEN: //Green?
+			BWconversion_palette = &BWconversion_green[0]; //RGB Green monitor!
+			break;
+		case BWMONITOR_AMBER: //Brown?
+			BWconversion_palette = &BWconversion_amber[0]; //RGB Amber monitor!
+			break;
+		default: //Unknown scheme?
+			BWconversion_palette = &BWconversion_white[0]; //RGB Greyscale!
+			break;
+		}
+	}
+	return DAC_whatBWColor;
+}
 
 void VGA_initBWConversion()
 {
@@ -106,49 +127,50 @@ void VGA_initBWConversion()
 	}
 }
 
-OPTINLINE uint_32 color2bw(uint_32 color) //Convert color values to b/w values!
+uint_32 color2bw(uint_32 color) //Convert color values to b/w values!
 {
 	INLINEREGISTER word a; //Our registers we use!
 	a = GETR(color); //Load Red channel!
 	a += GETG(color); //Load Green channel!
 	a += GETB(color); //Load Blue channel!
-	
-	switch (DAC_whatBWColor) //What color scheme?
-	{
-	case BWMONITOR_WHITE: //Black/white?
-		return BWconversion_white[a]; //RGB Greyscale!
-	case BWMONITOR_GREEN: //Green?
-		return BWconversion_green[a]; //RGB Green monitor!
-	case BWMONITOR_AMBER: //Brown?
-		return BWconversion_amber[a]; //RGB Amber monitor!
-	default: //Unknown scheme?
-		return color; //Can't convert due to an invalid scheme: take the original color!
-		break; //Use default!
-	}
-	return color; //Can't convert: take the original color!
+
+	return BWconversion_palette[a]; //Convert using the current palette!
 }
+
+uint_32 leavecoloralone(uint_32 color) //Leave color values alone!
+{
+	return color; //Normal color mode!
+}
+
+BWconversion_handler currentcolorconversion = &leavecoloralone; //Color to B/W handler!
 
 uint_32 GA_color2bw(uint_32 color) //Convert color values to b/w values!
 {
-	return color2bw(color);
+	return currentcolorconversion(color);
 }
 
 byte DAC_whatBWMonitor = 0; //Default: color monitor!
 
 byte DAC_Use_BWMonitor(byte use)
 {
-	if (use<2) DAC_whatBWMonitor = use; //Use?
+	if (use < 2)
+	{
+		DAC_whatBWMonitor = use; //Use?
+		if (use) //Used?
+		{
+			currentcolorconversion = &color2bw; //Use B/W conversion!
+		}
+		else //Not used?
+		{
+			currentcolorconversion = &leavecoloralone; //Leave the color alone!
+		}
+	}
 	return DAC_whatBWMonitor; //Give the data!
 }
 
 void DAC_updateEntry(VGA_Type *VGA, byte entry) //Update a DAC entry for rendering!
 {
-	if (DAC_whatBWMonitor) //Are we using a B/W monitor?
-	{
-		VGA->precalcs.effectiveDAC[entry] = color2bw(VGA->precalcs.DAC[entry]); //Set the B/W entry!
-		return;
-	}
-	VGA->precalcs.effectiveDAC[entry] = VGA->precalcs.DAC[entry]; //Set the color entry!	
+	VGA->precalcs.effectiveDAC[entry] = GA_color2bw(VGA->precalcs.DAC[entry]); //Set the B/W or color entry!
 }
 
 void DAC_updateEntries(VGA_Type *VGA)
@@ -157,6 +179,6 @@ void DAC_updateEntries(VGA_Type *VGA)
 	for (i=0;i<0x100;i++) //Process all entries!
 	{
 		DAC_updateEntry(VGA,i); //Update this entry with current values!
-		VGA->precalcs.effectiveMDADAC[i] = color2bw(RGB(i,i,i)); //Update the MDA DAC!
+		VGA->precalcs.effectiveMDADAC[i] = GA_color2bw(RGB(i,i,i)); //Update the MDA DAC!
 	}
 }
