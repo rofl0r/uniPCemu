@@ -140,7 +140,11 @@ void VGA_initBWConversion()
 	BWconversion_ready = 1; //We're ready after this!
 	const float amber_red = ((float)0xB9 / (float)255); //Red part!
 	const float amber_green = ((float)0x80 / (float)255); //Green part!
+#ifdef LUMINANCE_WEIGHTED
+	INLINEREGISTER word a; //16-bit!
+#else
 	INLINEREGISTER word a,b; //16-bit!
+#endif
 	INLINEREGISTER uint_32 n; //32-bit!
 	for (n=0;n<0x10000;n++) //Process all possible values!
 	{
