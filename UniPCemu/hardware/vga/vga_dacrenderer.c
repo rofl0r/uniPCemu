@@ -89,7 +89,21 @@ void VGA_DUMPColors() //Dumps the full DAC and Color translation tables!
 byte DAC_whatBWColor = 0; //Default: none!
 typedef uint_32(*BWconversion_handler)(uint_32 color); //A B/W conversion handler, if used!
 
+//Use a weighted luminance?
+#define LUMINANCE_WEIGHTED
+
+#ifdef LUMINANCE_WEIGHTED
+//Using weighted value factors below on the different channels!
+#define LUMINANCE_RFACTOR 0.2126
+#define LUMINANCE_GFACTOR 0.7152
+#define LUMINANCE_BFACTOR 0.0722
+#endif
+
+
 byte BWconversion_ready = 0; //Are we to initialise our tables?
+byte Luminance_R[0x100]; //What to add to white!
+byte Luminance_G[0x100]; //What to add to green!
+byte Luminance_B[0x100]; //What to add to blue!
 uint_32 BWconversion_white[0x10000]; //Conversion table for b/w totals(white)!
 uint_32 BWconversion_green[0x10000]; //Green channel conversion!
 uint_32 BWconversion_amber[0x10000]; //Amber channel conversion!
@@ -130,7 +144,22 @@ void VGA_initBWConversion()
 	INLINEREGISTER uint_32 n; //32-bit!
 	for (n=0;n<0x10000;n++) //Process all possible values!
 	{
-		//Optimized way of dividing?
+		//Apply the average method!
+		a = n & 0xFF; //Input!
+#ifdef LUMINANCE_WEIGHTED
+		//Here, luminance adds to 255, but R,G,B weigh differently towards that. The greyscale lookup table contains entries for the 0-255 values repeated each 256 items.
+		Luminance_R[a] = a * LUMINANCE_RFACTOR; //Red weighted!
+		Luminance_G[a] = a * LUMINANCE_GFACTOR; //Green weighted!
+		Luminance_B[a] = a * LUMINANCE_BFACTOR; //Blue weighted!
+		//The input is the weighted sum because all factors together add up to 1 for the full luminance range!
+		//a stays the same as the input low 8 bits for a direct 8-bit lookup to be archieved(the input values is the luminance factor of 0-255 because of the above weights)!
+#else //Unweighted?
+		//Here, luninance is ignored(R+G+B adds to up to 3*255), while the total is divided by 3 by the greyscale lookup table!
+		Luminance_R[a] = a; //Unweighted!
+		Luminance_G[a] = a; //Unweighted!
+		Luminance_B[a] = a; //Unweighted!
+		//The input is in the addition of the unweighted sum!
+		//Optimized way of dividing by 3?
 		a = n >> 2;
 		b = (a >> 2);
 		a += b;
@@ -140,20 +169,21 @@ void VGA_initBWConversion()
 		a += b;
 		b >>= 2;
 		a += b;
-		//Now store the results for greyscale and brown!
-		BWconversion_white[n] = RGB(a,a,a); //Normal 0-255 scale for White and Green monochrome!
-		BWconversion_green[n] = RGB(0,a,0); //Normal 0-255 scale for White and Green monochrome!
-		BWconversion_amber[n] = RGB((byte)(((float)a)*amber_red), (byte)(((float)a)*amber_green), 0); //Apply basic color: Create RGB in amber!
+		//a is now the division of the input luminance unweighted(the sum being n), so use the divided value as output!
+#endif
+		//Now store the results for greyscale, green and brown! Use the (un)weighted addition as input, depending on the Luminance additions!
+		BWconversion_white[n] = RGB(a, a, a); //Normal 0-255 scale for White monochrome!
+		BWconversion_green[n] = RGB(0, a, 0); //Normal 0-255 scale for Green monochrome!
+		BWconversion_amber[n] = RGB((byte)(((float)a) * amber_red), (byte)(((float)a) * amber_green), 0); //Apply basic color: Create RGB in amber!
 	}
 }
 
 uint_32 color2bw(uint_32 color) //Convert color values to b/w values!
 {
 	INLINEREGISTER word a; //Our registers we use!
-	a = GETR(color); //Load Red channel!
-	a += GETG(color); //Load Green channel!
-	a += GETB(color); //Load Blue channel!
-
+	a = Luminance_R[GETR(color)]; //Load Red channel!
+	a += Luminance_G[GETG(color)]; //Load Green channel!
+	a += Luminance_B[GETB(color)]; //Load Blue channel!
 	return BWconversion_palette[a]; //Convert using the current palette!
 }
 
