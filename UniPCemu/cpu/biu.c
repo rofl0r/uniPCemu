@@ -571,6 +571,10 @@ byte CPU_readOP(byte *result, byte singlefetch) //Reads the operation (byte) at 
 			if (likely(singlefetch)) ++CPU[activeCPU].cycles_Prefetch; //Fetching from prefetch takes 1 cycle!
 			return 0; //Give the prefetched data!
 		}
+		else if (unlikely(useIPSclock)) //Using the IPS clocking mode? Since we're short on buffer, reload more into the buffer!
+		{
+			BIU_DosboxTickPending = 1; //Make sure we fill more buffer for this instruction, as not enough can be buffered!
+		}
 		//Not enough data in the PIQ? Refill for the next data!
 		return 1; //Wait for the PIQ to have new data! Don't change EIP(this is still the same)!
 		//CPU_fillPIQ(); //Fill instruction cache with next data!
