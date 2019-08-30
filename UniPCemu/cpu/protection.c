@@ -880,7 +880,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 	case AVL_SYSTEM_TSS16BIT: //TSS?
 	case AVL_SYSTEM_BUSY_TSS32BIT:
 	case AVL_SYSTEM_TSS32BIT: //TSS?
-		is_TSS = (getLoadedTYPE(&LOADEDDESCRIPTOR)==2); //We're a TSS when a system segment!
+		is_TSS = (isGateDescriptor(&LOADEDDESCRIPTOR)==-1); //We're a TSS when a system segment!
 		break;
 	default:
 		is_TSS = 0; //We're no TSS!
