@@ -1287,7 +1287,7 @@ OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 	//Now, check for the ModR/M byte, if present, and read the parameters if needed!
 	timing = &CPUTimings[CPU_Operand_size[activeCPU]][(*OP<<1)|CPU[activeCPU].is0Fopcode]; //Only 2 modes implemented so far, 32-bit or 16-bit mode, with 0F opcode every odd entry!
 
-	if (((timing->readwritebackinformation&0x80)==0) && CPU_getprefix(0xF0)) //LOCK when not allowed?
+	if (((timing->readwritebackinformation&0x80)==0) && CPU_getprefix(0xF0) && (EMULATED_CPU>=CPU_NECV30)) //LOCK when not allowed, while the exception is supported?
 	{
 		goto invalidlockprefix;
 	}
@@ -1302,6 +1302,10 @@ OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 		{
 			invalidlockprefix: //Lock prefix when not allowed? Count as #UD!
 			currentOP_handler = &CPU_unkOP; //Unknown opcode/parameter!
+			if (unlikely(EMULATED_CPU < CPU_NECV30)) //Not supporting #UD directly? Simply abort fetching and run a NOP 'instruction'!
+			{
+				return 0; //Just run the NOP instruction! Don't fetch anything more!
+			}
 			CPU_unkOP(); //Execute the unknown opcode handler!
 			return 1; //Abort!
 		}
