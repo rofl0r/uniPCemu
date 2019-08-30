@@ -397,6 +397,10 @@ int isGateDescriptor(SEGMENT_DESCRIPTOR *loadeddescriptor) //0=Fault, 1=Gate, -1
 		switch (GENERALSEGMENTPTR_TYPE(loadeddescriptor))
 		{
 		case AVL_SYSTEM_RESERVED_0: //NULL descriptor?
+		case AVL_SYSTEM_RESERVED_1: //Unknown?
+		case AVL_SYSTEM_RESERVED_2: //Unknown?
+		case AVL_SYSTEM_RESERVED_3: //Unknown?
+		default: //Unknown type?
 			return 0; //NULL descriptor!
 		//32-bit only stuff?
 		case AVL_SYSTEM_BUSY_TSS32BIT: //TSS?
@@ -416,8 +420,6 @@ int isGateDescriptor(SEGMENT_DESCRIPTOR *loadeddescriptor) //0=Fault, 1=Gate, -1
 		case AVL_SYSTEM_INTERRUPTGATE16BIT:
 		case AVL_SYSTEM_TRAPGATE16BIT:
 			return 1; //We're a gate!
-		default: //Unknown type?
-			break;
 		}
 	}
 	return 2; //Not a gate descriptor, always valid!
