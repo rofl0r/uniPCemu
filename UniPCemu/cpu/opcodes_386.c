@@ -3968,12 +3968,12 @@ void CPU386_OP6D()
 	static uint_32 data;
 	if (unlikely(CPU[activeCPU].internalinstructionstep==0))
 	{
-		if (checkMMUaccess32(CPU_segment_index(CPU_SEGMENT_ES),CPU_segment(CPU_SEGMENT_ES),(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),0|0x40,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) return; //Abort on fault!
-		if (checkMMUaccess32(CPU_segment_index(CPU_SEGMENT_ES), CPU_segment(CPU_SEGMENT_ES), (CPU_Address_size[activeCPU] ? REG_EDI : REG_DI), 0|0xA0, getCPL(), !CPU_Address_size[activeCPU], 0 | 0x10)) return; //Abort on fault!
+		if (checkMMUaccess32(CPU_SEGMENT_ES,REG_ES,(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),0|0x40,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) return; //Abort on fault!
+		if (checkMMUaccess32(CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU] ? REG_EDI : REG_DI), 0|0xA0, getCPL(), !CPU_Address_size[activeCPU], 0 | 0x10)) return; //Abort on fault!
 	}
 	if (CPU_PORT_IN_D(0,REG_DX, &data)) return; //Read the port!
 	CPUPROT1
-	if (CPU80386_instructionstepwritedirectdw(0,CPU_segment_index(CPU_SEGMENT_ES),CPU_segment(CPU_SEGMENT_ES),(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),data,!CPU_Address_size[activeCPU])) return; //INSD
+	if (CPU80386_instructionstepwritedirectdw(0,CPU_SEGMENT_ES,REG_ES,(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),data,!CPU_Address_size[activeCPU])) return; //INSD
 	CPUPROT1
 	if (FLAG_DF)
 	{

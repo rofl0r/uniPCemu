@@ -425,10 +425,10 @@ void CPU186_OP6C()
 	debugger_setcommand("INSB");
 	if (blockREP) return; //Disabled REP!
 	static byte data;
-	if (unlikely(CPU[activeCPU].internalinstructionstep==0)) if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_ES),CPU_segment(CPU_SEGMENT_ES),(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),0,getCPL(),!CPU_Address_size[activeCPU],0)) return; //Abort on fault!
+	if (unlikely(CPU[activeCPU].internalinstructionstep==0)) if (checkMMUaccess(CPU_SEGMENT_ES,REG_ES,(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),0,getCPL(),!CPU_Address_size[activeCPU],0)) return; //Abort on fault!
 	if (CPU_PORT_IN_B(0,REG_DX,&data)) return; //Read the port!
 	CPUPROT1
-	if (CPU8086_instructionstepwritedirectb(0,CPU_segment_index(CPU_SEGMENT_ES),CPU_segment(CPU_SEGMENT_ES),(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),data,!CPU_Address_size[activeCPU])) return; //INSB
+	if (CPU8086_instructionstepwritedirectb(0,CPU_SEGMENT_ES,REG_ES,(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),data,!CPU_Address_size[activeCPU])) return; //INSB
 	CPUPROT1
 	if (FLAG_DF)
 	{
@@ -464,12 +464,12 @@ void CPU186_OP6D()
 	static word data;
 	if (unlikely(CPU[activeCPU].internalinstructionstep==0))
 	{
-		if (checkMMUaccess16(CPU_segment_index(CPU_SEGMENT_ES),CPU_segment(CPU_SEGMENT_ES),(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),0|0x40,getCPL(),!CPU_Address_size[activeCPU],0|0x8)) return; //Abort on fault!
-		if (checkMMUaccess16(CPU_segment_index(CPU_SEGMENT_ES), CPU_segment(CPU_SEGMENT_ES), (CPU_Address_size[activeCPU] ? REG_EDI : REG_DI), 0|0xA0, getCPL(), !CPU_Address_size[activeCPU], 0 | 0x8)) return; //Abort on fault!
+		if (checkMMUaccess16(CPU_SEGMENT_ES,REG_ES,(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),0|0x40,getCPL(),!CPU_Address_size[activeCPU],0|0x8)) return; //Abort on fault!
+		if (checkMMUaccess16(CPU_SEGMENT_ES,REG_ES, (CPU_Address_size[activeCPU] ? REG_EDI : REG_DI), 0|0xA0, getCPL(), !CPU_Address_size[activeCPU], 0 | 0x8)) return; //Abort on fault!
 	}
 	if (CPU_PORT_IN_W(0,REG_DX, &data)) return; //Read the port!
 	CPUPROT1
-	if (CPU8086_instructionstepwritedirectw(0,CPU_segment_index(CPU_SEGMENT_ES),CPU_segment(CPU_SEGMENT_ES),(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),data,!CPU_Address_size[activeCPU])) return; //INSW
+	if (CPU8086_instructionstepwritedirectw(0,CPU_SEGMENT_ES,REG_ES,(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),data,!CPU_Address_size[activeCPU])) return; //INSW
 	CPUPROT1
 	if (FLAG_DF)
 	{
