@@ -872,7 +872,7 @@ OPTINLINE void CPU_initRegisters(byte isInit) //Init the registers!
 			CPU[activeCPU].registers->DX = 0x0421; //80486SX! DX not supported yet!
 			break;
 		case CPU_PENTIUM:
-			CPU[activeCPU].registers->DX = 0x0421; //80486SX! DX not supported yet!
+			CPU[activeCPU].registers->DX = 0x0521; //Pentium! DX not supported yet!
 			break;
 		}
 	}
