@@ -116,7 +116,7 @@ void initInboard(byte initFullspeed) //Initialize the Inboard chipset, if needed
 	}
 	CPU386_WAITSTATE_DELAY = 0; //No Wait States!
 	//Add any Inboard support!
-	if (((EMULATED_CPU==CPU_80386)||(EMULATED_CPU==CPU_80486)) && (is_Compaq==0)) //XT/AT 386/486? We're an Inboard 386!
+	if (((EMULATED_CPU==CPU_80386)||(EMULATED_CPU>=CPU_80486)) && (is_Compaq==0)) //XT/AT 386/486? We're an Inboard 386!
 	{
 		MoveLowMemoryHigh = 0; //Default: disable the HMA memory and enable the memory hole and BIOS ROM!
 		if (MMU.size>=0x100000) //1MB+ detected?
