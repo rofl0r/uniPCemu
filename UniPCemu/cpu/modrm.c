@@ -411,7 +411,7 @@ void CPU_writeCR0(uint_32 backupval, uint_32 value)
 	{
 		Paging_clearTLB(); //Clear the TLB!
 	}
-	if (((EMULATED_CPU == CPU_80386) && (CPU_databussize)) || (EMULATED_CPU == CPU_80486)) //16-bit data bus on 80386? 80386SX hardwires ET to 1! Both 80486SX and DX hardwire ET to 1!
+	if (((EMULATED_CPU == CPU_80386) && (CPU_databussize)) || (EMULATED_CPU >= CPU_80486)) //16-bit data bus on 80386? 80386SX hardwires ET to 1! Both 80486SX and DX hardwire ET to 1!
 	{
 		value |= CR0_ET; //ET is hardwired to 1 on a 80386SX/CX/EX/CL.
 	}
