@@ -138,8 +138,16 @@ void VGA_initBWConversion()
 {
 	if (BWconversion_ready) return; //Abort when already ready!
 	BWconversion_ready = 1; //We're ready after this!
-	const float amber_red = ((float)0xFF / (float)255); //Red part!
-	const float amber_green = ((float)0xD2 / (float)255); //Green part!
+	//RGB factors for all possible greyscales to apply
+	const float whitefactor_R = ((float)0xFF / (float)255); //Red part!
+	const float whitefactor_G = ((float)0xFF / (float)255); //Green part!
+	const float whitefactor_B = ((float)0xFF / (float)255); //Blue part!
+	const float greenfactor_R = ((float)0x4A / (float)255); //Red part!
+	const float greenfactor_G = ((float)0xFF / (float)255); //Green part!
+	const float greenfactor_B = ((float)0x00 / (float)255); //Blue part!
+	const float amberfactor_R = ((float)0xFF / (float)255); //Red part!
+	const float amberfactor_G = ((float)0xB7 / (float)255); //Green part!
+	const float amberfactor_B = ((float)0x00 / (float)255); //Blue part!
 #ifdef LUMINANCE_WEIGHTED
 	INLINEREGISTER word a; //16-bit!
 #else
@@ -176,9 +184,9 @@ void VGA_initBWConversion()
 		//a is now the division of the input luminance unweighted(the sum being n), so use the divided value as output!
 #endif
 		//Now store the results for greyscale, green and brown! Use the (un)weighted addition as input, depending on the Luminance additions!
-		BWconversion_white[n] = RGB(a, a, a); //Normal 0-255 scale for White monochrome!
-		BWconversion_green[n] = RGB(0, a, 0); //Normal 0-255 scale for Green monochrome!
-		BWconversion_amber[n] = RGB((byte)(((float)a) * amber_red), (byte)(((float)a) * amber_green), 0); //Apply basic color: Create RGB in amber!
+		BWconversion_white[n] = RGB((byte)(((float)a) * whitefactor_R), (byte)(((float)a) * whitefactor_G), (byte)(((float)a) * whitefactor_B)); //Apply basic color: Create RGB in white!
+		BWconversion_green[n] = RGB((byte)(((float)a) * greenfactor_R), (byte)(((float)a) * greenfactor_G), (byte)(((float)a) * greenfactor_B)); //Apply basic color: Create RGB in green!
+		BWconversion_amber[n] = RGB((byte)(((float)a) * amberfactor_R), (byte)(((float)a) * amberfactor_G), (byte)(((float)a) * amberfactor_B)); //Apply basic color: Create RGB in amber!
 	}
 }
 
