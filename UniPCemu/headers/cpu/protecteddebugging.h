@@ -32,5 +32,6 @@ byte checkProtectedModeDebugger(uint_32 linearaddress, byte type); //Access at m
 void protectedModeDebugger_taskswitching(); //Task switched?
 void checkProtectedModeDebuggerAfter(); //Check after instruction for the protected mode debugger!
 byte protectedModeDebugger_taskswitched(); //Handle task switch debugger! Complete instruction when cleared, otherwise, handle the interrupt!
+void protectedModeDebugger_updateBreakpoints(); //Update the breakpoints that are set!
 
 #endif

@@ -47,7 +47,7 @@ OPTINLINE byte checkProtectedModeDebuggerBreakpoint(uint_32 linearaddress, byte 
 				typematched = (type==PROTECTEDMODEDEBUGGER_TYPE_DATAWRITE); //Matching type?
 				break;
 			case 2: //Break on I/O read/write? Unsupported by all hardware! 64-bit mode makes it specify an 8-byte wide breakpoint area!
-				typematched = (type==PROTECTEDMODEDEBUGGER_TYPE_IOREADWRITE); //Matching type?
+				typematched = ((type==PROTECTEDMODEDEBUGGER_TYPE_IOREADWRITE) && (CPU[activeCPU].registers->CR4&8)); //Matching type and debugging extensions enabled?
 				break;
 			case 3: //Data read/write?
 				typematched = ((type==PROTECTEDMODEDEBUGGER_TYPE_DATAREAD) || (type==PROTECTEDMODEDEBUGGER_TYPE_DATAWRITE)); //Matching type?
@@ -72,11 +72,10 @@ OPTINLINE byte checkProtectedModeDebuggerBreakpoint(uint_32 linearaddress, byte 
 			{
 				if (type==PROTECTEDMODEDEBUGGER_TYPE_EXECUTION) //Executing fires immediately(fault)!
 				{
-					SETBITS(CPU[activeCPU].registers->DR6,DR,1,1); //Set this trap to fire!
-					SETBITS(CPU[activeCPU].registers->DR6,14,1,1); //Set bit 14, the new task's trap indicator!
+					SETBITS(CPU[activeCPU].registers->DR6, DR, 1, 1); //Set this trap to fire!
 					if ((MMU_logging == 1) && advancedlog) //Are we logging?
 					{
-						dolog("debugger","#DB fault(-1)!");
+						dolog("debugger", "#DB fault(-1)!");
 					}
 
 					if (CPU_faultraised(EXCEPTION_DEBUG))
@@ -114,14 +113,12 @@ void checkProtectedModeDebuggerAfter() //Check after instruction for the protect
 				{
 					SETBITS(CPU[activeCPU].registers->DR6, DR, 1, (GETBITS(CPU[activeCPU].debuggerFaultRaised, DR, 1) | GETBITS(CPU[activeCPU].registers->DR6, DR, 1))); //We're trapping this/these data breakpoint(s), set if so, otherwise, leave alone!
 				}
-				SETBITS(CPU[activeCPU].registers->DR6, 14, 1, 1); //Set bit 14, the new task's trap indicator!
 				if (EMULATED_CPU >= CPU_80386) FLAGW_RF(1); //Automatically set the resume flag on a debugger fault!
 				CPU_executionphase_startinterrupt(EXCEPTION_DEBUG, 0, -1); //Call the interrupt, no error code!
 			}
 		}
 		else //Successful completion of an instruction?
 		{
-			CPU[activeCPU].debuggerFaultRaised = 0; //Clear the fault raised information: no fault is raised for this instruction, prevent the same fault from bubbling into the next instruction!
 			FLAGW_RF(0); //Successfull completion of an instruction clears the Resume Flag!
 		}
 	}
@@ -139,10 +136,24 @@ byte checkProtectedModeDebugger(uint_32 linearaddress, byte type) //Access at me
 	return 0; //Not supported yet!
 }
 
+void protectedModeDebugger_updateBreakpoints()
+{
+	INLINEREGISTER byte DR, DRmask;
+	//Refresh the breakpoint status for each breakpoint!
+	//The GE/LE flags indicate exact reporting. When set, they're making it so that only the instructions that cause the issue fault, which happens always in this case.
+	DRmask = 3; //Mask for the first breakpoint! This isn't filtered by the global/local exact flags
+	for (DR = 0; DR < 4; ++DR)
+	{
+		CPU[activeCPU].activeBreakpoint[DR] = (CPU[activeCPU].registers->DR7 & DRmask); //Are we an active breakpoint?
+		DRmask <<= 2; //Shift to the next breakpoint!
+	}
+}
+
 void protectedModeDebugger_taskswitching() //Task switched?
 {
 	//Clear the local debugger breakpoints(bits 0,2,4,6 of DR7)
 	CPU[activeCPU].registers->DR7 &= ~0x55; //Clear bits 0,2,4,6 on any task switch!
+	protectedModeDebugger_updateBreakpoints(); //Update the breakpoints to use!
 }
 extern byte advancedlog; //Advanced log setting
 

@@ -32,6 +32,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/cpu/cpu_execution.h" //Execution flow support!
 #include "headers/cpu/cpu_OP8086.h" //8086+ push/pop support!
 #include "headers/cpu/cpu_OP80386.h" //80386+ push/pop support!
+#include "headers/cpu/protecteddebugging.h" //Protected mode debugger support!
 
 //Log Virtual 8086 mode calls basic information?
 //#define LOG_VIRTUALMODECALLS
@@ -1685,6 +1686,8 @@ byte disallowPOPFI() //Allow POPF to change interrupt flag?
 	return checkSpecialRights(); //Simply ignore the change when not priviledged!
 }
 
+byte portExceptionResult=0xFF;
+
 byte checkPortRights(word port) //Are we allowed to not use this port?
 {
 	if (checkSpecialPortRights()) //We're to check the I/O permission bitmap! 286+ only!
@@ -1718,9 +1721,11 @@ byte checkPortRights(word port) //Are we allowed to not use this port?
 		}
 		if (mapvalue) //The map bit is set(or not a 32-bit task)? We're to trigger an exception!
 		{
-			return 1; //Trigger an exception!
+			portExceptionResult = checkProtectedModeDebugger(port, PROTECTEDMODEDEBUGGER_TYPE_IOREADWRITE); //Check for the debugger always!
+			return (portExceptionResult|1); //Trigger an exception!
 		}
 	}
+	portExceptionResult = checkProtectedModeDebugger(port, PROTECTEDMODEDEBUGGER_TYPE_IOREADWRITE); //Check for the debugger always!
 	return 0; //Allow all for now!
 }
 

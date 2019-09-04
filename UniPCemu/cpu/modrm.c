@@ -32,6 +32,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/emu/debugger/debugger.h" //debugging() functionality!
 #include "headers/emu/gpu/gpu_text.h" //Text support!
 #include "headers/cpu/biu.h" //BIU support!
+#include "headers/cpu/protecteddebugging.h" //Protected mode debugger support!
 
 //Log invalid registers?
 #define LOG_INVALID_REGISTERS 0
@@ -464,10 +465,7 @@ void modrm_write32(MODRM_PARAMS *params, int whichregister, uint_32 value)
 			}
 			else if (result == &CPU[activeCPU].registers->DR7)
 			{
-				for (DR = 0; DR < 3; ++DR)
-				{
-					CPU[activeCPU].activeBreakpoint[DR] = (CPU[activeCPU].registers->DR7&(3 << (DR << 1))); //Are we an active breakpoint?
-				}
+				protectedModeDebugger_updateBreakpoints(); //Update the breakpoints to use!
 			}
 			else if (result==&CPU[activeCPU].registers->TR6) //TR6?
 			{
@@ -544,10 +542,7 @@ byte modrm_write32_BIU(MODRM_PARAMS *params, int whichregister, uint_32 value)
 			}
 			else if (result == &CPU[activeCPU].registers->DR7)
 			{
-				for (DR = 0; DR < 3; ++DR)
-				{
-					CPU[activeCPU].activeBreakpoint[DR] = (CPU[activeCPU].registers->DR7&(3 << (DR << 1))); //Are we an active breakpoint?
-				}
+				protectedModeDebugger_updateBreakpoints(); //Update the breakpoints to use!
 			}
 			else if (result==&CPU[activeCPU].registers->TR6) //TR6?
 			{
