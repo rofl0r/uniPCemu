@@ -432,7 +432,6 @@ void CPU_writeCR0(uint_32 backupval, uint_32 value)
 void modrm_write32(MODRM_PARAMS *params, int whichregister, uint_32 value)
 {
 	if (unlikely(params->notdecoded)) modrm_notdecoded(params); //Error out!
-	byte DR;
 	uint_32 *result; //The result holder if needed!
 	uint_32 backupval;
 	uint_32 offset;
@@ -501,7 +500,6 @@ void modrm_write32(MODRM_PARAMS *params, int whichregister, uint_32 value)
 byte modrm_write32_BIU(MODRM_PARAMS *params, int whichregister, uint_32 value)
 {
 	if (unlikely(params->notdecoded)) modrm_notdecoded(params); //Error out!
-	byte DR;
 	uint_32 *result; //The result holder if needed!
 	uint_32 backupval;
 	uint_32 offset;
