@@ -2696,7 +2696,7 @@ void CPU_exSingleStep() //Single step (after the opcode only)
 	HWINT_saved = 1; //We're trapped!
 	//Points to next opcode!
 	tempcycles = CPU[activeCPU].cycles_OP; //Save old cycles!
-	if (EMULATED_CPU >= CPU_80386) FLAGW_RF(1); //Automatically set the resume flag on a debugger fault!
+	//if (EMULATED_CPU >= CPU_80386) FLAGW_RF(1); //Automatically set the resume flag on a debugger fault!
 	SETBITS(CPU[activeCPU].registers->DR6, 14, 1, 1); //Set bit 14, the single-step trap indicator!
 	CPU_commitState(); //Save the current state for any future faults to return to!
 	CPU_executionphase_startinterrupt(EXCEPTION_DEBUG,2,-1); //Execute INT1 normally using current CS:(E)IP!
