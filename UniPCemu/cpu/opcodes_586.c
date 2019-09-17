@@ -126,6 +126,11 @@ void CPU586_OP0FC7() //CMPXCHG8B r/m32
 {
 	uint_32 templo;
 	uint_32 temphi;
+	if (MODRM_REG(params.modrm)!=1)
+	{
+		CPU_unkOP(); //#UD for reg not being 1!
+		return;
+	}
 	modrm_addoffset = 0; //Low dword
 	if (modrm_check32(&params, MODRM_src0, 1 | 0x40)) return;
 	modrm_addoffset = 4; //High dword
