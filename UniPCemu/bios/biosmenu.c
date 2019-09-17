@@ -518,6 +518,12 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 
 	if (BIOS_SaveStat && BIOS_Changed) //To save the BIOS and BIOS has been changed?
 	{
+		EMU_locktext();
+		EMU_gotoxy(0, 0); //First column,row!
+		EMU_textcolor(0xF);
+		GPU_EMU_printscreen(0, 0, "Saving settings...");
+		EMU_unlocktext();
+		delay(0); //Give us a chance to display!
 		if (!BIOS_SaveData()) //Save our options and failed?
 		{
 			EMU_locktext();
@@ -537,7 +543,7 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 				EMU_locktext();
 				EMU_gotoxy(0,0); //First column,row!
 				EMU_textcolor(0xF);
-				GPU_EMU_printscreen(0,0,"Settings Saved!");
+				GPU_EMU_printscreen(0,0,"Settings Saved!   ");
 				EMU_unlocktext();
 				delay(2000000); //Wait 2 sec before rebooting!
 			}
@@ -551,7 +557,6 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 				delay(2000000); //Wait 2 sec!
 			}
 		}
-
 	}
 	else //Discard changes?
 	{
