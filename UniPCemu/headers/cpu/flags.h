@@ -48,4 +48,6 @@ void flag_sub8(uint8_t v1, uint8_t v2);
 void flag_sub16(uint16_t v1, uint16_t v2);
 void flag_sub32(uint32_t v1, uint32_t v2);
 
+void CPU_filterflags();
+
 #endif

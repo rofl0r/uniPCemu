@@ -315,3 +315,64 @@ void flag_sub32(uint32_t v1, uint32_t v2)
 	flag_szp32(dst & 0xFFFFFFFF);
 	flag_subcoa32(v1,sub,dst);
 }
+
+void CPU_filterflags()
+{
+	//This applies to all processors:
+	INLINEREGISTER uint_32 tempflags;
+	tempflags = CPU[activeCPU].registers->EFLAGS; //Load the flags to set/clear!
+	tempflags &= ~(8 | 32); //Clear bits 3&5!
+
+	switch (EMULATED_CPU) //What CPU flags to emulate?
+	{
+	case CPU_8086:
+	case CPU_NECV30:
+		tempflags |= 0xF000; //High bits are stuck to 1!
+		break;
+	case CPU_80286:
+		if (getcpumode() == CPU_MODE_REAL) //Real mode?
+		{
+			tempflags &= 0x0FFF; //Always set the high flags in real mode only!
+		}
+		else //Protected mode?
+		{
+			tempflags &= 0x7FFF; //Bit 15 is always cleared!
+		}
+		break;
+	case CPU_80386:
+		if (getcpumode() == CPU_MODE_REAL) //Real mode?
+		{
+			tempflags &= 0x37FFF; //Always set the high flags in real mode only!
+		}
+		else //Protected mode?
+		{
+			tempflags &= 0x37FFF; //Bit 15 is always cleared! AC is stuck to 0! All bits above AC are always cleared!
+		}
+		break;
+	case CPU_80486:
+		if (getcpumode() == CPU_MODE_REAL) //Real mode?
+		{
+			tempflags &= 0x277FFF; //Always set the high flags in real mode only!
+		}
+		else //Protected mode?
+		{
+			tempflags &= 0x277FFF; //Bit 15 is always cleared! Don't allow setting of the CPUID and larger flags! Allow toggling the CPUID flag too(it's supported)!
+		}
+		break;
+	case CPU_PENTIUM:
+		//Allow all bits to be set, except the one needed from the 80386+ identification(bit 15=0)!
+		if (getcpumode() == CPU_MODE_REAL) //Real mode?
+		{
+			tempflags &= 0x3F7FFF; //Always set the high flags in real mode only!
+		}
+		else //Protected mode?
+		{
+			tempflags &= 0x3F7FFF;
+		}
+		break;
+	default: //Unknown CPU?
+		break;
+	}
+	tempflags |= 2; //Clear bit values 8&32(unmapped bits 3&5) and set bit value 2!
+	CPU[activeCPU].registers->EFLAGS = tempflags; //Update the flags!
+}

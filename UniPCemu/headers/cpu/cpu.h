@@ -1171,8 +1171,6 @@ void CPU_JMPabs(uint_32 addr, byte useAddressSize);
 uint_32 CPU_EIPmask(byte useAddressSize);
 byte CPU_EIPSize(byte useAddressSize);
 
-void CPU_filterflags();
-
 void CPU_tickPendingReset(); //Tick a pending CPU reset!
 byte BIU_resetRequested(); //Reset requested?
 
