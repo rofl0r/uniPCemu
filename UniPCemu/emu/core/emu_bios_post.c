@@ -338,7 +338,7 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 			}
 			else //5170 AT+ PC?
 			{
-				if ((EMULATED_CPU>=CPU_80386)) //386+ CPU? We're 32-bit instead!
+				if ((EMULATED_CPU>=CPU_80386) && is_Compaq) //386+ CPU and Compaq architecture(32-bit hardware)? We're using a 32-bit BIOS instead!
 				{
 					if (BIOS_Settings.BIOSROMmode==BIOSROMMODE_DIAGNOSTICS) //Diagnostics mode?
 					{
