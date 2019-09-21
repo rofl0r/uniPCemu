@@ -35,6 +35,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/cpu/protecteddebugging.h" //Protected mode debugger support for LOADALL!
 #include "headers/cpu/biu.h" //PIQ flushing support!
 #include "headers/cpu/cpu_stack.h" //Stack support!
+#include "headers/cpu/cpu_pmtimings.h" //Timings support!
 
 //Opcodes based on: http://www.logix.cz/michal/doc/i386/chp17-a3.htm#17-03-A
 
