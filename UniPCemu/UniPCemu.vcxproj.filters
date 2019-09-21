@@ -585,6 +585,9 @@
     <ClCompile Include="basicio\cueimage.c">
       <Filter>Source Files\basicio</Filter>
     </ClCompile>
+    <ClCompile Include="cpu\opcodeinformation.c">
+      <Filter>Source Files\cpu</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="headers\header_dosbox.h">
@@ -1024,6 +1027,9 @@
     </ClInclude>
     <ClInclude Include="headers\basicio\cueimage.h">
       <Filter>Header Files\basicio</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\cpu\cpu_opcodeinformation.h">
+      <Filter>Header Files\cpu</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

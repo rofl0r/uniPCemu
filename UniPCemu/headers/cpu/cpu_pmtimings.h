@@ -86,4 +86,6 @@ typedef struct
 //The size of our PM timings table!
 #define CPUPMTIMINGS_SIZE 731
 
+byte CPU_apply286cycles(); //Apply the 80286+ cycles method. Result: 0 when to apply normal cycles. 1 when 80286+ cycles are applied!
+
 #endif

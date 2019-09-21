@@ -33,6 +33,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/emu/gpu/gpu_text.h" //Text support!
 #include "headers/cpu/biu.h" //BIU support!
 #include "headers/cpu/protecteddebugging.h" //Protected mode debugger support!
+#include "headers/cpu/cpu_opcodeinformation.h" //Current opcode information!
 
 //Log invalid registers?
 #define LOG_INVALID_REGISTERS 0

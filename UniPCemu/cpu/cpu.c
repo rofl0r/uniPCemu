@@ -36,6 +36,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/emu/emucore.h" //Needed for CPU reset handler!
 #include "headers/mmu/mmuhandler.h" //bufferMMU, MMU_resetaddr and flushMMU support!
 #include "headers/cpu/cpu_pmtimings.h" //80286+ timings lookup table support!
+#include "headers/cpu/cpu_opcodeinformation.h" //Opcode information support!
 #include "headers/cpu/easyregs.h" //Easy register support!
 #include "headers/cpu/protecteddebugging.h" //Protected debugging support!
 #include "headers/cpu/biu.h" //BIU support!
@@ -87,8 +88,6 @@ byte CPU_prefixes[2][32]; //All prefixes, packed in a bitfield!
 #ifdef CPU_USECYCLES
 byte CPU_useCycles = 0; //Enable normal cycles for supported CPUs when uncommented?
 #endif
-
-word timing286lookup[4][2][2][0x100][8][8]; //4 modes(bit0=protected mode when set, bit1=32-bit instruction when set), 2 memory modes, 2 0F possibilities, 256 instructions, 9 modr/m variants, no more than 8 possibilities for every instruction. About 73K memory consumed(unaligned).
 
 /*
 
@@ -1938,15 +1937,6 @@ byte CPU_segmentOverridden(byte TheActiveCPU)
 
 byte newREP = 1; //Are we a new repeating instruction (REP issued?)
 
-//Stuff for CPU 286+ timing processing!
-byte didJump = 0; //Did we jump this instruction?
-byte ENTER_L = 0; //Level value of the ENTER instruction!
-
-byte hascallinterrupttaken_type = 0xFF; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task gate flag. Left at 0xFF when nothing is used(unknown case?)
-byte CPU_interruptraised = 0;
-
-extern CPUPM_Timings CPUPMTimings[CPUPMTIMINGS_SIZE]; //The PM timings full table!
-
 void CPU_resetTimings()
 {
 	CPU[activeCPU].cycles_HWOP = 0; //No hardware interrupt to use anymore!
@@ -1963,142 +1953,18 @@ void CPU_resetTimings()
 
 byte REPZ = 0; //Default to REP!
 byte didNewREP = 0, didRepeating=0; //Did we do a REP?
-byte BST_cnt = 0; //How many of bit scan/test (forward) times are taken?
-byte protection_PortRightsLookedup = 0; //Are the port rights looked up?
-
-byte CPU_apply286cycles() //Apply the 80286+ cycles method. Result: 0 when to apply normal cycles. 1 when 80286+ cycles are applied!
-{
-	if (EMULATED_CPU<CPU_80286) return 0; //Not applied on unsupported processors!
-	word *currentinstructiontiming; //Current timing we're processing!
-	byte instructiontiming, ismemory, modrm_threevariablesused; //Timing loop used on 286+ CPUs!
-	word currentinstructiontimingindex;
-	MemoryTimingInfo *currenttimingcheck; //Current timing check!
-	//80286 uses other timings than the other chips!
-	ismemory = modrm_ismemory(params)?1:0; //Are we accessing memory?
-	if (ismemory)
-	{
-		modrm_threevariablesused = MODRM_threevariables(params); //Three variables used?
-	}
-	else
-	{
-		modrm_threevariablesused = 0; //Only 2 or less variables used in calculating the ModR/M.
-	}
-
-	if (CPU_interruptraised) //Any fault is raised?
-	{
-		ismemory = modrm_threevariablesused = 0; //Not to be applied with this!
-		currentinstructiontiming = &timing286lookup[isPM()|((CPU_Operand_size[activeCPU])<<1)][0][0][0xCD][0x00][0]; //Start by pointing to our records to process! Enforce interrupt!
-	}
-	else
-	{
-		currentinstructiontiming = &timing286lookup[isPM()|((CPU_Operand_size[activeCPU])<<1)][ismemory][CPU[activeCPU].is0Fopcode][CPU[activeCPU].lastopcode][MODRM_REG(params.modrm)][0]; //Start by pointing to our records to process!
-	}
-	//Try to use the lookup table!
-	for (instructiontiming=0;((instructiontiming<8)&&*currentinstructiontiming);++instructiontiming, ++currentinstructiontiming) //Process all timing candidates!
-	{
-		if (*currentinstructiontiming) //Valid timing?
-		{
-			currentinstructiontimingindex = (*currentinstructiontiming - 1); //Actual instruction timing index to use(1-base to 0-base)!
-			if (CPUPMTimings[currentinstructiontimingindex].CPUmode[isPM()].ismemory[ismemory].basetiming) //Do we have valid timing to use?
-			{
-				currenttimingcheck = &CPUPMTimings[currentinstructiontimingindex].CPUmode[isPM()].ismemory[ismemory]; //Our current info to check!
-				if (currenttimingcheck->addclock&0x80) //Multiply BST_cnt and add to this to get the correct timing?
-				{
-					if ((currenttimingcheck->n&0x80)==((protection_PortRightsLookedup&1)<<7)) //Match case?
-					{
-						//REP support added for string instructions!
-						if (didNewREP || ((currenttimingcheck->addclock&2)==0)) //Including the REP, first instruction?
-						{
-							CPU[activeCPU].cycles_OP += currenttimingcheck->basetiming; //Use base timing specified only!
-						}
-						else //Already repeating instruction continued?
-						{
-							CPU[activeCPU].cycles_OP += (currenttimingcheck->n&0x7F); //Simply cycle count added each REPeated instruction!
-						}
-						if (modrm_threevariablesused && (currenttimingcheck->addclock&1)) ++CPU[activeCPU].cycles_OP; //One cycle to add with added clock!
-						return 1; //Apply the cycles!
-					}
-				}
-				else if (currenttimingcheck->addclock&0x40) //Multiply BST_cnt and add to this to get the correct timing?
-				{
-					CPU[activeCPU].cycles_OP += currenttimingcheck->basetiming; //Use base timing specified only!
-					CPU[activeCPU].cycles_OP += currenttimingcheck->n*BST_cnt; //This adds the n value for each level linearly!
-					if (modrm_threevariablesused && (currenttimingcheck->addclock&1)) ++CPU[activeCPU].cycles_OP; //One cycle to add with added clock!
-					return 1; //Apply the cycles!									
-				}
-				else if (currenttimingcheck->addclock&0x20) //L of instruction doesn't fit in 1 bit?
-				{
-					if ((ENTER_L&1)!=ENTER_L) //Doesn't fit in 1 bit?
-					{
-						if ((ENTER_L&1)==currenttimingcheck->n) //Matching timing?
-						{
-							CPU[activeCPU].cycles_OP += currenttimingcheck->basetiming; //Use base timing specified only!
-							CPU[activeCPU].cycles_OP += currenttimingcheck->n*(ENTER_L-1); //This adds the n value for each level after level 1 linearly!
-							if (modrm_threevariablesused && (currenttimingcheck->addclock&1)) ++CPU[activeCPU].cycles_OP; //One cycle to add with added clock!
-							return 1; //Apply the cycles!									
-						}
-					}
-				}
-				else if (currenttimingcheck->addclock&0x10) //L of instruction fits in 1 bit and matches?
-				{
-					if ((ENTER_L&1)==ENTER_L) //Fits in 1 bit?
-					{
-						if ((ENTER_L&1)==currenttimingcheck->n) //Matching timing?
-						{
-							CPU[activeCPU].cycles_OP += currenttimingcheck->basetiming; //Use base timing specified only!
-							if (modrm_threevariablesused && (currenttimingcheck->addclock&1)) ++CPU[activeCPU].cycles_OP; //One cycle to add with added clock!
-							return 1; //Apply the cycles!									
-						}
-					}
-				}
-				else if (currenttimingcheck->addclock&0x08) //Only when jump taken?
-				{
-					if (didJump) //Did we jump?
-					{
-						CPU[activeCPU].cycles_OP += currenttimingcheck->basetiming; //Use base timing specified only!								
-						if (modrm_threevariablesused && (currenttimingcheck->addclock&1)) ++CPU[activeCPU].cycles_OP; //One cycle to add with added clock!
-						return 1; //Apply the cycles!
-					}
-				}
-				else if (currenttimingcheck->addclock&0x04) //Gate type has to match in order to be processed?
-				{
-					if (currenttimingcheck->n==hascallinterrupttaken_type) //Did we execute this kind of gate?
-					{
-						CPU[activeCPU].cycles_OP += currenttimingcheck->basetiming; //Use base timing specified only!								
-						if (modrm_threevariablesused && (currenttimingcheck->addclock&1)) ++CPU[activeCPU].cycles_OP; //One cycle to add with added clock!
-						return 1; //Apply the cycles!								
-					}
-				}
-				else if (currenttimingcheck->addclock&0x02) //REP((N)Z) instruction prefix only?
-				{
-					if (didRepeating) //Are we executing a repeat?
-					{
-						if (didNewREP) //Including the REP, first instruction?
-						{
-							CPU[activeCPU].cycles_OP += currenttimingcheck->basetiming; //Use base timing specified only!
-						}
-						else //Already repeating instruction continued?
-						{
-							CPU[activeCPU].cycles_OP += currenttimingcheck->n; //Simply cycle count added each REPeated instruction!
-						}
-						if (modrm_threevariablesused && (currenttimingcheck->addclock&1)) ++CPU[activeCPU].cycles_OP; //One cycle to add with added clock!
-						return 1; //Apply the cycles!
-					}
-				}
-				else //Normal/default behaviour? Always matches!
-				{
-					CPU[activeCPU].cycles_OP += currenttimingcheck->basetiming; //Use base timing specified only!
-					if (modrm_threevariablesused && (currenttimingcheck->addclock&1)) ++CPU[activeCPU].cycles_OP; //One cycle to add with added clock!
-					return 1; //Apply the cycles!
-				}
-			}
-		}
-	}
-	return 0; //Not applied, because it's an unknown instruction!
-}
 
 extern BIU_type BIU[MAXCPUS]; //All possible BIUs!
 byte BIUresponsedummy = 0;
+
+//Stuff for CPU 286+ timing processing!
+extern byte BST_cnt; //How many of bit scan/test (forward) times are taken?
+extern byte protection_PortRightsLookedup; //Are the port rights looked up?
+extern byte didJump; //Did we jump this instruction?
+extern byte ENTER_L; //Level value of the ENTER instruction!
+extern byte hascallinterrupttaken_type; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task gate flag. Left at 0xFF when nothing is used(unknown case?)
+extern byte CPU_interruptraised; //Interrupt raised flag?
+
 
 void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 {
@@ -2486,134 +2352,6 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	BIUWaiting: //The BIU is waiting!
 	CPU_tickBIU(); //Tick the prefetch as required!
 	flushMMU(); //Flush MMU writes!
-}
-
-byte haslower286timingpriority(byte CPUmode,byte ismemory,word lowerindex, word higherindex)
-{
-	--lowerindex; //We're checking base 0, not base 1!
-	--higherindex; //We're checking base 0, not base 1!
-	if ((CPUPMTimings[higherindex].CPUmode[CPUmode].ismemory[ismemory].addclock&2)>(CPUPMTimings[lowerindex].CPUmode[CPUmode].ismemory[ismemory].addclock&2)) return 1; //REP over non-REP
-	if ((CPUPMTimings[higherindex].CPUmode[CPUmode].ismemory[ismemory].addclock&4)>(CPUPMTimings[lowerindex].CPUmode[CPUmode].ismemory[ismemory].addclock&4)) return 1; //Gate over non-Gate!
-	if ((CPUPMTimings[higherindex].CPUmode[CPUmode].ismemory[ismemory].addclock&8)>(CPUPMTimings[lowerindex].CPUmode[CPUmode].ismemory[ismemory].addclock&8)) return 1; //JMP taken over JMP not taken!
-	if ((CPUPMTimings[higherindex].CPUmode[CPUmode].ismemory[ismemory].addclock&16)>(CPUPMTimings[lowerindex].CPUmode[CPUmode].ismemory[ismemory].addclock&16)) return 1; //L value of BOUND fits having higher priority!
-	if ((CPUPMTimings[higherindex].CPUmode[CPUmode].ismemory[ismemory].addclock&32)>(CPUPMTimings[lowerindex].CPUmode[CPUmode].ismemory[ismemory].addclock&32)) return 1; //L value of BOUND counts having higher priority!
-	return 0; //We're equal priority or having higher priority! Don't swap!
-}
-
-int lookupTablesCPU = -1; //What lookup table is loaded?
-
-void CPU_initLookupTables() //Initialize the CPU timing lookup tables!
-{
-	word index; //The index into the main table!
-	word sublistindex; //The index in the sublist!
-	byte CPUmode; //The used CPU mode!
-	byte ismemory; //Memory used in the CPU mode!
-	byte is0Fopcode; //0F opcode bit!
-	word instruction; //Instruction itself!
-	word modrm_register; //The modr/m register used, if any(modr/m specified only)!
-	word sublistsize; //Sub-list size!
-	word sublist[8]; //All instructions matching this!
-	word tempsublist; //Temporary value for swapping items!
-	byte latestCPU; //Last supported CPU for this instruction timing!
-	byte currentCPU; //The CPU we're emulating, relative to the 80286!
-	byte current32; //32-bit opcode?
-	byte notfound = 0; //Not found CPU timings?
-	if (lookupTablesCPU==(int)EMULATED_CPU) return; //Already loaded? Don't reload when already ready to use!
-	lookupTablesCPU = (int)EMULATED_CPU; //We're loading the specified CPU to be active!
-
-	memset(&timing286lookup,0,sizeof(timing286lookup)); //Clear the entire list!
-
-	if (EMULATED_CPU<CPU_80286) //Not a capable CPU for these timings?
-	{
-		return; //No lookup table to apply, use an empty table!
-	}
-
-	currentCPU = EMULATED_CPU-CPU_80286; //The CPU to find in the table!
-	for (CPUmode=0;CPUmode<4;++CPUmode) //All CPU modes! Real vs Protected is bit 0, 16-bit vs 32-bit is bit 1!
-	{
-		for (ismemory=0;ismemory<2;++ismemory) //All memory modes!
-		{
-			for (is0Fopcode=0;is0Fopcode<2;++is0Fopcode) //All 0F opcode possibilities!
-			{
-				for (instruction=0;instruction<0x100;++instruction) //All instruction opcodes!
-				{
-					for (modrm_register=0;modrm_register<8;++modrm_register) //All modr/m variants!
-					{
-						sublistsize = 0; //Initialize our size to none!
-						latestCPU = currentCPU; //Start off with the current CPU that's supported!
-						notfound = 1; //Default to not found!
-						current32 = (CPUmode>>1); //32-bit opcode?
-						try16bit:
-						for (;;) //Find the top CPU supported!
-						{
-							//First, detect the latest supported CPU!
-							for (index=0;index<NUMITEMS(CPUPMTimings);++index) //Process all timings available!
-							{
-								if ((CPUPMTimings[index].CPU==latestCPU) && (CPUPMTimings[index].is0F==is0Fopcode) && (CPUPMTimings[index].is32==current32) && (CPUPMTimings[index].OPcode==(instruction&CPUPMTimings[index].OPcodemask))) //Basic opcode matches?
-								{
-									if ((CPUPMTimings[index].modrm_reg==0) || (CPUPMTimings[index].modrm_reg==(modrm_register+1))) //MODR/M filter matches to full opcode?
-									{
-										notfound = 0; //We're found!
-										goto topCPUTimingsdetected; //We're detected!
-									}
-								}
-							}
-							if (latestCPU==0) goto topCPUTimingsdetected; //Abort when finished!
-							--latestCPU; //Check the next CPU!
-						}
-						topCPUTimingsdetected: //TOP CPU timings detected?
-						memset(&sublist,0,sizeof(sublist)); //Clear our sublist!
-						if (notfound) //No CPU found matching this instruction?
-						{
-							if (current32) //32-bit opcode to check?
-							{
-								current32 = 0; //Try 16-bit opcode instead!
-								latestCPU = currentCPU; //Start off with the current CPU that's supported!
-								notfound = 1; //Default to not found!
-								goto try16bit; //Try the 16-bit variant instead!
-							}
-							memset(&timing286lookup[CPUmode][ismemory][is0Fopcode][instruction][modrm_register],0,sizeof(timing286lookup[CPUmode][ismemory][is0Fopcode][instruction][modrm_register])); //Unused timings!
-						}
-						else //Valid CPU found for this instruction?
-						{
-							//Now, find all items that apply to this instruction!
-							for (index=0;index<NUMITEMS(CPUPMTimings);++index) //Process all timings available!
-							{
-								if ((CPUPMTimings[index].CPU==latestCPU) && (CPUPMTimings[index].is0F==is0Fopcode) && (CPUPMTimings[index].OPcode==(instruction&CPUPMTimings[index].OPcodemask))) //Basic opcode matches?
-								{
-									if ((CPUPMTimings[index].modrm_reg==0) || (CPUPMTimings[index].modrm_reg==(modrm_register+1))) //MODR/M filter matches to full opcode?
-									{
-										if (sublistsize<NUMITEMS(sublist)) //Can we even add this item?
-										{
-											sublist[sublistsize++] = (index+1); //Add the index to the sublist, when possible!
-										}
-									}
-								}
-							}
-					
-							//Now, sort the items in their apropriate order!
-							for (index=0;index<(sublistsize-1);++index) //Process all items to sort!
-							{
-								for (sublistindex=0;sublistindex<(sublistsize-index-1);++sublistindex) //The items to compare!
-								{
-									if (haslower286timingpriority(CPUmode,ismemory,sublist[sublistindex],sublist[sublistindex+1])) //Do we have lower timing priority (item must be after the item specified)?
-									{
-										tempsublist = sublist[sublistindex]; //Lower priority index saved!
-										sublist[sublistindex] = sublist[sublistindex+1]; //Higher priority index to higher priority position!
-										sublist[sublistindex+1] = tempsublist; //Lower priority index to lower priority position!
-									}
-								}
-							}
-
-							//Now, the sublist is filled with items needed for the entry!
-							memcpy(&timing286lookup[CPUmode][ismemory][is0Fopcode][instruction][modrm_register],&sublist,MIN(sizeof(sublist),sizeof(timing286lookup[CPUmode][ismemory][is0Fopcode][instruction][modrm_register]))); //Copy the sublist to the active items!
-						}
-					}
-				}
-			}
-		}
-	}
-	//The list is now ready for use!
 }
 
 void CPU_afterexec() //Stuff to do after execution of the OPCode (cycular tasks etc.)

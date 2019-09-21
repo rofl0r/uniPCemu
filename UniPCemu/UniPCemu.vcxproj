@@ -131,6 +131,7 @@
     <ClCompile Include="cpu\mmu.c" />
     <ClCompile Include="cpu\modrm.c" />
     <ClCompile Include="cpu\multitasking.c" />
+    <ClCompile Include="cpu\opcodeinformation.c" />
     <ClCompile Include="cpu\opcodes0F_386.c" />
     <ClCompile Include="cpu\opcodes_386.c" />
     <ClCompile Include="cpu\opcodes_486.c" />
@@ -284,6 +285,7 @@
     <ClInclude Include="headers\cpu\cpu_OP80486.h" />
     <ClInclude Include="headers\cpu\cpu_OP80586.h" />
     <ClInclude Include="headers\cpu\cpu_OP8086.h" />
+    <ClInclude Include="headers\cpu\cpu_opcodeinformation.h" />
     <ClInclude Include="headers\cpu\cpu_OPNECV30.h" />
     <ClInclude Include="headers\cpu\cpu_pmtimings.h" />
     <ClInclude Include="headers\cpu\easyregs.h" />
