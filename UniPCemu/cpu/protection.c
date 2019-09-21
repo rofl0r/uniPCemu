@@ -333,6 +333,26 @@ void protection_nextOP() //We're executing the next OPcode?
 	protection_PortRightsLookedup = 0; //Are the port rights looked up, to be reset?
 }
 
+byte STACK_SEGMENT_DESCRIPTOR_B_BIT() //80286+: Gives the B-Bit of the DATA DESCRIPTOR TABLE FOR SS-register!
+{
+	if (EMULATED_CPU <= CPU_80286) //8086-NEC V20/V30?
+	{
+		return 0; //Always 16-bit descriptor!
+	}
+
+	return SEGDESC_NONCALLGATE_D_B(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_SS]) & CPU[activeCPU].D_B_Mask; //Give the B-BIT of the SS-register!
+}
+
+byte CODE_SEGMENT_DESCRIPTOR_D_BIT() //80286+: Gives the B-Bit of the DATA DESCRIPTOR TABLE FOR SS-register!
+{
+	if (EMULATED_CPU <= CPU_80286) //8086-NEC V20/V30?
+	{
+		return 0; //Always 16-bit descriptor!
+	}
+
+	return SEGDESC_NONCALLGATE_D_B(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS]) & CPU[activeCPU].D_B_Mask; //Give the D-BIT of the CS-register!
+}
+
 word CPU_segment(byte defaultsegment) //Plain segment to use!
 {
 	return (CPU[activeCPU].segment_register==CPU_SEGMENT_DEFAULT) ? *CPU[activeCPU].SEGMENT_REGISTERS[defaultsegment] : *CPU[activeCPU].SEGMENT_REGISTERS[CPU[activeCPU].segment_register]; //Use Data Segment (or different) for data!

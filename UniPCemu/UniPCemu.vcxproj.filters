@@ -588,6 +588,9 @@
     <ClCompile Include="cpu\opcodeinformation.c">
       <Filter>Source Files\cpu</Filter>
     </ClCompile>
+    <ClCompile Include="cpu\cpu_stack.c">
+      <Filter>Source Files\cpu</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="headers\header_dosbox.h">
@@ -1029,6 +1032,9 @@
       <Filter>Header Files\basicio</Filter>
     </ClInclude>
     <ClInclude Include="headers\cpu\cpu_opcodeinformation.h">
+      <Filter>Header Files\cpu</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\cpu\cpu_stack.h">
       <Filter>Header Files\cpu</Filter>
     </ClInclude>
   </ItemGroup>

@@ -127,6 +127,7 @@
     <ClCompile Include="cpu\cpu_interrupts.c" />
     <ClCompile Include="cpu\cpu_jmptbls.c" />
     <ClCompile Include="cpu\cpu_jmptbls0f.c" />
+    <ClCompile Include="cpu\cpu_stack.c" />
     <ClCompile Include="cpu\flags.c" />
     <ClCompile Include="cpu\mmu.c" />
     <ClCompile Include="cpu\modrm.c" />
@@ -288,6 +289,7 @@
     <ClInclude Include="headers\cpu\cpu_opcodeinformation.h" />
     <ClInclude Include="headers\cpu\cpu_OPNECV30.h" />
     <ClInclude Include="headers\cpu\cpu_pmtimings.h" />
+    <ClInclude Include="headers\cpu\cpu_stack.h" />
     <ClInclude Include="headers\cpu\easyregs.h" />
     <ClInclude Include="headers\cpu\flags.h" />
     <ClInclude Include="headers\cpu\fpu_OP8087.h" />

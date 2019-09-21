@@ -1074,23 +1074,6 @@ void CPU_exec(); //Run one CPU OPCode!
 word CPU_segment(byte defaultsegment); //Plain segment to use (Plain and overrides)!
 char *CPU_textsegment(byte defaultsegment); //Plain segment to use (text)!
 
-//PUSH and POP for CPU STACK! The _BIU suffixes place a request for the BIU to handle it (and requires a response to be read, which is either the result of the operation or 1 for writes).
-
-void CPU_PUSH8(byte val, byte is32instruction); //Push Byte!
-byte CPU_PUSH8_BIU(byte val, byte is32instruction); //Push Byte!
-byte CPU_POP8(byte is32instruction);
-byte CPU_POP8_BIU(byte is32instruction); //Request an 8-bit POP from the BIU!
-
-void CPU_PUSH16(word *val, byte is32instruction); //Push Word!
-byte CPU_PUSH16_BIU(word *val, byte is32instruction); //Push Word!
-word CPU_POP16(byte is32instruction);
-byte CPU_POP16_BIU(byte is32instruction); //Pop Word!
-
-void CPU_PUSH32(uint_32 *val); //Push DWord!
-byte CPU_PUSH32_BIU(uint_32 *val); //Push DWord!
-uint_32 CPU_POP32(); //Full stack used!
-byte CPU_POP32_BIU(); //Full stack used!
-
 byte call_soft_inthandler(byte intnr, int_64 errorcode, byte is_interrupt); //Software interrupt handler (FROM software interrupts only (int>=0x20 for software call from Handler))!
 void call_hard_inthandler(byte intnr); //Software interrupt handler (FROM hardware only)!
 
@@ -1150,18 +1133,11 @@ byte CPU_PORT_IN_B(word base, word port, byte *result);
 byte CPU_PORT_IN_W(word base, word port, word *result);
 byte CPU_PORT_IN_D(word base, word port, uint_32 *result);
 
-//Information for simulating PUSH and POP on the stack!
-sbyte stack_pushchange(byte dword);
-sbyte stack_popchange(byte dword);
-
 byte isPM(); //Are we in protected mode?
 byte isV86(); //Are we in Virtual 8086 mode?
 
 //ModR/M debugger support!
 byte NumberOfSetBits(uint_32 i); //Number of bits set in this variable!
-
-byte checkStackAccess(uint_32 poptimes, word isPUSH, byte isdword); //How much do we need to POP from the stack?
-byte checkENTERStackAccess(uint_32 poptimes, byte isdword); //How much do we need to POP from the stack?
 
 void CPU_resetTimings(); //Reset timings before processing the next CPU state!
 void CPU_interruptcomplete(); //What to do when an interrupt is completed!
