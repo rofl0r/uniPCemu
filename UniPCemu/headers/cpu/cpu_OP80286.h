@@ -21,7 +21,6 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #ifndef CPU_OP80286_H
 #define CPU_OP80286_H
 
-void generate_opcode0F_jmptbl();
 void unkOP0F_286(); //0F unknown opcode handler on 286+?
 
 //The 80286 instructions themselves!

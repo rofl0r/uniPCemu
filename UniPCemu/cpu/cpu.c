@@ -60,7 +60,7 @@ byte cpudebugger; //To debug the CPU?
 CPU_type CPU[MAXCPUS]; //The CPU data itself!
 
 //CPU timings information
-extern CPU_Timings CPUTimings[CPU_MODES][0x200]; //All normal and 0F CPU timings, which are used, for all modes available!
+extern CPU_OpcodeInformation CPUOpcodeInformationPrecalcs[CPU_MODES][0x200]; //All normal and 0F CPU timings, which are used, for all modes available!
 
 //ModR/M information!
 MODRM_PARAMS params; //For getting all params for the CPU exection ModR/M data!
@@ -1045,7 +1045,7 @@ void resetCPU(byte isInit) //Initialises the currently selected CPU!
 	CPU[activeCPU].lastopcode = CPU[activeCPU].lastopcode0F = CPU[activeCPU].lastmodrm = CPU[activeCPU].previousopcode = CPU[activeCPU].previousopcode0F = CPU[activeCPU].previousmodrm = 0; //Last opcode, default to 0 and unknown?
 	generate_opcode_jmptbl(); //Generate the opcode jmptbl for the current CPU!
 	generate_opcode0F_jmptbl(); //Generate the opcode 0F jmptbl for the current CPU!
-	generate_timings_tbl(); //Generate the timings tables for all CPU's!
+	generate_opcodeInformation_tbl(); //Generate the timings tables for all CPU's!
 	CPU_initLookupTables(); //Initialize our timing lookup tables!
 	#ifdef CPU_USECYCLES
 	CPU_useCycles = 1; //Are we using cycle-accurate emulation?
@@ -1183,7 +1183,7 @@ byte CODE_SEGMENT_DESCRIPTOR_D_BIT() //80286+: Gives the B-Bit of the DATA DESCR
 
 uint_32 CPU_InterruptReturn = 0;
 
-CPU_Timings *timing = NULL; //The timing used for the current instruction!
+CPU_OpcodeInformation *currentOpcodeInformation = NULL; //The timing used for the current instruction!
 Handler currentOP_handler = &CPU_unkOP;
 extern Handler CurrentCPU_opcode_jmptbl[1024]; //Our standard internal standard opcode jmptbl!
 
@@ -1286,17 +1286,17 @@ OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 	CPU[activeCPU].address_size = (0xFFFF | (0xFFFF<<(CPU_Address_size[activeCPU]<<4))); //Effective address size for this instruction!
 
 	//Now, check for the ModR/M byte, if present, and read the parameters if needed!
-	timing = &CPUTimings[CPU_Operand_size[activeCPU]][(*OP<<1)|CPU[activeCPU].is0Fopcode]; //Only 2 modes implemented so far, 32-bit or 16-bit mode, with 0F opcode every odd entry!
+	currentOpcodeInformation = &CPUOpcodeInformationPrecalcs[CPU_Operand_size[activeCPU]][(*OP<<1)|CPU[activeCPU].is0Fopcode]; //Only 2 modes implemented so far, 32-bit or 16-bit mode, with 0F opcode every odd entry!
 
-	if (((timing->readwritebackinformation&0x80)==0) && CPU_getprefix(0xF0) && (EMULATED_CPU>=CPU_NECV30)) //LOCK when not allowed, while the exception is supported?
+	if (((currentOpcodeInformation->readwritebackinformation&0x80)==0) && CPU_getprefix(0xF0) && (EMULATED_CPU>=CPU_NECV30)) //LOCK when not allowed, while the exception is supported?
 	{
 		goto invalidlockprefix;
 	}
 
-	if (timing->used==0) goto skiptimings; //Are we not used?
-	if (timing->has_modrm && CPU[activeCPU].instructionfetch.CPU_fetchingRM) //Do we have ModR/M data?
+	if (currentOpcodeInformation->used==0) goto skipcurrentOpcodeInformations; //Are we not used?
+	if (currentOpcodeInformation->has_modrm && CPU[activeCPU].instructionfetch.CPU_fetchingRM) //Do we have ModR/M data?
 	{
-		if (modrm_readparams(&params,timing->modrm_size,timing->modrm_specialflags,*OP)) return 1; //Read the params!
+		if (modrm_readparams(&params,currentOpcodeInformation->modrm_size,currentOpcodeInformation->modrm_specialflags,*OP)) return 1; //Read the params!
 		CPU[activeCPU].instructionfetch.CPU_fetchparameterPos = 0; //Reset the parameter position again for new parameters!
 		if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 		if (MODRM_ERROR(params)) //An error occurred in the read params?
@@ -1310,17 +1310,17 @@ OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 			CPU_unkOP(); //Execute the unknown opcode handler!
 			return 1; //Abort!
 		}
-		MODRM_src0 = timing->modrm_src0; //First source!
-		MODRM_src1 = timing->modrm_src1; //Second source!
+		MODRM_src0 = currentOpcodeInformation->modrm_src0; //First source!
+		MODRM_src1 = currentOpcodeInformation->modrm_src1; //Second source!
 		CPU[activeCPU].instructionfetch.CPU_fetchingRM = 0; //We're done fetching the R/M parameters!
 	}
 
-	if (timing->parameters) //Gotten parameters?
+	if (currentOpcodeInformation->parameters) //Gotten parameters?
 	{
-		switch (timing->parameters&~4) //What parameters?
+		switch (currentOpcodeInformation->parameters&~4) //What parameters?
 		{
 			case 1: //imm8?
-				if (timing->parameters&4) //Only when ModR/M REG<2?
+				if (currentOpcodeInformation->parameters&4) //Only when ModR/M REG<2?
 				{
 					if (MODRM_REG(params.modrm)<2) //8-bit immediate?
 					{
@@ -1335,7 +1335,7 @@ OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 				}
 				break;
 			case 2: //imm16?
-				if (timing->parameters&4) //Only when ModR/M REG<2?
+				if (currentOpcodeInformation->parameters&4) //Only when ModR/M REG<2?
 				{
 					if (MODRM_REG(params.modrm)<2) //16-bit immediate?
 					{
@@ -1350,7 +1350,7 @@ OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 				}
 				break;
 			case 3: //imm32?
-				if (timing->parameters&4) //Only when ModR/M REG<2?
+				if (currentOpcodeInformation->parameters&4) //Only when ModR/M REG<2?
 				{
 					if (MODRM_REG(params.modrm)<2) //32-bit immediate?
 					{
@@ -1380,7 +1380,7 @@ OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 				}
 				break;
 			case 9: //imm64(ptr16:32)?
-				if (timing->parameters & 4) //Only when ModR/M REG<2?
+				if (currentOpcodeInformation->parameters & 4) //Only when ModR/M REG<2?
 				{
 					if (MODRM_REG(params.modrm)<2) //32-bit immediate?
 					{
@@ -1439,11 +1439,11 @@ OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 		}
 	}
 
-skiptimings: //Skip all timings and parameters(invalid instruction)!
+skipcurrentOpcodeInformations: //Skip all timings and parameters(invalid instruction)!
 	CPU_resetInstructionSteps(); //Reset the current instruction steps!
 	CPU[activeCPU].lastopcode = *OP; //Last OPcode for reference!
 	CPU[activeCPU].lastopcode0F = CPU[activeCPU].is0Fopcode; //Last OPcode for reference!
-	CPU[activeCPU].lastmodrm = (likely(timing)?timing->has_modrm:0)?params.modrm:0; //Modr/m if used!
+	CPU[activeCPU].lastmodrm = (likely(currentOpcodeInformation)?currentOpcodeInformation->has_modrm:0)?params.modrm:0; //Modr/m if used!
 	currentOP_handler = CurrentCPU_opcode_jmptbl[((word)*OP << 2) | (CPU[activeCPU].is0Fopcode<<1) | CPU_Operand_size[activeCPU]];
 	CPU_executionphase_newopcode(); //We're starting a new opcode, notify the execution phase handlers!
 	return 0; //We're done fetching the instruction!

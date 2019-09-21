@@ -1133,7 +1133,7 @@ A=imm16/32(depending on address size). Used with opcodes A0-A3. Loads into immad
 
 */
 
-CPU_Timings CPUInformation[NUMCPUS][2][0x100] = {
+CPU_OpcodeInformation CPUOpcodeInformation[NUMCPUS][2][0x100] = {
 	{
 		{ //16-bit!
 			{ 1,1,0,0,1,0,0,0x81 }, //00 ADD
@@ -4244,7 +4244,7 @@ CPU_Timings CPUInformation[NUMCPUS][2][0x100] = {
 	} //Pentium+
 };
 
-CPU_Timings CPUInformation0F[NUMCPUS-CPU_80286][2][0x100] = { //0F information, from 80286 upwards!
+CPU_OpcodeInformation CPUOpcodeInformation0F[NUMCPUS-CPU_80286][2][0x100] = { //0F information, from 80286 upwards!
 	{ //80286+
 		{ //16-bit
 			{ 1,1,1,0,1,0,0,0x00 }, //00 Various extended 286+ instructions GRP opcode.
@@ -6319,31 +6319,31 @@ CPU_Timings CPUInformation0F[NUMCPUS-CPU_80286][2][0x100] = { //0F information, 
 	} //Pentium+
 };
 
-CPU_Timings CPUTimings[CPU_MODES][0x200]; //All normal CPU timings, which are used, for all modes available!
+CPU_OpcodeInformation CPUOpcodeInformationPrecalcs[CPU_MODES][0x200]; //All normal CPU timings, which are used, for all modes available!
 
-void generate_timings_tbl() //Generate the timings table!
+void generate_opcodeInformation_tbl() //Generate the timings table!
 {
 	int opcode;
 	byte mode, curmode;
 	byte theCPU;
 
 	//Normal instruction timings!
-	memset(&CPUTimings,0,sizeof(CPUTimings)); //Clear the entire timing table for filling it!
-	for (mode = 0;mode<NUMITEMS(CPUTimings);++mode) //All processor modes?
+	memset(&CPUOpcodeInformationPrecalcs,0,sizeof(CPUOpcodeInformationPrecalcs)); //Clear the entire timing table for filling it!
+	for (mode = 0;mode<NUMITEMS(CPUOpcodeInformationPrecalcs);++mode) //All processor modes?
 	{
 		for (opcode = 0;opcode < 0x100;++opcode) //Process all opcodes!
 		{
 			curmode = mode; //The current mode we're processing!
 			tryopcodes: //Retry with the other mode!
 			theCPU = (byte)EMULATED_CPU; //Start with the emulated CPU!
-			for (;(CPUInformation[theCPU][curmode][opcode].used==0) && theCPU;) --theCPU; //Goto parent while not used!
-			if ((CPUInformation[theCPU][curmode][opcode].used == 0) && curmode) //Unused instruction and higher bit mode?
+			for (;(CPUOpcodeInformation[theCPU][curmode][opcode].used==0) && theCPU;) --theCPU; //Goto parent while not used!
+			if ((CPUOpcodeInformation[theCPU][curmode][opcode].used == 0) && curmode) //Unused instruction and higher bit mode?
 			{
 				--curmode; //Try lower-bit mode!
 				theCPU = (byte)EMULATED_CPU; //Start with the emulated CPU!
 				goto tryopcodes; //Try the next mode!
 			}
-			memcpy(&CPUTimings[mode][(opcode<<1)],&CPUInformation[theCPU][curmode][opcode],sizeof(CPUTimings[mode][opcode])); //Set the mode to the highest mode detected that's available!
+			memcpy(&CPUOpcodeInformationPrecalcs[mode][(opcode<<1)],&CPUOpcodeInformation[theCPU][curmode][opcode],sizeof(CPUOpcodeInformationPrecalcs[mode][opcode])); //Set the mode to the highest mode detected that's available!
 
 			//0F timings next for this opcode!
 			if (EMULATED_CPU>=CPU_80286) //0F opcodes as well?
@@ -6351,14 +6351,14 @@ void generate_timings_tbl() //Generate the timings table!
 				curmode = mode; //The current mode we're processing!
 			tryopcodes0F: //Retry with the other mode!
 				theCPU = (byte)(EMULATED_CPU-CPU_80286); //Start with the emulated CPU! The first generation to support this is the 286!
-				for (;(CPUInformation0F[theCPU][curmode][opcode].used == 0) && theCPU;) --theCPU; //Goto parent while not used!
-				if ((CPUInformation0F[theCPU][curmode][opcode].used == 0) && curmode) //Unused instruction and higher bit mode?
+				for (;(CPUOpcodeInformation0F[theCPU][curmode][opcode].used == 0) && theCPU;) --theCPU; //Goto parent while not used!
+				if ((CPUOpcodeInformation0F[theCPU][curmode][opcode].used == 0) && curmode) //Unused instruction and higher bit mode?
 				{
 					--curmode; //Try lower-bit mode!
 					theCPU = (byte)(EMULATED_CPU-CPU_80286); //Start with the emulated CPU! The first generation to support this is the 286!
 					goto tryopcodes0F; //Try the next mode!
 				}
-				memcpy(&CPUTimings[mode][(opcode<<1)|1], &CPUInformation0F[theCPU][curmode][opcode], sizeof(CPUTimings[mode][(opcode<<1)|1])); //Set the mode to the highest mode detected that's available!
+				memcpy(&CPUOpcodeInformationPrecalcs[mode][(opcode<<1)|1], &CPUOpcodeInformation0F[theCPU][curmode][opcode], sizeof(CPUOpcodeInformationPrecalcs[mode][(opcode<<1)|1])); //Set the mode to the highest mode detected that's available!
 			}
 		}
 	}

@@ -41,7 +41,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 
 char modrm_sizes[4][256] = {"byte","word","dword","byte"}; //What size is used for the parameter?
 
-extern CPU_Timings *timing; //The timing used for the current instruction! Used for stuff like invalid LOCK prefixes!
+extern CPU_OpcodeInformation *currentOpcodeInformation; //The timing used for the current instruction! Used for stuff like invalid LOCK prefixes!
 
 extern byte advancedlog; //Advanced log setting
 
@@ -2579,11 +2579,11 @@ byte modrm_readparams(MODRM_PARAMS *param, byte size, byte specialflags, byte OP
 	}
 	if (CPU_getprefix(0xF0)) //LOCK prefix used?
 	{
-		if ((timing->readwritebackinformation&0x400) && (param->info[1].isreg!=2) && (MODRM_REG(param->modrm)<5)) //Allow for reg 5-7 only!
+		if ((currentOpcodeInformation->readwritebackinformation&0x400) && (param->info[1].isreg!=2) && (MODRM_REG(param->modrm)<5)) //Allow for reg 5-7 only!
 		{
 			param->error = 1; //We've detected an error!		
 		}
-		else if ((timing->readwritebackinformation&0x400)) //Allow for reg 5-7 only!
+		else if ((currentOpcodeInformation->readwritebackinformation&0x400)) //Allow for reg 5-7 only!
 		{
 			if (MODRM_REG(param->modrm)>4) //We're a lockable instruction?
 			{
@@ -2599,7 +2599,7 @@ byte modrm_readparams(MODRM_PARAMS *param, byte size, byte specialflags, byte OP
 		}
 		else //Check for reg also, if required?
 		{
-			switch (timing->readwritebackinformation&0x300)
+			switch (currentOpcodeInformation->readwritebackinformation&0x300)
 			{
 			case 0x100: //Reg!=7 faults only!
 				if (MODRM_REG(param->modrm)!=7) //We're a lockable instruction?
@@ -2630,7 +2630,7 @@ byte modrm_readparams(MODRM_PARAMS *param, byte size, byte specialflags, byte OP
 			case 0x300: //Reg 0 or 1 faults only!
 				if ((MODRM_REG(param->modrm)&0x6)==0) //We're a lockable instruction?
 				{
-					if (param->info[timing->modrm_src0].isreg!=2) //Memory not accessed?
+					if (param->info[currentOpcodeInformation->modrm_src0].isreg!=2) //Memory not accessed?
 					{
 						param->error = 1; //We've detected an error!		
 					}
