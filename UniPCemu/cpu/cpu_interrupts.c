@@ -29,6 +29,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/cpu/cpu_execution.h" //Execution phase support!
 #include "headers/cpu/biu.h" //PIQ flushing support!
 #include "headers/cpu/multitasking.h" //Task switching/faulting support!
+#include "headers/cpu/cpu_stack.h" //Stack support!
 
 //Are we to disable NMI's from All(or Memory only)?
 #define DISABLE_MEMNMI

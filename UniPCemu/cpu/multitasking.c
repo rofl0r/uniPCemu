@@ -28,6 +28,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/cpu/protecteddebugging.h" //Protected mode debugging support!
 #include "headers/cpu/biu.h" //BIU support!
 #include "headers/cpu/cpu_execution.h" //Execution flow support!
+#include "headers/cpu/cpu_stack.h" //Stack support!
 
 //Force 16-bit TSS on 80286?
 //#define FORCE_16BITTSS

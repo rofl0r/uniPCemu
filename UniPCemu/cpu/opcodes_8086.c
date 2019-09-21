@@ -34,6 +34,9 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/cpu/cpu_execution.h" //Execution phase support for interupts etc.!
 #include "headers/cpu/cpu_OP80386.h" //For 32-bit ADD for (I)MUL!
 #include "headers/support/log.h" //Logging support!
+#include "headers/cpu/cpu_pmtimings.h" //Timing support!
+#include "headers/cpu/cpu_stack.h" //Stack support!
+
 
 MODRM_PARAMS params; //For getting all params for the CPU!
 extern byte cpudebugger; //The debugging is on?

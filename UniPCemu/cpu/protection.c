@@ -33,6 +33,8 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/cpu/cpu_OP8086.h" //8086+ push/pop support!
 #include "headers/cpu/cpu_OP80386.h" //80386+ push/pop support!
 #include "headers/cpu/protecteddebugging.h" //Protected mode debugger support!
+#include "headers/cpu/flags.h" //Flag support!
+#include "headers/cpu/cpu_stack.h" //Stack support!
 
 //Log Virtual 8086 mode calls basic information?
 //#define LOG_VIRTUALMODECALLS
@@ -1768,7 +1770,7 @@ byte getTSSIRmap(word intnr) //What are we to do with this interrupt? 0=Perform 
 			if (checkMMUaccess16(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0x66, 0xA0 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to the remainder of checks!
 			mapbase = MMU_rw0(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0x66, 0, 1); //Add the map location to the specified address!
 			//Custom, not in documentation: 
-			if (((mapbase-1) <= limit) && (mapbase >= (0x68+0x20))) //Not over the limit? We're an valid entry! There is no map when the base address is greater than or equal to the TSS limit().
+			if (((mapbase-1U) <= limit) && (mapbase >= (0x68U+0x20U))) //Not over the limit? We're an valid entry! There is no map when the base address is greater than or equal to the TSS limit().
 			{
 				maplocation += mapbase; //The actual location!
 				maplocation -= 0x20; //Start of the IR map!

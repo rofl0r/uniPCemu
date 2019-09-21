@@ -38,6 +38,8 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/cpu/biu.h" //BIU support!
 #include "headers/cpu/cpu_execution.h" //Execution phase support!
 #include "headers/support/log.h" //Logging support!
+#include "headers/cpu/cpu_pmtimings.h" //Timing support!
+#include "headers/cpu/cpu_stack.h" //Stack support!
 
 MODRM_PARAMS params; //For getting all params for the CPU!
 extern byte cpudebugger; //The debugging is on?

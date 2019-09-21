@@ -30,6 +30,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/emu/debugger/debugger.h" //Debugger support!
 #include "headers/cpu/biu.h" //PIQ flushing support!
 #include "headers/support/log.h" //Logging support!
+#include "headers/cpu/cpu_pmtimings.h" //Timing support!
 
 //Reading of the 16-bit entries within descriptors!
 #define DESC_16BITS(x) SDL_SwapLE16(x)

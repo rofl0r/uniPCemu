@@ -30,6 +30,9 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/cpu/cpu_OPNECV30.h" //NECV30 function specific compatibility!
 #include "headers/cpu/protection.h" //Protection support!
 #include "headers/cpu/flags.h" //Flags support!
+#include "headers/cpu/cpu_pmtimings.h" //Timing support!
+#include "headers/cpu/cpu_stack.h" //Stack support!
+
 
 extern MODRM_PARAMS params;    //For getting all params!
 extern byte blockREP; //Block the instruction from executing (REP with (E)CX=0

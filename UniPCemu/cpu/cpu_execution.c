@@ -24,6 +24,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/cpu/multitasking.h" //Multitasking support!
 #include "headers/cpu/biu.h" //BIU support for making direct memory requests!
 #include "headers/support/log.h" //To log invalids!
+#include "headers/cpu/cpu_pmtimings.h" //Timing support!
 
 //Define to debug disk reads using interrupt 13h
 //#define DEBUGBOOT

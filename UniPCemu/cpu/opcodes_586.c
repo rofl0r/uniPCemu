@@ -24,6 +24,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/cpu/cpu_OP8086.h" //8086 memory access support!
 #include "headers/cpu/cpu_OP80386.h" //80386 memory access support!
 #include "headers/cpu/cpu_execution.h" //Execution phase support!
+#include "headers/cpu/cpu_pmtimings.h" //Timing support!
 
 //How many cycles to substract from the documented instruction timings for the raw EU cycles for each BIU access?
 #define EU_CYCLES_SUBSTRACT_ACCESSREAD 4
