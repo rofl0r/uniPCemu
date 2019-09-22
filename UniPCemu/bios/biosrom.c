@@ -233,7 +233,7 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 					if (!((sizeof(EMU_VGAROM) + 0xC0000) > BIOSROM_BASE_XT)) //Not more than we can handle?
 					{
 						unlock(LOCK_CPU);
-						freez(&OPT_ROMS[numOPT_ROMS], OPTROM_size[numOPT_ROMS], filename); //Release the ROM!
+						freez((void **)&OPT_ROMS[numOPT_ROMS], OPTROM_size[numOPT_ROMS], filename); //Release the ROM!
 						lock(LOCK_CPU);
 						location = sizeof(EMU_VGAROM); //Allocate the Emulator VGA ROM for the first entry instead!
 						BIOS_load_VGAROM(); //Load the BIOS VGA ROM!
@@ -250,7 +250,7 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 					if (!((sizeof(EMU_VGAROM) + 0xC0000) > BIOSROM_BASE_XT)) //Not more than we can handle?
 					{
 						unlock(LOCK_CPU);
-						freez(&OPT_ROMS[numOPT_ROMS], OPTROM_size[numOPT_ROMS], filename); //Release the ROM!
+						freez((void **)&OPT_ROMS[numOPT_ROMS], OPTROM_size[numOPT_ROMS], filename); //Release the ROM!
 						lock(LOCK_CPU);
 						location = sizeof(EMU_VGAROM); //Allocate the Emulator VGA ROM for the first entry instead!
 						BIOS_load_VGAROM(); //Load the BIOS VGA ROM!
@@ -276,7 +276,7 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 				--numOPT_ROMS; //Unused option ROM!
 				location = (OPTROM_location[numOPT_ROMS]&0xFFFFFFFFU); //Reverse to start next ROM(s) at said location again!
 				unlock(LOCK_CPU);
-				freez(&OPT_ROMS[numOPT_ROMS],OPTROM_size[numOPT_ROMS], filename); //Release the ROM!
+				freez((void **)&OPT_ROMS[numOPT_ROMS],OPTROM_size[numOPT_ROMS], filename); //Release the ROM!
 				lock(LOCK_CPU);
 			}
 			continue; //Loaded!
