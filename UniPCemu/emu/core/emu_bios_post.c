@@ -215,6 +215,7 @@ void POST_memorydefaults() //Memory defaults for the CPU without custom BIOS!
 
 extern byte is_XT; //XT Architecture?
 extern byte is_Compaq; //Compaq Architecture?
+extern byte is_PS2; //Are we emulating a Compaq with PS/2 mouse(modern) device?
 extern byte dumpBIOS; //dump BIOS?
 
 //Result: 0=Continue;1=Reset!
@@ -340,6 +341,20 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 			{
 				if ((EMULATED_CPU>=CPU_80386) && is_Compaq) //386+ CPU and Compaq architecture(32-bit hardware)? We're using a 32-bit BIOS instead!
 				{
+					if (is_PS2) //Try PS/2 architecture first?
+					{
+						if (BIOS_Settings.BIOSROMmode == BIOSROMMODE_DIAGNOSTICS) //Diagnostics mode?
+						{
+							verified = BIOS_load_custom(NULL, "BIOSROM.PS2.DIAGNOSTICS.BIN"); //Try to load a custom 32-bit BIOS ROM!
+							if (verified) goto loadOPTROMS; //Loaded the BIOS?							
+						}
+
+						if (BIOS_Settings.BIOSROMmode != BIOSROMMODE_UROMS)
+						{
+							verified = BIOS_load_custom(NULL, "BIOSROM.PS2.BIN"); //Try to load a custom 32-bit BIOS ROM!
+							if (verified) goto loadOPTROMS; //Loaded the BIOS?
+						}
+					}
 					if (BIOS_Settings.BIOSROMmode==BIOSROMMODE_DIAGNOSTICS) //Diagnostics mode?
 					{
 						verified = BIOS_load_custom(NULL, "BIOSROM.32.DIAGNOSTICS.BIN"); //Try to load a custom 32-bit BIOS ROM!
@@ -373,7 +388,21 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 					}
 				}
 
-				tryATROM:
+			tryATROM:
+				if (is_PS2) //Try PS/2 architecture first?
+				{
+					if (BIOS_Settings.BIOSROMmode == BIOSROMMODE_DIAGNOSTICS) //Diagnostics mode?
+					{
+						verified = BIOS_load_custom(NULL, "BIOSROM.PS2.DIAGNOSTICS.BIN"); //Try to load a custom 32-bit BIOS ROM!
+						if (verified) goto loadOPTROMS; //Loaded the BIOS?							
+					}
+
+					if (BIOS_Settings.BIOSROMmode != BIOSROMMODE_UROMS)
+					{
+						verified = BIOS_load_custom(NULL, "BIOSROM.PS2.BIN"); //Try to load a custom AT BIOS ROM!
+						if (verified) goto loadOPTROMS; //Loaded the BIOS?
+					}
+				}
 				if (BIOS_Settings.BIOSROMmode==BIOSROMMODE_DIAGNOSTICS) //Diagnostics mode?
 				{
 					verified = BIOS_load_custom(NULL, "BIOSROM.AT.DIAGNOSTICS.BIN"); //Try to load a custom 32-bit BIOS ROM!
