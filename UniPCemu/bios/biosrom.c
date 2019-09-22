@@ -314,80 +314,111 @@ uint_32 BIOS_ROM_U13_15_double = 0, BIOS_ROM_U13_15_single = 0;
 int BIOS_load_ROM(byte nr)
 {
 	byte tryext = 0; //Try extra ROMs for different architectures?
-	byte actualtryext = 0; //Actual try extension?
 	uint_32 ROM_size=0; //The size of both ROMs!
 	BIGFILE *f;
 	char filename[100];
 	memset(&filename,0,sizeof(filename)); //Clear/init!
 retryext:
-	if (((tryext&1)==0) && ((tryext&4)==0) && (EMULATED_CPU>=CPU_80386)) //Extension ROM available?
+	if ((tryext&7)==0) //Extension ROM available?
 	{
-		if ((tryext & 2) == 0) //Try PS/2?
+		if (EMULATED_CPU<CPU_80386) //Unusable CPU for 32-bit code?
 		{
-			if (is_PS2 == 0) //Not a PS/2 compatible architecture?
-			{
-				++tryext; //Next try!
-				goto retryext; //Skip PS/2 ROMs!
-			}
-			if (BIOS_Settings.BIOSROMmode == BIOSROMMODE_DIAGNOSTICS) //Diagnostics mode?
-			{
-				snprintf(filename, sizeof(filename), "%s/BIOSROM.PS2.U%u.DIAGNOSTICS.BIN", ROMpath, nr); //Create the filename for the ROM!		
-			}
-			else //Normal mode?
-			{
-				snprintf(filename, sizeof(filename), "%s/BIOSROM.PS2.U%u.BIN", ROMpath, nr); //Create the filename for the ROM!		
-			}
+			++tryext; //Next try!
+			goto retryext; //Skip 32-bit ROMs!
 		}
-		else //Try 32-bit?
-		{
-			if (BIOS_Settings.BIOSROMmode == BIOSROMMODE_DIAGNOSTICS) //Diagnostics mode?
-			{
-				snprintf(filename, sizeof(filename), "%s/BIOSROM.32.U%u.DIAGNOSTICS.BIN", ROMpath, nr); //Create the filename for the ROM!		
-			}
-			else //Normal mode?
-			{
-				snprintf(filename, sizeof(filename), "%s/BIOSROM.32.U%u.BIN", ROMpath, nr); //Create the filename for the ROM!		
-			}
-		}
-		actualtryext = 1; //Trying extension!
 	}
-	else //Normal ROM try?
+	switch (tryext&7)
 	{
-		if ((tryext & 2) == 0) //Try PS/2?
+	case 0: //PS/2?
+		if (is_PS2 == 0) //Not a PS/2 compatible architecture?
 		{
-			if (is_PS2 == 0) //Not a PS/2 compatible architecture?
-			{
-				++tryext; //Next try!
-				goto retryext; //Skip PS/2 ROMs!
-			}
-			if (BIOS_Settings.BIOSROMmode == BIOSROMMODE_DIAGNOSTICS) //Diagnostics mode?
-			{
-				snprintf(filename, sizeof(filename), "%s/BIOSROM.U%u.DIAGNOSTICS.BIN", ROMpath, nr); //Create the filename for the ROM!
-			}
-			else
-			{
-				snprintf(filename, sizeof(filename), "%s/BIOSROM.U%u.BIN", ROMpath, nr); //Create the filename for the ROM!
-			}
+			++tryext; //Next try!
+			goto retryext; //Skip PS/2 ROMs!
 		}
-		else //Try compatiblity?
+		if (BIOS_Settings.BIOSROMmode == BIOSROMMODE_DIAGNOSTICS) //Diagnostics mode?
 		{
-			if (BIOS_Settings.BIOSROMmode == BIOSROMMODE_DIAGNOSTICS) //Diagnostics mode?
-			{
-				snprintf(filename, sizeof(filename), "%s/BIOSROM.U%u.DIAGNOSTICS.BIN", ROMpath, nr); //Create the filename for the ROM!
-			}
-			else
-			{
-				snprintf(filename, sizeof(filename), "%s/BIOSROM.U%u.BIN", ROMpath, nr); //Create the filename for the ROM!
-			}
+			snprintf(filename, sizeof(filename), "%s/BIOSROM.PS2.U%u.DIAGNOSTICS.BIN", ROMpath, nr); //Create the filename for the ROM!		
 		}
-		actualtryext = 0; //Not trying extension!
+		else //Normal mode?
+		{
+			snprintf(filename, sizeof(filename), "%s/BIOSROM.PS2.U%u.BIN", ROMpath, nr); //Create the filename for the ROM!		
+		}
+		break;
+	case 1: //32-bit?
+		if ((is_Compaq==0) && (is_PS2==0)) //Not a 32-bit compatible architecture?
+		{
+			++tryext; //Next try!
+			goto retryext; //Skip 32-bit ROMs!
+		}
+
+		if (BIOS_Settings.BIOSROMmode == BIOSROMMODE_DIAGNOSTICS) //Diagnostics mode?
+		{
+			snprintf(filename, sizeof(filename), "%s/BIOSROM.32.U%u.DIAGNOSTICS.BIN", ROMpath, nr); //Create the filename for the ROM!		
+		}
+		else //Normal mode?
+		{
+			snprintf(filename, sizeof(filename), "%s/BIOSROM.32.U%u.BIN", ROMpath, nr); //Create the filename for the ROM!		
+		}
+		break;
+	case 2: //Compaq?
+		if (is_Compaq==0) //Not a Compaq compatible architecture?
+		{
+			++tryext; //Next try!
+			goto retryext; //Skip 32-bit ROMs!
+		}
+
+		if (BIOS_Settings.BIOSROMmode == BIOSROMMODE_DIAGNOSTICS) //Diagnostics mode?
+		{
+			snprintf(filename, sizeof(filename), "%s/BIOSROM.COMPAQ.U%u.DIAGNOSTICS.BIN", ROMpath, nr); //Create the filename for the ROM!		
+		}
+		else //Normal mode?
+		{
+			snprintf(filename, sizeof(filename), "%s/BIOSROM.COMPAQ.U%u.BIN", ROMpath, nr); //Create the filename for the ROM!		
+		}
+		break;
+	case 3: //AT?
+		if (is_XT) //Not a AT compatible architecture?
+		{
+			++tryext; //Next try!
+			goto retryext; //Skip PS/2 ROMs!
+		}
+		if (BIOS_Settings.BIOSROMmode == BIOSROMMODE_DIAGNOSTICS) //Diagnostics mode?
+		{
+				snprintf(filename, sizeof(filename), "%s/BIOSROM.AT.U%u.DIAGNOSTICS.BIN", ROMpath, nr); //Create the filename for the ROM!
+		}
+		else
+		{
+			snprintf(filename, sizeof(filename), "%s/BIOSROM.AT.U%u.BIN", ROMpath, nr); //Create the filename for the ROM!
+		}
+		break;
+	case 4: //XT?
+		if (BIOS_Settings.BIOSROMmode == BIOSROMMODE_DIAGNOSTICS) //Diagnostics mode?
+		{
+				snprintf(filename, sizeof(filename), "%s/BIOSROM.XT.U%u.DIAGNOSTICS.BIN", ROMpath, nr); //Create the filename for the ROM!
+		}
+		else
+		{
+			snprintf(filename, sizeof(filename), "%s/BIOSROM.XT.U%u.BIN", ROMpath, nr); //Create the filename for the ROM!
+		}
+		break;
+	default:
+	case 5: //Universal ROM?
+		if (BIOS_Settings.BIOSROMmode == BIOSROMMODE_DIAGNOSTICS) //Diagnostics mode?
+		{
+				snprintf(filename, sizeof(filename), "%s/BIOSROM.U%u.DIAGNOSTICS.BIN", ROMpath, nr); //Create the filename for the ROM!
+		}
+		else
+		{
+			snprintf(filename, sizeof(filename), "%s/BIOSROM.U%u.BIN", ROMpath, nr); //Create the filename for the ROM!
+		}
+		break;
 	}
 	f = emufopen64(filename,"rb");
 	if (!f)
 	{
-		if ((tryext&4)==0) //Extension try and tried?
+		++tryext; //Try second time and onwards!
+		if (tryext<=5) //Extension try valid to be tried?
 		{
-			++tryext; //Try second time and onwards!
 			goto retryext;
 		}
 		return 0; //Failed to load!
@@ -411,7 +442,7 @@ retryext:
 		}
 		emufclose64(f); //Close the file!
 
-		BIOS_ROMS_ext[nr] = ((BIOS_Settings.BIOSROMmode==BIOSROMMODE_DIAGNOSTICS)?4:0)|(((actualtryext)?1:0)|(tryext&2)); //Extension enabled?
+		BIOS_ROMS_ext[nr] = ((BIOS_Settings.BIOSROMmode==BIOSROMMODE_DIAGNOSTICS)?4:0)|(tryext&3); //Extension enabled?
 
 		switch (nr) //What ROM has been loaded?
 		{
@@ -557,11 +588,20 @@ void BIOS_free_ROM(byte nr)
 {
 	char filename[100];
 	memset(&filename,0,sizeof(filename)); //Clear/init!
-	if (BIOS_ROMS_ext[nr] & 1) //Extension ROM?
+	switch (BIOS_ROMS_ext[nr]&7) //ROM type?
 	{
-		if (BIOS_ROMS_ext[nr] & 2) //PS2 ROM?
-		{
-			if (BIOS_ROMS_ext[nr] & 4) //Diagnostic ROM?
+	case 0: //PS/2 ROM?
+			if (BIOS_ROMS_ext[nr] & 8) //Diagnostic ROM?
+			{
+				snprintf(filename, sizeof(filename), "BIOSROM.PS2.U%u.DIAGNOSTICS.BIN", nr); //Create the filename for the ROM!
+			}
+			else //Normal ROM?
+			{
+				snprintf(filename, sizeof(filename), "BIOSROM.PS2.U%u.BIN", nr); //Create the filename for the ROM!
+			}
+			break;
+	case 1: //32-bit ROM?
+			if (BIOS_ROMS_ext[nr] & 8) //Diagnostic ROM?
 			{
 				snprintf(filename, sizeof(filename), "BIOSROM.32.U%u.DIAGNOSTICS.BIN", nr); //Create the filename for the ROM!
 			}
@@ -569,29 +609,47 @@ void BIOS_free_ROM(byte nr)
 			{
 				snprintf(filename, sizeof(filename), "BIOSROM.32.U%u.BIN", nr); //Create the filename for the ROM!
 			}
-		}
-		else //Normal ROM?
-		{
-			if (BIOS_ROMS_ext[nr] & 4) //Diagnostic ROM?
+			break;
+	case 2: //Compaq ROM?
+			if (BIOS_ROMS_ext[nr] & 8) //Diagnostic ROM?
 			{
-				snprintf(filename, sizeof(filename), "BIOSROM.32.U%u.DIAGNOSTICS.BIN", nr); //Create the filename for the ROM!
+				snprintf(filename, sizeof(filename), "BIOSROM.COMPAQ.U%u.DIAGNOSTICS.BIN", nr); //Create the filename for the ROM!
 			}
 			else //Normal ROM?
 			{
-				snprintf(filename, sizeof(filename), "BIOSROM.32.U%u.BIN", nr); //Create the filename for the ROM!
+				snprintf(filename, sizeof(filename), "BIOSROM.COMPAQ.U%u.BIN", nr); //Create the filename for the ROM!
 			}
-		}
-	}
-	else
-	{
-		if (BIOS_ROMS_ext[nr]&4) //Diagnostic ROM?
-		{
-			snprintf(filename,sizeof(filename),"BIOSROM.U%u.DIAGNOSTICS.BIN",nr); //Create the filename for the ROM!
-		}
-		else //Normal ROM?
-		{
-			snprintf(filename,sizeof(filename),"BIOSROM.U%u.BIN",nr); //Create the filename for the ROM!
-		}
+			break;
+	case 3: //AT ROM?
+			if (BIOS_ROMS_ext[nr]&8) //Diagnostic ROM?
+			{
+				snprintf(filename,sizeof(filename),"BIOSROM.AT.U%u.DIAGNOSTICS.BIN",nr); //Create the filename for the ROM!
+			}
+			else //Normal ROM?
+			{
+				snprintf(filename,sizeof(filename),"BIOSROM.AT.U%u.BIN",nr); //Create the filename for the ROM!
+			}
+	case 4: //XT ROM?
+			if (BIOS_ROMS_ext[nr]&8) //Diagnostic ROM?
+			{
+				snprintf(filename,sizeof(filename),"BIOSROM.XT.U%u.DIAGNOSTICS.BIN",nr); //Create the filename for the ROM!
+			}
+			else //Normal ROM?
+			{
+				snprintf(filename,sizeof(filename),"BIOSROM.XT.U%u.BIN",nr); //Create the filename for the ROM!
+			}
+			break;
+	default:
+	case 5: //Universal ROM?
+			if (BIOS_ROMS_ext[nr]&8) //Diagnostic ROM?
+			{
+				snprintf(filename,sizeof(filename),"BIOSROM.U%u.DIAGNOSTICS.BIN",nr); //Create the filename for the ROM!
+			}
+			else //Normal ROM?
+			{
+				snprintf(filename,sizeof(filename),"BIOSROM.U%u.BIN",nr); //Create the filename for the ROM!
+			}
+			break;
 	}
 	if (BIOS_ROM_size[nr]) //Has size?
 	{
