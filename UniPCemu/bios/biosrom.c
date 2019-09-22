@@ -209,53 +209,76 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 		emufseek64(f,0,SEEK_END); //Goto EOF!
 		if (emuftell64(f)) //Gotten size?
 		{
-			OPTROM_size[i] = emuftell64(f); //Save the size!
+			OPTROM_size[numOPT_ROMS] = emuftell64(f); //Save the size!
 			emufseek64(f,0,SEEK_SET); //Goto BOF!
-			if ((location+OPTROM_size[i])>0x20000) //Overflow?
+			if ((location+OPTROM_size[numOPT_ROMS])>0x20000) //Overflow?
 			{
 				if (!i) //First ROM is reserved by the VGA BIOS ROM. If not found, we're skipping it and using the internal VGA BIOS!
 				{
-					location = sizeof(EMU_VGAROM); //Allocate the Emulator VGA ROM for the first entry instead!
-					BIOS_load_VGAROM(); //Load the BIOS VGA ROM!
+					if (!((sizeof(EMU_VGAROM) + 0xC0000) > BIOSROM_BASE_XT)) //Not more than we can handle?
+					{
+						location = sizeof(EMU_VGAROM); //Allocate the Emulator VGA ROM for the first entry instead!
+						BIOS_load_VGAROM(); //Load the BIOS VGA ROM!
+					}
 				}
-				BIOS_ROM_size[i] = 0; //Reset!
+				BIOS_ROM_size[numOPT_ROMS] = 0; //Reset!
 				continue; //We're skipping this ROM: it's too big!
 			}
-			OPT_ROMS[i] = (byte *)nzalloc(OPTROM_size[i],filename,getLock(LOCK_CPU)); //Simple memory allocation for our ROM!
-			if (!OPT_ROMS[i]) //Failed to allocate?
+			OPT_ROMS[numOPT_ROMS] = (byte *)nzalloc(OPTROM_size[numOPT_ROMS],filename,getLock(LOCK_CPU)); //Simple memory allocation for our ROM!
+			if (!OPT_ROMS[numOPT_ROMS]) //Failed to allocate?
 			{
 				emufclose64(f); //Close the file!
 				if (!i) //First ROM is reserved by the VGA BIOS ROM. If not found, we're skipping it and using the internal VGA BIOS!
 				{
-					location = sizeof(EMU_VGAROM); //Allocate the Emulator VGA ROM for the first entry instead!
-					BIOS_load_VGAROM(); //Load the BIOS VGA ROM!
+					if (!((sizeof(EMU_VGAROM) + 0xC0000) > BIOSROM_BASE_XT)) //Not more than we can handle?
+					{
+						unlock(LOCK_CPU);
+						freez(&OPT_ROMS[numOPT_ROMS], OPTROM_size[numOPT_ROMS], filename); //Release the ROM!
+						lock(LOCK_CPU);
+						location = sizeof(EMU_VGAROM); //Allocate the Emulator VGA ROM for the first entry instead!
+						BIOS_load_VGAROM(); //Load the BIOS VGA ROM!
+					}
 				}
 				continue; //Failed to allocate!
 			}
-			if (emufread64(OPT_ROMS[i],1,OPTROM_size[i],f)!=OPTROM_size[i]) //Not fully read?
+			if (emufread64(OPT_ROMS[numOPT_ROMS],1,OPTROM_size[numOPT_ROMS],f)!=OPTROM_size[numOPT_ROMS]) //Not fully read?
 			{
-				freez((void **)&OPT_ROMS[i],OPTROM_size[i],filename); //Failed to read!
+				freez((void **)&OPT_ROMS[numOPT_ROMS],OPTROM_size[numOPT_ROMS],filename); //Failed to read!
 				emufclose64(f); //Close the file!
 				if (!i) //First ROM is reserved by the VGA BIOS ROM. If not found, we're skipping it and using the internal VGA BIOS!
 				{
-					location = sizeof(EMU_VGAROM); //Allocate the Emulator VGA ROM for the first entry instead!
-					BIOS_load_VGAROM(); //Load the BIOS VGA ROM!
+					if (!((sizeof(EMU_VGAROM) + 0xC0000) > BIOSROM_BASE_XT)) //Not more than we can handle?
+					{
+						unlock(LOCK_CPU);
+						freez(&OPT_ROMS[numOPT_ROMS], OPTROM_size[numOPT_ROMS], filename); //Release the ROM!
+						lock(LOCK_CPU);
+						location = sizeof(EMU_VGAROM); //Allocate the Emulator VGA ROM for the first entry instead!
+						BIOS_load_VGAROM(); //Load the BIOS VGA ROM!
+					}
 				}
 				continue; //Failed to read!
 			}
 			emufclose64(f); //Close the file!
 			
-			OPTROM_location[i] = location; //The option ROM location we're loaded at!
-			cleardata(&OPTROM_filename[i][0],sizeof(OPTROM_filename[i])); //Init filename!
-			safestrcpy(OPTROM_filename[i],sizeof(OPTROM_filename[0]),filename); //Save the filename of the loaded ROM for writing to it, as well as releasing it!
+			OPTROM_location[numOPT_ROMS] = location; //The option ROM location we're loaded at!
+			cleardata(&OPTROM_filename[numOPT_ROMS][0],sizeof(OPTROM_filename[numOPT_ROMS])); //Init filename!
+			safestrcpy(OPTROM_filename[numOPT_ROMS],sizeof(OPTROM_filename[0]),filename); //Save the filename of the loaded ROM for writing to it, as well as releasing it!
 
-			location += OPTROM_size[i]; //Next ROM position!
-			OPTROM_location[i] |= ((uint_64)location<<32); //The end location of the option ROM!
-			if (OPTROM_size[i]&0x7FF) //Not 2KB alligned?
+			location += OPTROM_size[numOPT_ROMS]; //Next ROM position!
+			OPTROM_location[numOPT_ROMS] |= ((uint_64)location<<32); //The end location of the option ROM!
+			if (OPTROM_size[numOPT_ROMS]&0x7FF) //Not 2KB alligned?
 			{
-				location += 0x800-(OPTROM_size[i]&0x7FF); //2KB align!
+				location += 0x800-(OPTROM_size[numOPT_ROMS]&0x7FF); //2KB align!
 			}
-			numOPT_ROMS = i+1; //We've loaded this many ROMS!
+			++numOPT_ROMS; //We've loaded this many ROMS!
+			if ((location+0xC0000) > BIOSROM_BASE_XT) //More ROMs loaded than we can handle?
+			{
+				--numOPT_ROMS; //Unused option ROM!
+				location = (OPTROM_location[numOPT_ROMS]&0xFFFFFFFFU); //Reverse to start next ROM(s) at said location again!
+				unlock(LOCK_CPU);
+				freez(&OPT_ROMS[numOPT_ROMS],OPTROM_size[numOPT_ROMS], filename); //Release the ROM!
+				lock(LOCK_CPU);
+			}
 			continue; //Loaded!
 		}
 		
@@ -454,7 +477,7 @@ retryext:
 		
 		//Recalculate based on ROM size!
 		BIOSROM_BASE_AT = 0xFFFFFF-(MIN(ROM_size,0x100000)-1); //AT ROM size! Limit to 1MB!
-		BIOSROM_BASE_XT = 0xFFFFF-(MIN(ROM_size,0x10000)-1); //XT ROM size! Limit to 64KB!
+		BIOSROM_BASE_XT = 0xFFFFF-(MIN(ROM_size,(is_XT?0x10000:(is_Compaq?0x40000:0x20000)))-1); //XT ROM size! Limit to 256KB(Compaq), 128KB(AT) or 64KB(XT)!
 		BIOSROM_BASE_Modern = 0xFFFFFFFF-(ROM_size-1); //Modern ROM size!
 		return 1; //Loaded!
 	}
@@ -520,7 +543,7 @@ int BIOS_load_custom(char *path, char *rom)
 
 		//Also limit the ROM base addresses accordingly(only last block).
 		BIOSROM_BASE_AT = 0xFFFFFF-(MIN(BIOS_custom_ROM_size<<ROM_doubling,0x100000)-1); //AT ROM size!
-		BIOSROM_BASE_XT = 0xFFFFF-(MIN(BIOS_custom_ROM_size<<ROM_doubling,(is_XT?0x10000U:0x20000U))-1U); //XT ROM size! XT has a 64K limit(0xF0000 min) because of the EMS mapped at 0xE0000(64K), while AT and up has 128K limit(0xE0000) because the memory is unused(no expansion board present, allowing all addresses to be used up to the end of the expansion ROM area(0xE0000)).
+		BIOSROM_BASE_XT = 0xFFFFF-(MIN(BIOS_custom_ROM_size<<ROM_doubling,(is_XT?0x10000U:(is_Compaq?0x40000U:0x20000U)))-1U); //XT ROM size! XT has a 64K limit(0xF0000 min) because of the EMS mapped at 0xE0000(64K), while AT and up has 128K limit(0xE0000) because the memory is unused(no expansion board present, allowing all addresses to be used up to the end of the expansion ROM area(0xE0000). Compaq and up limits to 256KB instead(addresses from 0xC0000 and up)).
 		BIOSROM_BASE_Modern = 0xFFFFFFFF-(MIN(BIOS_custom_ROM_size<<ROM_doubling,0x10000000)-1); //Modern ROM size!
 		return 1; //Loaded!
 	}
