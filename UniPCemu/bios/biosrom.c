@@ -1107,7 +1107,7 @@ byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler fun
 	INLINEREGISTER uint_32 basepos, tempoffset, baseposbackup;
 	uint_64 endpos;
 	basepos = tempoffset = offset;
-	if (basepos>=0xF0000) //Inside 16-bit/32-bit range?
+	if (basepos>=BIOSROM_BASE_XT) //Inside 16-bit/32-bit range?
 	{
 		if (unlikely(basepos<0x100000)) {  basepos = BIOSROM_BASE_XT; endpos = 0x100000; } //Our base reference position(low memory)!
 		else if (unlikely((basepos >= BIOSROM_BASE_Modern) && (EMULATED_CPU >= CPU_80386))) { basepos = BIOSROM_BASE_Modern; endpos = 0x100000000ULL; } //Our base reference position(high memory 386+)!
