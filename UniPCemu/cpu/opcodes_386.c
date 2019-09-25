@@ -4284,7 +4284,6 @@ void CPU386_OPC8_16()
 void CPU386_OPC9_32()
 {
 	debugger_setcommand("LEAVE");
-	if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(1,0,1)) return; ++CPU[activeCPU].stackchecked; } //Abort on fault!
 	if (CPU[activeCPU].instructionstep==0) //Starting?
 	{
 		if (unlikely(STACK_SEGMENT_DESCRIPTOR_B_BIT())) //32-bit stack?
@@ -4297,6 +4296,7 @@ void CPU386_OPC9_32()
 		}
 		++CPU[activeCPU].instructionstep; //Next step!
 	}
+	if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(1,0,1)) return; ++CPU[activeCPU].stackchecked; } //Abort on fault!
 	if (CPU80386_POPdw(1,&REG_EBP)) //Not done yet?
 	{
 		return; //Abort!
@@ -4307,7 +4307,6 @@ void CPU386_OPC9_32()
 void CPU386_OPC9_16()
 {
 	debugger_setcommand("LEAVE");
-	if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(1,0,0)) return; ++CPU[activeCPU].stackchecked; } //Abort on fault!
 	if (CPU[activeCPU].instructionstep==0) //Starting?
 	{
 		if (unlikely(STACK_SEGMENT_DESCRIPTOR_B_BIT())) //32-bit stack?
@@ -4320,6 +4319,7 @@ void CPU386_OPC9_16()
 		}
 		++CPU[activeCPU].instructionstep; //Next step!
 	}
+	if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(1,0,0)) return; ++CPU[activeCPU].stackchecked; } //Abort on fault!
 	if (CPU8086_POPw(1,&REG_BP,0)) //Not done yet?
 	{
 		return; //Abort!

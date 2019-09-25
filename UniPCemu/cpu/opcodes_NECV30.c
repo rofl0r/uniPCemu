@@ -763,12 +763,12 @@ void CPU186_OPC8()
 void CPU186_OPC9()
 {
 	debugger_setcommand("LEAVE");
-	if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(1,0,0)) return; ++CPU[activeCPU].stackchecked; } //Abort on fault!
 	if (CPU[activeCPU].instructionstep==0) //Starting?
 	{
 		REG_SP = REG_BP; //LEAVE starting!
 		++CPU[activeCPU].instructionstep; //Next step!
 	}
+	if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(1,0,0)) return; ++CPU[activeCPU].stackchecked; } //Abort on fault!
 	if (CPU8086_POPw(1,&REG_BP,0)) //Not done yet?
 	{
 		return; //Abort!
