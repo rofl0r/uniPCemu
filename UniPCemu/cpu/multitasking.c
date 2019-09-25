@@ -748,7 +748,14 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 		}
 
 		loadresult = LOADDESCRIPTOR(CPU_SEGMENT_LDTR, LDTsegment, &LDTsegdesc, 0x200 | (isJMPorCALL & 0x400)); //Load it, ignore errors?
-		if (unlikely(loadresult <= 0)) return 0; //Invalid LDT(due to being unpaged or other fault)?
+		if (unlikely(loadresult <= 0)) //Invalid LDT(due to being unpaged or other loading fault)?
+		{
+			if (loadresult==0) //Yet to throw the fault?
+			{
+				CPU_TSSFault(CPU[activeCPU].registers->TR, ((isJMPorCALL & 0x400) >> 10), (CPU[activeCPU].registers->TR & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Throw error!
+			}
+			return 0; //Invalid LDT(due to being unpaged or other loading fault)?
+		}
 
 		//Now the LDT entry is loaded for testing!
 		if (GENERALSEGMENT_S(LDTsegdesc)) //Not an LDT?
