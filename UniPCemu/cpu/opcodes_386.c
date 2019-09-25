@@ -4307,7 +4307,7 @@ void CPU386_OPC9_32()
 void CPU386_OPC9_16()
 {
 	debugger_setcommand("LEAVE");
-	if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(1,0,1)) return; ++CPU[activeCPU].stackchecked; } //Abort on fault!
+	if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(1,0,0)) return; ++CPU[activeCPU].stackchecked; } //Abort on fault!
 	if (CPU[activeCPU].instructionstep==0) //Starting?
 	{
 		if (unlikely(STACK_SEGMENT_DESCRIPTOR_B_BIT())) //32-bit stack?
