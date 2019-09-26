@@ -4138,23 +4138,26 @@ void CPU386_OPC8_32()
 	++instructionstep; //Instruction step is progressed!
 	if (nestlev)
 	{
-		for (temp16=1; temp16<nestlev; ++temp16)
+		if (nestlev>1) //More than 1?
 		{
-			if (EMULATED_CPU<=CPU_80486) //We don't check it all before, but during the execution on 486- processors!
-			{
-				if (CPU[activeCPU].modrmstep==framestep) if (checkENTERStackAccess(1,1)) return; //Abort on error!				
-			}
-			if (CPU80386_instructionstepreaddirectdw(framestep,CPU_SEGMENT_SS,REG_SS,(STACK_SEGMENT_DESCRIPTOR_B_BIT()?REG_EBP:REG_BP)-(temp16<<2),&ebpdata,(STACK_SEGMENT_DESCRIPTOR_B_BIT()^1))) return; //Read data from memory to copy the stack!
-			framestep += 2; //We're adding 2 immediately!
-			if (unlikely(CPU[activeCPU].instructionstep==instructionstep)) //At the write back phase?
+			for (temp16=1; temp16<nestlev; ++temp16)
 			{
 				if (EMULATED_CPU<=CPU_80486) //We don't check it all before, but during the execution on 486- processors!
 				{
-					if (checkStackAccess(1,1,1)) return; //Abort on error!
+					if (CPU[activeCPU].modrmstep==framestep) if (checkENTERStackAccess(1,1)) return; //Abort on error!				
 				}
+				if (CPU80386_instructionstepreaddirectdw(framestep,CPU_SEGMENT_SS,REG_SS,(STACK_SEGMENT_DESCRIPTOR_B_BIT()?REG_EBP:REG_BP)-(temp16<<2),&ebpdata,(STACK_SEGMENT_DESCRIPTOR_B_BIT()^1))) return; //Read data from memory to copy the stack!
+				framestep += 2; //We're adding 2 immediately!
+				if (unlikely(CPU[activeCPU].instructionstep==instructionstep)) //At the write back phase?
+				{
+					if (EMULATED_CPU<=CPU_80486) //We don't check it all before, but during the execution on 486- processors!
+					{
+						if (checkStackAccess(1,1,1)) return; //Abort on error!
+					}
+				}
+				if (CPU80386_PUSHdw(instructionstep, &ebpdata)) return; //Write back!
+				instructionstep += 2; //Next instruction step base to process!
 			}
-			if (CPU80386_PUSHdw(instructionstep, &ebpdata)) return; //Write back!
-			instructionstep += 2; //Next instruction step base to process!
 		}
 		if (EMULATED_CPU<=CPU_80486) //We don't check it all before, but during the execution on 486- processors!
 		{
@@ -4232,23 +4235,26 @@ void CPU386_OPC8_16()
 	++instructionstep; //Instruction step is progressed!
 	if (nestlev)
 	{
-		for (temp16=1; temp16<nestlev; ++temp16)
+		if (nestlev>1) //More than 1?
 		{
-			if (EMULATED_CPU<=CPU_80486) //We don't check it all before, but during the execution on 486- processors!
-			{
-				if (CPU[activeCPU].modrmstep==framestep) if (checkENTERStackAccess(1,0)) return; //Abort on error!				
-			}
-			if (CPU8086_instructionstepreaddirectw(framestep,CPU_SEGMENT_SS,REG_SS, (STACK_SEGMENT_DESCRIPTOR_B_BIT()?REG_EBP:REG_BP)-(temp16<<1),&bpdata,(STACK_SEGMENT_DESCRIPTOR_B_BIT()^1))) return; //Read data from memory to copy the stack!
-			framestep += 2; //We're adding 2 immediately!
-			if (CPU[activeCPU].instructionstep==instructionstep) //At the write back phase?
+			for (temp16=1; temp16<nestlev; ++temp16)
 			{
 				if (EMULATED_CPU<=CPU_80486) //We don't check it all before, but during the execution on 486- processors!
 				{
-					if (checkStackAccess(1,1,0)) return; //Abort on error!
+					if (CPU[activeCPU].modrmstep==framestep) if (checkENTERStackAccess(1,0)) return; //Abort on error!				
 				}
+				if (CPU8086_instructionstepreaddirectw(framestep,CPU_SEGMENT_SS,REG_SS, (STACK_SEGMENT_DESCRIPTOR_B_BIT()?REG_EBP:REG_BP)-(temp16<<1),&bpdata,(STACK_SEGMENT_DESCRIPTOR_B_BIT()^1))) return; //Read data from memory to copy the stack!
+				framestep += 2; //We're adding 2 immediately!
+				if (CPU[activeCPU].instructionstep==instructionstep) //At the write back phase?
+				{
+					if (EMULATED_CPU<=CPU_80486) //We don't check it all before, but during the execution on 486- processors!
+					{
+						if (checkStackAccess(1,1,0)) return; //Abort on error!
+					}
+				}
+				if (CPU8086_PUSHw(instructionstep, &bpdata, 0)) return; //Write back!
+				instructionstep += 2; //Next instruction step base to process!
 			}
-			if (CPU8086_PUSHw(instructionstep, &bpdata, 0)) return; //Write back!
-			instructionstep += 2; //Next instruction step base to process!
 		}
 		if (EMULATED_CPU<=CPU_80486) //We don't check it all before, but during the execution on 486- processors!
 		{
