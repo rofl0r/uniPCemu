@@ -138,7 +138,14 @@ void VGA_TextDecoder(VGA_Type *VGA, word loadedlocation)
 			characterpixels[5] = getcharxy_MDA(character, 5, ((SEQ_DATA *)VGA->Sequencer)->charinner_y); //Read all coordinates!
 			characterpixels[6] = getcharxy_MDA(character, 6, ((SEQ_DATA *)VGA->Sequencer)->charinner_y); //Read all coordinates!
 			characterpixels[7] = getcharxy_MDA(character, 7, ((SEQ_DATA *)VGA->Sequencer)->charinner_y); //Read all coordinates!
-			characterpixels[8] = 0; //Read all coordinates!
+			if (unlikely(/*(GETBITS(VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER, 2, 1) == 0) ||*/ ((character & 0xE0) != 0xC0))) //Not a line drawing character? Line drawing characters are always enabled on MDA!
+			{
+				characterpixels[8] = 0; //9th bit is always background?
+			}
+			else //Duplicate of pixel 7?
+			{
+				characterpixels[8] = characterpixels[7]; //9th bit is a duplicate of 8th bit?
+			}
 		}
 		else goto VGAtext;
 	}
@@ -159,7 +166,7 @@ void VGA_TextDecoder(VGA_Type *VGA, word loadedlocation)
 
 		if (VGA->precalcs.characterwidth == 9) //What width? 9 wide?
 		{
-			if (unlikely(GETBITS(VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER,2,1) || ((character & 0xE0) != 0xC0)))
+			if (unlikely((GETBITS(VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER,2,1)==0) || ((character & 0xE0) != 0xC0))) //Not a line drawing character or line drawing characters disabled in 9 pixel wide mode?
 			{
 				characterpixels[8] = 0; //9th bit is always background?
 			}

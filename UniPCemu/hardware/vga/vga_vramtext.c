@@ -175,7 +175,7 @@ byte getcharxy(VGA_Type *VGA, byte attribute, byte character, byte x, byte y) //
 		newx = 7; //Only 7 max!
 		if (likely(getcharacterwidth(VGA)!=8)) //What width? 9 wide?
 		{
-			if (GETBITS(VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER,2,1) || ((character & 0xE0) != 0xC0)) return 0; //9th bit is always background?
+			if ((GETBITS(VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER,2,1)==0) || ((character & 0xE0) != 0xC0)) return 0; //9th bit is always background or not a line graphics character?
 		}
 	}
 	
