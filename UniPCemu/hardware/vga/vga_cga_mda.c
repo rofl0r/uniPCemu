@@ -1303,7 +1303,7 @@ OPTINLINE void applyCGAMDAMode() //Apply VGA to CGA/MDA Mode conversion(setup de
 	SETBITS(getActiveVGA()->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER,4,1,0); //CGA display!
 	SETBITS(getActiveVGA()->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER,3,1,0); //CGA display! Single pixels only!
 	SETBITS(getActiveVGA()->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER,2,1,0); //CGA display! Single load rate!
-	SETBITS(getActiveVGA()->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER,0,1,1); //CGA display! 8 dots/character!
+	SETBITS(getActiveVGA()->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER,0,1,(MDAEMULATION_ENABLED_CRTC(getActiveVGA()))?0:1); //CGA display: 8 dots/character. MDA display: 9 dots/character!
 	getActiveVGA()->registers->SequencerRegisters.REGISTERS.MAPMASKREGISTER = 3; //Write to planes 0/1 only, since we're emulating CGA!
 	SETBITS(getActiveVGA()->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER,1,1,0); //Write to planes 0/1 only, since we're emulating CGA! We're wrapping around 16KB, so only 64K applied(16K with double 4 bytes per index=64K memory).
 	SETBITS(getActiveVGA()->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER,2,1,0); //Write to planes 0/1 only, since we're emulating CGA!
@@ -1334,7 +1334,7 @@ OPTINLINE void applyCGAMDAMode() //Apply VGA to CGA/MDA Mode conversion(setup de
 	SETBITS(getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.COLORSELECTREGISTER,0,3,0); //Don't use!
 	SETBITS(getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.COLORSELECTREGISTER,2,3,0); //Don't use!
 	//External registers: Fully set!
-	SETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,0,1,(getActiveVGA()->registers->specialCGAflags&1)?1:0); //CGA/MDA address!
+	SETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,0,1,(CGAEMULATION_ENABLED_CRTC(VGA))?1:0); //CGA/MDA address!
 	SETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,1,1,1); //CGA!
 	SETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,5,1,1); //CGA!
 	SETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,6,1,0); //CGA has positive polarity!
