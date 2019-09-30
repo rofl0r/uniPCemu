@@ -1334,7 +1334,7 @@ OPTINLINE void applyCGAMDAMode() //Apply VGA to CGA/MDA Mode conversion(setup de
 	SETBITS(getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.COLORSELECTREGISTER,0,3,0); //Don't use!
 	SETBITS(getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.COLORSELECTREGISTER,2,3,0); //Don't use!
 	//External registers: Fully set!
-	SETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,0,1,(CGAEMULATION_ENABLED_CRTC(VGA))?1:0); //CGA/MDA address!
+	SETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,0,1,(CGAEMULATION_ENABLED_CRTC(getActiveVGA()))?1:0); //CGA/MDA address!
 	SETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,1,1,1); //CGA!
 	SETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,5,1,1); //CGA!
 	SETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,6,1,0); //CGA has positive polarity!
