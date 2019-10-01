@@ -784,7 +784,8 @@ void fillCGAfont()
 	if (CGA_reversedinit) //Need to initialise?
 	{
 		word row;
-		for (row=0;row<sizeof(int10_font_08_reversed);row++)
+		memset(&int10_font_08_reversed,0,sizeof(int10_font_08_reversed)); //Clear the entire font used to make sure the unused data is empty(background color)!
+		for (row=0;row<sizeof(int10_font_08);row++)
 		{
 			int10_font_08_reversed[row] = reverse8_CGA(int10_font_08[row]);
 		}
@@ -820,7 +821,7 @@ void fillMDAfont()
 	{
 		word row,character,char2;
 		memset(&int10_font_14_reversed,0,sizeof(int10_font_14_reversed)); //Clear the entire font used to make sure the unused data is empty(background color)!
-		for (row=0;row<sizeof(int10_font_08_reversed);row++)
+		for (row=0;row<sizeof(int10_font_14);row++)
 		{
 			character = row/14; //Character!
 			char2 = row%14; //Line!
