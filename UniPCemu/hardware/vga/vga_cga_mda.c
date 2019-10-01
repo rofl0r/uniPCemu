@@ -831,11 +831,21 @@ void fillMDAfont()
 	}
 }
 
-byte CGA_is_hsync(VGA_Type *VGA, word x) //Are we vsync?
+byte CGAMDA_is_hsync(VGA_Type *VGA, word x) //Are we vsync?
 {
-	if ((x>=(VGA->registers->CGARegistersMasked[2]<<3)) && (x<((VGA->registers->CGARegistersMasked[2]<<3)+(VGA->registers->CGARegistersMasked[3]<<3)))) //Horizontal sync?
+	if (CGAEMULATION_ENABLED_CRTC(VGA)) //CGA timings?
 	{
-		return 1; //Horizontal sync!
+		if ((x>=(VGA->registers->CGARegistersMasked[2]<<3)) && (x<((VGA->registers->CGARegistersMasked[2]<<3)+(VGA->registers->CGARegistersMasked[3]<<3)))) //Horizontal sync?
+		{
+			return 1; //Horizontal sync!
+		}
+	}
+	else //MDA timings?
+	{
+		if ((x>=((VGA->registers->CGARegistersMasked[2]<<3)+VGA->registers->CGARegistersMasked[2])) && (x<(((VGA->registers->CGARegistersMasked[2]<<3)+VGA->registers->CGARegistersMasked[2])+((VGA->registers->CGARegistersMasked[3]<<3)+VGA->registers->CGARegistersMasked[3])))) //Horizontal sync?
+		{
+			return 1; //Horizontal sync!
+		}
 	}
 	return 0;
 }
@@ -846,7 +856,10 @@ word get_display_CGAMDA_x(VGA_Type *VGA, word x)
 	word result=0;
 	word column=x; //Unpatched x value!
 	if (!x)	result |= VGA_SIGNAL_HRETRACEEND; //Horizontal retrace&blank is finished now!
-	column >>= 3; //Divide by 8 to get the character clock!
+	if (CGAEMULATION_ENABLED_CRTC(VGA)) //CGA timings?
+		column >>= 3; //Divide by 8 to get the character clock!
+	else //MDA timings?
+		column /= 9; //Divide by 9 to get the character clock!
 
 	if (GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER,6,1) || CGA_DOUBLEWIDTH(VGA)) //Byte mode and double width seems to affect timings?
 	{
@@ -859,11 +872,11 @@ word get_display_CGAMDA_x(VGA_Type *VGA, word x)
 		result |= VGA_SIGNAL_HTOTAL; //End of display: start the next frame!
 		result |= VGA_SIGNAL_HSYNCRESET; //Reset HSync!
 	}
-	if (CGA_is_hsync(VGA,x)) //Horizontal sync?
+	if (CGAMDA_is_hsync(VGA,x)) //Horizontal sync?
 	{
 		result |= VGA_SIGNAL_HRETRACESTART; //Start horizontal sync!
 	}
-	else if (x && CGA_is_hsync(VGA,x-1)) //Previous was hsync?
+	else if (x && CGAMDA_is_hsync(VGA,x-1)) //Previous was hsync?
 	{
 		result |= VGA_SIGNAL_HRETRACEEND; //End horizontal sync!
 	}
