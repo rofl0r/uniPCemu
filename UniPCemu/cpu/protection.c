@@ -1222,7 +1222,7 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 
 				if ((EXECSEGMENTPTR_C(descriptor)==0) && (isDifferentCPL==1)) //Non-Conforming segment, call gate and more privilege?
 				{
-					CPU[activeCPU].CPL = GENERALSEGMENTPTR_DPL(descriptor); //CPL = DPL!
+					//CPU[activeCPU].CPL = GENERALSEGMENTPTR_DPL(descriptor); //CPL = DPL!
 				}
 				setRPL(value,getCPL()); //RPL of CS always becomes CPL!
 
@@ -1261,7 +1261,7 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 					{
 						if (CPU80386_internal_POPdw(6, &segmentWritten_tempESP))
 						{
-							CPU[activeCPU].CPL = oldCPL; //Restore CPL for continuing!
+							//CPU[activeCPU].CPL = oldCPL; //Restore CPL for continuing!
 							is_stackswitching = 1; //We're stack switching!
 							return 1; //POP ESP!
 						}
@@ -1270,21 +1270,20 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 					{
 						if (CPU8086_internal_POPw(6, &segmentWritten_tempSP, 0))
 						{
-							CPU[activeCPU].CPL = oldCPL; //Restore CPL for continuing!
+							//CPU[activeCPU].CPL = oldCPL; //Restore CPL for continuing!
 							is_stackswitching = 1; //We're stack switching!
 							return 1; //POP SP!
 						}
 					}
 					if (CPU8086_internal_POPw(8, &segmentWritten_tempSS, CPU_Operand_size[activeCPU]))
 					{
-						CPU[activeCPU].CPL = oldCPL; //Restore CPL for continuing!
+						//CPU[activeCPU].CPL = oldCPL; //Restore CPL for continuing!
 						is_stackswitching = 1; //We're stack switching!
 						return 1; //POPped?
 					}
 					is_stackswitching = 0; //We've finished stack switching!
 					//Privilege change!
-					CPU[activeCPU].CPL = getRPL(value); //New privilege level!
-					if (segmentWritten(CPU_SEGMENT_SS,segmentWritten_tempSS,0)) return 1; //Back to our calling stack!
+					if (segmentWritten(CPU_SEGMENT_SS,segmentWritten_tempSS,(getRPL(value)<<13)|0x1000)) return 1; //Back to our calling stack!
 					if (CPU_Operand_size[activeCPU])
 					{
 						REG_ESP = segmentWritten_tempESP; //POP ESP!
@@ -1321,8 +1320,7 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 
 					segmentWritten_tempSS = CPU_POP16(CPU_Operand_size[activeCPU]);
 
-					CPU[activeCPU].CPL = getRPL(value); //New CPL!
-					if (segmentWritten(CPU_SEGMENT_SS,segmentWritten_tempSS,0)) return 1; //Back to our calling stack!
+					if (segmentWritten(CPU_SEGMENT_SS,segmentWritten_tempSS,(getRPL(value)<<13)|0x1000))) return 1; //Back to our calling stack!
 					REG_ESP = tempesp;
 
 					RETF_segmentregister = 1; //We're checking the segments for privilege changes to be invalidated!
@@ -2180,7 +2178,7 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 				*CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_CS] = idtentry.selector; //Set the segment register to the allowed value!
 			}
 
-			if (INTTYPE==1) CPU[activeCPU].CPL = newCPL; //Privilege level changes!
+			//if (INTTYPE==1) CPU[activeCPU].CPL = newCPL; //Privilege level changes!
 
 			setRPL(*CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_CS],getCPL()); //CS.RPL=CPL!
 
