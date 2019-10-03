@@ -1320,7 +1320,7 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 
 					segmentWritten_tempSS = CPU_POP16(CPU_Operand_size[activeCPU]);
 
-					if (segmentWritten(CPU_SEGMENT_SS,segmentWritten_tempSS,(getRPL(value)<<13)|0x1000))) return 1; //Back to our calling stack!
+					if (segmentWritten(CPU_SEGMENT_SS,segmentWritten_tempSS,(getRPL(value)<<13)|0x1000)) return 1; //Back to our calling stack!
 					REG_ESP = tempesp;
 
 					RETF_segmentregister = 1; //We're checking the segments for privilege changes to be invalidated!
