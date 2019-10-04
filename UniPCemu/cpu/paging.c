@@ -234,7 +234,17 @@ byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch, byte 
 	//Check PTE
 	if (likely(isS == 0)) //Not 4MB?
 	{
+		if ((PDE&0x100) && (((CPU[activeCPU].registers->CR4 & 0x10) >> 4) & (EMULATED_CPU>=CPU_PENTIUM))) //Reserved bit in PDE?
+		{
+			raisePF(address, (RW << 1) | (effectiveUS << 2)|8); //Run a reserved page fault!
+			return 0; //We have an error, abort!
+		}
 		PTE = memory_BIUdirectrdw(((PDE&PXE_ADDRESSMASK) >> PXE_ADDRESSSHIFT) + (TABLE << 2)); //Read the page table entry!
+		if ((PTE&0x180) && (((CPU[activeCPU].registers->CR4 & 0x10) >> 4) & (EMULATED_CPU>=CPU_PENTIUM))) //Reserved bit in PTE?
+		{
+			raisePF(address, (RW << 1) | (effectiveUS << 2)|8); //Run a reserved page fault!
+			return 0; //We have an error, abort!
+		}
 		if (!(PTE&PXE_P)) //Not present?
 		{
 			raisePF(address, (RW << 1) | (effectiveUS << 2)); //Run a not present page fault!
@@ -244,6 +254,11 @@ byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch, byte 
 
 	if (unlikely(isS)) //4MB? Only check the PDE, not the PTE!
 	{
+		if ((PDE&0x3FF100) && (((CPU[activeCPU].registers->CR4 & 0x10) >> 4) & (EMULATED_CPU>=CPU_PENTIUM))) //Reserved bit in PDE?
+		{
+			raisePF(address, (RW << 1) | (effectiveUS << 2)|8); //Run a reserved page fault!
+			return 0; //We have an error, abort!
+		}
 		if (!verifyCPL(RW,effectiveUS,((PDE&PXE_RW)>>1),((PDE&PXE_US)>>2),((PDE&PXE_RW)>>1),((PDE&PXE_US)>>2),&RW)) //Protection fault on combined flags?
 		{
 			raisePF(address,PXE_P|(RW<<1)|(effectiveUS<<2)); //Run a not present page fault!
