@@ -506,54 +506,49 @@ void MMU_updatemaxsize() //updated the maximum size!
 //Direct memory access (for the entire emulator)
 OPTINLINE byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct read from real memory (with real data direct)!
 {
-	byte is_debugging;
+	byte is_debugging = 0;
 	uint_32 originaladdress = realaddress; //Original address!
 	byte result;
 	byte nonexistant = 0;
-#ifdef LOG_HIGH_MEMORY
-	is_debugging = ((MMU_logging == 1) || (specialdebugger && (originaladdress >= 0x100000))); //Are we debugging?
-#else
-	is_debugging = (MMU_logging == 1); //Are we debugging?
-#endif
-	if (unlikely((realaddress==0x80C00000) && (EMULATED_CPU>=CPU_80386) && (is_Compaq==1))) //Compaq special register?
+	if (unlikely((realaddress == 0x80C00000) && (EMULATED_CPU >= CPU_80386) && (is_Compaq == 1))) //Compaq special register?
 	{
 		//Reversed bits following: No memory parity error(bits 0-3=BUS address byte parity error, bit n=byte n(LE)).
 		//Bits 4-5=Base memory(0=256K, 1=512K, 2=Invalid, 3=640K. Bit 6=Second 1MB installed, Bit 7=Memory expansion board installed(adding 2M).
-		if (MMU.maxsize>=0xA0000) //640K base memory?
+		if (MMU.maxsize >= 0xA0000) //640K base memory?
 		{
-			result = (3<<4); //640K installed!
+			result = (3 << 4); //640K installed!
 		}
-		else if (MMU.maxsize>=0x80000) //512K base memory?
+		else if (MMU.maxsize >= 0x80000) //512K base memory?
 		{
-			result = (1<<4); //512K installed!
+			result = (1 << 4); //512K installed!
 		}
-		else if (MMU.maxsize>=0x40000) //256K base memory?
+		else if (MMU.maxsize >= 0x40000) //256K base memory?
 		{
-			result = (0<<4); //256K base memory?
+			result = (0 << 4); //256K base memory?
 		}
 		else //Unknown?
 		{
-			result = (2<<4); //Invalid!
+			result = (2 << 4); //Invalid!
 		}
-		if ((MMU.size&0xFFF00000)>=0x400000) //4MB installed?
+		if ((MMU.size & 0xFFF00000) >= 0x400000) //4MB installed?
 		{
 			result |= 0xC0; //Second 1MB installed, Memory expansion board installed(adding 2M).
 		}
-		else if ((MMU.size&0xFFF00000)>=0x400000) //3MB installed?
+		else if ((MMU.size & 0xFFF00000) >= 0x400000) //3MB installed?
 		{
 			result |= 0x80; //Memory expansion board installed(adding 2M).
 		}
-		else if ((MMU.size&0xFFF00000)>=0x400000) //2MB installed?
+		else if ((MMU.size & 0xFFF00000) >= 0x400000) //2MB installed?
 		{
 			result |= 0x40; //Second 1MB installed
 		}
 		result = ~result; //Reverse to get the correct output!
 		goto specialreadcycle; //Apply the special read cycle!
 	}
-	if (unlikely(applyMemoryHoles(&realaddress,(((index&0x20)>>4))|1))) //Overflow/invalid location?
+	if (unlikely(applyMemoryHoles(&realaddress, (((index & 0x20) >> 4)) | 1))) //Overflow/invalid location?
 	{
-		MMU_INTERNAL_INVMEM(originaladdress,realaddress,0,0,index,nonexistant); //Invalid memory accessed!
-		if (likely((is_XT==0) || (EMULATED_CPU>=CPU_80286))) //To give NOT for detecting memory on AT only?
+		MMU_INTERNAL_INVMEM(originaladdress, realaddress, 0, 0, index, nonexistant); //Invalid memory accessed!
+		if (likely((is_XT == 0) || (EMULATED_CPU >= CPU_80286))) //To give NOT for detecting memory on AT only?
 		{
 			return 0xFF; //Give the last data read/written by the BUS!
 		}
@@ -563,20 +558,38 @@ OPTINLINE byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index) //Direct r
 		}
 	}
 	result = MMU.memory[realaddress]; //Get data from memory!
+#ifdef LOG_HIGH_MEMORY
+	is_debugging = ((MMU_logging == 1) || (specialdebugger && (originaladdress >= 0x100000))); //Are we debugging?
+#else
+	is_debugging = (MMU_logging == 1); //Are we debugging?
+#endif
 	if (unlikely(is_debugging)) //To log?
 	{
-		debugger_logmemoryaccess(0,realaddress,result,LOGMEMORYACCESS_RAM_LOGMMUALL|(((index&0x20)>>5)<<LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
+		debugger_logmemoryaccess(0, realaddress, result, LOGMEMORYACCESS_RAM_LOGMMUALL | (((index & 0x20) >> 5) << LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
 	}
-	specialreadcycle:
+	is_debugging |= 2; //Already gotten!
+specialreadcycle:
+	if (likely(is_debugging & 2)) //Already gotten!
+	{
+		is_debugging &= ~2; //Clear the bit to get the original value!
+	}
+	else //Retrieve the debugger status from an existing value!
+	{
+#ifdef LOG_HIGH_MEMORY
+		is_debugging = ((MMU_logging == 1) || (specialdebugger && (originaladdress >= 0x100000))); //Are we debugging?
+#else
+		is_debugging = (MMU_logging == 1); //Are we debugging?
+#endif
+	}
+	if (unlikely(is_debugging)) //To log?
+	{
+		debugger_logmemoryaccess(0, originaladdress, result, LOGMEMORYACCESS_RAM | (((index & 0x20) >> 5) << LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
+	}
 	DRAM_access(realaddress); //Tick the DRAM!
 	if (unlikely((index != 0xFF) && is_XT && (EMULATED_CPU<CPU_80286))) //Don't ignore BUS?
 	{
 		mem_BUSValue &= BUSmask[index & 3]; //Apply the bus mask!
 		mem_BUSValue |= ((uint_32)result << ((index & 3) << 3)); //Or into the last read/written value!
-	}
-	if (unlikely(is_debugging)) //To log?
-	{
-		debugger_logmemoryaccess(0,originaladdress,result,LOGMEMORYACCESS_RAM|(((index&0x20)>>5)<<LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
 	}
 	return result; //Give existant memory!
 }
