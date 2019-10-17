@@ -589,14 +589,14 @@ sbyte LOADDESCRIPTOR(int segment, word segmentval, SEGMENT_DESCRIPTOR *container
 	if (isNULLdescriptor==0) //Not special NULL descriptor handling?
 	{
 		int i;
-		for (i=0;i<(int)sizeof(container->desc.bytes);++i)
+		if (checkDirectMMUaccess(descriptor_address, 1,/*getCPL()*/ 0)) //Error in the paging unit?
 		{
-			if (checkDirectMMUaccess(descriptor_address++,1,/*getCPL()*/ 0)) //Error in the paging unit?
-			{
-				return -1; //Error out!
-			}
+			return -1; //Error out!
 		}
-		descriptor_address -= sizeof(container->desc.bytes); //Restore start address!
+		if (checkDirectMMUaccess(descriptor_address+(uint_32)sizeof(container->desc.bytes)-1, 1,/*getCPL()*/ 0)) //Error in the paging unit?
+		{
+			return -1; //Error out!
+		}
 		for (i=0;i<(int)sizeof(container->desc.bytes);) //Process the descriptor data!
 		{
 			if (memory_readlinear(descriptor_address++,&container->desc.bytes[i++])) //Read a descriptor byte directly from flat memory!
@@ -1866,14 +1866,14 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 	base += CPU[activeCPU].registers->IDTR.base; //Add the base for the actual offset into the IDT!
 	
 	RAWSEGMENTDESCRIPTOR idtentry; //The loaded IVT entry!
-	for (left=0;left<(int)sizeof(idtentry.descdata);++left)
+	if (checkDirectMMUaccess(base, 1,/*getCPL()*/ 0)) //Error in the paging unit?
 	{
-		if (checkDirectMMUaccess(base++,1,/*getCPL()*/ 0)) //Error in the paging unit?
-		{
-			return 1; //Error out!
-		}
+		return 1; //Error out!
 	}
-	base -= sizeof(idtentry.descdata); //Restore start address!
+	if (checkDirectMMUaccess(base+sizeof(idtentry.descdata)-1, 1,/*getCPL()*/ 0)) //Error in the paging unit?
+	{
+		return 1; //Error out!
+	}
 	for (left=0;left<sizeof(idtentry.descdata);) //Data left to read?
 	{
 		if (memory_readlinear(base++,&idtentry.descdata[left++])) //Read a descriptor byte directly from flat memory!
