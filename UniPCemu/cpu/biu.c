@@ -444,7 +444,7 @@ OPTINLINE void CPU_fillPIQ() //Fill the PIQ until it's full!
 
 void BIU_dosboxTick()
 {
-	uint_32 BIUsize;
+	uint_32 BIUsize, BIUsize2;
 	uint_32 realaddress;
 	uint_64 maxaddress, endpos;
 	if (BIU[activeCPU].PIQ) //Prefetching?
@@ -499,13 +499,15 @@ void BIU_dosboxTick()
 		BIU[activeCPU].PIQ_checked = BIUsize; //Check off any that we have verified!
 
 		MMU_resetaddr(); //Reset the address error line for trying some I/O!
-		for (;fifobuffer_freesize(BIU[activeCPU].PIQ) && (MMU_invaddr()==0);)
+		BIUsize2 = fifobuffer_freesize(BIU[activeCPU].PIQ); //How many to process max in this loop?
+		for (;BIUsize2 && (MMU_invaddr()==0);)
 		{
 			if ((BIU[activeCPU].PIQ_checked == 0) && BIUsize) goto recheckmemory; //Recheck anything that's needed, only when not starting off as zeroed!
 			PIQ_block = 0; //We're never blocking(only 1 access)!
 			CPU_fillPIQ(); //Keep the FIFO fully filled!
 			CPU[activeCPU].BUSactive = 0; //Inactive BUS!
 			BIU[activeCPU].requestready = 1; //The request is ready to be served!
+			--BIUsize2; //One item has been processed!
 		}
 		CPU[activeCPU].BUSactive = 0; //Inactive BUS!
 		BIU[activeCPU].requestready = 1; //The request is ready to be served!
