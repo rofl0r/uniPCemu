@@ -728,7 +728,10 @@ OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index
 	}
 #endif
 	MMU.memory[realaddress] = value; //Set data, full memory protection!
-	DRAM_access(realaddress); //Tick the DRAM!
+	if (unlikely(doDRAM_access)) //DRAM access?
+	{
+		doDRAM_access(realaddress); //Tick the DRAM!
+	}
 	if (unlikely((realaddress+1)>user_memory_used)) //More written than present in memory (first write to addr)?
 	{
 		user_memory_used = (realaddress+1); //Update max memory used!
