@@ -83,4 +83,5 @@ void memory_directww(uint_32 realadress, word value); //Direct write to real mem
 uint_32 memory_directrdw(uint_32 realaddress);
 void memory_directwdw(uint_32 realaddress, uint_32 value);
 void MMU_updatemaxsize(); //updated the maximum size!
+void updateBUShandler(); //Update the bus handler!
 #endif

@@ -21,6 +21,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/types.h" //Basic types!
 #include "headers/hardware/8237A.h" //DMA0 support!
 #include "headers/hardware/8253.h" //PIT1 support!
+#include "headers/hardware/dram.h" //Our own typedefs!
 
 byte DRAM_DREQ = 0; //Our DREQ signal!
 byte DRAM_Pending = 0; //DRAM tick is pending?
@@ -51,9 +52,12 @@ void DRAM_access(uint_32 address) //Accessing DRAM?
 	//Tick the part of RAM affected! Clear RAM on timeout(lower bits are specified)!
 }
 
+DRAM_accessHandler doDRAM_access = NULL; //DRAM access?
+
 void initDRAM()
 {
 	registerPIT1Ticker(&DRAM_setDREQ); //Register our ticker for timing DRAM ticks!
 	registerDMATick(0, &DRAM_DMADREQ, &DRAM_DACK, NULL); //Our handlers for DREQ, DACK and TC of the DRAM refresh! Don't handle DACK and TC!
 	DRAM_DREQ = 0; //Init us!
+	//doDRAM_access = &DRAM_access; //Access DRAM handler?
 }
