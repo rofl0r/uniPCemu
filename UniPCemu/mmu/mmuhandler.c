@@ -358,7 +358,8 @@ resetmmu:
 	MMU_updatemaxsize(); //updated the maximum size!
 	MMU_precalcMemoryHoles(); //Precalculate the memory hole information!
 	updateBUShandler(); //Set the new bus handler!
-	memory_directwb(0x80C00000,0xFF); //Init to all bits set!
+	MMU_calcIndexPrecalcs(); //Calculate the index precalcs!
+	memory_directwb(0x80C00000,0xFF); //Init to all bits set when emulated!
 }
 
 void doneMMU()
@@ -551,7 +552,37 @@ byte readCompaqMMURegister() //Read the Compaq MMU register!
 	return result; //Give the result!
 }
 
+void writeCompaqMMUregister(uint_32 originaladdress, byte value)
+{
+#ifdef LOG_HIGH_MEMORY
+	if (unlikely((MMU_logging == 1) || (specialdebugger && (originaladdress >= 0x100000)))) //Data debugging?
+	{
+		debugger_logmemoryaccess(1, originaladdress, value, LOGMEMORYACCESS_RAM);
+	}
+#else
+	if (unlikely(MMU_logging == 1)) //Data debugging?
+	{
+		debugger_logmemoryaccess(1, originaladdress, value, LOGMEMORYACCESS_RAM);
+	}
+#endif
+	memoryprotect_FE0000 = ((~value) & 2); //Write-protect 128KB RAM at 0xFE0000?
+	if (value & 1) //128KB RAM only addressed at FE0000? Otherwise, relocated to (F(general documentation)/0(IOPORTS.LST)?)E0000.
+	{
+		BIOSROM_LowMemoryBecomesHighMemory = BIOSROM_DisableLowMemory = 0; //Normal low memory!
+	}
+	else
+	{
+		BIOSROM_LowMemoryBecomesHighMemory = BIOSROM_DisableLowMemory = 1; //Low memory becomes high memory! Compaq RAM replaces ROM!
+	}
+	MoveLowMemoryHigh = 7; //Move all memory blocks high when needed?
+	MMU.maxsize = MMU.size - (0x100000 - 0xA0000); //Limit the memory size!
+	MMU_updatemaxsize(); //updated the maximum size!
+}
+
 BUShandler bushandler = NULL; //Remember the last access?
+
+byte index_readprecalcs[0x100]; //Read precalcs for index memory hole handling!
+byte emulateCompaqMMURegisters = 0; //Emulate Compaq MMU registers?
 
 //Direct memory access (for the entire emulator)
 byte MMU_INTERNAL_directrb_debugger(uint_32 realaddress, byte index) //Direct read from real memory (with real data direct)!
@@ -559,12 +590,12 @@ byte MMU_INTERNAL_directrb_debugger(uint_32 realaddress, byte index) //Direct re
 	uint_32 originaladdress = realaddress; //Original address!
 	byte result;
 	byte nonexistant = 0;
-	if (unlikely((realaddress == 0x80C00000) && (EMULATED_CPU >= CPU_80386) && (is_Compaq == 1))) //Compaq special register?
+	if (unlikely(emulateCompaqMMURegisters && (realaddress == 0x80C00000))) //Compaq special register?
 	{
 		result = readCompaqMMURegister(); //Read the Compaq MMU register!
 		goto specialreadcycledebugger; //Apply the special read cycle!
 	}
-	if (unlikely(applyMemoryHoles(&realaddress, (((index & 0x20) >> 4)) | 1))) //Overflow/invalid location?
+	if (unlikely(applyMemoryHoles(&realaddress, index_readprecalcs[index]))) //Overflow/invalid location?
 	{
 		MMU_INTERNAL_INVMEM(originaladdress, realaddress, 0, 0, index, nonexistant); //Invalid memory accessed!
 		if (likely((is_XT == 0) || (EMULATED_CPU >= CPU_80286))) //To give NOT for detecting memory on AT only?
@@ -597,22 +628,22 @@ byte MMU_INTERNAL_directrb_nodebugger(uint_32 realaddress, byte index) //Direct 
 	uint_32 originaladdress = realaddress; //Original address!
 	byte result;
 	byte nonexistant = 0;
-	if (unlikely((realaddress == 0x80C00000) && (EMULATED_CPU >= CPU_80386) && (is_Compaq == 1))) //Compaq special register?
+	if (unlikely(emulateCompaqMMURegisters && (realaddress == 0x80C00000))) //Compaq special register?
 	{
 		result = readCompaqMMURegister(); //Read the Compaq MMU register!
 		goto specialreadcycle; //Apply the special read cycle!
 	}
-	if (unlikely(applyMemoryHoles(&realaddress, (((index & 0x20) >> 4)) | 1))) //Overflow/invalid location?
+	if (unlikely(applyMemoryHoles(&realaddress, index_readprecalcs[index]))) //Overflow/invalid location?
 	{
 		MMU_INTERNAL_INVMEM(originaladdress, realaddress, 0, 0, index, nonexistant); //Invalid memory accessed!
-		if (likely((is_XT == 0) || (EMULATED_CPU >= CPU_80286))) //To give NOT for detecting memory on AT only?
-		{
-			return 0xFF; //Give the last data read/written by the BUS!
-		}
-		else
-		{
-			return (byte)(mem_BUSValue >> ((index & 3) << 3)); //Give the last data read/written by the BUS!
-		}
+			if (likely((is_XT == 0) || (EMULATED_CPU >= CPU_80286))) //To give NOT for detecting memory on AT only?
+			{
+				return 0xFF; //Give the last data read/written by the BUS!
+			}
+			else
+			{
+				return (byte)(mem_BUSValue >> ((index & 3) << 3)); //Give the last data read/written by the BUS!
+			}
 	}
 	if (unlikely(doDRAM_access)) //DRAM access?
 	{
@@ -637,6 +668,16 @@ void updateBUShandler()
 	{
 		bushandler = NULL; //Don't remember the bus handler!
 	}
+	emulateCompaqMMURegisters = ((EMULATED_CPU >= CPU_80386) && (is_Compaq == 1)); //Emulate compaq MMU registers?
+}
+
+void MMU_calcIndexPrecalcs()
+{
+	word index;
+	for (index = 0; index < 0x100; ++index)
+	{
+		index_readprecalcs[index] = (((index & 0x20) >> 4) | 1); //The read precalcs!
+	}
 }
 
 typedef byte(*MMU_INTERNAL_directrb_handler)(uint_32 realaddress, byte index); //A memory data read handler!
@@ -659,31 +700,9 @@ OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index
 	uint_32 originaladdress = realaddress; //Original address!
 	//Apply the 640K memory hole!
 	byte nonexistant = 0;
-	if (unlikely((realaddress==0x80C00000) && (EMULATED_CPU>=CPU_80386) && (is_Compaq==1))) //Compaq special register?
+	if (unlikely(emulateCompaqMMURegisters && (realaddress==0x80C00000))) //Compaq special register?
 	{
-#ifdef LOG_HIGH_MEMORY
-		if (unlikely((MMU_logging==1) || (specialdebugger && (originaladdress>=0x100000)))) //Data debugging?
-		{
-			debugger_logmemoryaccess(1,originaladdress,value,LOGMEMORYACCESS_RAM);
-		}
-#else
-		if (unlikely(MMU_logging == 1)) //Data debugging?
-		{
-			debugger_logmemoryaccess(1, originaladdress, value, LOGMEMORYACCESS_RAM);
-		}
-#endif
-		memoryprotect_FE0000 = ((~value)&2); //Write-protect 128KB RAM at 0xFE0000?
-		if (value&1) //128KB RAM only addressed at FE0000? Otherwise, relocated to (F(general documentation)/0(IOPORTS.LST)?)E0000.
-		{
-			BIOSROM_LowMemoryBecomesHighMemory = BIOSROM_DisableLowMemory = 0; //Normal low memory!
-		}
-		else
-		{
-			BIOSROM_LowMemoryBecomesHighMemory = BIOSROM_DisableLowMemory = 1; //Low memory becomes high memory! Compaq RAM replaces ROM!
-		}
-		MoveLowMemoryHigh = 7; //Move all memory blocks high when needed?
-		MMU.maxsize = MMU.size-(0x100000-0xA0000); //Limit the memory size!
-		MMU_updatemaxsize(); //updated the maximum size!
+		writeCompaqMMUregister(originaladdress, value); //Update the Compaq MMU register!
 		return; //Count as a memory mapped register!
 	}
 	if (unlikely((index != 0xFF) && bushandler)) //Don't ignore BUS?
