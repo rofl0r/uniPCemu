@@ -463,10 +463,6 @@ void autoDetectArchitecture()
 	is_Compaq = 0; //Default to not being Compaq!
 	is_PS2 = 0; //Default to not being PS/2!
 
-	if (EMULATED_CPU >= CPU_80486) //Are we emulating a AT-only architecture CPU? 80386 is 32-bit, but there's the Inboard 386 for that to be emulated.
-	{
-		is_XT = 0; //We're forcing AT or PS/2 architecture!
-	}
 	if (BIOS_Settings.architecture==ARCHITECTURE_COMPAQ) //Compaq architecture?
 	{
 		is_XT = 0; //No XT!
