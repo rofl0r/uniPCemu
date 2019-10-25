@@ -78,6 +78,13 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 
 typedef struct //Contains the precalculated values!
 {
+	word divideby9[0x10000]; //Divide by 9 precalcs!
+	uint_32 DAC[0x100]; //Full DAC saved lookup table!
+	uint_32 effectiveDAC[0x100]; //The same DAC as above, but with color conversions applied for rendering!
+	uint_32 effectiveMDADAC[0x100]; //The same DAC as above, but with b/w conversions applied for rendering, also it's index is changed to the R/G/B 256-color greyscale index!
+	//Attribute controller precalcs!
+	byte attributeprecalcs[0x8000]; //All attribute precalcs!
+
 	byte graphicsmode; //Are we a graphics mode?
 	byte textmode; //Are we a text mode?
 	
@@ -123,15 +130,9 @@ typedef struct //Contains the precalculated values!
 	byte presetrowscan; //Row scanning boost!
 	byte colorselect54; //Precalculate!
 	byte colorselect76; //Precalculate!
-	uint_32 DAC[0x100]; //Full DAC saved lookup table!
-	uint_32 effectiveDAC[0x100]; //The same DAC as above, but with color conversions applied for rendering!
-	uint_32 effectiveMDADAC[0x100]; //The same DAC as above, but with b/w conversions applied for rendering, also it's index is changed to the R/G/B 256-color greyscale index!
 	byte lastDACMask; //To determine if the DAC Mask is updated or not!
 	
 	byte renderedlines; //Actual ammount of lines rendered, graphics mode included!
-	
-	//Attribute controller precalcs!
-	byte attributeprecalcs[0x8000]; //All attribute precalcs!
 	
 	//Extra info for debugging!
 	uint_32 mainupdate; //Main update counter for debugging updates to VRAMMode!

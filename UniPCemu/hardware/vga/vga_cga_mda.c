@@ -859,7 +859,7 @@ word get_display_CGAMDA_x(VGA_Type *VGA, word x)
 	if (CGAEMULATION_ENABLED_CRTC(VGA)) //CGA timings?
 		column >>= 3; //Divide by 8 to get the character clock!
 	else //MDA timings?
-		column /= 9; //Divide by 9 to get the character clock!
+		column = VGA->precalcs.divideby9[column]; //Divide by 9 to get the character clock!
 
 	if (GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER,6,1) || CGA_DOUBLEWIDTH(VGA)) //Byte mode and double width seems to affect timings?
 	{
@@ -1832,6 +1832,7 @@ byte CGAMDA_writeIO(word port, byte value)
 
 void initCGA_MDAState() //Initialise our compatibility layer!
 {
+	uint_32 input,divided,divider;
 	if (getActiveVGA()) //Gotten active VGA? Initialise the full hardware if needed!
 	{
 		if ((getActiveVGA()->registers->specialMDAflags&0x81)==1) //Pure MDA mode?
@@ -1841,6 +1842,17 @@ void initCGA_MDAState() //Initialise our compatibility layer!
 			applyCGAMDAMode(); //Make sure we're initialized!
 			VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_ALL); //We have been updated!	
 			getActiveVGA()->enable_SVGA = 4; //We're a special VGA extension!
+			
+			//Precalc all 9 dividers for a 16-bit range!
+			for (input = 0, divided = 0, divider = 0; input < 0x10000;++input) //Precalc all possible inputs!
+			{
+				getActiveVGA()->precalcs.divideby9[input] = divided; //Divided!
+				if (unlikely(++divider == 9)) //9 dividers processed?
+				{
+					divider = 0; //Reset divider!
+					++divided; //Next divided is to be started!
+				}
+			}
 		}
 		if ((getActiveVGA()->registers->specialCGAflags&0x81)==1) //Pure CGA mode?
 		{
