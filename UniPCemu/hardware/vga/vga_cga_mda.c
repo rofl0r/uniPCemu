@@ -855,17 +855,15 @@ word get_display_CGAMDA_x(VGA_Type *VGA, word x)
 {
 	word result=0;
 	word column=x; //Unpatched x value!
-	if (!x)	result |= VGA_SIGNAL_HRETRACEEND; //Horizontal retrace&blank is finished now!
-	if (CGAEMULATION_ENABLED_CRTC(VGA)) //CGA timings?
-		column >>= 3; //Divide by 8 to get the character clock!
-	else //MDA timings?
-		column = VGA->precalcs.divideby9[column]; //Divide by 9 to get the character clock!
-
-	if (GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER,6,1) || CGA_DOUBLEWIDTH(VGA)) //Byte mode and double width seems to affect timings?
+	if (GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER, 6, 1) || CGA_DOUBLEWIDTH(VGA)) //Byte mode and double width seems to affect timings?
 	{
 		column >>= 1; //Half the horizontal timing!
 		x >>= 1; //Half the horizontal timing!
 	}
+	if (CGAEMULATION_ENABLED_CRTC(VGA)) //CGA timings?
+		column >>= 3; //Divide by 8 to get the character clock!
+	else //MDA timings?
+		column = VGA->precalcs.divideby9[column]; //Divide by 9 to get the character clock!
 
 	if (column>(VGA->registers->CGARegistersMasked[0])) //Past total specified?
 	{
