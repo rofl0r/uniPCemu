@@ -919,38 +919,35 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			|| charwidthupdated) //Updated?
 		{
 			//Precalculate horizontal pixel panning:
-			byte pixelboost = 0; //Actual pixel boost!
+			byte pixelboost; //Actual pixel boost!
+			pixelboost = 0; //Default: no boost!
 			byte possibleboost; //Possible value!
 			possibleboost = GETBITS(VGA->registers->AttributeControllerRegisters.REGISTERS.HORIZONTALPIXELPANNINGREGISTER,0,0xF); //Possible value, to be determined!
+			if (GETBITS(VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER, 0, 1) == 0) //Different behaviour with 9 pixel modes?
+			{
+				if (possibleboost == 8) //No shift?
+				{
+					possibleboost = 0; //No shift!
+				}
+				else if (possibleboost<8) //Less than 8?
+				{
+					++possibleboost; //1 more!
+				}
+				else //Invalid?
+				{
+					possibleboost = 0;
+				}
+			}
 			if (GETBITS(VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER,6,1)) //8-bit colors?
 			{
-				if ((possibleboost%2)==0) //Enabled?
+				if ((possibleboost&1)==0) //Enabled?
 				{
-					possibleboost = pixelboost;
-					possibleboost >>= 1; //Bit 2 only!
-					if (possibleboost<4) //Valid?
-					{
-						pixelboost = possibleboost; //Use this boost!
-					}
+					pixelboost = possibleboost; //Use this boost!
 				}
 			}
 			else //Determine by character width!
 			{
-				if (VGA->precalcs.characterwidth==9) //9 dot mode?
-				{
-					if (possibleboost<8) //1-8?
-					{
-						pixelboost = possibleboost;
-						++pixelboost; //Enable with +1!
-					} //Else 0!
-				}
-				else //8 dot mode?
-				{
-					if (possibleboost<8) //Enable?
-					{
-						pixelboost = possibleboost; //Enable normally!
-					} //Else 0!
-				}
+				pixelboost = possibleboost; //Enable normally!
 			}
 			//dolog("VGA","VTotal after pixelboost: %u",VGA->precalcs.verticaltotal); //Log it!
 			recalcScanline |= (VGA->precalcs.pixelshiftcount!=pixelboost); //Recalc scanline data when needed!

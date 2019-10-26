@@ -1346,7 +1346,7 @@ OPTINLINE void applyCGAMDAMode() //Apply VGA to CGA/MDA Mode conversion(setup de
 	SETBITS(getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER,6,1,0); //Not using 8-bit colors!
 	SETBITS(getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER,7,1,0); //Not using the high Palette bits!
 	getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.COLORPLANEENABLEREGISTER |= 0xF; //CGA: enable all color planes!
-	SETBITS(getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.HORIZONTALPIXELPANNINGREGISTER,0,0xF,0); //Don't shift!
+	SETBITS(getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.HORIZONTALPIXELPANNINGREGISTER,0,0xF, (CGAEMULATION_ENABLED_CRTC(getActiveVGA()))?0:8); //Don't shift!
 	SETBITS(getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.COLORSELECTREGISTER,0,3,0); //Don't use!
 	SETBITS(getActiveVGA()->registers->AttributeControllerRegisters.REGISTERS.COLORSELECTREGISTER,2,3,0); //Don't use!
 	//External registers: Fully set!
