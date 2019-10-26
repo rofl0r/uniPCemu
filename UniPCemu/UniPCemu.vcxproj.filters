@@ -109,9 +109,6 @@
     <Filter Include="Header Files\common headers\hardware">
       <UniqueIdentifier>{2f521662-c8e8-424d-b046-7e598f011dc2}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\common headers\interrupts">
-      <UniqueIdentifier>{4f9c8e0d-574d-46b0-a516-1974dfb2a94a}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Header Files\common headers\support">
       <UniqueIdentifier>{bb59103a-714c-44ea-bcf6-253113c3c0e0}</UniqueIdentifier>
     </Filter>
@@ -980,9 +977,6 @@
     <ClInclude Include="..\commonemuframework\headers\hardware\ps2_keyboard.h">
       <Filter>Header Files\common headers\hardware</Filter>
     </ClInclude>
-    <ClInclude Include="..\commonemuframework\headers\interrupts\textmodedata.h">
-      <Filter>Header Files\common headers\interrupts</Filter>
-    </ClInclude>
     <ClInclude Include="..\commonemuframework\headers\support\bmp.h">
       <Filter>Header Files\common headers\support</Filter>
     </ClInclude>
@@ -1036,6 +1030,9 @@
     </ClInclude>
     <ClInclude Include="headers\cpu\cpu_stack.h">
       <Filter>Header Files\cpu</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\interrupts\textmodedata.h">
+      <Filter>Header Files\interrupts</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

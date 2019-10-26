@@ -244,7 +244,6 @@
     <ClInclude Include="..\commonemuframework\headers\endpacked.h" />
     <ClInclude Include="..\commonemuframework\headers\fopen64.h" />
     <ClInclude Include="..\commonemuframework\headers\hardware\ps2_keyboard.h" />
-    <ClInclude Include="..\commonemuframework\headers\interrupts\textmodedata.h" />
     <ClInclude Include="..\commonemuframework\headers\packed.h" />
     <ClInclude Include="..\commonemuframework\headers\sdl_rest.h" />
     <ClInclude Include="..\commonemuframework\headers\support\bmp.h" />
@@ -365,6 +364,7 @@
     <ClInclude Include="headers\interrupts\interrupt18.h" />
     <ClInclude Include="headers\interrupts\interrupt19.h" />
     <ClInclude Include="headers\interrupts\interrupt1a.h" />
+    <ClInclude Include="headers\interrupts\textmodedata.h" />
     <ClInclude Include="headers\mmu\mmuhandler.h" />
     <ClInclude Include="headers\mmu\mmu_internals.h" />
     <ClInclude Include="headers\support\dro.h" />
