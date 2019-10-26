@@ -756,7 +756,7 @@ OPTINLINE byte reverse8_CGA(INLINEREGISTER byte b) { //Reverses byte value bits!
 }
 
 byte CGA_reversedinit = 1;
-byte int10_font_08_reversed[256*8]; //Full font, reversed for optimized display!
+byte int10_font_08_reversed[256*0x20]; //Full font, reversed for optimized display!
 
 byte getcharxy_CGA(byte character, byte x, byte y) //Retrieve a characters x,y pixel on/off from the unmodified 8x8 table!
 {
@@ -764,11 +764,11 @@ byte getcharxy_CGA(byte character, byte x, byte y) //Retrieve a characters x,y p
 	static byte lastrow = 0; //The last loaded row!
 	INLINEREGISTER word location;
 
-	x &= 7;
-	y &= 7; //Duplicate the scanlines after our character!
+	//x &= 7; //Don't limit horizontally: this isn't needed for the CGA, but become background anyways!
+	y &= 0x1F; //Up to 8 rows. Rows 8 and up are always backgrounded!
 
 	//Don't do range checks, we're always within range (because of GPU_textcalcpixel)!
-	location = 0x8000 | (character << 3) | (y&7); //The location to look up!
+	location = 0x8000 | (character << 4) | y; //The location to look up!
 
 	if (lastcharinfo != location) //Last row not yet loaded?
 	{
@@ -783,18 +783,20 @@ void fillCGAfont()
 {
 	if (CGA_reversedinit) //Need to initialise?
 	{
-		word row;
+		word row, character, char2;
 		memset(&int10_font_08_reversed,0,sizeof(int10_font_08_reversed)); //Clear the entire font used to make sure the unused data is empty(background color)!
 		for (row=0;row<sizeof(int10_font_08);row++)
 		{
-			int10_font_08_reversed[row] = reverse8_CGA(int10_font_08[row]);
+			character = row / 8; //Character!
+			char2 = row % 8; //Line!
+			int10_font_08_reversed[(character << 4) | char2] = reverse8_CGA(int10_font_08[row]);
 		}
 		CGA_reversedinit = 0; //Finished initialising!
 	}
 }
 
 byte MDA_reversedinit = 1;
-byte int10_font_14_reversed[256*16]; //Full font, reversed for optimized display!
+byte int10_font_14_reversed[256*0x20]; //Full font, reversed for optimized display!
 
 byte getcharxy_MDA(byte character, byte x, byte y) //Retrieve a characters x,y pixel on/off from the unmodified 8x8 table!
 {
@@ -803,7 +805,9 @@ byte getcharxy_MDA(byte character, byte x, byte y) //Retrieve a characters x,y p
 	INLINEREGISTER word location;
 
 	//Don't do range checks, we're always within range (because of GPU_textcalcpixel)!
-	if (y>=14) y %= 14; //Only 14 rows, duplicate what's below!
+	//if (y>=14) y %= 14; //Only 14 rows, duplicate what's below!
+	//x &= 7; //Don't limit: x being 8 or up becomes a result of 0!
+	y &= 0x1F; //Up to 14 rows. Rows 14 and up are always backgrounded!
 	location = 0x8000 | (character << 4) | y; //The location to look up!
 
 	if (lastcharinfo != location) //Last row not yet loaded?
