@@ -244,7 +244,7 @@ void dump_CRTCTiming()
 		}
 		if (extrahorizontalstatus & 4)
 		{
-			safescatnprintf(information,sizeof(information), "+WHOLECLOCK"); //Add!
+			safescatnprintf(information,sizeof(information), "+NEXTCLOCK"); //Add!
 		}
 		dolog("VGA","%s",information);
 		if (status&VGA_SIGNAL_HTOTAL)
