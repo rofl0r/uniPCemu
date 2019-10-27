@@ -765,7 +765,7 @@ byte getcharxy_CGA(byte character, byte x, byte y) //Retrieve a characters x,y p
 	INLINEREGISTER word location;
 
 	//x &= 7; //Don't limit horizontally: this isn't needed for the CGA, but become background anyways!
-	y &= 0x1F; //Up to 8 rows. Rows 8 and up are always backgrounded!
+	y &= 0x7; //Up to 8 rows. Rows 8+, 16+ and 24+ wrap back to row 0+(MOD 8)
 
 	//Don't do range checks, we're always within range (because of GPU_textcalcpixel)!
 	location = 0x8000 | (character << 4) | y; //The location to look up!
@@ -807,7 +807,7 @@ byte getcharxy_MDA(byte character, byte x, byte y) //Retrieve a characters x,y p
 	//Don't do range checks, we're always within range (because of GPU_textcalcpixel)!
 	//if (y>=14) y %= 14; //Only 14 rows, duplicate what's below!
 	//x &= 7; //Don't limit: x being 8 or up becomes a result of 0!
-	y &= 0x1F; //Up to 14 rows. Rows 14 and up are always backgrounded!
+	y &= 0xF; //Rows 16+ wraps back to row 0(MOD 16).
 	location = 0x8000 | (character << 4) | y; //The location to look up!
 
 	if (lastcharinfo != location) //Last row not yet loaded?
