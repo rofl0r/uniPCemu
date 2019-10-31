@@ -2392,7 +2392,7 @@ byte translatefloppytype(byte which, byte drive)
 	which &= 3; //Filter!
 	if (floppy_translateMultiUniqueFDC) //Unique FDC type translation instead of 82077AA-compatible?
 	{
-		which = translatetableMultiUnique[type]; //Lookup type except 360K)!
+		which = translatetableMultiUnique[which]; //Lookup type except 360K)!
 		if ((which==0) && FLOPPY.geometries[drive]) //Might be specific geometry?
 		{
 			if (FLOPPY.geometries[drive]->KB==360) //360K drive?
