@@ -385,6 +385,9 @@ byte is_XT = 0; //Are we emulating an XT architecture?
 byte is_Compaq = 0; //Are we emulating an Compaq architecture?
 byte is_PS2 = 0; //Are we emulating PS/2 architecture extensions?
 
+extern byte floppy_translateMultiUniqueFDC; //Enable translation?
+extern CMOS_Type CMOS; //CMOS and it's settings!
+
 void initEMU(int full) //Init!
 {
 	char soundfont[256];
@@ -588,6 +591,7 @@ void initEMU(int full) //Init!
 	initModem(1); //Initilialise the serial modem!
 
 	debugrow("Initialising Floppy Disk Controller...");
+	floppy_translateMultiUniqueFDC = CMOS.DATA.FDC_emulationtype; //Emulate a FDC special type?
 	initFDC(); //Initialise the Floppy Disk Controller!
 
 	debugrow("Initialising ATA...");

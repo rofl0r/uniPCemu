@@ -229,6 +229,7 @@ void BIOS_DirectInput_remap_RCTRL_to_LWIN(); //Remap RCTRL to LWIN!
 void BIOS_DirectInput_remap_accentgrave_to_tab_during_RCTRL(); //Remap accent grave to tab during RCTRL to LWIN mapping!
 void BIOS_floppy0_nodisk_type();
 void BIOS_floppy1_nodisk_type();
+void BIOS_FDC_emulation_type();
 
 
 //First, global handler!
@@ -310,6 +311,7 @@ Handler BIOS_Menus[] =
 	,BIOS_DirectInput_remap_accentgrave_to_tab_during_RCTRL //Remap accent grave to tab during RCTRL to LWIN mapping is #73!
 	,BIOS_floppy0_nodisk_type //Floppy A without disk type is #74!
 	,BIOS_floppy1_nodisk_type //Floppy B without disk type is #75!
+	,BIOS_FDC_emulation_type //FDC emulation type is #76!
 };
 
 //Not implemented?
@@ -461,6 +463,8 @@ extern byte CDROM_DiskChanged;
 extern IODISK disks[0x100]; //All disks available, up go 256 (drive 0-255) disks!
 CharacterType oldcdrom0[256];
 CharacterType oldcdrom1[256];
+extern byte floppy_translateMultiUniqueFDC; //Enable translation?
+extern CMOS_Type CMOS; //The currently running CMOS!
 
 void BIOS_MenuChooser(); //The menu chooser prototype for runBIOS!
 byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or boot is by EMU_RUNNING)!
@@ -611,6 +615,7 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 	setGPUFramerate(BIOS_Settings.ShowFramerate); //Show the framerate?
 	diagnosticsportoutput_breakpoint = BIOS_Settings.diagnosticsportoutput_breakpoint; //Set our new breakpoint, if any!
 	updateEMUSingleStep(); //Update the single-step breakpoint!
+	floppy_translateMultiUniqueFDC = CMOS.DATA.FDC_emulationtype; //Emulate a FDC special type?
 
 	unlock(LOCK_MAINTHREAD); //Continue!
 
@@ -1488,102 +1493,103 @@ extern FLOPPY_GEOMETRY floppygeometries[NUMFLOPPYGEOMETRIES];
 void BIOS_InitDisksText()
 {
 	int i;
-	for (i=0; i<14; i++)
+	for (i = 0; i < 15; i++)
 	{
-		memset(&menuoptions[i][0],0,sizeof(menuoptions[i])); //Init!
+		memset(&menuoptions[i][0], 0, sizeof(menuoptions[i])); //Init!
 	}
-	safestrcpy(menuoptions[0],sizeof(menuoptions[0]),"Floppy A: ");
-	safestrcpy(menuoptions[1],sizeof(menuoptions[0]),"Floppy B: ");
-	safestrcpy(menuoptions[2],sizeof(menuoptions[0]),"First HDD: ");
-	safestrcpy(menuoptions[3],sizeof(menuoptions[0]),"Second HDD: ");
-	safestrcpy(menuoptions[4],sizeof(menuoptions[0]),"First CD-ROM: ");
-	safestrcpy(menuoptions[5],sizeof(menuoptions[0]),"Second CD-ROM: ");
-	safestrcpy(menuoptions[6],sizeof(menuoptions[0]),"Generate Floppy Image");
-	safestrcpy(menuoptions[7],sizeof(menuoptions[0]),"Generate Static HDD Image");
-	safestrcpy(menuoptions[8],sizeof(menuoptions[0]),"Generate Dynamic HDD Image");
-	safestrcpy(menuoptions[9],sizeof(menuoptions[0]), "Convert static to dynamic HDD Image");
-	safestrcpy(menuoptions[10],sizeof(menuoptions[0]), "Convert dynamic to static HDD Image");
-	safestrcpy(menuoptions[11],sizeof(menuoptions[0]), "Defragment a dynamic HDD Image");
+	safestrcpy(menuoptions[0], sizeof(menuoptions[0]), "Floppy A: ");
+	safestrcpy(menuoptions[1], sizeof(menuoptions[0]), "Floppy B: ");
+	safestrcpy(menuoptions[2], sizeof(menuoptions[0]), "First HDD: ");
+	safestrcpy(menuoptions[3], sizeof(menuoptions[0]), "Second HDD: ");
+	safestrcpy(menuoptions[4], sizeof(menuoptions[0]), "First CD-ROM: ");
+	safestrcpy(menuoptions[5], sizeof(menuoptions[0]), "Second CD-ROM: ");
+	safestrcpy(menuoptions[6], sizeof(menuoptions[0]), "Generate Floppy Image");
+	safestrcpy(menuoptions[7], sizeof(menuoptions[0]), "Generate Static HDD Image");
+	safestrcpy(menuoptions[8], sizeof(menuoptions[0]), "Generate Dynamic HDD Image");
+	safestrcpy(menuoptions[9], sizeof(menuoptions[0]), "Convert static to dynamic HDD Image");
+	safestrcpy(menuoptions[10], sizeof(menuoptions[0]), "Convert dynamic to static HDD Image");
+	safestrcpy(menuoptions[11], sizeof(menuoptions[0]), "Defragment a dynamic HDD Image");
 	safestrcpy(menuoptions[12], sizeof(menuoptions[0]), "Floppy A without disk type: ");
 	safestrcpy(menuoptions[13], sizeof(menuoptions[0]), "Floppy B without disk type: ");
+	safestrcpy(menuoptions[14], sizeof(menuoptions[0]), "FDC type: ");
 
-//FLOPPY0
-	if (strcmp(BIOS_Settings.floppy0,"")==0) //No disk?
+	//FLOPPY0
+	if (strcmp(BIOS_Settings.floppy0, "") == 0) //No disk?
 	{
-		safestrcat(menuoptions[0],sizeof(menuoptions[0]),"<NO DISK>"); //Add disk image!
+		safestrcat(menuoptions[0], sizeof(menuoptions[0]), "<NO DISK>"); //Add disk image!
 	}
 	else
 	{
-		safestrcat(menuoptions[0],sizeof(menuoptions[0]),BIOS_Settings.floppy0); //Add disk image!
+		safestrcat(menuoptions[0], sizeof(menuoptions[0]), BIOS_Settings.floppy0); //Add disk image!
 		if (BIOS_Settings.floppy0_readonly) //Read-only?
 		{
-			safestrcat(menuoptions[0],sizeof(menuoptions[0])," <R>"); //Show readonly tag!
+			safestrcat(menuoptions[0], sizeof(menuoptions[0]), " <R>"); //Show readonly tag!
 		}
 	}
 
-//FLOPPY1
-	if (strcmp(BIOS_Settings.floppy1,"")==0) //No disk?
+	//FLOPPY1
+	if (strcmp(BIOS_Settings.floppy1, "") == 0) //No disk?
 	{
-		safestrcat(menuoptions[1],sizeof(menuoptions[1]),"<NO DISK>"); //Add disk image!
+		safestrcat(menuoptions[1], sizeof(menuoptions[1]), "<NO DISK>"); //Add disk image!
 	}
 	else
 	{
-		safestrcat(menuoptions[1],sizeof(menuoptions[1]),BIOS_Settings.floppy1); //Add disk image!
+		safestrcat(menuoptions[1], sizeof(menuoptions[1]), BIOS_Settings.floppy1); //Add disk image!
 		if (BIOS_Settings.floppy1_readonly) //Read-only?
 		{
-			safestrcat(menuoptions[1],sizeof(menuoptions[1])," <R>"); //Show readonly tag!
+			safestrcat(menuoptions[1], sizeof(menuoptions[1]), " <R>"); //Show readonly tag!
 		}
 	}
 
-//HDD0
-	if (strcmp(BIOS_Settings.hdd0,"")==0) //No disk?
+	//HDD0
+	if (strcmp(BIOS_Settings.hdd0, "") == 0) //No disk?
 	{
-		safestrcat(menuoptions[2],sizeof(menuoptions[2]),"<NO DISK>"); //Add disk image!
+		safestrcat(menuoptions[2], sizeof(menuoptions[2]), "<NO DISK>"); //Add disk image!
 	}
 	else
 	{
-		safestrcat(menuoptions[2],sizeof(menuoptions[2]),BIOS_Settings.hdd0); //Add disk image!
+		safestrcat(menuoptions[2], sizeof(menuoptions[2]), BIOS_Settings.hdd0); //Add disk image!
 		if (BIOS_Settings.hdd0_readonly) //Read-only?
 		{
-			safestrcat(menuoptions[2],sizeof(menuoptions[2])," <R>"); //Show readonly tag!
+			safestrcat(menuoptions[2], sizeof(menuoptions[2]), " <R>"); //Show readonly tag!
 		}
 	}
 
-//HDD1
-	if (strcmp(BIOS_Settings.hdd1,"")==0) //No disk?
+	//HDD1
+	if (strcmp(BIOS_Settings.hdd1, "") == 0) //No disk?
 	{
-		safestrcat(menuoptions[3],sizeof(menuoptions[3]),"<NO DISK>"); //Add disk image!
+		safestrcat(menuoptions[3], sizeof(menuoptions[3]), "<NO DISK>"); //Add disk image!
 	}
 	else
 	{
-		safestrcat(menuoptions[3],sizeof(menuoptions[3]),BIOS_Settings.hdd1); //Add disk image!
+		safestrcat(menuoptions[3], sizeof(menuoptions[3]), BIOS_Settings.hdd1); //Add disk image!
 		if (BIOS_Settings.hdd1_readonly) //Read-only?
 		{
-			safestrcat(menuoptions[3],sizeof(menuoptions[3])," <R>"); //Show readonly tag!
+			safestrcat(menuoptions[3], sizeof(menuoptions[3]), " <R>"); //Show readonly tag!
 		}
 	}
 
-//CDROM0
-	if (strcmp(BIOS_Settings.cdrom0,"")==0) //No disk?
+	//CDROM0
+	if (strcmp(BIOS_Settings.cdrom0, "") == 0) //No disk?
 	{
-		safestrcat(menuoptions[4],sizeof(menuoptions[4]),"<NO DISK>"); //Add disk image!
+		safestrcat(menuoptions[4], sizeof(menuoptions[4]), "<NO DISK>"); //Add disk image!
 	}
 	else
 	{
-		safestrcat(menuoptions[4],sizeof(menuoptions[4]),BIOS_Settings.cdrom0); //Add disk image!
+		safestrcat(menuoptions[4], sizeof(menuoptions[4]), BIOS_Settings.cdrom0); //Add disk image!
 	}
 
-//CDROM1
-	if (strcmp(BIOS_Settings.cdrom1,"")==0) //No disk?
+	//CDROM1
+	if (strcmp(BIOS_Settings.cdrom1, "") == 0) //No disk?
 	{
-		safestrcat(menuoptions[5],sizeof(menuoptions[5]),"<NO DISK>"); //Add disk image!
+		safestrcat(menuoptions[5], sizeof(menuoptions[5]), "<NO DISK>"); //Add disk image!
 	}
 	else
 	{
-		safestrcat(menuoptions[5],sizeof(menuoptions[5]),BIOS_Settings.cdrom1); //Add disk image!
+		safestrcat(menuoptions[5], sizeof(menuoptions[5]), BIOS_Settings.cdrom1); //Add disk image!
 	}
 
-	CMOSDATA *currentCMOS;
+	CMOSDATA* currentCMOS;
 	if (is_PS2) //PS/2?
 	{
 		currentCMOS = &BIOS_Settings.PS2CMOS; //We've used!
@@ -1601,8 +1607,20 @@ void BIOS_InitDisksText()
 		currentCMOS = &BIOS_Settings.ATCMOS; //We've used!
 	}
 
-	safestrcat(menuoptions[12],sizeof(menuoptions[12]),floppygeometries[currentCMOS->floppy0_nodisk_type].text);
-	safestrcat(menuoptions[13],sizeof(menuoptions[13]),floppygeometries[currentCMOS->floppy1_nodisk_type].text);
+	safestrcat(menuoptions[12], sizeof(menuoptions[12]), floppygeometries[currentCMOS->floppy0_nodisk_type].text);
+	safestrcat(menuoptions[13], sizeof(menuoptions[13]), floppygeometries[currentCMOS->floppy1_nodisk_type].text);
+	switch (currentCMOS->FDC_emulationtype)
+	{
+	case 0: //82077AA?
+		safestrcat(menuoptions[14], sizeof(menuoptions[14]), "82077AA");
+		break;
+	case 1: //Multi Unique FDC?
+		safestrcat(menuoptions[14], sizeof(menuoptions[14]), "Multi Unique FDC");
+		break;
+	default: //Unknown?
+		safestrcat(menuoptions[14], sizeof(menuoptions[14]), "<UNKNOWN EMULATION TYPE. CHECK SETTINGS VALUE>");
+		break;
+	}
 }
 
 
@@ -1611,7 +1629,7 @@ void BIOS_DisksMenu() //Manages the mounted disks!
 	byte allowsaveresume;
 	BIOS_Title("Manage mounted drives");
 	BIOS_InitDisksText(); //First, initialise texts!
-	int menuresult = ExecuteMenu(14,4,BIOSMENU_SPEC_LR|BIOSMENU_SPEC_SQUAREOPTION|BIOSMENU_SPEC_RETURN,&Menu_Stat); //Show the menu options, allow SQUARE!
+	int menuresult = ExecuteMenu(15,4,BIOSMENU_SPEC_LR|BIOSMENU_SPEC_SQUAREOPTION|BIOSMENU_SPEC_RETURN,&Menu_Stat); //Show the menu options, allow SQUARE!
 	switch (menuresult)
 	{
 	case BIOSMENU_SPEC_CANCEL: //Return?
@@ -1752,6 +1770,12 @@ void BIOS_DisksMenu() //Manages the mounted disks!
 		if (Menu_Stat == BIOSMENU_STAT_OK) //Plain status?
 		{
 			BIOS_Menu = 75; //Floppy B without disk type!
+		}
+		break;
+	case 14: //FDC emulation type?
+		if (Menu_Stat == BIOSMENU_STAT_OK) //Plain status?
+		{
+			BIOS_Menu = 76; //FDC emulation type!
 		}
 		break;
 	default: //Unknown option?
@@ -5982,8 +6006,6 @@ void BIOS_CPUSpeed() //CPU speed selection!
 	BIOS_Menu = 35; //Goto CPU menu!
 }
 
-extern CMOS_Type CMOS; //The currently running CMOS!
-
 void BIOS_ClearCMOS() //Clear the CMOS!
 {
 	byte emptycmos[128];
@@ -8090,6 +8112,112 @@ void BIOS_floppy1_nodisk_type()
 			memset(&BIOS_Settings.ATCMOS, 0, sizeof(BIOS_Settings.ATCMOS)); //Init!
 		}
 		BIOS_Settings.ATCMOS.floppy1_nodisk_type = result; //Reverse!
+		BIOS_Settings.got_ATCMOS = 1; //We hav gotten a CMOS!
+	}
+}
+
+void BIOS_FDC_emulation_type()
+{
+	byte i;
+	char filename[256]; //Filename container!
+	cleardata(&filename[0], sizeof(filename)); //Init!
+	for (i = 0; i < 2; i++) //Process all geometries into a list!
+	{
+		memset(&itemlist[i], 0, sizeof(itemlist[i])); //Reset!
+	}
+	strcpy(itemlist[0], "82077AA");
+	strcpy(itemlist[1], "Multi Unique FDC");
+	numlist = 2; //The size of the list!
+
+	CMOSDATA* currentCMOS;
+	if (is_PS2) //PS/2?
+	{
+		currentCMOS = &BIOS_Settings.PS2CMOS; //We've used!
+	}
+	else if (is_Compaq)
+	{
+		currentCMOS = &BIOS_Settings.CompaqCMOS; //We've used!
+	}
+	else if (is_XT)
+	{
+		currentCMOS = &BIOS_Settings.XTCMOS; //We've used!
+	}
+	else //AT?
+	{
+		currentCMOS = &BIOS_Settings.ATCMOS; //We've used!
+	}
+
+	BIOS_Title("Floppy disk controller emulation type");
+	EMU_locktext();
+	EMU_gotoxy(0, 4); //Goto 4th row!
+	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
+	GPU_EMU_printscreen(0, 4, "FDC type: "); //Show selection init!
+	EMU_unlocktext();
+	int result;
+	result = ExecuteList(10, 4, itemlist[currentCMOS->FDC_emulationtype], 256, NULL); //Get our result!
+	int newtype;
+	newtype = currentCMOS->FDC_emulationtype; //Old type!
+	switch (result) //Which result?
+	{
+	case FILELIST_DEFAULT: //Unmount?
+		BIOS_Changed |= 1; //Changed!
+		newtype = 0; //Default!
+		break;
+	case FILELIST_CANCEL: //Cancelled?
+		//We do nothing with the selected disk!
+		break;
+	default: //File?
+		if ((result >= 0) && (result < 2)) //Valid item?
+		{
+			if (result != currentCMOS->FDC_emulationtype) //Changed?
+			{
+				newtype = result; //Set the new value!
+				BIOS_Changed |= 1; //Changed!
+			}
+		}
+		break;
+	}
+	BIOS_Menu = 1; //Return to Disk Menu!
+
+	BIOS_Changed = 1; //We've changed!
+	lock(LOCK_CPU); //Lock the CPU: we're going to change something in active emulation!
+	CMOS.Loaded = 1; //Unload the CMOS: discard anything that's loaded when saving!
+	CMOS.DATA.FDC_emulationtype = newtype; //Reverse!
+	unlock(LOCK_CPU); //We're finished with the main thread!
+	if (is_PS2) //PS/2?
+	{
+		if (!BIOS_Settings.got_PS2CMOS)
+		{
+			memset(&BIOS_Settings.PS2CMOS, 0, sizeof(BIOS_Settings.PS2CMOS)); //Init!
+		}
+		BIOS_Settings.PS2CMOS.FDC_emulationtype = result; //Reverse!
+		BIOS_Settings.got_PS2CMOS = 1; //We hav gotten a CMOS!
+	}
+	else if (is_Compaq)
+	{
+		if (!BIOS_Settings.got_CompaqCMOS)
+		{
+			memset(&BIOS_Settings.CompaqCMOS, 0, sizeof(BIOS_Settings.CompaqCMOS)); //Init!
+		}
+		BIOS_Settings.CompaqCMOS.FDC_emulationtype = result; //Reverse!
+		BIOS_Settings.got_CompaqCMOS = 1; //We hav gotten a CMOS!
+	}
+	else if (is_XT)
+	{
+		if (!BIOS_Settings.got_XTCMOS)
+		{
+			memset(&BIOS_Settings.XTCMOS, 0, sizeof(BIOS_Settings.XTCMOS)); //Init!
+		}
+		BIOS_Settings.XTCMOS.FDC_emulationtype = result; //Reverse!
+		BIOS_Settings.got_XTCMOS = 1; //We hav gotten a CMOS!
+	}
+	else //AT?
+	{
+		if (!BIOS_Settings.got_ATCMOS)
+		{
+			memset(&BIOS_Settings.ATCMOS, 0, sizeof(BIOS_Settings.ATCMOS)); //Init!
+		}
+		BIOS_Settings.ATCMOS.FDC_emulationtype = result; //Reverse!
 		BIOS_Settings.got_ATCMOS = 1; //We hav gotten a CMOS!
 	}
 }

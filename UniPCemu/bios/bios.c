@@ -777,6 +777,8 @@ void loadBIOSCMOS(CMOSDATA *CMOS, char *section)
 	if (CMOS->floppy0_nodisk_type >= NUMFLOPPYGEOMETRIES) CMOS->floppy0_nodisk_type = 0; //Default if invalid!
 	CMOS->floppy1_nodisk_type = (byte)get_private_profile_uint64(section, "floppy1_nodisk_type", 0, BIOS_Settings_file);
 	if (CMOS->floppy1_nodisk_type >= NUMFLOPPYGEOMETRIES) CMOS->floppy1_nodisk_type = 0; //Default if invalid!
+	CMOS->FDC_emulationtype = (byte)get_private_profile_uint64(section, "floppy_emulationtype", 0, BIOS_Settings_file);
+	if (CMOS->FDC_emulationtype >= 2) CMOS->FDC_emulationtype = 0; //Default if invalid!
 	for (index=0;index<NUMITEMS(CMOS->DATA80.data);++index) //Process extra RAM data!
 	{
 		snprintf(field,sizeof(field),"RAM%02X",index); //The field!
@@ -1011,6 +1013,7 @@ byte saveBIOSCMOS(CMOSDATA *CMOS, char *section, char *section_comment)
 	if (!write_private_profile_uint64(section,section_comment,"cycletiming",CMOS->cycletiming,BIOS_Settings_file)) return 0;
 	if (!write_private_profile_uint64(section, section_comment, "floppy0_nodisk_type", CMOS->floppy0_nodisk_type, BIOS_Settings_file)) return 0;
 	if (!write_private_profile_uint64(section, section_comment, "floppy1_nodisk_type", CMOS->floppy1_nodisk_type, BIOS_Settings_file)) return 0;
+	if (!write_private_profile_uint64(section, section_comment, "floppy_emulationtype", CMOS->FDC_emulationtype, BIOS_Settings_file)) return 0;
 	for (index=0;index<NUMITEMS(CMOS->DATA80.data);++index) //Process extra RAM data!
 	{
 		snprintf(field,sizeof(field),"RAM%02X",index); //The field!
@@ -1344,6 +1347,8 @@ int BIOS_SaveData() //Save BIOS settings!
 	{
 		safescatnprintf(cmos_comment, sizeof(cmos_comment), (c == 0) ? "%i=%s" : ", %i=%s", c, floppygeometries[c].text);
 	}
+	safestrcat(cmos_comment, sizeof(cmos_comment), "\n");
+	safestrcat(cmos_comment, sizeof(cmos_comment), "floppy_emulationtype: The type of emulated FDC controller. 0=82077AA, 1=Multi Unique FDC");
 	char *cmos_commentused=NULL;
 	if (cmos_comment[0]) cmos_commentused = &cmos_comment[0];
 
