@@ -69,6 +69,9 @@ void VGA_calcprecalcs_CRTC(void *useVGA) //Precalculate CRTC precalcs!
 	byte pixelticked=0; //Pixel has been ticked?
 	byte clockrate;
 	byte firstfetch=1; //First fetch is ignored!
+	byte graphicshalfclockrate = 0; //Graphics half clock rate!
+	byte usegraphicsrate;
+	usegraphicsrate = VGA->precalcs.graphicsmode; //Are we in graphics mode?
 	clockrate = (((VGA->precalcs.ClockingModeRegister_DCR&1) | (CGA_DOUBLEWIDTH(VGA) ? 1 : 0))); //The clock rate to run the VGA clock at!
 	byte theshift = 0;
 	switch (VGA->precalcs.ClockingModeRegister_DCR)
@@ -127,8 +130,13 @@ void VGA_calcprecalcs_CRTC(void *useVGA) //Precalculate CRTC precalcs!
 
 			//Tick fetch rate!
 			++fetchrate; //Fetch ticking!
-			if (((fetchrate == 1) || (fetchrate == 5))) //Half clock rate?
+			if (usegraphicsrate) //Use 4 pixel clocking?
 			{
+				if ((++graphicshalfclockrate & 3) == 1) goto tickdiv4; //Tick 1&5, use 4 clock division for pixels 1&5, ignoring character width completely!
+			}
+			else if (((fetchrate == 1) || (fetchrate == 5))) //Half clock rate? Tick clocks 1&5 out of 8 or 9!
+			{
+				tickdiv4: //Graphics DIV4 clock!
 				if (!firstfetch) //Not the first fetch?
 				{
 					extrastatus |= 2; //Half pixel clock for division in graphics rates!
