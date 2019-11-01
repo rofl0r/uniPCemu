@@ -61,7 +61,6 @@ typedef struct
 	byte cycletiming; //Run the CMOS off the CPU clock instead of realtime?
 	byte floppy0_nodisk_type; //No mounted disk type for Floppy A
 	byte floppy1_nodisk_type; //No mounted disk type for Floppy B
-	byte FDC_emulationtype; //Special FDC type to emulate?
 } CMOSDATA;
 
 typedef struct

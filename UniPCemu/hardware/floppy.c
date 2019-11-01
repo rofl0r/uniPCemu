@@ -2384,26 +2384,6 @@ byte getfloppydisktype(byte floppy)
 	return FLOPPYTYPE_12MB; //Default to the default AT controller to fit all!
 }
 
-byte floppy_translateMultiUniqueFDC = 0; //Enable translation?
-
-byte translatefloppytype(byte which, byte drive)
-{
-	const static byte translatetableMultiUnique[4] = {0,3,2,2};
-	which &= 3; //Filter!
-	if (floppy_translateMultiUniqueFDC) //Unique FDC type translation instead of 82077AA-compatible?
-	{
-		which = translatetableMultiUnique[which]; //Lookup type except 360K)!
-		if ((which==0) && FLOPPY.geometries[drive]) //Might be specific geometry?
-		{
-			if (FLOPPY.geometries[drive]->KB==360) //360K drive?
-			{
-				return 1; //Special: 360K!
-			}
-		}
-	}
-	return which; //Which type translated!
-}
-
 byte PORT_IN_floppy(word port, byte *result)
 {
 	if ((port&~7) != 0x3F0) return 0; //Not our port range!
@@ -2413,13 +2393,13 @@ byte PORT_IN_floppy(word port, byte *result)
 	case 0: //diskette EHD controller board jumper settings (82072AA)!
 		//Officially only on AT systems, but use on XT as well for proper detection!
 		//Create floppy flags!
-		temp = translatefloppytype(getfloppydisktype(3),3); //Floppy #3!
+		temp = getfloppydisktype(3); //Floppy #3!
 		temp <<= 2;
-		temp |= translatefloppytype(getfloppydisktype(2),2); //Floppy #2!
+		temp = getfloppydisktype(2); //Floppy #2!
 		temp <<= 2;
-		temp |= translatefloppytype(getfloppydisktype(1),1); //Floppy #1!
+		temp = getfloppydisktype(1); //Floppy #1!
 		temp <<= 2;
-		temp |= translatefloppytype(getfloppydisktype(0),0); //Floppy #0!
+		temp = getfloppydisktype(0); //Floppy #0!
 		FLOPPY_LOGD("FLOPPY: Read port Diskette EHD controller board jumper settings=%02X",temp);
 		*result = temp; //Give the result!
 		return 1; //Used!
