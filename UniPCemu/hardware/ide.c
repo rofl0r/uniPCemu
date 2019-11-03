@@ -453,16 +453,24 @@ OPTINLINE uint_32 ATA_CHS2LBA(byte channel, byte slave, word cylinder, byte head
 	return ((cylinder*ATA[channel].Drive[slave].driveparams[55]) + head)*ATA[channel].Drive[slave].driveparams[56] + sector - 1; //Give the LBA value!
 }
 
-OPTINLINE void ATA_LBA2CHS(byte channel, byte slave, uint_32 LBA, word *cylinder, byte *head, byte *sector)
+OPTINLINE byte ATA_LBA2CHS(byte channel, byte slave, uint_32 LBA, word *cylinder, byte *head, byte *sector)
 {
 	uint_32 temp;
 	temp = (ATA[channel].Drive[slave].driveparams[55] * ATA[channel].Drive[slave].driveparams[56]); //Sectors per cylinder!
-	*cylinder = (word)(LBA / temp); //Cylinder!
-	LBA -= *cylinder*temp; //Decrease LBA to get heads&sectors!
-	temp = ATA[channel].Drive[slave].driveparams[56]; //SPT!
-	*head = (LBA / temp) & 0xF; //The head!
-	LBA -= *head*temp; //Decrease LBA to get sectors!
-	*sector = ((LBA+1) & 0xFF); //The sector!
+	if (temp && ATA[channel].Drive[slave].driveparams[56]) //Valid geometry to use?
+	{
+		*cylinder = (word)(LBA / temp); //Cylinder!
+		LBA -= *cylinder * temp; //Decrease LBA to get heads&sectors!
+		temp = ATA[channel].Drive[slave].driveparams[56]; //SPT!
+		*head = (LBA / temp) & 0xF; //The head!
+		LBA -= *head * temp; //Decrease LBA to get sectors!
+		*sector = ((LBA + 1) & 0xFF); //The sector!
+		return 1; //OK!
+	}
+	//Invalid geometry?
+	*head = *sector = 0xFF; //Invalid!
+	*cylinder = 0xFFFF; //Invalid!
+	return 0; //Error: invalid geometry!
 }
 
 int ATA_Drives[2][2]; //All ATA mounted drives to disk conversion!
@@ -1920,11 +1928,13 @@ void ATA_writeLBACHS(byte channel) //Update the current sector!
 	}
 	else
 	{
-		ATA_LBA2CHS(channel,ATA_activeDrive(channel),ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address, &cylinder, &head, &sector); //Convert the current LBA address into a CHS value!
-		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh = ((cylinder >> 8) & 0xFF); //Cylinder high!
-		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow = (cylinder&0xFF); //Cylinder low!
-		ATA_DRIVEHEAD_HEADW(channel,ATA_activeDrive(channel),head); //Head!
-		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectornumber = sector; //Sector number!
+		if (ATA_LBA2CHS(channel, ATA_activeDrive(channel), ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address, &cylinder, &head, &sector)) //Convert the current LBA address into a CHS value!
+		{
+			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh = ((cylinder >> 8) & 0xFF); //Cylinder high!
+			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow = (cylinder & 0xFF); //Cylinder low!
+			ATA_DRIVEHEAD_HEADW(channel, ATA_activeDrive(channel), head); //Head!
+			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectornumber = sector; //Sector number!
+		}
 	}
 }
 
