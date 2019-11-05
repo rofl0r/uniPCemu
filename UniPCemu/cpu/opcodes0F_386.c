@@ -490,7 +490,7 @@ void CPU386_OP0F03() //LSL /r
 
 				limit = verdescriptor.PRECALCS.limit; //The limit to apply!
 
-				if ((MAX(getCPL(), getRPL(oper1)) <= GENERALSEGMENT_DPL(verdescriptor)) || isconforming) //Valid privilege?
+				if ((MAX(getCPL(), getRPL(oper1d)) <= GENERALSEGMENT_DPL(verdescriptor)) || isconforming) //Valid privilege?
 				{
 					if (unlikely(CPU[activeCPU].modrmstep == 2)) { if (modrm_check32(&params, MODRM_src0, 0|0x40)) return; if (modrm_check32(&params, MODRM_src0, 0|0xA0)) return; } //Abort on fault!
 					if (CPU80386_instructionstepwritemodrmdw(2,(uint_32)(limit&0xFFFFFFFF),MODRM_src0)) return; //Write our result!
