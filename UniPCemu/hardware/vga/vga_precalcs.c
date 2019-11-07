@@ -123,13 +123,17 @@ void VGA_calcprecalcs_CRTC(void *useVGA) //Precalculate CRTC precalcs!
 
 		if (pixelticked)
 		{
-			if (innerpixel == 0) //First pixel of a character(loading)?
+			if (usegraphicsrate==0) //Text rate?
 			{
-				fetchrate = 0; //Reset fetching for the new character!
+				if (innerpixel == 0) //First pixel of a character(loading)?
+				{
+					fetchrate = 0; //Reset fetching for the new character!
+				}
 			}
 
 			//Tick fetch rate!
 			++fetchrate; //Fetch ticking!
+			if (usegraphicsrate) fetchrate &= 7; //Force 8 dots/character for graphics modes!
 			if (fetchrate == 1) //Whole clock rate? Tick clocks 1 out of 8 or 9!
 			{
 				if (!firstfetch) //Not the first fetch?
