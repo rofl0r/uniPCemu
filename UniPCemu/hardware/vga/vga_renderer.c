@@ -379,7 +379,7 @@ OPTINLINE byte VGA_ActiveDisplay_timing(SEQ_DATA *Sequencer, VGA_Type *VGA)
 		return 0; //Abort: we're disabled!
 	}
 
-	if (extrastatus & 2) //Whole character clock is to be executed?
+	if (extrastatus & 2) //Half character clock is to be executed?
 	{
 		if ((++Sequencer->linearcounterdivider&VGA->precalcs.characterclockshift) == 0) //Increase memory address counter?
 		{

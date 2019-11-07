@@ -1331,7 +1331,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 			BWDModeShift = 0; //Shift by 0! We're byte mode!
 		}
 
-		byte characterclockshift = 0; //Default: reload every whole clock!
+		byte characterclockshift = 1; //Default: reload every whole clock!
 		//This applies to the address counter (renderer), causing it to increase and load more/less(factors of 2). This is used as a mask to apply to the 
 		if (GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.UNDERLINELOCATIONREGISTER,5,1))
 		{
@@ -1341,16 +1341,16 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 			}
 			else //Reload every 4 clocks!
 			{
-				characterclockshift = 3; //Reload every 4 clocks(32 pixels)!
+				characterclockshift = 7; //Reload every 4 clocks(32 pixels)!
 			}
 		}
 		else if (GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER,3,1))
 		{
-			characterclockshift = 1; //Reload every other clock(16 pixels)!
+			characterclockshift = 3; //Reload every other clock(16 pixels)!
 		}
 		else //Reload every clock!
 		{
-			characterclockshift = 0; //Reload every whole clock(8 pixels)!
+			characterclockshift = 1; //Reload every whole clock(8 pixels)!
 		}
 
 		if (VGA->precalcs.linearmode&8) //Linear mode is different on Tseng chipsets? This activates byte mode!
