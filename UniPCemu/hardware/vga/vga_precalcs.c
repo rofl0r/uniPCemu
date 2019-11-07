@@ -795,7 +795,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 				BWDModeShift = 0; //Shift by 0! We're byte mode!
 			}
 
-			byte characterclockshift = 1; //Default: reload every whole clock!
+			byte characterclockshift = 0; //Default: reload every whole clock!
 			//This applies to the address counter (renderer), causing it to increase and load more/less(factors of 2). This is used as a mask to apply to the 
 			if (GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.UNDERLINELOCATIONREGISTER,5,1))
 			{
