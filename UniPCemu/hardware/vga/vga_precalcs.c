@@ -130,16 +130,11 @@ void VGA_calcprecalcs_CRTC(void *useVGA) //Precalculate CRTC precalcs!
 
 			//Tick fetch rate!
 			++fetchrate; //Fetch ticking!
-			if (usegraphicsrate) //Use 4 pixel clocking?
+			if (fetchrate == 1) //Whole clock rate? Tick clocks 1 out of 8 or 9!
 			{
-				if ((++graphicshalfclockrate & 3) == 1) goto tickdiv4; //Tick 1&5, use 4 clock division for pixels 1&5, ignoring character width completely!
-			}
-			else if (((fetchrate == 1) || (fetchrate == 5))) //Half clock rate? Tick clocks 1&5 out of 8 or 9!
-			{
-				tickdiv4: //Graphics DIV4 clock!
 				if (!firstfetch) //Not the first fetch?
 				{
-					extrastatus |= 2; //Half pixel clock for division in graphics rates!
+					extrastatus |= 2; //Tick pixel clock for division in graphics&text rates!
 				}
 				else --firstfetch; //Not the first fetch anymore!
 			}
@@ -248,7 +243,7 @@ void dump_CRTCTiming()
 		}
 		if (extrahorizontalstatus & 2)
 		{
-			safescatnprintf(information,sizeof(information), "+HALFCLOCK"); //Add!
+			safescatnprintf(information,sizeof(information), "+CHARACTERCLOCK"); //Add!
 		}
 		if (extrahorizontalstatus & 4)
 		{
@@ -372,18 +367,18 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		if (VGA->precalcs.ClockingModeRegister_DCR != GETBITS(VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER,3,1)) adjustVGASpeed(); //Auto-adjust our VGA speed!
 		VGA->precalcs.ClockingModeRegister_DCR = GETBITS(VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER,3,1); //Dot Clock Rate!
 
-		byte newSLR = 0x7; //New shift/load rate!
+		byte newSLR = 0x3; //New shift/load rate!
 		if (GETBITS(VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER,4,1)) //Quarter the video load rate?
 		{
-			newSLR = 0x7; //Reload every 4 clocks!
+			newSLR = 0x3; //Reload every 4 clocks!
 		}
 		else if (GETBITS(VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER,2,1)) //Half the video load rate?
 		{
-			newSLR = 0x3; //Reload every 2 clocks!
+			newSLR = 0x1; //Reload every 2 clocks!
 		}
 		else //Single load rate?
 		{
-			newSLR = 0x1; //Always load(Single load rate) every character clock(2 half clocks)!
+			newSLR = 0x0; //Always load(Single load rate) every character clock(whole clocks)!
 		}
 		VGA->precalcs.VideoLoadRateMask = newSLR; //Apply the determined Shift/Load rate mask!
 
@@ -806,20 +801,20 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			{
 				if (GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER,3,1)) //Both set? We reload twice per clock!
 				{
-					characterclockshift = 0; //Reload every half clock(4 pixels)!
+					characterclockshift = 0; //Reload every whole clock(8 pixels)!
 				}
 				else //Reload every 4 clocks!
 				{
-					characterclockshift = 7; //Reload every 4 clocks(32 pixels)!
+					characterclockshift = 3; //Reload every 4 clocks(32 pixels)!
 				}
 			}
 			else if (GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER,3,1))
 			{
-				characterclockshift = 3; //Reload every other clock(16 pixels)!
+				characterclockshift = 1; //Reload every other clock(16 pixels)!
 			}
 			else //Reload every clock!
 			{
-				characterclockshift = 1; //Reload every whole clock(8 pixels)!
+				characterclockshift = 0; //Reload every whole clock(8 pixels)!
 			}
 
 			updateCRTC |= (VGA->precalcs.BWDModeShift != BWDModeShift); //Update the CRTC!
