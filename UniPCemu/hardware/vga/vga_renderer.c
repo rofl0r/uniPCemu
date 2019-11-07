@@ -799,6 +799,7 @@ void VGA_ActiveDisplay_Text(SEQ_DATA *Sequencer, VGA_Type *VGA)
 			return; //Nibbled!
 		}
 	}
+	else return; //Don't render when not ticking!
 
 	activedisplay_noblanking_handler(VGA, Sequencer, &currentattributeinfo); //Blank or active display!
 }
@@ -814,6 +815,7 @@ void VGA_ActiveDisplay_Text_blanking(SEQ_DATA *Sequencer, VGA_Type *VGA)
 			return; //Nibbled!
 		}
 	}
+	else return; //Don't render when not ticking!
 
 	activedisplay_blank_handler(VGA, Sequencer, &currentattributeinfo); //Blank or active display!
 }
@@ -829,6 +831,7 @@ void VGA_ActiveDisplay_Graphics(SEQ_DATA *Sequencer, VGA_Type *VGA)
 			return; //Nibbled!
 		}
 	}
+	else return; //Don't render when not ticking!
 
 	activedisplay_noblanking_handler(VGA, Sequencer, &currentattributeinfo); //Blank or active display!
 }
@@ -844,6 +847,7 @@ void VGA_ActiveDisplay_Graphics_blanking(SEQ_DATA *Sequencer, VGA_Type *VGA)
 			return; //Nibbled!
 		}
 	}
+	else return; //Don't render when not ticking!
 
 	activedisplay_blank_handler(VGA, Sequencer, &currentattributeinfo); //Blank or active display!
 }
