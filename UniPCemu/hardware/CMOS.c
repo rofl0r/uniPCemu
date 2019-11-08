@@ -650,6 +650,23 @@ void loadCMOS()
 	CMOS.RateDivider = getGenericCMOSRate(); //Generic rate!
 
 	CMOS.Loaded = 1; //The CMOS is loaded!
+	CMOS_updateActualTime(); //Update the time data with actual values!
+}
+
+void CMOS_cleartimedata(CMOSDATA* CMOS)
+{
+	if (CMOS->centuryisbinary == 0) CMOS->DATA80.data[0x32] = 0; //Encode when possible!
+//else CMOS.DATA.DATA80.data[0x32] = ((curtime->year/100)&0xFF); //The century with safety wrapping!
+	CMOS->DATA80.info.RTC_Year = 0;
+	CMOS->DATA80.info.RTC_Month = 0;
+	CMOS->DATA80.info.RTC_DateOfMonth = 0;
+
+	CMOS->DATA80.info.RTC_Hours = 0; //Hour has 12-hour format support!
+	CMOS->DATA80.info.RTC_Minutes = 0;
+	CMOS->DATA80.info.RTC_Seconds = 0;
+	CMOS->DATA80.info.RTC_DayOfWeek = 0; //The day of the week!
+	CMOS->s100 = 0; //The 100th seconds!
+	CMOS->s10000 = 0; //The 10000th seconds!
 }
 
 void saveCMOS()
@@ -658,22 +675,26 @@ void saveCMOS()
 	if (is_PS2) //PS/2 CMOS?
 	{
 		memcpy(&BIOS_Settings.PS2CMOS, &CMOS.DATA, sizeof(CMOS.DATA)); //Copy the CMOS to BIOS!
+		CMOS_cleartimedata(&BIOS_Settings.PS2CMOS);
 		BIOS_Settings.got_PS2CMOS = 1; //We've saved an CMOS!
 	}
 	if (is_Compaq) //Compaq?
 	{
 		memcpy(&BIOS_Settings.CompaqCMOS, &CMOS.DATA, sizeof(CMOS.DATA)); //Copy the CMOS to BIOS!
 		BIOS_Settings.got_CompaqCMOS = 1; //We've saved an CMOS!
+		CMOS_cleartimedata(&BIOS_Settings.CompaqCMOS);
 	}
 	else if (is_XT) //XT CMOS?
 	{
 		memcpy(&BIOS_Settings.XTCMOS, &CMOS.DATA, sizeof(CMOS.DATA)); //Copy the CMOS to BIOS!
 		BIOS_Settings.got_XTCMOS = 1; //We've saved an CMOS!
+		CMOS_cleartimedata(&BIOS_Settings.XTCMOS);
 	}
 	else //AT CMOS?
 	{
 		memcpy(&BIOS_Settings.ATCMOS, &CMOS.DATA, sizeof(CMOS.DATA)); //Copy the CMOS to BIOS!
 		BIOS_Settings.got_ATCMOS = 1; //We've saved an CMOS!
+		CMOS_cleartimedata(&BIOS_Settings.ATCMOS);
 	}
 }
 
