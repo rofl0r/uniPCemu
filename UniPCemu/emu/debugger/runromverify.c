@@ -142,7 +142,7 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 	resetCPU(1); //Make sure we start correctly!
 	lock(LOCK_CPU);
 	CPU[activeCPU].registers->CS = 0xF000;
-	CPU[activeCPU].registers->EIP = 0xFFF0; //Our reset vector instead for the test ROMs!
+	REG_EIP = 0xFFF0; //Our reset vector instead for the test ROMs!
 	REG_DX = 0; //Make sure DX is zeroed for compatiblity with 16-bit ROMs!
 	CPU_flushPIQ(-1); //Clear the PIQ from any unused instructions!
 	for (;!CPU[activeCPU].halt;) //Still running?
@@ -158,11 +158,11 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 			}
 		}
 
-		uint_32 curaddr = (CPU[activeCPU].registers->CS<<4)+CPU[activeCPU].registers->IP; //Calculate current memory address!
+		uint_32 curaddr = (CPU[activeCPU].registers->CS<<4)+REG_IP; //Calculate current memory address!
 		if (curaddr<0xF0000) //Out of executable range?
 		{
 			erroraddr = curaddr; //Set error address!
-			erroraddr16 = (CPU[activeCPU].registers->CS<<16)|CPU[activeCPU].registers->IP; //Set error address segment:offset!
+			erroraddr16 = (CPU[activeCPU].registers->CS<<16)|REG_IP; //Set error address segment:offset!
 			break; //Continue, but keep our warning!
 		}
 		lastaddr = curaddr; //Save the current address for reference of the error address!
@@ -193,12 +193,12 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 							else //Execute the CPU bug!
 							{
 								CPU_8086REPPending(1); //Process pending REPs normally as documented!
-								CPU[activeCPU].registers->EIP = CPU_InterruptReturn; //Use the special interrupt return address to return to the last prefix instead of the start!
+								REG_EIP = CPU_InterruptReturn; //Use the special interrupt return address to return to the last prefix instead of the start!
 							}
 							CPU_exec_lastCS = CPU_exec_CS;
 							CPU_exec_lastEIP = CPU_exec_EIP;
 							CPU_exec_CS = CPU[activeCPU].registers->CS; //Save for error handling!
-							CPU_exec_EIP = (CPU[activeCPU].registers->EIP&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof); //Save for error handling!
+							CPU_exec_EIP = (REG_EIP&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof); //Save for error handling!
 							CPU_commitState(); //Save fault data to go back to when exceptions occur!
 							call_hard_inthandler(HWINT_nr); //get next interrupt from the i8259, if any!
 						}

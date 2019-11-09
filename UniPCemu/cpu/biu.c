@@ -33,6 +33,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/emu/debugger/debugger.h" //Debugger support!
 #include "headers/mmu/mmu_internals.h" //Internal MMU call support!
 #include "headers/mmu/mmuhandler.h" //MMU handling support!
+#include "headers/cpu/easyregs.h" //Easy register support!
 
 //Define the below to throw faults on instructions causing an invalid jump somewhere!
 //#define FAULT_INVALID_JUMPS
@@ -134,8 +135,8 @@ byte condflushtriggered = 0;
 byte CPU_condflushPIQ(int_64 destaddr)
 {
 	if (BIU[activeCPU].PIQ) fifobuffer_clear(BIU[activeCPU].PIQ); //Clear the Prefetch Input Queue!
-	CPU[activeCPU].registers->EIP &= CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof; //Wrap EIP as needed!
-	BIU[activeCPU].PIQ_Address = (destaddr!=-1)?(uint_32)destaddr:CPU[activeCPU].registers->EIP; //Use actual IP!
+	REG_EIP &= CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof; //Wrap EIP as needed!
+	BIU[activeCPU].PIQ_Address = (destaddr!=-1)?(uint_32)destaddr:REG_EIP; //Use actual IP!
 	CPU[activeCPU].repeating = 0; //We're not repeating anymore!
 	BIU_recheckmemory(); //Recheck anything that's fetching from now on!
 	BIU_instructionStart(); //Prepare for a new instruction!
@@ -143,7 +144,7 @@ byte CPU_condflushPIQ(int_64 destaddr)
 	//Check for any instruction faults that's pending for the next to be executed instruction!
 #ifdef FAULT_INVALID_JUMPS
 	condflushtriggered = 0;
-	if (unlikely(checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, CPU[activeCPU].registers->EIP, 3, getCPL(), !CODE_SEGMENT_DESCRIPTOR_D_BIT(), 0))) //Error accessing memory?
+	if (unlikely(checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, REG_EIP, 3, getCPL(), !CODE_SEGMENT_DESCRIPTOR_D_BIT(), 0))) //Error accessing memory?
 	{
 		condflushtriggered = 1;
 	}
@@ -530,7 +531,7 @@ extern word OPlength; //The length of the opcode buffer!
 
 byte CPU_readOP(byte *result, byte singlefetch) //Reads the operation (byte) at CS:EIP
 {
-	uint_32 instructionEIP = (CPU[activeCPU].registers->EIP&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof); //Our current instruction position is increased always!
+	uint_32 instructionEIP = (REG_EIP&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof); //Our current instruction position is increased always!
 	if (unlikely(CPU[activeCPU].resetPending)) return 1; //Disable all instruction fetching when we're resetting!
 	if (likely(BIU[activeCPU].PIQ)) //PIQ present?
 	{
@@ -543,7 +544,7 @@ byte CPU_readOP(byte *result, byte singlefetch) //Reads the operation (byte) at 
 		//if ((CPU[activeCPU].prefetchclock&(((EMULATED_CPU<=CPU_NECV30)<<1)|1))!=((EMULATED_CPU<=CPU_NECV30)<<1)) return 1; //Stall when not T3(80(1)8X) or T0(286+).
 		//Execution can start on any cycle!
 		//Protection checks have priority over reading the PIQ! The prefetching stops when errors occur when prefetching, we handle the prefetch error when reading the opcode from the BIU, which has to happen before the BIU is retrieved!
-		uint_32 instructionEIP = (CPU[activeCPU].registers->EIP&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof); //Our current instruction position is increased always!
+		uint_32 instructionEIP = (REG_EIP&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof); //Our current instruction position is increased always!
 		if (unlikely(checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, instructionEIP,3,getCPL(),!CODE_SEGMENT_DESCRIPTOR_D_BIT(),0))) //Error accessing memory?
 		{
 			return 1; //Abort on fault!
@@ -568,8 +569,8 @@ byte CPU_readOP(byte *result, byte singlefetch) //Reads the operation (byte) at 
 		if (readfifobuffer(BIU[activeCPU].PIQ,result)) //Read from PIQ?
 		{
 			MMU_addOP(*result); //Add to the opcode cache!
-			++CPU[activeCPU].registers->EIP; //Increase EIP to give the correct point to use!
-			CPU[activeCPU].registers->EIP &= CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof; //Wrap EIP as is required!
+			++REG_EIP; //Increase EIP to give the correct point to use!
+			REG_EIP &= CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof; //Wrap EIP as is required!
 			if (likely(singlefetch)) ++CPU[activeCPU].cycles_Prefetch; //Fetching from prefetch takes 1 cycle!
 			return 0; //Give the prefetched data!
 		}
@@ -596,8 +597,8 @@ byte CPU_readOP(byte *result, byte singlefetch) //Reads the operation (byte) at 
 	}
 	*result = MMU_rb(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, instructionEIP, 3,!CODE_SEGMENT_DESCRIPTOR_D_BIT()); //Read OPcode directly from memory!
 	MMU_addOP(*result); //Add to the opcode cache!
-	++CPU[activeCPU].registers->EIP; //Increase EIP, since we don't have to worrt about the prefetch!
-	CPU[activeCPU].registers->EIP &= CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof; //Wrap EIP as is required!
+	++REG_EIP; //Increase EIP, since we don't have to worrt about the prefetch!
+	REG_EIP &= CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof; //Wrap EIP as is required!
 	if (likely(singlefetch)) ++CPU[activeCPU].cycles_Prefetch; //Fetching from prefetch takes 1 cycle!
 	return 0; //Give the result!
 }
@@ -609,7 +610,7 @@ byte CPU_readOPw(word *result, byte singlefetch) //Reads the operation (word) at
 	{
 		if (likely(BIU[activeCPU].PIQ)) //PIQ installed?
 		{
-			if (checkMMUaccess16(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, CPU[activeCPU].registers->EIP,3,getCPL(),!CODE_SEGMENT_DESCRIPTOR_D_BIT(),0|0x8)) //Error accessing memory?
+			if (checkMMUaccess16(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, REG_EIP,3,getCPL(),!CODE_SEGMENT_DESCRIPTOR_D_BIT(),0|0x8)) //Error accessing memory?
 			{
 				return 1; //Abort on fault!
 			}
@@ -662,7 +663,7 @@ byte CPU_readOPdw(uint_32 *result, byte singlefetch) //Reads the operation (32-b
 	{
 		if (likely(BIU[activeCPU].PIQ)) //PIQ installed?
 		{
-			if (checkMMUaccess32(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, CPU[activeCPU].registers->EIP,3,getCPL(),!CODE_SEGMENT_DESCRIPTOR_D_BIT(),0|0x10)) //Error accessing memory?
+			if (checkMMUaccess32(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, REG_EIP,3,getCPL(),!CODE_SEGMENT_DESCRIPTOR_D_BIT(),0|0x10)) //Error accessing memory?
 			{
 				return 1; //Abort on fault!
 			}

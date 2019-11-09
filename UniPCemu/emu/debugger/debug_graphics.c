@@ -25,6 +25,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/interrupts/interrupt10.h" //INT10 support!
 #include "headers/emu/emu_vga_bios.h" //VGA misc functionality for INT10!
 #include "headers/fopen64.h" //64-bit fopen support!
+#include "headers/cpu/easyregs.h" //Easy register support!
 
 //Debugger functions!
 #include "headers/emu/timers.h" //Timer support!
@@ -32,6 +33,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/hardware/vga/vga_dac.h" //DAC dump support!
 #include "headers/hardware/vga/vga_vram.h" //DAC VRAM support!
 #include "headers/support/log.h" //We're logging data!
+
 
 //To make a screen capture of all of the debug screens active?
 #define LOG_VGA_SCREEN_CAPTURE 0
@@ -227,16 +229,16 @@ void DoDebugVGAGraphics(word mode, word xsize, word ysize, uint_32 maxcolor, int
 {
 	stopTimers(0); //Stop all timers!
 	/*
-	CPU[activeCPU].registers->AX = (word)mode; //Switch to graphics mode!
+	REG_AX = (word)mode; //Switch to graphics mode!
 	BIOS_int10();
 	*/
 
 	GPUswitchvideomode(mode); //Switch to said mode!
 
 
-	CPU[activeCPU].registers->AH = 0xB;
-	CPU[activeCPU].registers->BH = 0x0; //Set overscan color!
-	CPU[activeCPU].registers->BL = 0x1; //Blue overscan!
+	REG_AH = 0xB;
+	REG_BH = 0x0; //Set overscan color!
+	REG_BL = 0x1; //Blue overscan!
 	BIOS_int10();
 	unlock(LOCK_MAINTHREAD);
 	//VGA_DUMPDAC(); //Dump the current DAC and rest info!
@@ -343,11 +345,11 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		stopTimers(0); //Make sure we've stopped!
 		int i; //For further loops!
 
-		CPU[activeCPU].registers->AX = VIDEOMODE_TEXTMODE_40;
+		REG_AX = VIDEOMODE_TEXTMODE_40;
 		BIOS_int10(); //Text mode operations!
-		CPU[activeCPU].registers->AH = 0xB;
-		CPU[activeCPU].registers->BH = 0x0; //Set overscan color!
-		CPU[activeCPU].registers->BL = 0x4; //Blue overscan!
+		REG_AH = 0xB;
+		REG_BH = 0x0; //Set overscan color!
+		REG_BL = 0x4; //Blue overscan!
 		BIOS_int10(); //Set overscan!
 
 		VGA_LOGCRTCSTATUS(); //Log our full status!
@@ -410,9 +412,9 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		lock(LOCK_MAINTHREAD);
 		if (shuttingdown()) goto doshutdown;
 	
-		CPU[activeCPU].registers->AH = 0x0B; //Advanced:!
-		CPU[activeCPU].registers->BH = 0x00; //Set background/border color!
-		CPU[activeCPU].registers->BL = 0x0E; //yellow!
+		REG_AH = 0x0B; //Advanced:!
+		REG_BH = 0x00; //Set background/border color!
+		REG_BL = 0x0E; //yellow!
 		BIOS_int10(); //Show the border like this!
 	
 		if (LOG_VGA_SCREEN_CAPTURE) debugTextModeScreenCapture(); //Debug a screen capture!
@@ -421,7 +423,7 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		lock(LOCK_MAINTHREAD);
 		if (shuttingdown()) goto doshutdown;
 	
-		CPU[activeCPU].registers->AX = 0x01; //40x25 TEXT mode!
+		REG_AX = 0x01; //40x25 TEXT mode!
 		BIOS_int10(); //Switch modes!
 	
 		printmsg(0xF,"This is 40x25 TEXT MODE!");
@@ -444,7 +446,7 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		lock(LOCK_MAINTHREAD);
 		if (shuttingdown()) goto doshutdown;
 
-		CPU[activeCPU].registers->AX = 0x81; //40x25, same, but with grayscale!
+		REG_AX = 0x81; //40x25, same, but with grayscale!
 		BIOS_int10();
 		GPU_text_locksurface(frameratesurface);
 		GPU_textgotoxy(frameratesurface,0,2); //Goto third debug row!
@@ -456,7 +458,7 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		lock(LOCK_MAINTHREAD);
 		if (shuttingdown()) goto doshutdown;
 	
-		CPU[activeCPU].registers->AX = VIDEOMODE_TEXTMODE_80; //80x25 TEXT mode!
+		REG_AX = VIDEOMODE_TEXTMODE_80; //80x25 TEXT mode!
 		BIOS_int10(); //Switch modes!
 		printmsg(0xF,"This is 80x25 TEXT MODE!");
 		printCRLF();
@@ -477,13 +479,13 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		lock(LOCK_MAINTHREAD);
 		if (shuttingdown()) goto doshutdown;
 	
-		CPU[activeCPU].registers->AX = VIDEOMODE_TEXTMODE_80; //Reset to 80x25 text mode!
+		REG_AX = VIDEOMODE_TEXTMODE_80; //Reset to 80x25 text mode!
 		BIOS_int10(); //Reset!
 	
 		for (i=0; i<0x100; i++) //Verify all colors!
 		{
-			CPU[activeCPU].registers->AX = 0x0E41+(i%26); //Character A-Z!
-			CPU[activeCPU].registers->BX = (word)(i%0x100); //Attribute at page 0!
+			REG_AX = 0x0E41+(i%26); //Character A-Z!
+			REG_BX = (word)(i%0x100); //Attribute at page 0!
 			BIOS_int10(); //Show the color!
 		}
 	
@@ -497,10 +499,10 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 		lock(LOCK_MAINTHREAD);
 		if (shuttingdown()) goto doshutdown;
 	
-		CPU[activeCPU].registers->AX = 0x02; //80x25 b/w!
+		REG_AX = 0x02; //80x25 b/w!
 		BIOS_int10(); //Switch video modes!
 	
-		CPU[activeCPU].registers->AL = 0; //Reset character!
+		REG_AL = 0; //Reset character!
 	
 		for (i=0; i<0x100; i++) //Verify all characters!
 		{
@@ -514,10 +516,10 @@ void DoDebugTextMode(byte waitforever) //Do the text-mode debugging!
 			}
 		}
 	
-		CPU[activeCPU].registers->AH = 2; //Set cursor x,y
-		CPU[activeCPU].registers->BH = 0; //Display page #0!
-		CPU[activeCPU].registers->DL = 0; //X
-		CPU[activeCPU].registers->DH = 0; //Y
+		REG_AH = 2; //Set cursor x,y
+		REG_BH = 0; //Display page #0!
+		REG_DL = 0; //X
+		REG_DH = 0; //Y
 		BIOS_int10(); //Show!
 		if (LOG_VGA_SCREEN_CAPTURE) debugTextModeScreenCapture(); //Debug a screen capture!
 		unlock(LOCK_MAINTHREAD);

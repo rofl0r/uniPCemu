@@ -841,21 +841,21 @@ void CPU286_OP0F05() //Undocumented LOADALL instruction
 	//Plain registers!
 	CPU[activeCPU].registers->CR0 = LOADALLDATA.fields.MSW|(CPU[activeCPU].registers->CR0&CR0_PE); //MSW! We cannot reenter real mode by clearing bit 0(Protection Enable bit)!
 	CPU[activeCPU].registers->TR = LOADALLDATA.fields.TR; //TR
-	CPU[activeCPU].registers->FLAGS = LOADALLDATA.fields.flags; //FLAGS
-	CPU[activeCPU].registers->EIP = (uint_32)LOADALLDATA.fields.IP; //IP
+	REG_FLAGS = LOADALLDATA.fields.flags; //FLAGS
+	REG_EIP = (uint_32)LOADALLDATA.fields.IP; //IP
 	CPU[activeCPU].registers->LDTR = LOADALLDATA.fields.LDT; //LDT
 	CPU[activeCPU].registers->DS = LOADALLDATA.fields.DS; //DS
 	CPU[activeCPU].registers->SS = LOADALLDATA.fields.SS; //SS
 	CPU[activeCPU].registers->CS = LOADALLDATA.fields.CS; //CS
 	CPU[activeCPU].registers->ES = LOADALLDATA.fields.ES; //ES
-	CPU[activeCPU].registers->DI = LOADALLDATA.fields.DI; //DI
-	CPU[activeCPU].registers->SI = LOADALLDATA.fields.SI; //SI
-	CPU[activeCPU].registers->BP = LOADALLDATA.fields.BP; //BP
-	CPU[activeCPU].registers->SP = LOADALLDATA.fields.SP; //SP
-	CPU[activeCPU].registers->BX = LOADALLDATA.fields.BX; //BX
-	CPU[activeCPU].registers->DX = LOADALLDATA.fields.DX; //DX
-	CPU[activeCPU].registers->CX = LOADALLDATA.fields.CX; //CX
-	CPU[activeCPU].registers->AX = LOADALLDATA.fields.AX; //AX
+	REG_DI = LOADALLDATA.fields.DI; //DI
+	REG_SI = LOADALLDATA.fields.SI; //SI
+	REG_BP = LOADALLDATA.fields.BP; //BP
+	REG_SP = LOADALLDATA.fields.SP; //SP
+	REG_BX = LOADALLDATA.fields.BX; //BX
+	REG_DX = LOADALLDATA.fields.DX; //DX
+	REG_CX = LOADALLDATA.fields.CX; //CX
+	REG_AX = LOADALLDATA.fields.AX; //AX
 	updateCPUmode(); //We're updating the CPU mode if needed, since we're reloading CR0 and FLAGS!
 
 	//GDTR/IDTR registers!

@@ -510,8 +510,8 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 		//Now we're ready to go run the POST!
 
 		lock(LOCK_CPU);
-		CPU[activeCPU].registers->AH = 0x00; //Init video mode!
-		CPU[activeCPU].registers->AL = VIDEOMODE_EMU; //80x25 16-color TEXT for EMU mode!
+		REG_AH = 0x00; //Init video mode!
+		REG_AL = VIDEOMODE_EMU; //80x25 16-color TEXT for EMU mode!
 		BIOS_int10(); //Switch!
 		unlock(LOCK_CPU); //We're done with the CPU!
 
@@ -611,10 +611,10 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 					verified = 0; //Failed!
 				}
 				CPU[activeCPU].registers->CS = CPU[activeCPU].registers->DS = CPU[activeCPU].registers->ES = 0;
-				CPU[activeCPU].registers->IP = 0; //Run ROM!
+				REG_IP = 0; //Run ROM!
 				CPU_flushPIQ(-1); //We're jumping to another address!
 				CPU[activeCPU].registers->SS = 0;
-				CPU[activeCPU].registers->SP = 0x100; //For ROM specific!
+				REG_SP = 0x100; //For ROM specific!
 				emufclose64(f); //Close boot rom!
 				if (!verified) //Error reading ROM?
 				{
@@ -662,28 +662,28 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 		BIOSKeyboardInit(); //Initialise the BIOS stuff for the keyboard!
 		if (is_XT) keyboardControllerInit(0); //BIOS: Swallow the 0xAA byte that's left, if required!
 
-		CPU[activeCPU].registers->AX = VIDEOMODE_BOOT; //TEXT mode for booting!
+		REG_AX = VIDEOMODE_BOOT; //TEXT mode for booting!
 		BIOS_int10(); //Switch modes!
 
-		CPU[activeCPU].registers->AH = 0x06; //Shift down total rows (moving everthing down one line)?
-		CPU[activeCPU].registers->AL = 0; //0 for clear >0 for shift!
-		CPU[activeCPU].registers->BH = 0xF; //Attribute!
-		CPU[activeCPU].registers->CH = 0;
-		CPU[activeCPU].registers->CL = 0;
-		CPU[activeCPU].registers->DH = 23;
-		CPU[activeCPU].registers->DL = 79; //Coordinates of our window!
+		REG_AH = 0x06; //Shift down total rows (moving everthing down one line)?
+		REG_AL = 0; //0 for clear >0 for shift!
+		REG_BH = 0xF; //Attribute!
+		REG_CH = 0;
+		REG_CL = 0;
+		REG_DH = 23;
+		REG_DL = 79; //Coordinates of our window!
 		BIOS_int10(); //Clear the screen!
 
-		CPU[activeCPU].registers->AH = 0x02;
-		CPU[activeCPU].registers->BH = 0; //Page #0!
-		CPU[activeCPU].registers->DH = 0; //Y!
-		CPU[activeCPU].registers->DL = 0; //X!
+		REG_AH = 0x02;
+		REG_BH = 0; //Page #0!
+		REG_DH = 0; //Y!
+		REG_DL = 0; //X!
 		BIOS_int10(); //Move cursor!
 
-		CPU[activeCPU].registers->AX = 0;
-		CPU[activeCPU].registers->BX = 0;
-		CPU[activeCPU].registers->CX = 0;
-		CPU[activeCPU].registers->DX = 0; //Reset basic registers!
+		REG_AX = 0;
+		REG_BX = 0;
+		REG_CX = 0;
+		REG_DX = 0; //Reset basic registers!
 	}
 
 	int13_init(1, 1, is_mounted(HDD0), is_mounted(HDD1), 1, 1); //Initialise interrupt 13h disks! Always floppy0&1 and cdrom0&1. HDD are predefined and mounted.

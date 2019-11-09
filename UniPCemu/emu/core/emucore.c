@@ -1121,12 +1121,12 @@ OPTINLINE byte coreHandler()
 							else //Execute the CPU bug!
 							{
 								CPU_8086REPPending(1); //Process pending REPs normally as documented!
-								CPU[activeCPU].registers->EIP = CPU_InterruptReturn; //Use the special interrupt return address to return to the last prefix instead of the start!
+								REG_EIP = CPU_InterruptReturn; //Use the special interrupt return address to return to the last prefix instead of the start!
 							}
 							CPU_exec_lastCS = CPU_exec_CS;
 							CPU_exec_lastEIP = CPU_exec_EIP;
 							CPU_exec_CS = CPU[activeCPU].registers->CS; //Save for error handling!
-							CPU_exec_EIP = (CPU[activeCPU].registers->EIP&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof); //Save for error handling!
+							CPU_exec_EIP = (REG_EIP&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof); //Save for error handling!
 							CPU_commitState(); //Save fault data to go back to when exceptions occur!
 							call_hard_inthandler(HWINT_nr); //get next interrupt from the i8259, if any!
 						}
@@ -1143,11 +1143,11 @@ OPTINLINE byte coreHandler()
 							switch (getcpumode()) //What CPU mode are we to debug?
 							{
 							case CPU_MODE_REAL: //Real mode?
-								applysinglestep = ((((CPU[activeCPU].registers->CS == ((singlestepaddress >> 16) & 0xFFFF)) | (singlestepaddress & 0x4000000000000ULL)) && ((CPU[activeCPU].registers->IP == (singlestepaddress & 0xFFFF)) || (singlestepaddress & 0x1000000000000ULL))) || (singlestepaddress & 0x2000000000000ULL)); //Single step enabled?
+								applysinglestep = ((((CPU[activeCPU].registers->CS == ((singlestepaddress >> 16) & 0xFFFF)) | (singlestepaddress & 0x4000000000000ULL)) && ((REG_IP == (singlestepaddress & 0xFFFF)) || (singlestepaddress & 0x1000000000000ULL))) || (singlestepaddress & 0x2000000000000ULL)); //Single step enabled?
 								break;
 							case CPU_MODE_PROTECTED: //Protected mode?
 							case CPU_MODE_8086: //Virtual 8086 mode?
-								applysinglestep = ((((CPU[activeCPU].registers->CS == ((singlestepaddress >> 32) & 0xFFFF)) | (singlestepaddress & 0x4000000000000ULL)) && ((CPU[activeCPU].registers->EIP == (singlestepaddress & 0xFFFFFFFF)) || (singlestepaddress & 0x1000000000000ULL))) || (singlestepaddress & 0x2000000000000ULL)); //Single step enabled?
+								applysinglestep = ((((CPU[activeCPU].registers->CS == ((singlestepaddress >> 32) & 0xFFFF)) | (singlestepaddress & 0x4000000000000ULL)) && ((REG_EIP == (singlestepaddress & 0xFFFFFFFF)) || (singlestepaddress & 0x1000000000000ULL))) || (singlestepaddress & 0x2000000000000ULL)); //Single step enabled?
 								break;
 							default: //Invalid mode?
 								break;
@@ -1192,7 +1192,7 @@ OPTINLINE byte coreHandler()
 				}
 				if (addr_left==0) //Bogus memory detected?
 				{
-					dolog("bogus","Bogus exection memory detected(%u 0000h opcodes) at %04X:%08X! Previous instruction: %02X(0F:%u)@%04X:%08X",LOG_BOGUS,CPU[activeCPU].registers->CS,CPU[activeCPU].registers->EIP,CPU[activeCPU].previousopcode,CPU[activeCPU].previousopcode0F,CPU_exec_lastCS,CPU_exec_lastEIP); //Log the warning of entering bogus memory!
+					dolog("bogus","Bogus exection memory detected(%u 0000h opcodes) at %04X:%08X! Previous instruction: %02X(0F:%u)@%04X:%08X",LOG_BOGUS,CPU[activeCPU].registers->CS,REG_EIP,CPU[activeCPU].previousopcode,CPU[activeCPU].previousopcode0F,CPU_exec_lastCS,CPU_exec_lastEIP); //Log the warning of entering bogus memory!
 				}
 				#endif
 			}

@@ -320,7 +320,7 @@ void CPU_filterflags()
 {
 	//This applies to all processors:
 	INLINEREGISTER uint_32 tempflags;
-	tempflags = CPU[activeCPU].registers->EFLAGS; //Load the flags to set/clear!
+	tempflags = REG_EFLAGS; //Load the flags to set/clear!
 	tempflags &= ~(8 | 32); //Clear bits 3&5!
 
 	switch (EMULATED_CPU) //What CPU flags to emulate?
@@ -374,5 +374,5 @@ void CPU_filterflags()
 		break;
 	}
 	tempflags |= 2; //Clear bit values 8&32(unmapped bits 3&5) and set bit value 2!
-	CPU[activeCPU].registers->EFLAGS = tempflags; //Update the flags!
+	REG_EFLAGS = tempflags; //Update the flags!
 }

@@ -29,6 +29,8 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/interrupts/interrupt10.h" //Interrupt 10h support!
 #include "headers/emu/emu_vga_bios.h" //Cursor enable support!
 #include "headers/support/dro.h" //DRO file support!
+#include "headers/cpu/easyregs.h" //Easy register support!
+
 
 //Test the speaker?
 #define __DEBUG_SPEAKER
@@ -58,8 +60,8 @@ int detectadlib()
 
 void dosoundtest()
 {
-	CPU[activeCPU].registers->AH = 0x00; //Init video mode!
-	CPU[activeCPU].registers->AL = VIDEOMODE_EMU; //80x25 16-color TEXT for EMU mode!
+	REG_AH = 0x00; //Init video mode!
+	REG_AL = VIDEOMODE_EMU; //80x25 16-color TEXT for EMU mode!
 	BIOS_int10(); //Switch!
 
 	BIOS_enableCursor(0); //Disable the cursor!

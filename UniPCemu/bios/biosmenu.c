@@ -58,6 +58,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/hardware/midi/mididevice.h" //For Direct MIDI support!
 #include "headers/mmu/mmuhandler.h" //MMU memory support!
 #include "headers/hardware/vga/vga_precalcs.h" //Precalcs support!
+#include "headers/cpu/easyregs.h" //Easy register support!
 
 extern byte diagnosticsportoutput; //Diagnostics port output!
 
@@ -671,7 +672,7 @@ void BIOSClearScreen() //Resets the BIOS's screen!
 	//cursorXY(0,0,0); //Goto top of the screen!
 
 	EMU_textcolor(BIOS_ATTR_TEXT); //Plain text!
-	/*CPU[activeCPU].registers->AX = VIDEOMODE_EMU; //Video mode 80x25 16 colors!
+	/*REG_AX = VIDEOMODE_EMU; //Video mode 80x25 16 colors!
 	BIOS_int10(); //Switch video mode+Clearscreen!
 	*/
 	
@@ -5760,7 +5761,7 @@ void BIOS_CPU() //CPU menu!
 						break;
 				}
 				segment = CPU[activeCPU].registers->CS; //CS!
-				offset = mode==1?CPU[activeCPU].registers->IP:CPU[activeCPU].registers->EIP; //Our offset!
+				offset = mode==1?REG_IP:REG_EIP; //Our offset!
 				BIOS_Settings.breakpoint = (((uint_64)mode&3)<<SETTINGS_BREAKPOINT_MODE_SHIFT)|(((uint_64)segment&SETTINGS_BREAKPOINT_SEGMENT_MASK)<<SETTINGS_BREAKPOINT_SEGMENT_SHIFT)|((uint_64)offset&SETTINGS_BREAKPOINT_OFFSET_MASK); //Set the new breakpoint!
 				BIOS_Changed = 1; //We've changed!
 				unlock(LOCK_CPU); //Finished with the CPU!

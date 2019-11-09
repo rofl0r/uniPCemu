@@ -31,28 +31,28 @@ extern byte parity[0x100]; //Our parity table!
 #define PARITY32(dw) parity[dw&0xFF]
 
 //Accumulator register:
-#define REG_AL CPU[activeCPU].registers->AL
-#define REG_AH CPU[activeCPU].registers->AH
-#define REG_EAX CPU[activeCPU].registers->EAX
-#define REG_AX CPU[activeCPU].registers->AX
+#define REG_AL REG8_LO(GPREG_EAX)
+#define REG_AH REG8_HI(GPREG_EAX)
+#define REG_EAX REG32(GPREG_EAX)
+#define REG_AX REG16_LO(GPREG_EAX)
 
 //Base register:
-#define REG_BL CPU[activeCPU].registers->BL
-#define REG_BH CPU[activeCPU].registers->BH
-#define REG_EBX CPU[activeCPU].registers->EBX
-#define REG_BX CPU[activeCPU].registers->BX
+#define REG_BL REG8_LO(GPREG_EBX)
+#define REG_BH REG8_HI(GPREG_EBX)
+#define REG_EBX REG32(GPREG_EBX)
+#define REG_BX REG16_LO(GPREG_EBX)
 
 //Counter register:
-#define REG_CL CPU[activeCPU].registers->CL
-#define REG_CH CPU[activeCPU].registers->CH
-#define REG_ECX CPU[activeCPU].registers->ECX
-#define REG_CX CPU[activeCPU].registers->CX
+#define REG_CL REG8_LO(GPREG_ECX)
+#define REG_CH REG8_HI(GPREG_ECX)
+#define REG_ECX REG32(GPREG_ECX)
+#define REG_CX REG16_LO(GPREG_ECX)
 
 //Data register:
-#define REG_DL CPU[activeCPU].registers->DL
-#define REG_DH CPU[activeCPU].registers->DH
-#define REG_EDX CPU[activeCPU].registers->EDX
-#define REG_DX CPU[activeCPU].registers->DX
+#define REG_DL REG8_LO(GPREG_EDX)
+#define REG_DH REG8_HI(GPREG_EDX)
+#define REG_EDX REG32(GPREG_EDX)
+#define REG_DX REG16_LO(GPREG_EDX)
 
 //Segment registers
 #define REG_CS CPU[activeCPU].registers->CS
@@ -63,18 +63,18 @@ extern byte parity[0x100]; //Our parity table!
 #define REG_SS CPU[activeCPU].registers->SS
 
 //Indexes and pointers
-#define REG_EDI CPU[activeCPU].registers->EDI
-#define REG_DI CPU[activeCPU].registers->DI
-#define REG_ESI CPU[activeCPU].registers->ESI
-#define REG_SI CPU[activeCPU].registers->SI
-#define REG_EBP CPU[activeCPU].registers->EBP
-#define REG_BP CPU[activeCPU].registers->BP
-#define REG_ESP CPU[activeCPU].registers->ESP
-#define REG_SP CPU[activeCPU].registers->SP
-#define REG_EIP CPU[activeCPU].registers->EIP
-#define REG_IP CPU[activeCPU].registers->IP
-#define REG_EFLAGS CPU[activeCPU].registers->EFLAGS
-#define REG_FLAGS CPU[activeCPU].registers->FLAGS
+#define REG_EDI REG32(GPREG_EDI)
+#define REG_DI REG16_LO(GPREG_EDI)
+#define REG_ESI REG32(GPREG_ESI)
+#define REG_SI REG16_LO(GPREG_ESI)
+#define REG_EBP REG32(GPREG_EBP)
+#define REG_BP REG16_LO(GPREG_EBP)
+#define REG_ESP REG32(GPREG_ESP)
+#define REG_SP REG16_LO(GPREG_ESP)
+#define REG_EIP REG32(GPREG_EIP)
+#define REG_IP REG16_LO(GPREG_EIP)
+#define REG_EFLAGS REG32(GPREG_EFLAGS)
+#define REG_FLAGS REG16_LO(GPREG_EFLAGS)
 
 //Flags(read version default)
 #define FLAG_AC FLAGREGR_AC(CPU[activeCPU].registers)

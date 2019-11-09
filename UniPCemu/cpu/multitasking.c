@@ -29,6 +29,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/cpu/biu.h" //BIU support!
 #include "headers/cpu/cpu_execution.h" //Execution flow support!
 #include "headers/cpu/cpu_stack.h" //Stack support!
+#include "headers/cpu/easyregs.h" //Easy register support!
 
 //Force 16-bit TSS on 80286?
 //#define FORCE_16BITTSS
@@ -443,39 +444,39 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 		//16 or 32-bit TSS is loaded, now save the registers!
 		if (TSSSize) //We're a 32-bit TSS?
 		{
-			TSS32.EAX = CPU[activeCPU].registers->EAX;
-			TSS32.ECX = CPU[activeCPU].registers->ECX;
-			TSS32.EDX = CPU[activeCPU].registers->EDX;
-			TSS32.EBX = CPU[activeCPU].registers->EBX;
-			TSS32.ESP = CPU[activeCPU].registers->ESP;
-			TSS32.EBP = CPU[activeCPU].registers->EBP;
-			TSS32.ESI = CPU[activeCPU].registers->ESI;
-			TSS32.EDI = CPU[activeCPU].registers->EDI;
+			TSS32.EAX = REG_EAX;
+			TSS32.ECX = REG_ECX;
+			TSS32.EDX = REG_EDX;
+			TSS32.EBX = REG_EBX;
+			TSS32.ESP = REG_ESP;
+			TSS32.EBP = REG_EBP;
+			TSS32.ESI = REG_ESI;
+			TSS32.EDI = REG_EDI;
 			TSS32.CS = CPU[activeCPU].registers->CS;
-			TSS32.EIP = CPU[activeCPU].registers->EIP;
+			TSS32.EIP = REG_EIP;
 			TSS32.SS = CPU[activeCPU].registers->SS;
 			TSS32.DS = CPU[activeCPU].registers->DS;
 			TSS32.ES = CPU[activeCPU].registers->ES;
 			TSS32.FS = CPU[activeCPU].registers->FS;
 			TSS32.GS = CPU[activeCPU].registers->GS;
-			TSS32.EFLAGS = CPU[activeCPU].registers->EFLAGS;
+			TSS32.EFLAGS = REG_EFLAGS;
 		}
 		else //We're a 16-bit TSS?
 		{
-			TSS16.AX = CPU[activeCPU].registers->AX;
-			TSS16.CX = CPU[activeCPU].registers->CX;
-			TSS16.DX = CPU[activeCPU].registers->DX;
-			TSS16.BX = CPU[activeCPU].registers->BX;
-			TSS16.SP = CPU[activeCPU].registers->SP;
-			TSS16.BP = CPU[activeCPU].registers->BP;
-			TSS16.SI = CPU[activeCPU].registers->SI;
-			TSS16.DI = CPU[activeCPU].registers->DI;
+			TSS16.AX = REG_AX;
+			TSS16.CX = REG_CX;
+			TSS16.DX = REG_DX;
+			TSS16.BX = REG_BX;
+			TSS16.SP = REG_SP;
+			TSS16.BP = REG_BP;
+			TSS16.SI = REG_SI;
+			TSS16.DI = REG_DI;
 			TSS16.CS = CPU[activeCPU].registers->CS;
-			TSS16.IP = CPU[activeCPU].registers->IP;
+			TSS16.IP = REG_IP;
 			TSS16.SS = CPU[activeCPU].registers->SS;
 			TSS16.DS = CPU[activeCPU].registers->DS;
 			TSS16.ES = CPU[activeCPU].registers->ES;
-			TSS16.FLAGS = CPU[activeCPU].registers->FLAGS;
+			TSS16.FLAGS = REG_FLAGS;
 		}
 
 		if ((MMU_logging == 1) && advancedlog) //Are we logging?
@@ -626,23 +627,23 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 	//Now we're ready to load all registers!
 	if (TSSSize) //We're a 32-bit TSS?
 	{
-		CPU[activeCPU].registers->EAX = TSS32.EAX;
-		CPU[activeCPU].registers->ECX = TSS32.ECX;
-		CPU[activeCPU].registers->EDX = TSS32.EDX;
-		CPU[activeCPU].registers->EBX = TSS32.EBX;
-		CPU[activeCPU].registers->ESP = TSS32.ESP;
-		CPU[activeCPU].registers->EBP = TSS32.EBP;
-		CPU[activeCPU].registers->ESI = TSS32.ESI;
-		CPU[activeCPU].registers->EDI = TSS32.EDI;
+		REG_EAX = TSS32.EAX;
+		REG_ECX = TSS32.ECX;
+		REG_EDX = TSS32.EDX;
+		REG_EBX = TSS32.EBX;
+		REG_ESP = TSS32.ESP;
+		REG_EBP = TSS32.EBP;
+		REG_ESI = TSS32.ESI;
+		REG_EDI = TSS32.EDI;
 		CPU[activeCPU].registers->CR3 = TSS32.CR3; //Load the new CR3 register to use the new Paging table!
-		CPU[activeCPU].registers->EFLAGS = TSS32.EFLAGS;
+		REG_EFLAGS = TSS32.EFLAGS;
 		//Load all remaining registers manually for exceptions!
 		CPU[activeCPU].registers->CS = TSS32.CS;
 		CPU[activeCPU].registers->DS = TSS32.DS;
 		CPU[activeCPU].registers->ES = TSS32.ES;
 		CPU[activeCPU].registers->FS = TSS32.FS;
 		CPU[activeCPU].registers->GS = TSS32.GS;
-		CPU[activeCPU].registers->EIP = TSS32.EIP;
+		REG_EIP = TSS32.EIP;
 		CPU[activeCPU].registers->SS = TSS32.SS; //Default stack to use: the old stack!
 		CPU[activeCPU].registers->LDTR = TSS32.LDT;
 		LDTsegment = TSS32.LDT; //LDT used!
@@ -650,20 +651,20 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 	}
 	else //We're a 16-bit TSS?
 	{
-		CPU[activeCPU].registers->EAX = TSS16.AX;
-		CPU[activeCPU].registers->ECX = TSS16.CX;
-		CPU[activeCPU].registers->EDX = TSS16.DX;
-		CPU[activeCPU].registers->EBX = TSS16.BX;
-		CPU[activeCPU].registers->ESP = TSS16.SP;
-		CPU[activeCPU].registers->EBP = TSS16.BP;
-		CPU[activeCPU].registers->ESI = TSS16.SI;
-		CPU[activeCPU].registers->EDI = TSS16.DI;
-		CPU[activeCPU].registers->EFLAGS = (uint_32)TSS16.FLAGS;
+		REG_EAX = TSS16.AX;
+		REG_ECX = TSS16.CX;
+		REG_EDX = TSS16.DX;
+		REG_EBX = TSS16.BX;
+		REG_ESP = TSS16.SP;
+		REG_EBP = TSS16.BP;
+		REG_ESI = TSS16.SI;
+		REG_EDI = TSS16.DI;
+		REG_EFLAGS = (uint_32)TSS16.FLAGS;
 		//Load all remaining registers manually for exceptions!
 		CPU[activeCPU].registers->CS = TSS16.CS; //This should also load the privilege level!
 		CPU[activeCPU].registers->DS = TSS16.DS;
 		CPU[activeCPU].registers->ES = TSS16.ES;
-		CPU[activeCPU].registers->EIP = (uint_32)TSS16.IP;
+		REG_EIP = (uint_32)TSS16.IP;
 		CPU[activeCPU].registers->SS = TSS16.SS; //Default stack to use: the old stack!
 		CPU[activeCPU].registers->LDTR = TSS16.LDT;
 		LDTsegment = TSS16.LDT; //LDT used!
@@ -674,11 +675,11 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 		FLAGW_NT(1); //Set Nested Task flag of the new task!
 		if (TSSSize) //32-bit TSS?
 		{
-			TSS32.EFLAGS = CPU[activeCPU].registers->EFLAGS; //Save the new flag!
+			TSS32.EFLAGS = REG_EFLAGS; //Save the new flag!
 		}
 		else //16-bit TSS?
 		{
-			TSS16.FLAGS = CPU[activeCPU].registers->FLAGS; //Save the new flag!
+			TSS16.FLAGS = REG_FLAGS; //Save the new flag!
 		}
 		TSS_dirty |= 2; //We're dirty((E)FLAGS)!
 	}
@@ -710,7 +711,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 	CPU[activeCPU].have_oldSegReg &= ~(1<<CPU_SEGMENT_TR); //Not supporting returning to the old task anymore, we've completed the task switch, committing to the new task!
 	CPU_commitState(); //Set the new fault as a return point when faulting!
 	CPU_exec_CS = CPU[activeCPU].registers->CS; //Save for error handling!
-	CPU_exec_EIP = (CPU[activeCPU].registers->EIP&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof); //Save for error handling!
+	CPU_exec_EIP = (REG_EIP&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof); //Save for error handling!
 	//No last: we're entering a task that has this information, so no return point is given!
 	CPU_exec_lastCS = CPU_exec_CS;
 	CPU_exec_lastEIP = CPU_exec_EIP;
@@ -796,7 +797,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 	{
 		dolog("debugger", "Loading incoming TSS CS register");
 	}
-	destEIP = CPU[activeCPU].registers->EIP; //Save EIP for the new address, we don't want to lose it when loading!
+	destEIP = REG_EIP; //Save EIP for the new address, we don't want to lose it when loading!
 	if (TSSSize) //32-bit?
 	{
 		if (segmentWritten(CPU_SEGMENT_CS, TSS32.CS, 0x200 | (isJMPorCALL & 0x400))) return 0; //Load CS!
@@ -821,12 +822,12 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 	if (TSSSize) //32-bit?
 	{
 		if (segmentWritten(CPU_SEGMENT_SS, TSS32.SS, 0x200 | (isJMPorCALL & 0x400))) return 0; //Update the segment! Privilege must match CPL(bit 7 of isJMPorCALL==0)!
-		CPU[activeCPU].registers->ESP = TSS32.ESP;
+		REG_ESP = TSS32.ESP;
 	}
 	else //16-bit?
 	{
 		if (segmentWritten(CPU_SEGMENT_SS, TSS16.SS, 0x200 | (isJMPorCALL & 0x400))) return 0; //Update the segment! Privilege must match CPL(bit 7 of isJMPorCALL==0)!
-		CPU[activeCPU].registers->SP = TSS16.SP;
+		REG_SP = TSS16.SP;
 	}
 
 	//Set the default CPL!

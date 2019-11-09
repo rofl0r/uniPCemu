@@ -30,6 +30,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/cpu/biu.h" //PIQ flushing support!
 #include "headers/cpu/multitasking.h" //Task switching/faulting support!
 #include "headers/cpu/cpu_stack.h" //Stack support!
+#include "headers/cpu/easyregs.h" //Easy register support!
 
 //Are we to disable NMI's from All(or Memory only)?
 #define DISABLE_MEMNMI
@@ -91,7 +92,7 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 		}
 		//errorcode=-4: VME extensions are used!
 		#ifdef LOG_ET34K640480256_SET
-		if ((intnr==0x10) && (CPU[activeCPU].registers->AX==0x002E) && (errorcode==-1)) //Setting the video mode to 0x2E?
+		if ((intnr==0x10) && (REG_AX==0x002E) && (errorcode==-1)) //Setting the video mode to 0x2E?
 		{
 			waitingforiret = 1; //Waiting for IRET!
 			oldIP = retoffset;
@@ -168,9 +169,9 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 			snprintf(errorcodestr,sizeof(errorcodestr),"%08X",(uint_32)errorcode); //The error code itself!
 		}
 		#ifdef LOG_INTS
-		dolog("cpu","Interrupt %02X=%04X:%08X@%04X:%04X(%02X); ERRORCODE: %s; STACK=%04X:%08X",intnr,destCS,destEIP,CPU[activeCPU].registers->CS,CPU[activeCPU].registers->EIP,CPU[activeCPU].lastopcode,errorcodestr,REG_SS,REG_ESP); //Log the current info of the call!
+		dolog("cpu","Interrupt %02X=%04X:%08X@%04X:%04X(%02X); ERRORCODE: %s; STACK=%04X:%08X",intnr,destCS,destEIP,CPU[activeCPU].registers->CS,REG_EIP,CPU[activeCPU].lastopcode,errorcodestr,REG_SS,REG_ESP); //Log the current info of the call!
 		#endif
-		if ((MMU_logging == 1) && advancedlog) dolog("debugger","Interrupt %02X=%04X:%08X@%04X:%04X(%02X); ERRORCODE: %s",intnr,destINTCS,destEIP,CPU[activeCPU].registers->CS,CPU[activeCPU].registers->EIP,CPU[activeCPU].lastopcode,errorcodestr); //Log the current info of the call!
+		if ((MMU_logging == 1) && advancedlog) dolog("debugger","Interrupt %02X=%04X:%08X@%04X:%04X(%02X); ERRORCODE: %s",intnr,destINTCS,destEIP,CPU[activeCPU].registers->CS,REG_EIP,CPU[activeCPU].lastopcode,errorcodestr); //Log the current info of the call!
 		if (segmentWritten(CPU_SEGMENT_CS,destCS,0)) return 1; //Interrupt to position CS:EIP/CS:IP in table.
 		if (CPU_condflushPIQ(-1)) //We're jumping to another address!
 		{
@@ -224,7 +225,7 @@ void CPU_IRET()
 		REG_FLAGS = IRET_FLAGS; //Pop flags!
 		CPU_flushPIQ(-1); //We're jumping to another address!
 		#ifdef LOG_INTS
-		dolog("cpu","IRET@%04X:%08X to %04X:%04X; STACK=%04X:%08X",CPU_exec_CS,CPU_exec_EIP,CPU[activeCPU].registers->CS,CPU[activeCPU].registers->EIP,tempSS,backupESP); //Log the current info of the call!
+		dolog("cpu","IRET@%04X:%08X to %04X:%04X; STACK=%04X:%08X",CPU_exec_CS,CPU_exec_EIP,CPU[activeCPU].registers->CS,REG_EIP,tempSS,backupESP); //Log the current info of the call!
 		#endif
 		#ifdef LOG_ET34K640480256_SET
 		if (waitingforiret) //Waiting for IRET?

@@ -3706,9 +3706,9 @@ void op_grp5_32() {
 		break;
 	case 6: //PUSH Ev
 		if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(1,1,1)) return; ++CPU[activeCPU].stackchecked; }
-		if (modrm_addr32(&params,MODRM_src0,0)==&CPU[activeCPU].registers->ESP) //ESP?
+		if (modrm_addr32(&params,MODRM_src0,0)==&REG_ESP) //ESP?
 		{
-			if (CPU80386_PUSHdw(0,&CPU[activeCPU].registers->ESP)) return;
+			if (CPU80386_PUSHdw(0,&REG_ESP)) return;
 		}
 		else
 		{

@@ -438,6 +438,116 @@ AVL: available to the programmer:
 #define AVL_SYSTEM_INTERRUPTGATE32BIT 0xE
 #define AVL_SYSTEM_TRAPGATE32BIT 0xF
 
+//General Purpose register support!
+
+#include "headers/packed.h"
+typedef struct PACKED
+{
+	uint_32 reg32;
+	word reg16[2];
+	byte reg8[4];
+} registersplitter;
+#include "headers/endpacked.h"
+
+#ifdef IS_BIG_ENDIAN
+#define GPREG16_LO 1
+#define GPREG8_LO 1
+#define GPREG8_HI 0
+#else
+#define GPREG16_LO 0
+#define GPREG8_LO 0
+#define GPREG8_HI 1
+#endif
+
+enum
+{
+	GPREG_EAX = 0,
+	GPREG_EBX = 1,
+	GPREG_ECX = 2,
+	GPREG_EDX = 3,
+	GPREG_ESP = 4,
+	GPREG_EBP = 5,
+	GPREG_ESI = 6,
+	GPREG_EDI = 7,
+	GPREG_EIP = 8,
+	GPREG_EFLAGS = 9
+}; //All general purpose registers locations in the list!
+
+//Short versions of the registers allocated with the above values as input!
+#define REG8_LO(reg) CPU[activeCPU].registers->gpregisters[reg].reg8[GPREG8_LO]
+#define REG8_HI(reg) CPU[activeCPU].registers->gpregisters[reg].reg8[GPREG8_HI]
+#define REG16_LO(reg) CPU[activeCPU].registers->gpregisters[reg].reg16[GPREG16_LO]
+#define REG32(reg) CPU[activeCPU].registers->gpregisters[reg].reg32
+//Registers version:
+#define REG8R_LO(list,reg) list->gpregisters[reg].reg8[GPREG8_LO]
+#define REG8R_HI(list,reg) list->gpregisters[reg].reg8[GPREG8_HI]
+#define REG16R_LO(list,reg) list->gpregisters[reg].reg16[GPREG16_LO]
+#define REG32R(list,reg) list->gpregisters[reg].reg32
+//Direct version:
+#define REG8D_LO(list,reg) list.gpregisters[reg].reg8[GPREG8_LO]
+#define REG8D_HI(list,reg) list.gpregisters[reg].reg8[GPREG8_HI]
+#define REG16D_LO(list,reg) list.gpregisters[reg].reg16[GPREG16_LO]
+#define REG32D(list,reg) list.gpregisters[reg].reg32
+
+#define REGR_AL(list) REG8R_LO(list,GPREG_EAX)
+#define REGR_AH(list) REG8R_HI(list,GPREG_EAX)
+#define REGR_AX(list) REG16R_LO(list,GPREG_EAX)
+#define REGR_EAX(list) REG32R(list,GPREG_EAX)
+#define REGR_BL(list) REG8R_LO(list,GPREG_EBX)
+#define REGR_BH(list) REG8R_HI(list,GPREG_EBX)
+#define REGR_BX(list) REG16R_LO(list,GPREG_EBX)
+#define REGR_EBX(list) REG32R(list,GPREG_EBX)
+#define REGR_CL(list) REG8R_LO(list,GPREG_ECX)
+#define REGR_CH(list) REG8R_HI(list,GPREG_ECX)
+#define REGR_CX(list) REG16R_LO(list,GPREG_ECX)
+#define REGR_ECX(list) REG32R(list,GPREG_ECX)
+#define REGR_DL(list) REG8R_LO(list,GPREG_EDX)
+#define REGR_DH(list) REG8R_HI(list,GPREG_EDX)
+#define REGR_DX(list) REG16R_LO(list,GPREG_EDX)
+#define REGR_EDX(list) REG32R(list,GPREG_EDX)
+#define REGR_SP(list) REG16R_LO(list,GPREG_ESP)
+#define REGR_ESP(list) REG32R(list,GPREG_ESP)
+#define REGR_BP(list) REG16R_LO(list,GPREG_EBP)
+#define REGR_EBP(list) REG32R(list,GPREG_EBP)
+#define REGR_SI(list) REG16R_LO(list,GPREG_ESI)
+#define REGR_ESI(list) REG32R(list,GPREG_ESI)
+#define REGR_DI(list) REG16R_LO(list,GPREG_EDI)
+#define REGR_EDI(list) REG32R(list,GPREG_EDI)
+#define REGR_IP(list) REG16R_LO(list,GPREG_EIP)
+#define REGR_EIP(list) REG32R(list,GPREG_EIP)
+#define REGR_FLAGS(list) REG16R_LO(list,GPREG_EFLAGS)
+#define REGR_EFLAGS(list) REG32R(list,GPREG_EFLAGS)
+
+//Direct version
+#define REGD_AL(list) REG8D_LO(list,GPREG_EAX)
+#define REGD_AH(list) REG8D_HI(list,GPREG_EAX)
+#define REGD_AX(list) REG16D_LO(list,GPREG_EAX)
+#define REGD_EAX(list) REG32D(list,GPREG_EAX)
+#define REGD_BL(list) REG8D_LO(list,GPREG_EBX)
+#define REGD_BH(list) REG8D_HI(list,GPREG_EBX)
+#define REGD_BX(list) REG16D_LO(list,GPREG_EBX)
+#define REGD_EBX(list) REG32D(list,GPREG_EBX)
+#define REGD_CL(list) REG8D_LO(list,GPREG_ECX)
+#define REGD_CH(list) REG8D_HI(list,GPREG_ECX)
+#define REGD_CX(list) REG16D_LO(list,GPREG_ECX)
+#define REGD_ECX(list) REG32D(list,GPREG_ECX)
+#define REGD_DL(list) REG8D_LO(list,GPREG_EDX)
+#define REGD_DH(list) REG8D_HI(list,GPREG_EDX)
+#define REGD_DX(list) REG16D_LO(list,GPREG_EDX)
+#define REGD_EDX(list) REG32D(list,GPREG_EDX)
+#define REGD_SP(list) REG16D_LO(list,GPREG_ESP)
+#define REGD_ESP(list) REG32D(list,GPREG_ESP)
+#define REGD_BP(list) REG16D_LO(list,GPREG_EBP)
+#define REGD_EBP(list) REG32D(list,GPREG_EBP)
+#define REGD_SI(list) REG16D_LO(list,GPREG_ESI)
+#define REGD_ESI(list) REG32D(list,GPREG_ESI)
+#define REGD_DI(list) REG16D_LO(list,GPREG_EDI)
+#define REGD_EDI(list) REG32D(list,GPREG_EDI)
+#define REGD_IP(list) REG16D_LO(list,GPREG_EIP)
+#define REGD_EIP(list) REG32D(list,GPREG_EIP)
+#define REGD_FLAGS(list) REG16D_LO(list,GPREG_EFLAGS)
+#define REGD_EFLAGS(list) REG32D(list,GPREG_EFLAGS)
+
 //All flags, seperated!
 
 #define F_CARRY 0x01
@@ -499,78 +609,78 @@ AVL: available to the programmer:
 #define F_RF F_RESUME
 
 //Read versions
-#define FLAGREGR_CF(registers) (registers->FLAGS&1)
+#define FLAGREGR_CF(registers) (REG16R_LO(registers,GPREG_EFLAGS)&1)
 //Unused. Value 1
-#define FLAGREGR_UNMAPPED2(registers) ((registers->FLAGS>>1)&1)
-#define FLAGREGR_PF(registers) ((registers->FLAGS>>2)&1)
+#define FLAGREGR_UNMAPPED2(registers) ((REG16R_LO(registers,GPREG_EFLAGS)>>1)&1)
+#define FLAGREGR_PF(registers) ((REG16R_LO(registers,GPREG_EFLAGS)>>2)&1)
 //Unused. Value 0
-#define FLAGREGR_UNMAPPED8(registers) ((registers->FLAGS>>3)&1)
-#define FLAGREGR_AF(registers) ((registers->FLAGS>>4)&1)
+#define FLAGREGR_UNMAPPED8(registers) ((REG16R_LO(registers,GPREG_EFLAGS)>>3)&1)
+#define FLAGREGR_AF(registers) ((REG16R_LO(registers,GPREG_EFLAGS)>>4)&1)
 //Unused. Value 1 on 186-, 0 on later models.
-#define FLAGREGR_UNMAPPED32768(registers) ((registers->FLAGS>>15)&1)
+#define FLAGREGR_UNMAPPED32768(registers) ((REG16R_LO(registers,GPREG_EFLAGS)>>15)&1)
 //Unused. Value 0
-#define FLAGREGR_UNMAPPED32(registers) ((registers->FLAGS>>5)&1)
-#define FLAGREGR_ZF(registers) ((registers->FLAGS>>6)&1)
-#define FLAGREGR_SF(registers) ((registers->FLAGS>>7)&1)
-#define FLAGREGR_TF(registers) ((registers->FLAGS>>8)&1)
-#define FLAGREGR_IF(registers) ((registers->FLAGS>>9)&1)
-#define FLAGREGR_DF(registers) ((registers->FLAGS>>10)&1)
-#define FLAGREGR_OF(registers) ((registers->FLAGS>>11)&1)
+#define FLAGREGR_UNMAPPED32(registers) ((REG16R_LO(registers,GPREG_EFLAGS)>>5)&1)
+#define FLAGREGR_ZF(registers) ((REG16R_LO(registers,GPREG_EFLAGS)>>6)&1)
+#define FLAGREGR_SF(registers) ((REG16R_LO(registers,GPREG_EFLAGS)>>7)&1)
+#define FLAGREGR_TF(registers) ((REG16R_LO(registers,GPREG_EFLAGS)>>8)&1)
+#define FLAGREGR_IF(registers) ((REG16R_LO(registers,GPREG_EFLAGS)>>9)&1)
+#define FLAGREGR_DF(registers) ((REG16R_LO(registers,GPREG_EFLAGS)>>10)&1)
+#define FLAGREGR_OF(registers) ((REG16R_LO(registers,GPREG_EFLAGS)>>11)&1)
 //Always 1 on 186-
-#define FLAGREGR_IOPL(registers) ((registers->FLAGS>>12)&3)
+#define FLAGREGR_IOPL(registers) ((REG16R_LO(registers,GPREG_EFLAGS)>>12)&3)
 //Always 1 on 186-
-#define FLAGREGR_NT(registers) ((registers->FLAGS>>14)&1)
+#define FLAGREGR_NT(registers) ((REG16R_LO(registers,GPREG_EFLAGS)>>14)&1)
 //High nibble
 //Resume flag. 386+
-#define FLAGREGR_RF(registers) ((registers->EFLAGS>>16)&1)
+#define FLAGREGR_RF(registers) ((REG32R(registers,GPREG_EFLAGS)>>16)&1)
 //Virtual 8086 mode flag (386+ only)
-#define FLAGREGR_V8(registers) ((registers->EFLAGS>>17)&1)
+#define FLAGREGR_V8(registers) ((REG32R(registers,GPREG_EFLAGS)>>17)&1)
 //Alignment check (486SX+ only)
-#define FLAGREGR_AC(registers) ((registers->EFLAGS>>18)&1)
+#define FLAGREGR_AC(registers) ((REG32R(registers,GPREG_EFLAGS)>>18)&1)
 //Virtual interrupt flag (Pentium+)
-#define FLAGREGR_VIF(registers) ((registers->EFLAGS>>19)&1)
+#define FLAGREGR_VIF(registers) ((REG32R(registers,GPREG_EFLAGS)>>19)&1)
 //Virtual interrupt pending (Pentium+)
-#define FLAGREGR_VIP(registers) ((registers->EFLAGS>>20)&1)
+#define FLAGREGR_VIP(registers) ((REG32R(registers,GPREG_EFLAGS)>>20)&1)
 //Able to use CPUID function (Pentium+)
-#define FLAGREGR_ID(registers) ((registers->EFLAGS>>21)&1)
-#define FLAGREGR_UNMAPPEDHI(registers) (registers->EFLAGS>>22)&0x3FF
+#define FLAGREGR_ID(registers) ((REG32R(registers,GPREG_EFLAGS)>>21)&1)
+#define FLAGREGR_UNMAPPEDHI(registers) (REG32R(registers,GPREG_EFLAGS)>>22)&0x3FF
 
 //Write versions
-#define FLAGREGW_CF(registers,val) registers->FLAGS=((registers->FLAGS&~1)|((val)&1))
+#define FLAGREGW_CF(registers,val) REG16R_LO(registers,GPREG_EFLAGS)=((REG16R_LO(registers,GPREG_EFLAGS)&~1)|((val)&1))
 //Unused. Value 1
-#define FLAGREGW_UNMAPPED2(registers,val) registers->FLAGS=(((registers->FLAGS&~2)|(((val)&1)<<1)))
-#define FLAGREGW_PF(registers,val) registers->FLAGS=(((registers->FLAGS&~4)|(((val)&1)<<2)))
+#define FLAGREGW_UNMAPPED2(registers,val) REG16R_LO(registers,GPREG_EFLAGS)=(((REG16R_LO(registers,GPREG_EFLAGS)&~2)|(((val)&1)<<1)))
+#define FLAGREGW_PF(registers,val) REG16R_LO(registers,GPREG_EFLAGS)=(((REG16R_LO(registers,GPREG_EFLAGS)&~4)|(((val)&1)<<2)))
 //Unused. Value 0
-#define FLAGREGW_UNMAPPED8(registers,val) registers->FLAGS=(((registers->FLAGS&~8)|(((val)&1)<<3)))
-#define FLAGREGW_AF(registers,val) registers->FLAGS=(((registers->FLAGS&~0x10)|(((val)&1)<<4)))
+#define FLAGREGW_UNMAPPED8(registers,val) REG16R_LO(registers,GPREG_EFLAGS)=(((REG16R_LO(registers,GPREG_EFLAGS)&~8)|(((val)&1)<<3)))
+#define FLAGREGW_AF(registers,val) REG16R_LO(registers,GPREG_EFLAGS)=(((REG16R_LO(registers,GPREG_EFLAGS)&~0x10)|(((val)&1)<<4)))
 //Unused. Value 1 on 186-, 0 on later models.
-#define FLAGREGW_UNMAPPED32768(registers,val) registers->FLAGS=(((registers->FLAGS&~0x8000)|(((val)&1)<<15)))
+#define FLAGREGW_UNMAPPED32768(registers,val) REG16R_LO(registers,GPREG_EFLAGS)=(((REG16R_LO(registers,GPREG_EFLAGS)&~0x8000)|(((val)&1)<<15)))
 //Unused. Value 0
-#define FLAGREGW_UNMAPPED32(registers,val) registers->FLAGS=(((registers->FLAGS&~0x20)|(((val)&1)<<5)))
-#define FLAGREGW_ZF(registers,val) registers->FLAGS=(((registers->FLAGS&~0x40)|(((val)&1)<<6)))
-#define FLAGREGW_SF(registers,val) registers->FLAGS=(((registers->FLAGS&~0x80)|(((val)&1)<<7)))
-#define FLAGREGW_TF(registers,val) registers->FLAGS=(((registers->FLAGS&~0x100)|(((val)&1)<<8)))
-#define FLAGREGW_IF(registers,val) registers->FLAGS=(((registers->FLAGS&~0x200)|(((val)&1)<<9)))
-#define FLAGREGW_DF(registers,val) registers->FLAGS=(((registers->FLAGS&~0x400)|(((val)&1)<<10)))
-#define FLAGREGW_OF(registers,val) registers->FLAGS=(((registers->FLAGS&~0x800)|(((val)&1)<<11)))
+#define FLAGREGW_UNMAPPED32(registers,val) REG16R_LO(registers,GPREG_EFLAGS)=(((REG16R_LO(registers,GPREG_EFLAGS)&~0x20)|(((val)&1)<<5)))
+#define FLAGREGW_ZF(registers,val) REG16R_LO(registers,GPREG_EFLAGS)=(((REG16R_LO(registers,GPREG_EFLAGS)&~0x40)|(((val)&1)<<6)))
+#define FLAGREGW_SF(registers,val) REG16R_LO(registers,GPREG_EFLAGS)=(((REG16R_LO(registers,GPREG_EFLAGS)&~0x80)|(((val)&1)<<7)))
+#define FLAGREGW_TF(registers,val) REG16R_LO(registers,GPREG_EFLAGS)=(((REG16R_LO(registers,GPREG_EFLAGS)&~0x100)|(((val)&1)<<8)))
+#define FLAGREGW_IF(registers,val) REG16R_LO(registers,GPREG_EFLAGS)=(((REG16R_LO(registers,GPREG_EFLAGS)&~0x200)|(((val)&1)<<9)))
+#define FLAGREGW_DF(registers,val) REG16R_LO(registers,GPREG_EFLAGS)=(((REG16R_LO(registers,GPREG_EFLAGS)&~0x400)|(((val)&1)<<10)))
+#define FLAGREGW_OF(registers,val) REG16R_LO(registers,GPREG_EFLAGS)=(((REG16R_LO(registers,GPREG_EFLAGS)&~0x800)|(((val)&1)<<11)))
 //Always 1 on 186-
-#define FLAGREGW_IOPL(registers,val) registers->FLAGS=(((registers->FLAGS&~0x3000)|(((val)&3)<<12)))
+#define FLAGREGW_IOPL(registers,val) REG16R_LO(registers,GPREG_EFLAGS)=(((REG16R_LO(registers,GPREG_EFLAGS)&~0x3000)|(((val)&3)<<12)))
 //Always 1 on 186-
-#define FLAGREGW_NT(registers,val) registers->FLAGS=(((registers->FLAGS&~0x4000)|(((val)&1)<<14)))
+#define FLAGREGW_NT(registers,val) REG16R_LO(registers,GPREG_EFLAGS)=(((REG16R_LO(registers,GPREG_EFLAGS)&~0x4000)|(((val)&1)<<14)))
 //High nibble
 //Resume flag. 386+
-#define FLAGREGW_RF(registers,val) registers->EFLAGS=(((registers->EFLAGS&~0x10000)|(((val)&1)<<16)))
+#define FLAGREGW_RF(registers,val) REG32R(registers,GPREG_EFLAGS)=(((REG32R(registers,GPREG_EFLAGS)&~0x10000)|(((val)&1)<<16)))
 //Virtual 8086 mode flag (386+ only)
-#define FLAGREGW_V8(registers,val) registers->EFLAGS=(((registers->EFLAGS&~0x20000)|(((val)&1)<<17)))
+#define FLAGREGW_V8(registers,val) REG32R(registers,GPREG_EFLAGS)=(((REG32R(registers,GPREG_EFLAGS)&~0x20000)|(((val)&1)<<17)))
 //Alignment check (486SX+ only)
-#define FLAGREGW_AC(registers,val) registers->EFLAGS=(((registers->EFLAGS&~0x40000)|(((val)&1)<<18))); updateCPUmode()
+#define FLAGREGW_AC(registers,val) REG32R(registers,GPREG_EFLAGS)=(((REG32R(registers,GPREG_EFLAGS)&~0x40000)|(((val)&1)<<18))); updateCPUmode()
 //Virtual interrupt flag (Pentium+)
-#define FLAGREGW_VIF(registers,val) registers->EFLAGS=(((registers->EFLAGS&~0x80000)|(((val)&1)<<19)))
+#define FLAGREGW_VIF(registers,val) REG32R(registers,GPREG_EFLAGS)=(((REG32R(registers,GPREG_EFLAGS)&~0x80000)|(((val)&1)<<19)))
 //Virtual interrupt pending (Pentium+)
-#define FLAGREGW_VIP(registers,val) registers->EFLAGS=(((registers->EFLAGS&~0x100000)|(((val)&1)<<20)))
+#define FLAGREGW_VIP(registers,val) REG32R(registers,GPREG_EFLAGS)=(((REG32R(registers,GPREG_EFLAGS)&~0x100000)|(((val)&1)<<20)))
 //Able to use CPUID function (Pentium+)
-#define FLAGREGW_ID(registers,val) registers->EFLAGS=(((registers->EFLAGS&~0x200000)|(((val)&1)<<21)))
-#define FLAGREGW_UNMAPPEDHI(registers,val) registers->EFLAGS=((registers->EFLAGS&0x3FFFFF)|(((val)&0x3FF)<<22))
+#define FLAGREGW_ID(registers,val) REG32R(registers,GPREG_EFLAGS)=(((REG32R(registers,GPREG_EFLAGS)&~0x200000)|(((val)&1)<<21)))
+#define FLAGREGW_UNMAPPEDHI(registers,val) REG32R(registers,GPREG_EFLAGS)=((REG32R(registers,GPREG_EFLAGS)&0x3FFFFF)|(((val)&0x3FF)<<22))
 
 #include "headers/packed.h" //Packed type!
 typedef struct PACKED
@@ -591,204 +701,9 @@ typedef struct PACKED
 #include "headers/packed.h" //Packed type!
 typedef struct PACKED //The registers!
 {
-
+	//First, the General Purpose registers!
+	registersplitter gpregisters[10]; //10 general purpose registers! EAX, EBX, ECX, EDX, ESP, EBP, ESI, EDI, EIP, EFLAGS!
 //Info: with union, first low data then high data!
-	union
-	{
-		struct
-		{
-			#ifdef IS_BIG_ENDIAN
-			word EAXDUMMY;
-			#endif
-			struct
-			{
-				union
-				{
-					word AX;
-					struct
-					{
-						#ifndef IS_BIG_ENDIAN
-						byte AL;
-						byte AH;
-						#else
-						byte AH;
-						byte AL;
-						#endif
-					};
-				};
-			};
-			#ifndef IS_BIG_ENDIAN
-			word EAXDUMMY;
-			#endif
-		};
-		uint_32 EAX;
-	};
-
-	union
-	{
-		struct
-		{
-			#ifdef IS_BIG_ENDIAN
-			word EBXDUMMY;
-			#endif
-			struct
-			{
-				union
-				{
-					word BX;
-					struct
-					{
-						#ifndef IS_BIG_ENDIAN
-						byte BL;
-						byte BH;
-						#else
-						byte BH;
-						byte BL;
-						#endif
-					};
-				};
-			};
-			#ifndef IS_BIG_ENDIAN
-			word EBXDUMMY;
-			#endif
-		};
-		uint_32 EBX;
-	};
-
-	union
-	{
-		struct
-		{
-			#ifdef IS_BIG_ENDIAN
-			word ECXDUMMY;
-			#endif
-			struct
-			{
-				union
-				{
-					word CX;
-					struct
-					{
-						#ifndef IS_BIG_ENDIAN
-						byte CL;
-						byte CH;
-						#else
-						byte CH;
-						byte CL;
-						#endif
-					};
-				};
-			};
-			#ifndef IS_BIG_ENDIAN
-			word ECXDUMMY;
-			#endif
-		};
-		uint_32 ECX;
-	};
-
-	union
-	{
-		struct
-		{
-			#ifdef IS_BIG_ENDIAN
-			word EDXDUMMY;
-			#endif
-			struct
-			{
-				union
-				{
-					word DX;
-					struct
-					{
-						#ifndef IS_BIG_ENDIAN
-						byte DL;
-						byte DH;
-						#else
-						byte DH;
-						byte DL;
-						#endif
-					};
-				};
-			};
-			#ifndef IS_BIG_ENDIAN
-			word EDXDUMMY;
-			#endif
-		};
-		uint_32 EDX;
-	};
-
-	union
-	{
-		uint_32 ESP; //ESP!
-		struct
-		{
-			#ifdef IS_BIG_ENDIAN
-			word ESPDUMMY;
-			#endif
-			word SP; //Stack pointer
-			#ifndef IS_BIG_ENDIAN
-			word ESPDUMMY; //Dummy!
-			#endif
-		};
-	};
-	union
-	{
-		uint_32 EBP; //EBP!
-		struct
-		{
-			#ifdef IS_BIG_ENDIAN
-			word EBPDUMMY;
-			#endif
-			word BP; //Base pointer
-			#ifndef IS_BIG_ENDIAN
-			word EBPDUMMY; //Dummy!
-			#endif
-		};
-	};
-	union
-	{
-		uint_32 ESI; //ESI
-		struct
-		{
-			#ifdef IS_BIG_ENDIAN
-			word ESIDUMMY;
-			#endif
-			word SI; //Source index
-			#ifndef IS_BIG_ENDIAN
-			word ESIDUMMY; //Dummy!
-			#endif
-		};
-	};
-
-	union
-	{
-		uint_32 EDI; //EDI
-		struct
-		{
-			#ifdef IS_BIG_ENDIAN
-			word EDIDUMMY;
-			#endif
-			word DI; //Destination index
-			#ifndef IS_BIG_ENDIAN
-			word EDIDUMMY; //Dummy!
-			#endif
-		};
-	};
-
-	union
-	{
-		uint_32 EIP; //EIP
-		struct
-		{
-			#ifdef IS_BIG_ENDIAN
-			word EIPDUMMY;
-			#endif
-			word IP; //Instruction pointer; CS:IP=Current instruction; Reset at load of program
-			#ifndef IS_BIG_ENDIAN
-			word EIPDUMMY; //Dummy!
-			#endif
-		};
-	};
 
 	word CS; //Code segment: start of program code; used by instructions and jumps.
 	word DS; //Data segment: beginning of data storage section of memory; used by data manipulation
@@ -796,21 +711,6 @@ typedef struct PACKED //The registers!
 	word SS; //Stack segment: stack segment
 	word FS; //???
 	word GS; //???
-
-	union
-	{
-		struct
-		{
-			#ifdef IS_BIG_ENDIAN
-			word EFLAGSDUMMY;
-			#endif
-			word FLAGS; //8086 Flags!
-			#ifndef IS_BIG_ENDIAN
-			word EFLAGSDUMMY; //Dummy!
-			#endif
-		};
-		uint_32 EFLAGS;
-	};
 
 	struct
 	{

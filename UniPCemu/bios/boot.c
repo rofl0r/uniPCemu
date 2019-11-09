@@ -27,6 +27,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/bios/bios.h" //Need BIOS comp!
 #include "headers/interrupts/interrupt13.h" //We need disk support!
 #include "headers/cpu/protection.h" //Protection support for segment register loading!
+#include "headers/cpu/easyregs.h" //Easy register support!
 
 extern BIOS_Settings_TYPE BIOS_Settings; //Currently loaded settings!
 extern IODISK disks[6]; //All mounted disks!
@@ -69,7 +70,7 @@ int CPU_boot(int device) //Boots from an i/o device (result TRUE: booted, FALSE:
 			{
 				MMU_wb(-1,loadedsegment,BOOT_OFFSET+dataindex,boot_bootsector[dataindex],1); //Write the data to memory!
 			}
-			CPU[activeCPU].registers->DL = getdiskbymount(device); //Drive number we loaded from!
+			REG_DL = getdiskbymount(device); //Drive number we loaded from!
 			destEIP = BOOT_OFFSET; //Where to start booting! Loaded boot sector executable!
 			segmentWritten(CPU_SEGMENT_CS,loadedsegment,1); //Jump to the boot sector!
 			return BOOT_OK; //Booted!
@@ -106,10 +107,10 @@ int CPU_boot(int device) //Boots from an i/o device (result TRUE: booted, FALSE:
 			{
 				return FALSE; //Error loading data file!
 			}
-			CPU[activeCPU].registers->DL = getdiskbymount(device); //Drive number we loaded from!
+			REG_DL = getdiskbymount(device); //Drive number we loaded from!
 			destEIP = (uint_32)0x7C00; //Where to start booting! Loaded boot sector executable!
 			segmentWritten(CPU_SEGMENT_CS,ISOREADER_SEGMENT,1); //Jump to the boot sector!
-			CPU[activeCPU].registers->DL = getdiskbymount(device); //Drive number we loaded from!
+			REG_DL = getdiskbymount(device); //Drive number we loaded from!
 			return BOOT_OK; //Booted!
 			break;
 		default: //Unknown!

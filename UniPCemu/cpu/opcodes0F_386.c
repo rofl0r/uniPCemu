@@ -36,6 +36,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/cpu/biu.h" //PIQ flushing support!
 #include "headers/cpu/cpu_stack.h" //Stack support!
 #include "headers/cpu/cpu_pmtimings.h" //Timings support!
+#include "headers/cpu/easyregs.h" //Easy register support!
 
 //Opcodes based on: http://www.logix.cz/michal/doc/i386/chp17-a3.htm#17-03-A
 
@@ -682,21 +683,21 @@ void CPU386_OP0F07() //Undocumented LOADALL instruction
 	//Plain registers!
 	CPU[activeCPU].registers->CR0 = LOADALLDATA.fields.CR0; //MSW! We can reenter real mode by clearing bit 0(Protection Enable bit), just not on the 80286!
 	CPU[activeCPU].registers->TR = LOADALLDATA.fields.TR; //TR
-	CPU[activeCPU].registers->EFLAGS = LOADALLDATA.fields.EFLAGS; //FLAGS
-	CPU[activeCPU].registers->EIP = LOADALLDATA.fields.EIP; //IP
+	REG_EFLAGS = LOADALLDATA.fields.EFLAGS; //FLAGS
+	REG_EIP = LOADALLDATA.fields.EIP; //IP
 	CPU[activeCPU].registers->LDTR = LOADALLDATA.fields.LDTR; //LDT
 	CPU[activeCPU].registers->DS = LOADALLDATA.fields.DS; //DS
 	CPU[activeCPU].registers->SS = LOADALLDATA.fields.SS; //SS
 	CPU[activeCPU].registers->CS = LOADALLDATA.fields.CS; //CS
 	CPU[activeCPU].registers->ES = LOADALLDATA.fields.ES; //ES
-	CPU[activeCPU].registers->EDI = LOADALLDATA.fields.EDI; //DI
-	CPU[activeCPU].registers->ESI = LOADALLDATA.fields.ESI; //SI
-	CPU[activeCPU].registers->EBP = LOADALLDATA.fields.EBP; //BP
-	CPU[activeCPU].registers->ESP = LOADALLDATA.fields.ESP; //SP
-	CPU[activeCPU].registers->EBX = LOADALLDATA.fields.EBX; //BX
-	CPU[activeCPU].registers->EDX = LOADALLDATA.fields.EDX; //CX
-	CPU[activeCPU].registers->ECX = LOADALLDATA.fields.ECX; //DX
-	CPU[activeCPU].registers->EAX = LOADALLDATA.fields.EAX; //AX
+	REG_EDI = LOADALLDATA.fields.EDI; //DI
+	REG_ESI = LOADALLDATA.fields.ESI; //SI
+	REG_EBP = LOADALLDATA.fields.EBP; //BP
+	REG_ESP = LOADALLDATA.fields.ESP; //SP
+	REG_EBX = LOADALLDATA.fields.EBX; //BX
+	REG_EDX = LOADALLDATA.fields.EDX; //CX
+	REG_ECX = LOADALLDATA.fields.ECX; //DX
+	REG_EAX = LOADALLDATA.fields.EAX; //AX
 	updateCPUmode(); //We're updating the CPU mode if needed, since we're reloading CR0 and FLAGS!
 
 	//GDTR/IDTR registers!

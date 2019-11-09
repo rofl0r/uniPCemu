@@ -5865,9 +5865,9 @@ void op_grp5() {
 		break;
 	case 6: //PUSH Ev
 		if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(1,1,0)) return; ++CPU[activeCPU].stackchecked; }
-		if (modrm_addr16(&params,MODRM_src0,0)==&CPU[activeCPU].registers->SP) //SP?
+		if (modrm_addr16(&params,MODRM_src0,0)==&REG_SP) //SP?
 		{
-			if (CPU8086_PUSHw(0,&CPU[activeCPU].registers->SP,0)) return;
+			if (CPU8086_PUSHw(0,&REG_SP,0)) return;
 		}
 		else
 		{

@@ -21,6 +21,8 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/types.h" //Basic types!
 #include "headers/cpu/cpu.h" //CPU support!
 #include "headers/interrupts/interrupt10.h" //Interrupt 10h support!
+#include "headers/cpu/easyregs.h" //Easy register support!
+
 
 /*
 
@@ -30,27 +32,27 @@ Basic Screen I/O!
 
 void bios_gotoxy(int x, int y)
 {
-CPU[activeCPU].registers->AH = 2; //Set cursor position!
-CPU[activeCPU].registers->BH = 0; //Our page!
-CPU[activeCPU].registers->DH = y; //Our row!
-CPU[activeCPU].registers->DL = x; //Our column!
+REG_AH = 2; //Set cursor position!
+REG_BH = 0; //Our page!
+REG_DH = y; //Our row!
+REG_DL = x; //Our column!
 BIOS_int10(); //Goto row!
 }
 
 void bios_displaypage() //Select the display page!
 {
-CPU[activeCPU].registers->AH = 5; //Set display page!
-CPU[activeCPU].registers->AL = 0; //Our page!
+REG_AH = 5; //Set display page!
+REG_AL = 0; //Our page!
 BIOS_int10(); //Switch page!
 }
 
 void updatechar(byte attribute, byte character)
 {
-	CPU[activeCPU].registers->AH = 0x9; //Update cursor location character/attribute pair!
-	CPU[activeCPU].registers->AL = character; //Character!
-	CPU[activeCPU].registers->BH = 0; //Page: always 0!
-	CPU[activeCPU].registers->BL = attribute; //The attribute to use!
-	CPU[activeCPU].registers->CX = 1; //One time!
+	REG_AH = 0x9; //Update cursor location character/attribute pair!
+	REG_AL = character; //Character!
+	REG_BH = 0; //Page: always 0!
+	REG_BL = attribute; //The attribute to use!
+	REG_CX = 1; //One time!
 	BIOS_int10(); //Output the character at the current location!
 }
 
@@ -79,16 +81,16 @@ void printmsg(byte attribute, char *text, ...) //Print a message at page #0!
 			case 0xB:
 			case 0xD:
 				//We're a control character: process as a control character (don't update video output)!
-				CPU[activeCPU].registers->AH = 0xE; //Teletype ouput!
-				CPU[activeCPU].registers->AL = msg[i]; //Character, we don't want to change this!
-				CPU[activeCPU].registers->BH = 0; //Page: always 0!
+				REG_AH = 0xE; //Teletype ouput!
+				REG_AL = msg[i]; //Character, we don't want to change this!
+				REG_BH = 0; //Page: always 0!
 				BIOS_int10(); //Output!
 				break;
 			default: //Default character to output?
 				updatechar(attribute, msg[i]); //Update the current character attribute: we're output!
-				CPU[activeCPU].registers->AH = 0xE; //Teletype ouput!
-				CPU[activeCPU].registers->AL = msg[i]; //Character, we don't want to change this!
-				CPU[activeCPU].registers->BH = 0;//Page: always 0!
+				REG_AH = 0xE; //Teletype ouput!
+				REG_AL = msg[i]; //Character, we don't want to change this!
+				REG_BH = 0;//Page: always 0!
 				BIOS_int10(); //Output!
 				break;
 			}
@@ -98,30 +100,30 @@ void printmsg(byte attribute, char *text, ...) //Print a message at page #0!
 
 void printCRLF()
 {
-	CPU[activeCPU].registers->AH = 0xE; //Teletype ouput!
-	CPU[activeCPU].registers->AL = 0xD;//Character!
-	CPU[activeCPU].registers->BH = 0;//Page
+	REG_AH = 0xE; //Teletype ouput!
+	REG_AL = 0xD;//Character!
+	REG_BH = 0;//Page
 	BIOS_int10(); //Output!
 
-	CPU[activeCPU].registers->AH = 0xE; //Teletype ouput!
-	CPU[activeCPU].registers->AL = 0xA;//Character!
-	CPU[activeCPU].registers->BH = 0;//Page
+	REG_AH = 0xE; //Teletype ouput!
+	REG_AL = 0xA;//Character!
+	REG_BH = 0;//Page
 	BIOS_int10(); //Output!
 }
 
 void BIOS_enableCursor(byte enabled)
 {
 	return; //Ignore!
-	CPU[activeCPU].registers->AH = 0x03; //Get old cursor position and size!
+	REG_AH = 0x03; //Get old cursor position and size!
 	BIOS_int10(); //Get data!
-	CPU[activeCPU].registers->AH = 0x01; //Set cursor shape!
+	REG_AH = 0x01; //Set cursor shape!
 	if (enabled) //Enabled?
 	{
-		CPU[activeCPU].registers->CH &= ~0x20; //Enable cursor!
+		REG_CH &= ~0x20; //Enable cursor!
 	}
 	else //Disabled?
 	{
-		CPU[activeCPU].registers->CH |= 0x20; //Disable cursor!
+		REG_CH |= 0x20; //Disable cursor!
 	}
 	BIOS_int10(); //Set data!
 }

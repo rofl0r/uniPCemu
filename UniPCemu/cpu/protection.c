@@ -1082,26 +1082,26 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 				{
 					if (callgatetype==2) //32-bit source?
 					{
-						argument = MMU_rdw(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, CPU[activeCPU].registers->ESP&getstackaddrsizelimiter(), 0,!STACK_SEGMENT_DESCRIPTOR_B_BIT()); //POP 32-bit argument!
+						argument = MMU_rdw(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, REG_ESP&getstackaddrsizelimiter(), 0,!STACK_SEGMENT_DESCRIPTOR_B_BIT()); //POP 32-bit argument!
 						if (STACK_SEGMENT_DESCRIPTOR_B_BIT()) //32-bits?
 						{
-							CPU[activeCPU].registers->ESP += 4; //Increase!
+							REG_ESP += 4; //Increase!
 						}
 						else //16-bits?
 						{
-							CPU[activeCPU].registers->SP += 4; //Increase!
+							REG_SP += 4; //Increase!
 						}
 					}
 					else //16-bit source?
 					{
-						argument = MMU_rw(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (CPU[activeCPU].registers->ESP&getstackaddrsizelimiter()), 0,!STACK_SEGMENT_DESCRIPTOR_B_BIT()); //POP 16-bit argument!
+						argument = MMU_rw(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (REG_ESP&getstackaddrsizelimiter()), 0,!STACK_SEGMENT_DESCRIPTOR_B_BIT()); //POP 16-bit argument!
 						if (STACK_SEGMENT_DESCRIPTOR_B_BIT()) //32-bits?
 						{
-							CPU[activeCPU].registers->ESP += 2; //Increase!
+							REG_ESP += 2; //Increase!
 						}
 						else //16-bits?
 						{
-							CPU[activeCPU].registers->SP += 2; //Increase!
+							REG_SP += 2; //Increase!
 						}
 					}
 					CPU[activeCPU].CallGateStack[CPU[activeCPU].CallGateParamCount++] = argument; //Add the argument to the call gate buffer to transfer to the new stack! Implement us as a LIFO for transfers!
@@ -1211,12 +1211,12 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 					if (CPU[activeCPU].CallGateSize) //32-bit?
 					{
 						CPU_PUSH16(&CPU[activeCPU].registers->CS,1);
-						CPU_PUSH32(&CPU[activeCPU].registers->EIP);
+						CPU_PUSH32(&REG_EIP);
 					}
 					else //16-bit?
 					{
 						CPU_PUSH16(&CPU[activeCPU].registers->CS,0);
-						CPU_PUSH16(&CPU[activeCPU].registers->IP,0);
+						CPU_PUSH16(&REG_IP,0);
 					}
 				}
 
@@ -1400,7 +1400,7 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 
 			if (segment == CPU_SEGMENT_CS) //CS register?
 			{
-				CPU[activeCPU].registers->EIP = destEIP; //The current OPCode: just jump to the address specified by the descriptor OR command!
+				REG_EIP = destEIP; //The current OPCode: just jump to the address specified by the descriptor OR command!
 				if (((isJMPorCALL & 0x1FF) == 4) || ((isJMPorCALL & 0x1FF) == 3)) //IRET/RETF required limit check!
 				{
 					if (CPU_MMU_checkrights(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, REG_EIP, 3, &CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS], 2, CPU_Operand_size[activeCPU])) //Limit broken or protection fault?
@@ -1500,13 +1500,13 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 				uint_32 pushingval;
 				pushingval = CPU[activeCPU].registers->CS; //What to push!
 				if (CPU80386_internal_PUSHdw(0,&pushingval)) return 1;
-				if (CPU80386_internal_PUSHdw(2,&CPU[activeCPU].registers->EIP)) return 1;
+				if (CPU80386_internal_PUSHdw(2,&REG_EIP)) return 1;
 			}
 			else //16-bit?
 			{
 				if (CPU[activeCPU].internalinstructionstep==0) if(checkStackAccess(2, 1, 0)) return 1; //We're trying to push on the stack!
 				if (CPU8086_internal_PUSHw(0,&CPU[activeCPU].registers->CS,0)) return 1;
-				if (CPU8086_internal_PUSHw(2,&CPU[activeCPU].registers->IP,0)) return 1;
+				if (CPU8086_internal_PUSHw(2,&REG_IP,0)) return 1;
 			}
 		}
 
@@ -1538,7 +1538,7 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 		{
 			CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].desc.AccessRights = 0x93; //Load default access rights!
 			CPU_calcSegmentPrecalcs(&CPU[activeCPU].SEG_DESCRIPTOR[segment]); //Calculate any precalcs for the segment descriptor(do it here since we don't load descriptors externally)!
-			CPU[activeCPU].registers->EIP = destEIP; //... The current OPCode: just jump to the address!
+			REG_EIP = destEIP; //... The current OPCode: just jump to the address!
 		}
 		else if (segment == CPU_SEGMENT_SS) //SS? We're also updating the CPL!
 		{
@@ -1831,11 +1831,11 @@ byte switchStacks(byte newCPL)
 		if (segmentWritten(CPU_SEGMENT_SS,SSn,0x8000|0x200|((newCPL<<8)&0x400)|0x1000|((newCPL&3)<<13))) return 1; //Read SS, privilege level changes, ignore DPL vs CPL check! Fault=#TS. EXT bit when set in bit 2 of newCPL. Don't throw #SS for normal faults, throw #TS instead!
 		if (TSSSize) //32-bit?
 		{
-			CPU[activeCPU].registers->ESP = ESPn; //Apply the stack position!
+			REG_ESP = ESPn; //Apply the stack position!
 		}
 		else
 		{
-			CPU[activeCPU].registers->SP = (word)ESPn; //Apply the stack position!
+			REG_SP = (word)ESPn; //Apply the stack position!
 		}
 	default: //Unknown TSS?
 		break; //No switching for now!
@@ -2156,14 +2156,14 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 				uint_32 val;
 				val = CPU[activeCPU].registers->CS;
 				CPU_PUSH32(&val);
-				CPU_PUSH32(&CPU[activeCPU].registers->EIP); //Push EIP!
+				CPU_PUSH32(&REG_EIP); //Push EIP!
 			}
 			else
 			{
 				word temp2 = (word)(EFLAGSbackup&0xFFFF);
 				CPU_PUSH16(&temp2,0); //Push FLAGS!
 				CPU_PUSH16(&CPU[activeCPU].registers->CS, 0); //Push CS!
-				CPU_PUSH16(&CPU[activeCPU].registers->IP,0); //Push IP!
+				CPU_PUSH16(&REG_IP,0); //Push IP!
 			}
 
 			if ((CPU[activeCPU].have_oldSegReg&(1 << CPU_SEGMENT_CS)) == 0) //Backup not loaded yet?
@@ -2182,7 +2182,7 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 
 			setRPL(*CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_CS],getCPL()); //CS.RPL=CPL!
 
-			CPU[activeCPU].registers->EIP = ((idtentry.offsetlow | (idtentry.offsethigh << 16))&(0xFFFFFFFF >> ((is32bit ^ 1) << 4))); //The current OPCode: just jump to the address specified by the descriptor OR command!
+			REG_EIP = ((idtentry.offsetlow | (idtentry.offsethigh << 16))&(0xFFFFFFFF >> ((is32bit ^ 1) << 4))); //The current OPCode: just jump to the address specified by the descriptor OR command!
 
 			FLAGW_TF(0);
 			FLAGW_NT(0);

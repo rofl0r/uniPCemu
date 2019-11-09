@@ -44,6 +44,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/support/log.h" //Logging support!
 #include "headers/cpu/flags.h" //Flag support for IMUL!
 #include "headers/support/log.h" //Logging support!
+#include "headers/cpu/easyregs.h" //Easy register support!
 
 //Waitstate delay on 80286.
 #define CPU286_WAITSTATE_DELAY 1
@@ -733,10 +734,10 @@ OPTINLINE void CPU_initRegisters(byte isInit) //Init the registers!
 	if (!CPU[activeCPU].registers) return; //We can't work!
 	
 	//General purpose registers
-	CPU[activeCPU].registers->EAX = 0;
-	CPU[activeCPU].registers->EBX = 0;
-	CPU[activeCPU].registers->ECX = 0;
-	CPU[activeCPU].registers->EDX = 0;
+	REG_EAX = 0;
+	REG_EBX = 0;
+	REG_ECX = 0;
+	REG_EDX = 0;
 
 	if (EMULATED_CPU>=CPU_80386) //Need revision info in DX?
 	{
@@ -744,24 +745,24 @@ OPTINLINE void CPU_initRegisters(byte isInit) //Init the registers!
 		{
 		default:
 		case CPU_80386:
-			CPU[activeCPU].registers->DX = CPU_databussize ? 0x2303 : 0x0303;
+			REG_DX = CPU_databussize ? 0x2303 : 0x0303;
 			break;
 		case CPU_80486:
-			CPU[activeCPU].registers->DX = 0x0421; //80486SX! DX not supported yet!
+			REG_DX = 0x0421; //80486SX! DX not supported yet!
 			break;
 		case CPU_PENTIUM:
-			CPU[activeCPU].registers->DX = 0x0521; //Pentium! DX not supported yet!
+			REG_DX = 0x0521; //Pentium! DX not supported yet!
 			break;
 		}
 	}
 
 	//Index registers
-	CPU[activeCPU].registers->EBP = 0; //Init offset of BP?
-	CPU[activeCPU].registers->ESI = 0; //Source index!
-	CPU[activeCPU].registers->EDI = 0; //Destination index!
+	REG_EBP = 0; //Init offset of BP?
+	REG_ESI = 0; //Source index!
+	REG_EDI = 0; //Destination index!
 
 	//Stack registers
-	CPU[activeCPU].registers->ESP = 0; //Init offset of stack (top-1)
+	REG_ESP = 0; //Init offset of stack (top-1)
 	CPU[activeCPU].registers->SS = 0; //Stack segment!
 
 
@@ -769,12 +770,12 @@ OPTINLINE void CPU_initRegisters(byte isInit) //Init the registers!
 	if (EMULATED_CPU >= CPU_NECV30) //186+?
 	{
 		CPU[activeCPU].registers->CS = 0xF000; //We're this selector!
-		CPU[activeCPU].registers->EIP = 0xFFF0; //We're starting at this offset!
+		REG_EIP = 0xFFF0; //We're starting at this offset!
 	}
 	else //8086?
 	{
 		CPU[activeCPU].registers->CS = 0xFFFF; //Code segment: default to segment 0xFFFF to start at 0xFFFF0 (bios boot jump)!
-		CPU[activeCPU].registers->EIP = 0; //Start of executable code!
+		REG_EIP = 0; //Start of executable code!
 	}
 	
 	//Data registers!
@@ -782,7 +783,7 @@ OPTINLINE void CPU_initRegisters(byte isInit) //Init the registers!
 	CPU[activeCPU].registers->ES = 0; //Extra segment!
 	CPU[activeCPU].registers->FS = 0; //Far segment (extra segment)
 	CPU[activeCPU].registers->GS = 0; //??? segment (extra segment like FS)
-	CPU[activeCPU].registers->EFLAGS = 0x2; //Flags!
+	REG_EFLAGS = 0x2; //Flags!
 
 	//Now the handling of solid state segments (might change, use index for that!)
 	CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_CS] = &CPU[activeCPU].registers->CS; //Link!
@@ -1068,7 +1069,7 @@ OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 		{
 			CPU_resetPrefixes(); //Reset all prefixes for this opcode!
 			reset_modrm(); //Reset modr/m for the current opcode, for detecting it!
-			CPU_InterruptReturn = last_eip = CPU[activeCPU].registers->EIP; //Interrupt return point by default!
+			CPU_InterruptReturn = last_eip = REG_EIP; //Interrupt return point by default!
 			CPU[activeCPU].instructionfetch.CPU_fetchphase = 2; //Reading prefixes or opcode!
 			ismultiprefix = 0; //Default to not being multi prefix!
 		}
@@ -1085,7 +1086,7 @@ OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 					CPU_InterruptReturn = last_eip; //Return to the last prefix only!
 				}
 				CPU_setprefix(*OP); //Set the prefix ON!
-				last_eip = CPU[activeCPU].registers->EIP; //Save the current EIP of the last prefix possibility!
+				last_eip = REG_EIP; //Save the current EIP of the last prefix possibility!
 				ismultiprefix = 1; //We're multi-prefix now when triggered again!
 				goto nextprefix; //Try the next prefix!
 			}
@@ -1558,7 +1559,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 			CPU_exec_lastEIP = CPU_exec_EIP;
 			//Save the current coordinates!
 			CPU_exec_CS = CPU[activeCPU].registers->CS; //CS of command!
-			CPU_exec_EIP = (CPU[activeCPU].registers->EIP&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof); //EIP of command!
+			CPU_exec_EIP = (REG_EIP&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof); //EIP of command!
 		}
 	
 		//Save the starting point when debugging!
@@ -1768,7 +1769,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 
 	if (gotREP) //Gotten REP?
 	{
-		if (!(CPU_Address_size[activeCPU]?CPU[activeCPU].registers->ECX:CPU[activeCPU].registers->CX)) //REP and finished?
+		if (!(CPU_Address_size[activeCPU]?REG_ECX:REG_CX)) //REP and finished?
 		{
 			blockREP = 1; //Block the CPU instruction from executing!
 		}
@@ -1828,11 +1829,11 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 			}
 			if (CPU_Address_size[activeCPU]) //32-bit REP?
 			{
-				REPcondition = CPU[activeCPU].registers->ECX--; //ECX set and decremented?
+				REPcondition = REG_ECX--; //ECX set and decremented?
 			}
 			else
 			{
-				REPcondition = CPU[activeCPU].registers->CX--; //CX set and decremented?
+				REPcondition = REG_CX--; //CX set and decremented?
 			}
 			if (REPcondition && gotREP) //Still looping and allowed? Decrease (E)CX after checking for the final item!
 			{
@@ -1905,7 +1906,7 @@ void CPU_RealResetOP(byte doReset) //Rerun current Opcode? (From interrupt calls
 	{
 		//Actually reset the currrent instruction!
 		CPU[activeCPU].registers->CS = CPU_exec_CS; //CS is reset!
-		CPU[activeCPU].registers->EIP = CPU_exec_EIP; //Destination address is reset!
+		REG_EIP = CPU_exec_EIP; //Destination address is reset!
 		CPU_flushPIQ(CPU_exec_EIP); //Flush the PIQ, restoring the destination address to the start of the instruction!
 	}
 }

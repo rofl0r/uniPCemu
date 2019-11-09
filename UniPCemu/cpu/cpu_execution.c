@@ -25,6 +25,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/cpu/biu.h" //BIU support for making direct memory requests!
 #include "headers/support/log.h" //To log invalids!
 #include "headers/cpu/cpu_pmtimings.h" //Timing support!
+#include "headers/cpu/easyregs.h" //Easy register support!
 
 //Define to debug disk reads using interrupt 13h
 //#define DEBUGBOOT
@@ -193,11 +194,11 @@ void CPU_executionphase_startinterrupt(byte vectornr, byte type, int_64 errorcod
 	CPU_executionphaseinterrupt_is_interrupt = ((((errorcode==-2)|(errorcode==-4))?1:0)|(type<<1)); //Interrupt?
 	CPU[activeCPU].executed = 0; //Not executed yet!
 	INTreturn_CS = CPU[activeCPU].registers->CS; //Return segment!
-	INTreturn_EIP = CPU[activeCPU].registers->EIP; //Save the return offset!
+	INTreturn_EIP = REG_EIP; //Save the return offset!
 	#ifdef DEBUGBOOT
 	if (CPU_executionphaseinterrupt_nr==0x13) //To debug?
 	{
-		if ((CPU[activeCPU].registers->AH==2) && (getcpumode()!=CPU_MODE_PROTECTED)) //Read sectors from drive?
+		if ((REG_AH==2) && (getcpumode()!=CPU_MODE_PROTECTED)) //Read sectors from drive?
 		{
 			singlestep = 1; //Start single stepping!
 		}
