@@ -441,7 +441,7 @@ AVL: available to the programmer:
 //General Purpose register support!
 
 #include "headers/packed.h"
-typedef struct PACKED
+typedef union PACKED
 {
 	uint_32 reg32;
 	word reg16[2];
