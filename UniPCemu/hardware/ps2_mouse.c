@@ -698,7 +698,7 @@ void handle_mouseenabled(byte flags)
 void PS2_initMouse(byte enabled) //Initialise the mouse to reset mode?
 {
 	if (__HW_DISABLED) return; //Abort!
-	memset(&Mouse.data, 0, sizeof(Mouse)); //Clear the mouse information!
+	memset(&Mouse.data, 0, sizeof(Mouse.data)); //Clear the mouse information!
 	Mouse.supported = enabled; //Are we enabled!
 	if (Mouse.supported) //Are we enabled?
 	{
