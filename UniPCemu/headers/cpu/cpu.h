@@ -440,19 +440,17 @@ AVL: available to the programmer:
 
 //General Purpose register support!
 
-#include "headers/packed.h"
-typedef union PACKED
+typedef union
 {
 	uint_32 reg32;
 	word reg16[2];
 	byte reg8[4];
 } registersplitter;
-#include "headers/endpacked.h"
 
 #ifdef IS_BIG_ENDIAN
 #define GPREG16_LO 1
-#define GPREG8_LO 1
-#define GPREG8_HI 0
+#define GPREG8_LO 3
+#define GPREG8_HI 2
 #else
 #define GPREG16_LO 0
 #define GPREG8_LO 0
@@ -722,8 +720,7 @@ typedef struct PACKED
 } DTR_PTR;
 #include "headers/endpacked.h" //End of packed type!
 
-#include "headers/packed.h" //Packed type!
-typedef struct PACKED //The registers!
+typedef struct //The registers!
 {
 	//First, the General Purpose registers!
 	registersplitter gpregisters[18]; //10 general purpose registers! EAX, EBX, ECX, EDX, ESP, EBP, ESI, EDI, EIP, EFLAGS, CS, DS, ES, FS, GS, SS, TR, LDTR!
@@ -781,7 +778,6 @@ typedef struct PACKED //The registers!
 	DTR_PTR GDTR; //GDTR pointer (48-bits) Global Descriptor Table Register
 	DTR_PTR IDTR; //IDTR pointer (48-bits) Interrupt Descriptor Table Register
 } CPU_registers; //Registers
-#include "headers/endpacked.h" //End of packed type!
 
 //Protected mode enable
 #define CR0_PE 0x00000001

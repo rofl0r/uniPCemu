@@ -606,49 +606,49 @@ byte LOADALL386_checkMMUaccess(word segment, uint_64 offset, byte readflags, byt
 	return 0; //We're a valid access for both MMU and Paging! Allow this instruction to execute!
 }
 
+static union
+{
+	struct
+	{
+		uint_32 CR0;
+		uint_32 EFLAGS;
+		uint_32 EIP;
+		uint_32 EDI;
+		uint_32 ESI;
+		uint_32 EBP;
+		uint_32 ESP;
+		uint_32 EBX;
+		uint_32 EDX;
+		uint_32 ECX;
+		uint_32 EAX;
+		uint_32 DR6;
+		uint_32 DR7;
+		uint_32 TR;
+		uint_32 LDTR;
+		uint_32 GS;
+		uint_32 FS;
+		uint_32	DS;
+		uint_32 SS;
+		uint_32 CS;
+		uint_32 ES;
+		DESCRIPTORCACHE386 TRdescriptor;
+		DTRdata386 IDTR;
+		DTRdata386 GDTR;
+		DESCRIPTORCACHE386 LDTRdescriptor;
+		DESCRIPTORCACHE386 GSdescriptor;
+		DESCRIPTORCACHE386 FSdescriptor;
+		DESCRIPTORCACHE386 DSdescriptor;
+		DESCRIPTORCACHE386 SSdescriptor;
+		DESCRIPTORCACHE386 CSdescriptor;
+		DESCRIPTORCACHE386 ESdescriptor;
+	} fields; //Fields
+	uint_32 datad[0x33]; //Our data size!
+} LOADALL386DATA;
+
+
 void CPU386_OP0F07() //Undocumented LOADALL instruction
 {
 	word readindex; //Our read index for all reads that are required!
-#include "headers/packed.h" //Packed!
-	static union PACKED
-	{
-		struct
-		{
-			uint_32 CR0;
-			uint_32 EFLAGS;
-			uint_32 EIP;
-			uint_32 EDI;
-			uint_32 ESI;
-			uint_32 EBP;
-			uint_32 ESP;
-			uint_32 EBX;
-			uint_32 EDX;
-			uint_32 ECX;
-			uint_32 EAX;
-			uint_32 DR6;
-			uint_32 DR7;
-			uint_32 TR;
-			uint_32 LDTR;
-			uint_32 GS;
-			uint_32 FS;
-			uint_32	DS;
-			uint_32 SS;
-			uint_32 CS;
-			uint_32 ES;
-			DESCRIPTORCACHE386 TRdescriptor;
-			DTRdata386 IDTR;
-			DTRdata386 GDTR;
-			DESCRIPTORCACHE386 LDTRdescriptor;
-			DESCRIPTORCACHE386 GSdescriptor;
-			DESCRIPTORCACHE386 FSdescriptor;
-			DESCRIPTORCACHE386 DSdescriptor;
-			DESCRIPTORCACHE386 SSdescriptor;
-			DESCRIPTORCACHE386 CSdescriptor;
-			DESCRIPTORCACHE386 ESdescriptor;
-		} fields; //Fields
-		uint_32 datad[0x33]; //Our data size!
-	} LOADALLDATA;
-#include "headers/endpacked.h" //Finished!
 
 	if (unlikely(CPU[activeCPU].instructionstep==0)) //First step? Start Request!
 	{	
@@ -657,13 +657,13 @@ void CPU386_OP0F07() //Undocumented LOADALL instruction
 			unkOP0F_286(); //Raise an error!
 			return;
 		}
-		memset(&LOADALLDATA,0,sizeof(LOADALLDATA)); //Init the structure to be used as a buffer!
-		for (readindex=0;readindex<NUMITEMS(LOADALLDATA.datad);++readindex)
+		memset(&LOADALL386DATA,0,sizeof(LOADALL386DATA)); //Init the structure to be used as a buffer!
+		for (readindex=0;readindex<NUMITEMS(LOADALL386DATA.datad);++readindex)
 		{
 			if (LOADALL386_checkMMUaccess(REG_ES,((REG_EDI+(readindex<<2))&CPU[activeCPU].address_size),1|0x40,getCPL(),1,0|0x10)) return; //Abort on fault!
 			if (LOADALL386_checkMMUaccess(REG_ES,((REG_EDI+(readindex<<2))&CPU[activeCPU].address_size)+3,1|0x40,getCPL(),1,3|0x10)) return; //Abort on fault!
 		}
-		for (readindex = 0; readindex < NUMITEMS(LOADALLDATA.datad); ++readindex)
+		for (readindex = 0; readindex < NUMITEMS(LOADALL386DATA.datad); ++readindex)
 		{
 			if (LOADALL386_checkMMUaccess(REG_ES, ((REG_EDI + (readindex << 2))&CPU[activeCPU].address_size), 1 | 0xA0, getCPL(), 1, 0 | 0x10)) return; //Abort on fault!
 			if (LOADALL386_checkMMUaccess(REG_ES, ((REG_EDI + (readindex << 2))&CPU[activeCPU].address_size) + 3, 1 | 0xA0, getCPL(), 1, 3 | 0x10)) return; //Abort on fault!
@@ -674,45 +674,45 @@ void CPU386_OP0F07() //Undocumented LOADALL instruction
 	//Load the data from the used location!
 
 	//Actually use ES and not the descriptor? Not quite known how to handle this with protection! Use ES literal for now!
-	for (readindex=0;readindex<NUMITEMS(LOADALLDATA.datad);++readindex) //Load all remaining data in default byte order!
+	for (readindex=0;readindex<NUMITEMS(LOADALL386DATA.datad);++readindex) //Load all remaining data in default byte order!
 	{
-		if (CPU80386_instructionstepreaddirectdw((byte)(readindex<<1),-4,REG_ES,(REG_EDI+(readindex<<2)),&LOADALLDATA.datad[readindex],0)) return; //Access memory directly through the BIU! Read the data to load from memory! Take care of any conversion needed!
+		if (CPU80386_instructionstepreaddirectdw((byte)(readindex<<1),-4,REG_ES,(REG_EDI+(readindex<<2)),&LOADALL386DATA.datad[readindex],0)) return; //Access memory directly through the BIU! Read the data to load from memory! Take care of any conversion needed!
 	}
 
 	//Load all registers and caches, ignore any protection normally done(not checked during LOADALL)!
 	//Plain registers!
-	CPU[activeCPU].registers->CR0 = LOADALLDATA.fields.CR0; //MSW! We can reenter real mode by clearing bit 0(Protection Enable bit), just not on the 80286!
-	REG_TR = LOADALLDATA.fields.TR; //TR
-	REG_EFLAGS = LOADALLDATA.fields.EFLAGS; //FLAGS
-	REG_EIP = LOADALLDATA.fields.EIP; //IP
-	REG_LDTR = LOADALLDATA.fields.LDTR; //LDT
-	REG_DS = LOADALLDATA.fields.DS; //DS
-	REG_SS = LOADALLDATA.fields.SS; //SS
-	REG_CS = LOADALLDATA.fields.CS; //CS
-	REG_ES = LOADALLDATA.fields.ES; //ES
-	REG_EDI = LOADALLDATA.fields.EDI; //DI
-	REG_ESI = LOADALLDATA.fields.ESI; //SI
-	REG_EBP = LOADALLDATA.fields.EBP; //BP
-	REG_ESP = LOADALLDATA.fields.ESP; //SP
-	REG_EBX = LOADALLDATA.fields.EBX; //BX
-	REG_EDX = LOADALLDATA.fields.EDX; //CX
-	REG_ECX = LOADALLDATA.fields.ECX; //DX
-	REG_EAX = LOADALLDATA.fields.EAX; //AX
+	CPU[activeCPU].registers->CR0 = LOADALL386DATA.fields.CR0; //MSW! We can reenter real mode by clearing bit 0(Protection Enable bit), just not on the 80286!
+	REG_TR = LOADALL386DATA.fields.TR; //TR
+	REG_EFLAGS = LOADALL386DATA.fields.EFLAGS; //FLAGS
+	REG_EIP = LOADALL386DATA.fields.EIP; //IP
+	REG_LDTR = LOADALL386DATA.fields.LDTR; //LDT
+	REG_DS = LOADALL386DATA.fields.DS; //DS
+	REG_SS = LOADALL386DATA.fields.SS; //SS
+	REG_CS = LOADALL386DATA.fields.CS; //CS
+	REG_ES = LOADALL386DATA.fields.ES; //ES
+	REG_EDI = LOADALL386DATA.fields.EDI; //DI
+	REG_ESI = LOADALL386DATA.fields.ESI; //SI
+	REG_EBP = LOADALL386DATA.fields.EBP; //BP
+	REG_ESP = LOADALL386DATA.fields.ESP; //SP
+	REG_EBX = LOADALL386DATA.fields.EBX; //BX
+	REG_EDX = LOADALL386DATA.fields.EDX; //CX
+	REG_ECX = LOADALL386DATA.fields.ECX; //DX
+	REG_EAX = LOADALL386DATA.fields.EAX; //AX
 	updateCPUmode(); //We're updating the CPU mode if needed, since we're reloading CR0 and FLAGS!
 
 	//GDTR/IDTR registers!
-	CPU[activeCPU].registers->GDTR.base = LOADALLDATA.fields.GDTR.BASE; //Base!
-	CPU[activeCPU].registers->GDTR.limit = LOADALLDATA.fields.GDTR.LIMIT; //Limit
-	CPU[activeCPU].registers->IDTR.base = LOADALLDATA.fields.IDTR.BASE; //Base!
-	CPU[activeCPU].registers->IDTR.limit = LOADALLDATA.fields.IDTR.LIMIT; //Limit
+	CPU[activeCPU].registers->GDTR.base = LOADALL386DATA.fields.GDTR.BASE; //Base!
+	CPU[activeCPU].registers->GDTR.limit = LOADALL386DATA.fields.GDTR.LIMIT; //Limit
+	CPU[activeCPU].registers->IDTR.base = LOADALL386DATA.fields.IDTR.BASE; //Base!
+	CPU[activeCPU].registers->IDTR.limit = LOADALL386DATA.fields.IDTR.LIMIT; //Limit
 
 	//Load all descriptors directly without checks!
-	CPU386_LOADALL_LoadDescriptor(&LOADALLDATA.fields.ESdescriptor,CPU_SEGMENT_ES); //ES descriptor!
-	CPU386_LOADALL_LoadDescriptor(&LOADALLDATA.fields.CSdescriptor,CPU_SEGMENT_CS); //CS descriptor!
-	CPU386_LOADALL_LoadDescriptor(&LOADALLDATA.fields.SSdescriptor,CPU_SEGMENT_SS); //SS descriptor!
-	CPU386_LOADALL_LoadDescriptor(&LOADALLDATA.fields.DSdescriptor,CPU_SEGMENT_DS); //DS descriptor!
-	CPU386_LOADALL_LoadDescriptor(&LOADALLDATA.fields.LDTRdescriptor,CPU_SEGMENT_LDTR); //LDT descriptor!
-	CPU386_LOADALL_LoadDescriptor(&LOADALLDATA.fields.TRdescriptor,CPU_SEGMENT_TR); //TSS descriptor!
+	CPU386_LOADALL_LoadDescriptor(&LOADALL386DATA.fields.ESdescriptor,CPU_SEGMENT_ES); //ES descriptor!
+	CPU386_LOADALL_LoadDescriptor(&LOADALL386DATA.fields.CSdescriptor,CPU_SEGMENT_CS); //CS descriptor!
+	CPU386_LOADALL_LoadDescriptor(&LOADALL386DATA.fields.SSdescriptor,CPU_SEGMENT_SS); //SS descriptor!
+	CPU386_LOADALL_LoadDescriptor(&LOADALL386DATA.fields.DSdescriptor,CPU_SEGMENT_DS); //DS descriptor!
+	CPU386_LOADALL_LoadDescriptor(&LOADALL386DATA.fields.LDTRdescriptor,CPU_SEGMENT_LDTR); //LDT descriptor!
+	CPU386_LOADALL_LoadDescriptor(&LOADALL386DATA.fields.TRdescriptor,CPU_SEGMENT_TR); //TSS descriptor!
 	CPU[activeCPU].CPL = GENERALSEGMENT_DPL(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_SS]); //DPL determines CPL!
 	CPU_apply286cycles(); //Apply the 80286+ cycles!
 	CPU_flushPIQ(-1); //We're jumping to another address!

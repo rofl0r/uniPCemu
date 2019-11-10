@@ -777,45 +777,43 @@ void CPU286_LOADALL_LoadDescriptor(DESCRIPTORCACHE286 *source, sword segment)
 	CPU_calcSegmentPrecalcs(&CPU[activeCPU].SEG_DESCRIPTOR[segment]); //Calculate the precalcs!
 }
 
+static union
+{
+	struct
+	{
+		word unused[3];
+		word MSW;
+		word unused2[7];
+		word TR;
+		word flags;
+		word IP;
+		word LDT;
+		word DS;
+		word SS;
+		word CS;
+		word ES;
+		word DI;
+		word SI;
+		word BP;
+		word SP;
+		word BX;
+		word DX;
+		word CX;
+		word AX;
+		DESCRIPTORCACHE286 ESdescriptor;
+		DESCRIPTORCACHE286 CSdescriptor;
+		DESCRIPTORCACHE286 SSdescriptor;
+		DESCRIPTORCACHE286 DSdescriptor;
+		DTRdata286 GDTR;
+		DESCRIPTORCACHE286 LDTdescriptor;
+		DTRdata286 IDTR;
+		DESCRIPTORCACHE286 TSSdescriptor;
+	} fields; //Fields
+	word dataw[0x33]; //Word-sized data to be loaded, if any!
+} LOADALL286DATA;
+
 void CPU286_OP0F05() //Undocumented LOADALL instruction
 {
-#include "headers/packed.h" //Packed!
-	static union PACKED
-	{
-		struct
-		{
-			word unused[3];
-			word MSW;
-			word unused2[7];
-			word TR;
-			word flags;
-			word IP;
-			word LDT;
-			word DS;
-			word SS;
-			word CS;
-			word ES;
-			word DI;
-			word SI;
-			word BP;
-			word SP;
-			word BX;
-			word DX;
-			word CX;
-			word AX;
-			DESCRIPTORCACHE286 ESdescriptor;
-			DESCRIPTORCACHE286 CSdescriptor;
-			DESCRIPTORCACHE286 SSdescriptor;
-			DESCRIPTORCACHE286 DSdescriptor;
-			DTRdata286 GDTR;
-			DESCRIPTORCACHE286 LDTdescriptor;
-			DTRdata286 IDTR;
-			DESCRIPTORCACHE286 TSSdescriptor;
-		} fields; //Fields
-		word dataw[0x33]; //Word-sized data to be loaded, if any!
-	} LOADALLDATA;
-#include "headers/endpacked.h" //Finished!
-
 	if (CPU[activeCPU].instructionstep==0) //First step? Start Request!
 	{
 		if (getCPL() && (getcpumode()!=CPU_MODE_REAL)) //We're protected by CPL!
@@ -823,7 +821,7 @@ void CPU286_OP0F05() //Undocumented LOADALL instruction
 			unkOP0F_286(); //Raise an error!
 			return;
 		}
-		memset(&LOADALLDATA,0,sizeof(LOADALLDATA)); //Init the structure to be used as a buffer!
+		memset(&LOADALL286DATA,0,sizeof(LOADALL286DATA)); //Init the structure to be used as a buffer!
 		++CPU[activeCPU].instructionstep; //Finished check!
 	}
 
@@ -832,45 +830,45 @@ void CPU286_OP0F05() //Undocumented LOADALL instruction
 	word readindex; //Our read index for all reads that are required!
 	readindex = 0; //Init read index to read all data in time through the BIU!
 
-	for (readindex=0;readindex<NUMITEMS(LOADALLDATA.dataw);++readindex) //Load all registers in the correct format!
+	for (readindex=0;readindex<NUMITEMS(LOADALL286DATA.dataw);++readindex) //Load all registers in the correct format!
 	{
-		if (CPU8086_instructionstepreaddirectw((byte)(readindex<<1),-1,0,(0x800|(readindex<<1)),&LOADALLDATA.dataw[readindex],0)) return; //Access memory directly through the BIU! Read the data to load from memory! Take care of any conversion needed!
+		if (CPU8086_instructionstepreaddirectw((byte)(readindex<<1),-1,0,(0x800|(readindex<<1)),&LOADALL286DATA.dataw[readindex],0)) return; //Access memory directly through the BIU! Read the data to load from memory! Take care of any conversion needed!
 	}
 
 	//Load all registers and caches, ignore any protection normally done(not checked during LOADALL)!
 	//Plain registers!
-	CPU[activeCPU].registers->CR0 = LOADALLDATA.fields.MSW|(CPU[activeCPU].registers->CR0&CR0_PE); //MSW! We cannot reenter real mode by clearing bit 0(Protection Enable bit)!
-	REG_TR = LOADALLDATA.fields.TR; //TR
-	REG_FLAGS = LOADALLDATA.fields.flags; //FLAGS
-	REG_EIP = (uint_32)LOADALLDATA.fields.IP; //IP
-	REG_LDTR = LOADALLDATA.fields.LDT; //LDT
-	REG_DS = LOADALLDATA.fields.DS; //DS
-	REG_SS = LOADALLDATA.fields.SS; //SS
-	REG_CS = LOADALLDATA.fields.CS; //CS
-	REG_ES = LOADALLDATA.fields.ES; //ES
-	REG_DI = LOADALLDATA.fields.DI; //DI
-	REG_SI = LOADALLDATA.fields.SI; //SI
-	REG_BP = LOADALLDATA.fields.BP; //BP
-	REG_SP = LOADALLDATA.fields.SP; //SP
-	REG_BX = LOADALLDATA.fields.BX; //BX
-	REG_DX = LOADALLDATA.fields.DX; //DX
-	REG_CX = LOADALLDATA.fields.CX; //CX
-	REG_AX = LOADALLDATA.fields.AX; //AX
+	CPU[activeCPU].registers->CR0 = LOADALL286DATA.fields.MSW|(CPU[activeCPU].registers->CR0&CR0_PE); //MSW! We cannot reenter real mode by clearing bit 0(Protection Enable bit)!
+	REG_TR = LOADALL286DATA.fields.TR; //TR
+	REG_FLAGS = LOADALL286DATA.fields.flags; //FLAGS
+	REG_EIP = (uint_32)LOADALL286DATA.fields.IP; //IP
+	REG_LDTR = LOADALL286DATA.fields.LDT; //LDT
+	REG_DS = LOADALL286DATA.fields.DS; //DS
+	REG_SS = LOADALL286DATA.fields.SS; //SS
+	REG_CS = LOADALL286DATA.fields.CS; //CS
+	REG_ES = LOADALL286DATA.fields.ES; //ES
+	REG_DI = LOADALL286DATA.fields.DI; //DI
+	REG_SI = LOADALL286DATA.fields.SI; //SI
+	REG_BP = LOADALL286DATA.fields.BP; //BP
+	REG_SP = LOADALL286DATA.fields.SP; //SP
+	REG_BX = LOADALL286DATA.fields.BX; //BX
+	REG_DX = LOADALL286DATA.fields.DX; //DX
+	REG_CX = LOADALL286DATA.fields.CX; //CX
+	REG_AX = LOADALL286DATA.fields.AX; //AX
 	updateCPUmode(); //We're updating the CPU mode if needed, since we're reloading CR0 and FLAGS!
 
 	//GDTR/IDTR registers!
-	CPU[activeCPU].registers->GDTR.base = ((LOADALLDATA.fields.GDTR.basehigh&0xFF)<<16)|LOADALLDATA.fields.GDTR.baselow; //Base!
-	CPU[activeCPU].registers->GDTR.limit = LOADALLDATA.fields.GDTR.limit; //Limit
-	CPU[activeCPU].registers->IDTR.base = ((LOADALLDATA.fields.IDTR.basehigh&0xFF)<<16)|LOADALLDATA.fields.IDTR.baselow; //Base!
-	CPU[activeCPU].registers->IDTR.limit = LOADALLDATA.fields.IDTR.limit; //Limit
+	CPU[activeCPU].registers->GDTR.base = ((LOADALL286DATA.fields.GDTR.basehigh&0xFF)<<16)|LOADALL286DATA.fields.GDTR.baselow; //Base!
+	CPU[activeCPU].registers->GDTR.limit = LOADALL286DATA.fields.GDTR.limit; //Limit
+	CPU[activeCPU].registers->IDTR.base = ((LOADALL286DATA.fields.IDTR.basehigh&0xFF)<<16)|LOADALL286DATA.fields.IDTR.baselow; //Base!
+	CPU[activeCPU].registers->IDTR.limit = LOADALL286DATA.fields.IDTR.limit; //Limit
 
 	//Load all descriptors directly without checks!
-	CPU286_LOADALL_LoadDescriptor(&LOADALLDATA.fields.ESdescriptor,CPU_SEGMENT_ES); //ES descriptor!
-	CPU286_LOADALL_LoadDescriptor(&LOADALLDATA.fields.CSdescriptor,CPU_SEGMENT_CS); //CS descriptor!
-	CPU286_LOADALL_LoadDescriptor(&LOADALLDATA.fields.SSdescriptor,CPU_SEGMENT_SS); //SS descriptor!
-	CPU286_LOADALL_LoadDescriptor(&LOADALLDATA.fields.DSdescriptor,CPU_SEGMENT_DS); //DS descriptor!
-	CPU286_LOADALL_LoadDescriptor(&LOADALLDATA.fields.LDTdescriptor,CPU_SEGMENT_LDTR); //LDT descriptor!
-	CPU286_LOADALL_LoadDescriptor(&LOADALLDATA.fields.TSSdescriptor,CPU_SEGMENT_TR); //TSS descriptor!
+	CPU286_LOADALL_LoadDescriptor(&LOADALL286DATA.fields.ESdescriptor,CPU_SEGMENT_ES); //ES descriptor!
+	CPU286_LOADALL_LoadDescriptor(&LOADALL286DATA.fields.CSdescriptor,CPU_SEGMENT_CS); //CS descriptor!
+	CPU286_LOADALL_LoadDescriptor(&LOADALL286DATA.fields.SSdescriptor,CPU_SEGMENT_SS); //SS descriptor!
+	CPU286_LOADALL_LoadDescriptor(&LOADALL286DATA.fields.DSdescriptor,CPU_SEGMENT_DS); //DS descriptor!
+	CPU286_LOADALL_LoadDescriptor(&LOADALL286DATA.fields.LDTdescriptor,CPU_SEGMENT_LDTR); //LDT descriptor!
+	CPU286_LOADALL_LoadDescriptor(&LOADALL286DATA.fields.TSSdescriptor,CPU_SEGMENT_TR); //TSS descriptor!
 	CPU[activeCPU].CPL = GENERALSEGMENT_DPL(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_SS]); //DPL determines CPL!
 	CPU_apply286cycles(); //Apply the 80286+ cycles!
 	CPU_flushPIQ(-1); //We're jumping to another address!
