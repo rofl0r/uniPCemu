@@ -777,7 +777,8 @@ void CPU286_LOADALL_LoadDescriptor(DESCRIPTORCACHE286 *source, sword segment)
 	CPU_calcSegmentPrecalcs(&CPU[activeCPU].SEG_DESCRIPTOR[segment]); //Calculate the precalcs!
 }
 
-static union
+#include "headers/packed.h" //Packed
+static union PACKED
 {
 	struct
 	{
@@ -811,6 +812,9 @@ static union
 	} fields; //Fields
 	word dataw[0x33]; //Word-sized data to be loaded, if any!
 } LOADALL286DATA;
+#include "headers/endpacked.h"
+
+word loadall286loader[0x33]; //Word-sized data to be loaded, if any!
 
 void CPU286_OP0F05() //Undocumented LOADALL instruction
 {
@@ -832,7 +836,11 @@ void CPU286_OP0F05() //Undocumented LOADALL instruction
 
 	for (readindex=0;readindex<NUMITEMS(LOADALL286DATA.dataw);++readindex) //Load all registers in the correct format!
 	{
-		if (CPU8086_instructionstepreaddirectw((byte)(readindex<<1),-1,0,(0x800|(readindex<<1)),&LOADALL286DATA.dataw[readindex],0)) return; //Access memory directly through the BIU! Read the data to load from memory! Take care of any conversion needed!
+		if (CPU8086_instructionstepreaddirectw((byte)(readindex<<1),-1,0,(0x800|(readindex<<1)),&loadall286loader[readindex],0)) return; //Access memory directly through the BIU! Read the data to load from memory! Take care of any conversion needed!
+	}
+	for (readindex = 0; readindex < MIN(NUMITEMS(LOADALL286DATA.dataw),NUMITEMS(loadall286loader)); ++readindex) //Load all registers in the correct format!
+	{
+		LOADALL286DATA.dataw[readindex] = loadall286loader[readindex]; //Access memory directly through the BIU! Read the data to load from memory! Take care of any conversion needed!
 	}
 
 	//Load all registers and caches, ignore any protection normally done(not checked during LOADALL)!

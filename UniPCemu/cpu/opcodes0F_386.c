@@ -606,7 +606,8 @@ byte LOADALL386_checkMMUaccess(word segment, uint_64 offset, byte readflags, byt
 	return 0; //We're a valid access for both MMU and Paging! Allow this instruction to execute!
 }
 
-static union
+#include "headers/packed.h" //Packed
+static union PACKED
 {
 	struct
 	{
@@ -644,7 +645,9 @@ static union
 	} fields; //Fields
 	uint_32 datad[0x33]; //Our data size!
 } LOADALL386DATA;
+#include "headers/endpacked.h" //End packed!
 
+uint_32 loadall386loader[0x33]; //Loader data!
 
 void CPU386_OP0F07() //Undocumented LOADALL instruction
 {
@@ -674,9 +677,13 @@ void CPU386_OP0F07() //Undocumented LOADALL instruction
 	//Load the data from the used location!
 
 	//Actually use ES and not the descriptor? Not quite known how to handle this with protection! Use ES literal for now!
-	for (readindex=0;readindex<NUMITEMS(LOADALL386DATA.datad);++readindex) //Load all remaining data in default byte order!
+	for (readindex=0;readindex<NUMITEMS(loadall386loader);++readindex) //Load all remaining data in default byte order!
 	{
-		if (CPU80386_instructionstepreaddirectdw((byte)(readindex<<1),-4,REG_ES,(REG_EDI+(readindex<<2)),&LOADALL386DATA.datad[readindex],0)) return; //Access memory directly through the BIU! Read the data to load from memory! Take care of any conversion needed!
+		if (CPU80386_instructionstepreaddirectdw((byte)(readindex<<1),-4,REG_ES,(REG_EDI+(readindex<<2)),&loadall386loader[readindex],0)) return; //Access memory directly through the BIU! Read the data to load from memory! Take care of any conversion needed!
+	}
+	for (readindex = 0; readindex < MIN(NUMITEMS(LOADALL386DATA.datad),NUMITEMS(loadall386loader)); ++readindex)
+	{
+		LOADALL386DATA.datad[readindex] = loadall386loader[readindex]; //Transfer to the direct buffer!
 	}
 
 	//Load all registers and caches, ignore any protection normally done(not checked during LOADALL)!
