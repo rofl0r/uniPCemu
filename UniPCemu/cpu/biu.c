@@ -144,7 +144,7 @@ byte CPU_condflushPIQ(int_64 destaddr)
 	//Check for any instruction faults that's pending for the next to be executed instruction!
 #ifdef FAULT_INVALID_JUMPS
 	condflushtriggered = 0;
-	if (unlikely(checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, REG_EIP, 3, getCPL(), !CODE_SEGMENT_DESCRIPTOR_D_BIT(), 0))) //Error accessing memory?
+	if (unlikely(checkMMUaccess(CPU_SEGMENT_CS, REG_CS, REG_EIP, 3, getCPL(), !CODE_SEGMENT_DESCRIPTOR_D_BIT(), 0))) //Error accessing memory?
 	{
 		condflushtriggered = 1;
 	}
@@ -411,7 +411,7 @@ OPTINLINE void CPU_fillPIQ() //Fill the PIQ until it's full!
 	if (((PIQ_block==1) || (PIQ_block==9)) && (useIPSclock==0)) { PIQ_block = 0; return; /* Blocked access: only fetch one byte/word instead of a full word/dword! */ }
 	if (unlikely(BIU[activeCPU].PIQ==0)) return; //Not gotten a PIQ? Abort!
 	realaddress = BIU[activeCPU].PIQ_Address; //Next address to fetch(Logical address)!
-	checkMMUaccess_linearaddr = MMU_realaddr(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, realaddress, 0,0); //Linear adress!
+	checkMMUaccess_linearaddr = MMU_realaddr(CPU_SEGMENT_CS, REG_CS, realaddress, 0,0); //Linear adress!
 	if (likely(BIU[activeCPU].PIQ_checked)) //Checked left not performing any memory checks?
 	{
 		--BIU[activeCPU].PIQ_checked; //Tick checked data to not check!
@@ -419,7 +419,7 @@ OPTINLINE void CPU_fillPIQ() //Fill the PIQ until it's full!
 	}
 	else //Full check and translation to a linear address?
 	{
-		if (unlikely(checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, realaddress, 0x10 | 3, getCPL(), 0, 0))) return; //Abort on fault!
+		if (unlikely(checkMMUaccess(CPU_SEGMENT_CS, REG_CS, realaddress, 0x10 | 3, getCPL(), 0, 0))) return; //Abort on fault!
 		linearaddress = checkMMUaccess_linearaddr; //Linear address!
 	}
 	if (unlikely(is_paging())) //Are we paging?
@@ -470,15 +470,15 @@ void BIU_dosboxTick()
 
 		//First, check the lower bound! If this fails, we can't continue(we're immediately failing)!
 		MMU_resetaddr(); //Reset the address error line for trying some I/O!
-		if (unlikely(checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, realaddress, 0x10 | 3, getCPL(), 0, 0))) return; //Abort on fault! 
+		if (unlikely(checkMMUaccess(CPU_SEGMENT_CS, REG_CS, realaddress, 0x10 | 3, getCPL(), 0, 0))) return; //Abort on fault! 
 
 		//Next, check the higher bound! While it fails, decrease until we don't anymore!
 		realaddress += (BIUsize-1); //Take the last byte we might be fetching!
 		retry_lowerbyte: //When the below check fails, try for the next address!
-		if (unlikely(checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, realaddress, 0x10 | 3, getCPL(), 0, 0) && BIUsize)) //Couldn't fetch?
+		if (unlikely(checkMMUaccess(CPU_SEGMENT_CS, REG_CS, realaddress, 0x10 | 3, getCPL(), 0, 0) && BIUsize)) //Couldn't fetch?
 		{
 			//The only thing stopping us here is the page boundary, so round down to a lower one, if possible!
-			endpos = MMU_realaddr(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, realaddress, 0,0); //Linear address of the failing byte!
+			endpos = MMU_realaddr(CPU_SEGMENT_CS, REG_CS, realaddress, 0,0); //Linear address of the failing byte!
 			maxaddress = 0; //Our flag for determining if we can just take the previous page by calculating it normally!
 			endpos -= (((endpos&0xFFFFF000ULL) - 1)&0xFFFFFFFFULL); //How much to substract for getting the valid previous page!
 			endpos &= 0xFFFFFFFFULL; //Make sure we're proper 32-bit!
@@ -545,7 +545,7 @@ byte CPU_readOP(byte *result, byte singlefetch) //Reads the operation (byte) at 
 		//Execution can start on any cycle!
 		//Protection checks have priority over reading the PIQ! The prefetching stops when errors occur when prefetching, we handle the prefetch error when reading the opcode from the BIU, which has to happen before the BIU is retrieved!
 		uint_32 instructionEIP = (REG_EIP&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof); //Our current instruction position is increased always!
-		if (unlikely(checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, instructionEIP,3,getCPL(),!CODE_SEGMENT_DESCRIPTOR_D_BIT(),0))) //Error accessing memory?
+		if (unlikely(checkMMUaccess(CPU_SEGMENT_CS, REG_CS, instructionEIP,3,getCPL(),!CODE_SEGMENT_DESCRIPTOR_D_BIT(),0))) //Error accessing memory?
 		{
 			return 1; //Abort on fault!
 		}
@@ -583,7 +583,7 @@ byte CPU_readOP(byte *result, byte singlefetch) //Reads the operation (byte) at 
 		//CPU_fillPIQ(); //Fill instruction cache with next data!
 		//goto PIQ_retry; //Read again!
 	}
-	if (checkMMUaccess(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, instructionEIP,3,getCPL(),!CODE_SEGMENT_DESCRIPTOR_D_BIT(),0)) //Error accessing memory?
+	if (checkMMUaccess(CPU_SEGMENT_CS, REG_CS, instructionEIP,3,getCPL(),!CODE_SEGMENT_DESCRIPTOR_D_BIT(),0)) //Error accessing memory?
 	{
 		return 1; //Abort on fault!
 	}
@@ -595,7 +595,7 @@ byte CPU_readOP(byte *result, byte singlefetch) //Reads the operation (byte) at 
 			return 1; //Abort on fault!
 		}
 	}
-	*result = MMU_rb(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, instructionEIP, 3,!CODE_SEGMENT_DESCRIPTOR_D_BIT()); //Read OPcode directly from memory!
+	*result = MMU_rb(CPU_SEGMENT_CS, REG_CS, instructionEIP, 3,!CODE_SEGMENT_DESCRIPTOR_D_BIT()); //Read OPcode directly from memory!
 	MMU_addOP(*result); //Add to the opcode cache!
 	++REG_EIP; //Increase EIP, since we don't have to worrt about the prefetch!
 	REG_EIP &= CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof; //Wrap EIP as is required!
@@ -610,7 +610,7 @@ byte CPU_readOPw(word *result, byte singlefetch) //Reads the operation (word) at
 	{
 		if (likely(BIU[activeCPU].PIQ)) //PIQ installed?
 		{
-			if (checkMMUaccess16(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, REG_EIP,3,getCPL(),!CODE_SEGMENT_DESCRIPTOR_D_BIT(),0|0x8)) //Error accessing memory?
+			if (checkMMUaccess16(CPU_SEGMENT_CS, REG_CS, REG_EIP,3,getCPL(),!CODE_SEGMENT_DESCRIPTOR_D_BIT(),0|0x8)) //Error accessing memory?
 			{
 				return 1; //Abort on fault!
 			}
@@ -663,7 +663,7 @@ byte CPU_readOPdw(uint_32 *result, byte singlefetch) //Reads the operation (32-b
 	{
 		if (likely(BIU[activeCPU].PIQ)) //PIQ installed?
 		{
-			if (checkMMUaccess32(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, REG_EIP,3,getCPL(),!CODE_SEGMENT_DESCRIPTOR_D_BIT(),0|0x10)) //Error accessing memory?
+			if (checkMMUaccess32(CPU_SEGMENT_CS, REG_CS, REG_EIP,3,getCPL(),!CODE_SEGMENT_DESCRIPTOR_D_BIT(),0|0x10)) //Error accessing memory?
 			{
 				return 1; //Abort on fault!
 			}

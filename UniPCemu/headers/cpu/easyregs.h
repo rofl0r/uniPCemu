@@ -55,12 +55,14 @@ extern byte parity[0x100]; //Our parity table!
 #define REG_DX REG16_LO(GPREG_EDX)
 
 //Segment registers
-#define REG_CS CPU[activeCPU].registers->CS
-#define REG_DS CPU[activeCPU].registers->DS
-#define REG_ES CPU[activeCPU].registers->ES
-#define REG_FS CPU[activeCPU].registers->FS
-#define REG_GS CPU[activeCPU].registers->GS
-#define REG_SS CPU[activeCPU].registers->SS
+#define REG_CS REG16_LO(SREG_CS)
+#define REG_DS REG16_LO(SREG_DS)
+#define REG_ES REG16_LO(SREG_ES)
+#define REG_FS REG16_LO(SREG_FS)
+#define REG_GS REG16_LO(SREG_GS)
+#define REG_SS REG16_LO(SREG_SS)
+#define REG_TR REG16_LO(SREG_TR)
+#define REG_LDTR REG16_LO(SREG_LDTR)
 
 //Indexes and pointers
 #define REG_EDI REG32(GPREG_EDI)

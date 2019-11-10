@@ -5760,7 +5760,7 @@ void BIOS_CPU() //CPU menu!
 						mode = 1; //Default to Real mode!
 						break;
 				}
-				segment = CPU[activeCPU].registers->CS; //CS!
+				segment = REG_CS; //CS!
 				offset = mode==1?REG_IP:REG_EIP; //Our offset!
 				BIOS_Settings.breakpoint = (((uint_64)mode&3)<<SETTINGS_BREAKPOINT_MODE_SHIFT)|(((uint_64)segment&SETTINGS_BREAKPOINT_SEGMENT_MASK)<<SETTINGS_BREAKPOINT_SEGMENT_SHIFT)|((uint_64)offset&SETTINGS_BREAKPOINT_OFFSET_MASK); //Set the new breakpoint!
 				BIOS_Changed = 1; //We've changed!
@@ -5807,7 +5807,7 @@ void BIOS_CPU() //CPU menu!
 				}
 				if (mode) //Enabled?
 				{
-					segment = CPU[activeCPU].registers->TR; //CS!
+					segment = REG_TR; //CS!
 					offset = CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].PRECALCS.base; //Our offset!
 					BIOS_Settings.taskBreakpoint = (((uint_64)mode&1)<<SETTINGS_TASKBREAKPOINT_ENABLE_SHIFT)|(((uint_64)segment&SETTINGS_TASKBREAKPOINT_SEGMENT_MASK)<<SETTINGS_TASKBREAKPOINT_SEGMENT_SHIFT)|((uint_64)offset&SETTINGS_TASKBREAKPOINT_BASE_MASK); //Set the new breakpoint!
 					BIOS_Changed = 1; //We've changed!

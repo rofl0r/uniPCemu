@@ -55,7 +55,7 @@ void loadTSS16(TSS286 *TSS)
 	for (i = 0;i < NUMITEMS(TSS->dataw);) //Load our TSS!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
-		TSS->dataw[i++] = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, 0,0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
+		TSS->dataw[i++] = MMU_rw(CPU_SEGMENT_TR, REG_TR, n, 0,0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
 		n += 2; //Next word!
 	}
 	debugger_forceimmediatelogging = 0; //Don't log!
@@ -67,12 +67,12 @@ byte checkloadTSS16()
 	for (n = 0;n < 0x2C;n+=2) //Load our TSS!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
-		if (checkMMUaccess16(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, 1|0x40, 0, 0, 0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+		if (checkMMUaccess16(CPU_SEGMENT_TR, REG_TR, n, 1|0x40, 0, 0, 0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
 	}
 	for (n = 0; n < 0x2C; n += 2) //Load our TSS!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
-		if (checkMMUaccess16(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, 1|0xA0, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+		if (checkMMUaccess16(CPU_SEGMENT_TR, REG_TR, n, 1|0xA0, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
 	}
 
 	debugger_forceimmediatelogging = 0; //Don't log!
@@ -85,16 +85,16 @@ void loadTSS32(TSS386 *TSS)
 	word n;
 	byte i;
 	debugger_forceimmediatelogging = 1; //Log!
-	TSS->BackLink = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0, 0,0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
+	TSS->BackLink = MMU_rw(CPU_SEGMENT_TR, REG_TR, 0, 0,0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
 	//SP0/ESP0 initializing!
 	n = 4; //Start of our block!
 	for (ssspreg=0;ssspreg<3;++ssspreg) //Read all required stack registers!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
-		TSS->ESPs[ssspreg] = MMU_rdw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, 0,0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
+		TSS->ESPs[ssspreg] = MMU_rdw(CPU_SEGMENT_TR, REG_TR, n, 0,0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
 		n += 4; //Next item!
 		debugger_forceimmediatelogging = 1; //Log!
-		TSS->SSs[ssspreg++] = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, 0,0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
+		TSS->SSs[ssspreg++] = MMU_rw(CPU_SEGMENT_TR, REG_TR, n, 0,0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
 
 		n += 4; //Next item!
 	}
@@ -103,20 +103,20 @@ void loadTSS32(TSS386 *TSS)
 	for (n=(7*4);n<((7+11)*4);n+=4) //Write our TSS 32-bit data!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
-		TSS->generalpurposeregisters[i++] = MMU_rdw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, 0,0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
+		TSS->generalpurposeregisters[i++] = MMU_rdw(CPU_SEGMENT_TR, REG_TR, n, 0,0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
 	}
 
 	i = 0;
 	for (n=(((7+11)*4));n<((7+11+7)*4);n+=4) //Write our TSS 16-bit data!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
-		TSS->segmentregisters[i++] = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, 0,0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
+		TSS->segmentregisters[i++] = MMU_rw(CPU_SEGMENT_TR, REG_TR, n, 0,0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
 	}
 
 	debugger_forceimmediatelogging = 1; //Log!
-	TSS->T = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, (25 * 4), 0, 0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
+	TSS->T = MMU_rw(CPU_SEGMENT_TR, REG_TR, (25 * 4), 0, 0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
 	debugger_forceimmediatelogging = 1; //Log!
-	TSS->IOMapBase = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, (25 * 4) + 2, 0, 0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
+	TSS->IOMapBase = MMU_rw(CPU_SEGMENT_TR, REG_TR, (25 * 4) + 2, 0, 0); //Read the TSS! Don't be afraid of errors, since we're always accessable!
 
 	debugger_forceimmediatelogging = 0; //Don't log!
 }
@@ -126,71 +126,71 @@ byte checkloadTSS32()
 	byte ssspreg;
 	word n;
 	debugger_forceimmediatelogging = 1; //Log!
-	if (checkMMUaccess16(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,0,1|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+	if (checkMMUaccess16(CPU_SEGMENT_TR, REG_TR,0,1|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
 	//SP0/ESP0 initializing!
 	n = 4; //Start of our block!
 
 	for (ssspreg=0;ssspreg<3;++ssspreg) //Read all required stack registers!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
-		if (checkMMUaccess32(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+0,1|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+		if (checkMMUaccess32(CPU_SEGMENT_TR, REG_TR,n+0,1|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
 
 		n += 4; //Next item!
 		debugger_forceimmediatelogging = 1; //Log!
-		if (checkMMUaccess16(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+0,1|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+		if (checkMMUaccess16(CPU_SEGMENT_TR, REG_TR,n+0,1|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
 		n += 4; //Next item!
 	}
 
 	for (n=(7*4);n<((7+11)*4);n+=4) //Write our TSS 32-bit data!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
-		if (checkMMUaccess32(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+0,1|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+		if (checkMMUaccess32(CPU_SEGMENT_TR, REG_TR,n+0,1|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
 	}
 
 	for (n=(((7+11)*4));n<((7+11+7)*4);n+=4) //Write our TSS 16-bit data!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
-		if (checkMMUaccess32(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+0,1|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+		if (checkMMUaccess32(CPU_SEGMENT_TR, REG_TR,n+0,1|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
 	}
 
 	debugger_forceimmediatelogging = 1; //Log!
-	if (checkMMUaccess16(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,(25*4)+0,1|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+	if (checkMMUaccess16(CPU_SEGMENT_TR, REG_TR,(25*4)+0,1|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
 	debugger_forceimmediatelogging = 1; //Log!
-	if (checkMMUaccess16(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,(25*4)+2,1|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+	if (checkMMUaccess16(CPU_SEGMENT_TR, REG_TR,(25*4)+2,1|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
 	debugger_forceimmediatelogging = 0; //Don't log!
 
 	debugger_forceimmediatelogging = 1; //Log!
-	if (checkMMUaccess16(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0, 1|0xA0, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+	if (checkMMUaccess16(CPU_SEGMENT_TR, REG_TR, 0, 1|0xA0, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
 	//SP0/ESP0 initializing!
 	n = 4; //Start of our block!
 
 	for (ssspreg = 0; ssspreg < 3; ++ssspreg) //Read all required stack registers!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
-		if (checkMMUaccess32(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n + 0, 1|0xA0, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+		if (checkMMUaccess32(CPU_SEGMENT_TR, REG_TR, n + 0, 1|0xA0, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
 
 		n += 4; //Next item!
 		debugger_forceimmediatelogging = 1; //Log!
-		if (checkMMUaccess16(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n + 0, 1|0xA0, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+		if (checkMMUaccess16(CPU_SEGMENT_TR, REG_TR, n + 0, 1|0xA0, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
 		n += 4; //Next item!
 	}
 
 	for (n = (7 * 4); n < ((7 + 11) * 4); n += 4) //Write our TSS 32-bit data!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
-		if (checkMMUaccess32(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n + 0, 1|0xA0, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+		if (checkMMUaccess32(CPU_SEGMENT_TR, REG_TR, n + 0, 1|0xA0, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
 	}
 
 	for (n = (((7 + 11) * 4)); n < ((7 + 11 + 7) * 4); n += 4) //Write our TSS 16-bit data!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
-		if (checkMMUaccess32(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n + 0, 1|0xA0, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+		if (checkMMUaccess32(CPU_SEGMENT_TR, REG_TR, n + 0, 1|0xA0, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
 	}
 
 	debugger_forceimmediatelogging = 1; //Log!
-	if (checkMMUaccess16(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, (25 * 4) + 0, 1|0xA0, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+	if (checkMMUaccess16(CPU_SEGMENT_TR, REG_TR, (25 * 4) + 0, 1|0xA0, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
 	debugger_forceimmediatelogging = 1; //Log!
-	if (checkMMUaccess16(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, (25 * 4) + 2, 1|0xA0, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+	if (checkMMUaccess16(CPU_SEGMENT_TR, REG_TR, (25 * 4) + 2, 1|0xA0, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
 	debugger_forceimmediatelogging = 0; //Don't log!
 
 	return 0; //OK!
@@ -204,7 +204,7 @@ void saveTSS16(TSS286 *TSS)
 	for (n=((7*2));n<(sizeof(*TSS)-2);n+=2) //Write our TSS 16-bit data! Don't store the LDT and Stacks for different privilege levels!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
-		MMU_ww(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, TSS->dataw[i++],0); //Write the TSS! Don't be afraid of errors, since we're always accessable!
+		MMU_ww(CPU_SEGMENT_TR, REG_TR, n, TSS->dataw[i++],0); //Write the TSS! Don't be afraid of errors, since we're always accessable!
 	}
 	debugger_forceimmediatelogging = 0; //Don't log!
 }
@@ -215,12 +215,12 @@ byte checksaveTSS16()
 	for (n=((7*2));n<(0x2C-2);n+=2) //Write our TSS 16-bit data! Don't store the LDT and Stacks for different privilege levels!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
-		if (checkMMUaccess16(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+0,0|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+		if (checkMMUaccess16(CPU_SEGMENT_TR, REG_TR,n+0,0|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
 	}
 	for (n = ((7 * 2)); n < (0x2C - 2); n += 2) //Write our TSS 16-bit data! Don't store the LDT and Stacks for different privilege levels!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
-		if (checkMMUaccess16(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n + 0, 0|0xA0, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+		if (checkMMUaccess16(CPU_SEGMENT_TR, REG_TR, n + 0, 0|0xA0, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
 	}
 	debugger_forceimmediatelogging = 0; //Don't log!
 	return 0; //OK!
@@ -234,13 +234,13 @@ void saveTSS32(TSS386 *TSS)
 	for (n =(8*4);n<((8+10)*4);n+=4) //Write our TSS 32-bit data! Ignore the Stack data for different privilege levels and CR3(PDBR)!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
-		MMU_wdw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, TSS->generalpurposeregisters[i++],0); //Write the TSS! Don't be afraid of errors, since we're always accessable!
+		MMU_wdw(CPU_SEGMENT_TR, REG_TR, n, TSS->generalpurposeregisters[i++],0); //Write the TSS! Don't be afraid of errors, since we're always accessable!
 	}
 	i = 0;
 	for (n=(((8+10)*4));n<((8+10+6)*4);n+=4) //Write our TSS 16-bit data! Ignore the LDT and I/O map/T-bit, as it's read-only!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
-		MMU_wdw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n, TSS->segmentregisters[i++],0); //Write the TSS! Don't be afraid of errors, since we're always accessable!
+		MMU_wdw(CPU_SEGMENT_TR, REG_TR, n, TSS->segmentregisters[i++],0); //Write the TSS! Don't be afraid of errors, since we're always accessable!
 	}
 	debugger_forceimmediatelogging = 0; //Don't log!
 }
@@ -251,26 +251,26 @@ byte checksaveTSS32()
 	for (n =(8*4);n<((8+10)*4);n+=4) //Write our TSS 32-bit data! Ignore the Stack data for different privilege levels and CR3(PDBR)!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
-		if (checkMMUaccess32(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+0,0|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+		if (checkMMUaccess32(CPU_SEGMENT_TR, REG_TR,n+0,0|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
 	}
 
 	for (n=(((8+10)*4));n<((8+10+6)*4);n+=4) //Write our TSS 16-bit data! Ignore the LDT and I/O map/T-bit, as it's read-only!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
-		if (checkMMUaccess32(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR,n+0,0|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+		if (checkMMUaccess32(CPU_SEGMENT_TR, REG_TR,n+0,0|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
 	}
 	debugger_forceimmediatelogging = 0; //Don't log!
 
 	for (n = (8 * 4); n < ((8 + 10) * 4); n += 4) //Write our TSS 32-bit data! Ignore the Stack data for different privilege levels and CR3(PDBR)!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
-		if (checkMMUaccess32(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n + 0, 0|0xA0, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+		if (checkMMUaccess32(CPU_SEGMENT_TR, REG_TR, n + 0, 0|0xA0, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
 	}
 
 	for (n = (((8 + 10) * 4)); n < ((8 + 10 + 6) * 4); n += 4) //Write our TSS 16-bit data! Ignore the LDT and I/O map/T-bit, as it's read-only!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
-		if (checkMMUaccess32(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, n + 0, 0|0xA0, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+		if (checkMMUaccess32(CPU_SEGMENT_TR, REG_TR, n + 0, 0|0xA0, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
 	}
 	debugger_forceimmediatelogging = 0; //Don't log!
 	return 0; //OK!
@@ -404,10 +404,10 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 	invalidsrctask:
 		//if (isJMPorCALL == 3) //IRET?
 		{
-			CPU_TSSFault(CPU[activeCPU].registers->TR, ((isJMPorCALL & 0x400) >> 10), (CPU[activeCPU].registers->TR & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Throw #TS!
+			CPU_TSSFault(REG_TR, ((isJMPorCALL & 0x400) >> 10), (REG_TR & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Throw #TS!
 			return 0; //Error out!
 		}
-		THROWDESCGP(CPU[activeCPU].registers->TR, ((isJMPorCALL & 0x400) >> 10), (CPU[activeCPU].registers->TR & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Thow #GP!
+		THROWDESCGP(REG_TR, ((isJMPorCALL & 0x400) >> 10), (REG_TR & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Thow #GP!
 		return 0; //Error out!
 	}
 
@@ -424,7 +424,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 	{
 		if ((MMU_logging == 1) && advancedlog) //Are we logging?
 		{
-			dolog("debugger", "Preparing outgoing task %04X for transfer", CPU[activeCPU].registers->TR);
+			dolog("debugger", "Preparing outgoing task %04X for transfer", REG_TR);
 		}
 
 		if (TSSSize) //32-bit switchimg out?
@@ -452,13 +452,13 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 			TSS32.EBP = REG_EBP;
 			TSS32.ESI = REG_ESI;
 			TSS32.EDI = REG_EDI;
-			TSS32.CS = CPU[activeCPU].registers->CS;
+			TSS32.CS = REG_CS;
 			TSS32.EIP = REG_EIP;
-			TSS32.SS = CPU[activeCPU].registers->SS;
-			TSS32.DS = CPU[activeCPU].registers->DS;
-			TSS32.ES = CPU[activeCPU].registers->ES;
-			TSS32.FS = CPU[activeCPU].registers->FS;
-			TSS32.GS = CPU[activeCPU].registers->GS;
+			TSS32.SS = REG_SS;
+			TSS32.DS = REG_DS;
+			TSS32.ES = REG_ES;
+			TSS32.FS = REG_FS;
+			TSS32.GS = REG_GS;
 			TSS32.EFLAGS = REG_EFLAGS;
 		}
 		else //We're a 16-bit TSS?
@@ -471,17 +471,17 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 			TSS16.BP = REG_BP;
 			TSS16.SI = REG_SI;
 			TSS16.DI = REG_DI;
-			TSS16.CS = CPU[activeCPU].registers->CS;
+			TSS16.CS = REG_CS;
 			TSS16.IP = REG_IP;
-			TSS16.SS = CPU[activeCPU].registers->SS;
-			TSS16.DS = CPU[activeCPU].registers->DS;
-			TSS16.ES = CPU[activeCPU].registers->ES;
+			TSS16.SS = REG_SS;
+			TSS16.DS = REG_DS;
+			TSS16.ES = REG_ES;
 			TSS16.FLAGS = REG_FLAGS;
 		}
 
 		if ((MMU_logging == 1) && advancedlog) //Are we logging?
 		{
-			dolog("debugger", "Saving outgoing task %04X to memory", CPU[activeCPU].registers->TR);
+			dolog("debugger", "Saving outgoing task %04X to memory", REG_TR);
 		}
 
 		if (TSSSize) //32-bit TSS?
@@ -498,7 +498,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 		goto invalidsrctask; //Invalid source task!
 	}
 
-	oldtask = CPU[activeCPU].registers->TR; //Save the old task, for backlink purposes!
+	oldtask = REG_TR; //Save the old task, for backlink purposes!
 
 	//Now, load all the registers required as needed!
 	if ((MMU_logging == 1) && advancedlog) //Are we logging?
@@ -554,7 +554,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 
 	if ((MMU_logging == 1) && advancedlog) //Are we logging?
 	{
-		dolog("debugger", "Loading incoming TSS %04X state", CPU[activeCPU].registers->TR);
+		dolog("debugger", "Loading incoming TSS %04X state", REG_TR);
 	}
 
 	if (TSSSize) //32-bit switching in?
@@ -600,13 +600,13 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 
 	if ((MMU_logging == 1) && advancedlog) //Are we logging?
 	{
-		dolog("debugger", "Marking incoming TSS %04X busy if needed", CPU[activeCPU].registers->TR);
+		dolog("debugger", "Marking incoming TSS %04X busy if needed", REG_TR);
 	}
 
 	if (isJMPorCALL != 3) //Not an IRET?
 	{
 		LOADEDDESCRIPTOR->desc.AccessRights |= 2; //Mark not idle!
-		if (SAVEDESCRIPTOR(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, LOADEDDESCRIPTOR, (isJMPorCALL & 0x400)) <= 0) //Save the new status into the old descriptor!
+		if (SAVEDESCRIPTOR(CPU_SEGMENT_TR, REG_TR, LOADEDDESCRIPTOR, (isJMPorCALL & 0x400)) <= 0) //Save the new status into the old descriptor!
 		{
 			return 0; //Abort on fault raised!
 		}
@@ -614,7 +614,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 
 	if ((MMU_logging == 1) && advancedlog) //Are we logging?
 	{
-		dolog("debugger", "Loading incoming TSS %04X state into the registers.", CPU[activeCPU].registers->TR);
+		dolog("debugger", "Loading incoming TSS %04X state into the registers.", REG_TR);
 	}
 
 	if ((CPU[activeCPU].have_oldSegReg&(1 << CPU_SEGMENT_LDTR)) == 0) //Backup not loaded yet?
@@ -638,14 +638,14 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 		CPU[activeCPU].registers->CR3 = TSS32.CR3; //Load the new CR3 register to use the new Paging table!
 		REG_EFLAGS = TSS32.EFLAGS;
 		//Load all remaining registers manually for exceptions!
-		CPU[activeCPU].registers->CS = TSS32.CS;
-		CPU[activeCPU].registers->DS = TSS32.DS;
-		CPU[activeCPU].registers->ES = TSS32.ES;
-		CPU[activeCPU].registers->FS = TSS32.FS;
-		CPU[activeCPU].registers->GS = TSS32.GS;
+		REG_CS = TSS32.CS;
+		REG_DS = TSS32.DS;
+		REG_ES = TSS32.ES;
+		REG_FS = TSS32.FS;
+		REG_GS = TSS32.GS;
 		REG_EIP = TSS32.EIP;
-		CPU[activeCPU].registers->SS = TSS32.SS; //Default stack to use: the old stack!
-		CPU[activeCPU].registers->LDTR = TSS32.LDT;
+		REG_SS = TSS32.SS; //Default stack to use: the old stack!
+		REG_LDTR = TSS32.LDT;
 		LDTsegment = TSS32.LDT; //LDT used!
 		Paging_clearTLB(); //Clear the TLB: CR3 has been changed!
 	}
@@ -661,12 +661,12 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 		REG_EDI = TSS16.DI;
 		REG_EFLAGS = (uint_32)TSS16.FLAGS;
 		//Load all remaining registers manually for exceptions!
-		CPU[activeCPU].registers->CS = TSS16.CS; //This should also load the privilege level!
-		CPU[activeCPU].registers->DS = TSS16.DS;
-		CPU[activeCPU].registers->ES = TSS16.ES;
+		REG_CS = TSS16.CS; //This should also load the privilege level!
+		REG_DS = TSS16.DS;
+		REG_ES = TSS16.ES;
 		REG_EIP = (uint_32)TSS16.IP;
-		CPU[activeCPU].registers->SS = TSS16.SS; //Default stack to use: the old stack!
-		CPU[activeCPU].registers->LDTR = TSS16.LDT;
+		REG_SS = TSS16.SS; //Default stack to use: the old stack!
+		REG_LDTR = TSS16.LDT;
 		LDTsegment = TSS16.LDT; //LDT used!
 	}
 
@@ -688,10 +688,10 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 	{
 		if ((MMU_logging == 1) && advancedlog) //Are we logging?
 		{
-			dolog("debugger", "Saving incoming TSS %04X state to memory, because the state has changed(Nested Task).", CPU[activeCPU].registers->TR);
+			dolog("debugger", "Saving incoming TSS %04X state to memory, because the state has changed(Nested Task).", REG_TR);
 		}
 
-		if (TSS_dirty & 1) MMU_ww(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0, TSSSize ? TSS32.BackLink : TSS16.BackLink, 0); //Write the TSS Backlink to use! Don't be afraid of errors, since we're always accessable!
+		if (TSS_dirty & 1) MMU_ww(CPU_SEGMENT_TR, REG_TR, 0, TSSSize ? TSS32.BackLink : TSS16.BackLink, 0); //Write the TSS Backlink to use! Don't be afraid of errors, since we're always accessable!
 
 		if (TSS_dirty & 2) //Dirty (E)FLAGS?
 		{
@@ -710,7 +710,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 
 	CPU[activeCPU].have_oldSegReg &= ~(1<<CPU_SEGMENT_TR); //Not supporting returning to the old task anymore, we've completed the task switch, committing to the new task!
 	CPU_commitState(); //Set the new fault as a return point when faulting!
-	CPU_exec_CS = CPU[activeCPU].registers->CS; //Save for error handling!
+	CPU_exec_CS = REG_CS; //Save for error handling!
 	CPU_exec_EIP = (REG_EIP&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof); //Save for error handling!
 	//No last: we're entering a task that has this information, so no return point is given!
 	CPU_exec_lastCS = CPU_exec_CS;
@@ -738,13 +738,13 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 	{
 		if (LDTsegment & 4) //We cannot reside in the LDT!
 		{
-			CPU_TSSFault(CPU[activeCPU].registers->TR, ((isJMPorCALL & 0x400) >> 10), (CPU[activeCPU].registers->TR & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Throw error!
+			CPU_TSSFault(REG_TR, ((isJMPorCALL & 0x400) >> 10), (REG_TR & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Throw error!
 			return 0; //Not present: we cannot reside in the LDT!
 		}
 
 		if ((word)(descriptor_index | 0x7) > CPU[activeCPU].registers->GDTR.limit) //GDT limit exceeded?
 		{
-			CPU_TSSFault(CPU[activeCPU].registers->TR, ((isJMPorCALL & 0x400) >> 10), (CPU[activeCPU].registers->TR & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Throw error!
+			CPU_TSSFault(REG_TR, ((isJMPorCALL & 0x400) >> 10), (REG_TR & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Throw error!
 			return 0; //Not present: limit exceeded!
 		}
 
@@ -753,7 +753,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 		{
 			if (loadresult==0) //Yet to throw the fault?
 			{
-				CPU_TSSFault(CPU[activeCPU].registers->TR, ((isJMPorCALL & 0x400) >> 10), (CPU[activeCPU].registers->TR & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Throw error!
+				CPU_TSSFault(REG_TR, ((isJMPorCALL & 0x400) >> 10), (REG_TR & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Throw error!
 			}
 			return 0; //Invalid LDT(due to being unpaged or other loading fault)?
 		}
@@ -761,18 +761,18 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 		//Now the LDT entry is loaded for testing!
 		if (GENERALSEGMENT_S(LDTsegdesc)) //Not an LDT?
 		{
-			CPU_TSSFault(CPU[activeCPU].registers->TR, ((isJMPorCALL & 0x400) >> 10), (CPU[activeCPU].registers->TR & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Throw error!
+			CPU_TSSFault(REG_TR, ((isJMPorCALL & 0x400) >> 10), (REG_TR & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Throw error!
 			return 0; //Not present: not an IDT!	
 		}
 		if (GENERALSEGMENT_TYPE(LDTsegdesc) != AVL_SYSTEM_LDT) //Not an LDT?
 		{
-			CPU_TSSFault(CPU[activeCPU].registers->TR, ((isJMPorCALL & 0x400) >> 10), (CPU[activeCPU].registers->TR & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Throw error!
+			CPU_TSSFault(REG_TR, ((isJMPorCALL & 0x400) >> 10), (REG_TR & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Throw error!
 			return 0; //Not present: not an IDT!	
 		}
 
 		if (!GENERALSEGMENT_P(LDTsegdesc)) //Not present?
 		{
-			CPU_TSSFault(CPU[activeCPU].registers->TR, ((isJMPorCALL & 0x400) >> 10), (CPU[activeCPU].registers->TR & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Throw error!
+			CPU_TSSFault(REG_TR, ((isJMPorCALL & 0x400) >> 10), (REG_TR & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Throw error!
 			return 0; //Not present: not an IDT!	
 		}
 	}
@@ -807,9 +807,9 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 		if (segmentWritten(CPU_SEGMENT_CS, TSS16.CS, 0x200 | (isJMPorCALL & 0x400))) return 0; //Load CS!
 	}
 	/*
-	if ((getRPL(CPU[activeCPU].registers->CS) != GENERALSEGMENT_DPL(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS])) && (getcpumode()==CPU_MODE_PROTECTED)) //Non-matching CS RPL vs CS CPL if not V86?
+	if ((getRPL(REG_CS) != GENERALSEGMENT_DPL(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS])) && (getcpumode()==CPU_MODE_PROTECTED)) //Non-matching CS RPL vs CS CPL if not V86?
 	{
-		CPU_TSSFault(CPU[activeCPU].registers->TR, ((isJMPorCALL & 0x400) >> 10), (CPU[activeCPU].registers->TR & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Throw error!
+		CPU_TSSFault(REG_TR, ((isJMPorCALL & 0x400) >> 10), (REG_TR & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Throw error!
 		return 0; //Not present: limit exceeded!
 	}
 	*/ //Doesn't make sense with conforming segments, nor with V86 segments! Also, already handled by segmentWritten.

@@ -30,6 +30,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/mmu/mmuhandler.h" //MMU direct handler support!
 #include "headers/cpu/protecteddebugging.h" //Protected mode debugging support!
 #include "headers/cpu/biu.h" //BIU support!
+#include "headers/cpu/easyregs.h" //Easy register support!
 
 extern MMU_type MMU; //MMU itself!
 
@@ -147,7 +148,7 @@ uint_32 MMU_realaddr(sword segdesc, word segment, uint_32 offset, byte wordop, b
 	}
 	else if (segdesc==-3) //Special?
 	{
-		realaddress += (CPU[activeCPU].registers->ES<<4); //Apply literal address!
+		realaddress += (REG_ES<<4); //Apply literal address!
 	}
 
 	//We work!

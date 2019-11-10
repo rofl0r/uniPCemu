@@ -127,7 +127,7 @@ void CPU386_OP0F00() //Various extended 286+ instructions GRP opcode.
 		}
 		debugger_setcommand("SLDT %s", info.text);
 		if (unlikely(CPU[activeCPU].modrmstep == 0)) { if (modrm_check32(&params, MODRM_src0, 0|0x40)) return; if (modrm_check32(&params, MODRM_src0, 0|0xA0)) return; } //Abort on fault!
-		if (CPU80386_instructionstepwritemodrmdw(0,(uint_32)CPU[activeCPU].registers->LDTR,MODRM_src0)) return; //Try and write it to the address specified!
+		if (CPU80386_instructionstepwritemodrmdw(0,(uint_32)REG_LDTR,MODRM_src0)) return; //Try and write it to the address specified!
 		CPU_apply286cycles(); //Apply the 80286+ cycles!
 		break;
 	case 1: //STR
@@ -143,7 +143,7 @@ void CPU386_OP0F00() //Various extended 286+ instructions GRP opcode.
 		}
 		debugger_setcommand("STR %s", info.text);
 		if (unlikely(CPU[activeCPU].modrmstep == 0)) { if (modrm_check32(&params, MODRM_src0, 0|0x40)) return; if (modrm_check32(&params, MODRM_src0, 0|0xA0)) return; } //Abort on fault!
-		if (CPU80386_instructionstepwritemodrmdw(0,(uint_32)CPU[activeCPU].registers->TR,MODRM_src0)) return; //Try and write it to the address specified!
+		if (CPU80386_instructionstepwritemodrmdw(0,(uint_32)REG_TR,MODRM_src0)) return; //Try and write it to the address specified!
 		CPU_apply286cycles(); //Apply the 80286+ cycles!
 		break;
 	default:
@@ -682,14 +682,14 @@ void CPU386_OP0F07() //Undocumented LOADALL instruction
 	//Load all registers and caches, ignore any protection normally done(not checked during LOADALL)!
 	//Plain registers!
 	CPU[activeCPU].registers->CR0 = LOADALLDATA.fields.CR0; //MSW! We can reenter real mode by clearing bit 0(Protection Enable bit), just not on the 80286!
-	CPU[activeCPU].registers->TR = LOADALLDATA.fields.TR; //TR
+	REG_TR = LOADALLDATA.fields.TR; //TR
 	REG_EFLAGS = LOADALLDATA.fields.EFLAGS; //FLAGS
 	REG_EIP = LOADALLDATA.fields.EIP; //IP
-	CPU[activeCPU].registers->LDTR = LOADALLDATA.fields.LDTR; //LDT
-	CPU[activeCPU].registers->DS = LOADALLDATA.fields.DS; //DS
-	CPU[activeCPU].registers->SS = LOADALLDATA.fields.SS; //SS
-	CPU[activeCPU].registers->CS = LOADALLDATA.fields.CS; //CS
-	CPU[activeCPU].registers->ES = LOADALLDATA.fields.ES; //ES
+	REG_LDTR = LOADALLDATA.fields.LDTR; //LDT
+	REG_DS = LOADALLDATA.fields.DS; //DS
+	REG_SS = LOADALLDATA.fields.SS; //SS
+	REG_CS = LOADALLDATA.fields.CS; //CS
+	REG_ES = LOADALLDATA.fields.ES; //ES
 	REG_EDI = LOADALLDATA.fields.EDI; //DI
 	REG_ESI = LOADALLDATA.fields.ESI; //SI
 	REG_EBP = LOADALLDATA.fields.EBP; //BP

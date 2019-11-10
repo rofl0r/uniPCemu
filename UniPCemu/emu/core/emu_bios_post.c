@@ -610,10 +610,10 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 				{
 					verified = 0; //Failed!
 				}
-				CPU[activeCPU].registers->CS = CPU[activeCPU].registers->DS = CPU[activeCPU].registers->ES = 0;
+				REG_CS = REG_DS = REG_ES = 0;
 				REG_IP = 0; //Run ROM!
 				CPU_flushPIQ(-1); //We're jumping to another address!
-				CPU[activeCPU].registers->SS = 0;
+				REG_SS = 0;
 				REG_SP = 0x100; //For ROM specific!
 				emufclose64(f); //Close boot rom!
 				if (!verified) //Error reading ROM?

@@ -169,9 +169,9 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 			snprintf(errorcodestr,sizeof(errorcodestr),"%08X",(uint_32)errorcode); //The error code itself!
 		}
 		#ifdef LOG_INTS
-		dolog("cpu","Interrupt %02X=%04X:%08X@%04X:%04X(%02X); ERRORCODE: %s; STACK=%04X:%08X",intnr,destCS,destEIP,CPU[activeCPU].registers->CS,REG_EIP,CPU[activeCPU].lastopcode,errorcodestr,REG_SS,REG_ESP); //Log the current info of the call!
+		dolog("cpu","Interrupt %02X=%04X:%08X@%04X:%04X(%02X); ERRORCODE: %s; STACK=%04X:%08X",intnr,destCS,destEIP,REG_CS,REG_EIP,CPU[activeCPU].lastopcode,errorcodestr,REG_SS,REG_ESP); //Log the current info of the call!
 		#endif
-		if ((MMU_logging == 1) && advancedlog) dolog("debugger","Interrupt %02X=%04X:%08X@%04X:%04X(%02X); ERRORCODE: %s",intnr,destINTCS,destEIP,CPU[activeCPU].registers->CS,REG_EIP,CPU[activeCPU].lastopcode,errorcodestr); //Log the current info of the call!
+		if ((MMU_logging == 1) && advancedlog) dolog("debugger","Interrupt %02X=%04X:%08X@%04X:%04X(%02X); ERRORCODE: %s",intnr,destINTCS,destEIP,REG_CS,REG_EIP,CPU[activeCPU].lastopcode,errorcodestr); //Log the current info of the call!
 		if (segmentWritten(CPU_SEGMENT_CS,destCS,0)) return 1; //Interrupt to position CS:EIP/CS:IP in table.
 		if (CPU_condflushPIQ(-1)) //We're jumping to another address!
 		{
@@ -225,7 +225,7 @@ void CPU_IRET()
 		REG_FLAGS = IRET_FLAGS; //Pop flags!
 		CPU_flushPIQ(-1); //We're jumping to another address!
 		#ifdef LOG_INTS
-		dolog("cpu","IRET@%04X:%08X to %04X:%04X; STACK=%04X:%08X",CPU_exec_CS,CPU_exec_EIP,CPU[activeCPU].registers->CS,REG_EIP,tempSS,backupESP); //Log the current info of the call!
+		dolog("cpu","IRET@%04X:%08X to %04X:%04X; STACK=%04X:%08X",CPU_exec_CS,CPU_exec_EIP,REG_CS,REG_EIP,tempSS,backupESP); //Log the current info of the call!
 		#endif
 		#ifdef LOG_ET34K640480256_SET
 		if (waitingforiret) //Waiting for IRET?
@@ -312,16 +312,16 @@ void CPU_IRET()
 		SEGMENT_DESCRIPTOR newdescriptor; //Temporary storage!
 		word desttask;
 		sbyte loadresult;
-		if (checkMMUaccess16(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0, 1 | 0x40, 0, 0, 0)) return; //Error out!
-		if (checkMMUaccess16(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0, 1 | 0xA0, 0, 0, 0)) return; //Error out!
-		desttask = MMU_rw(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0, 0,0); //Read the destination task!
+		if (checkMMUaccess16(CPU_SEGMENT_TR, REG_TR, 0, 1 | 0x40, 0, 0, 0)) return; //Error out!
+		if (checkMMUaccess16(CPU_SEGMENT_TR, REG_TR, 0, 1 | 0xA0, 0, 0, 0)) return; //Error out!
+		desttask = MMU_rw(CPU_SEGMENT_TR, REG_TR, 0, 0,0); //Read the destination task!
 		if ((loadresult = LOADDESCRIPTOR(CPU_SEGMENT_TR, desttask, &newdescriptor,3))<=0) //Error loading new descriptor? The backlink is always at the start of the TSS!
 		{
 			if (loadresult == -1) return; //Abort on page fault!
 			CPU_TSSFault(desttask,0,(desttask&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //Throw error!
 			return; //Error, by specified reason!
 		}
-		CPU_executionphase_starttaskswitch(CPU_SEGMENT_TR,&newdescriptor,&CPU[activeCPU].registers->TR,desttask,3,0,-1); //Execute an IRET to the interrupted task!
+		CPU_executionphase_starttaskswitch(CPU_SEGMENT_TR,&newdescriptor,&REG_TR,desttask,3,0,-1); //Execute an IRET to the interrupted task!
 		return; //Finished!
 	}
 

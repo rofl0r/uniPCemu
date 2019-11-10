@@ -470,7 +470,15 @@ enum
 	GPREG_ESI = 6,
 	GPREG_EDI = 7,
 	GPREG_EIP = 8,
-	GPREG_EFLAGS = 9
+	GPREG_EFLAGS = 9,
+	SREG_CS = 10,
+	SREG_SS = 11,
+	SREG_DS = 12,
+	SREG_ES = 13,
+	SREG_FS = 14,
+	SREG_GS = 15,
+	SREG_TR = 16,
+	SREG_LDTR = 17
 }; //All general purpose registers locations in the list!
 
 //Short versions of the registers allocated with the above values as input!
@@ -517,6 +525,14 @@ enum
 #define REGR_EIP(list) REG32R(list,GPREG_EIP)
 #define REGR_FLAGS(list) REG16R_LO(list,GPREG_EFLAGS)
 #define REGR_EFLAGS(list) REG32R(list,GPREG_EFLAGS)
+#define REGR_CS(list) REG16R_LO(list,SREG_CS)
+#define REGR_DS(list) REG16R_LO(list,SREG_DS)
+#define REGR_ES(list) REG16R_LO(list,SREG_ES)
+#define REGR_FS(list) REG16R_LO(list,SREG_FS)
+#define REGR_GS(list) REG16R_LO(list,SREG_GS)
+#define REGR_SS(list) REG16R_LO(list,SREG_SS)
+#define REGR_TR(list) REG16R_LO(list,SREG_TR)
+#define REGR_LDTR(list) REG16R_LO(list,SREG_LDTR)
 
 //Direct version
 #define REGD_AL(list) REG8D_LO(list,GPREG_EAX)
@@ -547,6 +563,14 @@ enum
 #define REGD_EIP(list) REG32D(list,GPREG_EIP)
 #define REGD_FLAGS(list) REG16D_LO(list,GPREG_EFLAGS)
 #define REGD_EFLAGS(list) REG32D(list,GPREG_EFLAGS)
+#define REGD_CS(list) REG16D_LO(list,SREG_CS)
+#define REGD_DS(list) REG16D_LO(list,SREG_DS)
+#define REGD_ES(list) REG16D_LO(list,SREG_ES)
+#define REGD_FS(list) REG16D_LO(list,SREG_FS)
+#define REGD_GS(list) REG16D_LO(list,SREG_GS)
+#define REGD_SS(list) REG16D_LO(list,SREG_SS)
+#define REGD_TR(list) REG16D_LO(list,SREG_TR)
+#define REGD_LDTR(list) REG16D_LO(list,SREG_LDTR)
 
 //All flags, seperated!
 
@@ -702,24 +726,11 @@ typedef struct PACKED
 typedef struct PACKED //The registers!
 {
 	//First, the General Purpose registers!
-	registersplitter gpregisters[10]; //10 general purpose registers! EAX, EBX, ECX, EDX, ESP, EBP, ESI, EDI, EIP, EFLAGS!
+	registersplitter gpregisters[18]; //10 general purpose registers! EAX, EBX, ECX, EDX, ESP, EBP, ESI, EDI, EIP, EFLAGS, CS, DS, ES, FS, GS, SS, TR, LDTR!
 //Info: with union, first low data then high data!
-
-	word CS; //Code segment: start of program code; used by instructions and jumps.
-	word DS; //Data segment: beginning of data storage section of memory; used by data manipulation
-	word ES; //Extra segment: used for operations where data is transferred from one segment to another
-	word SS; //Stack segment: stack segment
-	word FS; //???
-	word GS; //???
 
 	struct
 	{
-//Tables:
-		DTR_PTR GDTR; //GDTR pointer (48-bits) Global Descriptor Table Register
-		DTR_PTR IDTR; //IDTR pointer (48-bits) Interrupt Descriptor Table Register
-		word LDTR; //LDTR pointer (16-bits) Local Descriptor Table Register (points to an index in the GDT)
-		word TR; //TR (16-bits) Talk Register: currently executing task (points to an index in the GDT)
-
 		union
 		{
 			uint_32 CR[8];
@@ -766,6 +777,9 @@ typedef struct PACKED //The registers!
 			};
 		}; //DR0-7; 4=6&5=7!
 	}; //Special registers!
+//Tables:
+	DTR_PTR GDTR; //GDTR pointer (48-bits) Global Descriptor Table Register
+	DTR_PTR IDTR; //IDTR pointer (48-bits) Interrupt Descriptor Table Register
 } CPU_registers; //Registers
 #include "headers/endpacked.h" //End of packed type!
 

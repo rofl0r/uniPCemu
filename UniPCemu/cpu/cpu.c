@@ -166,7 +166,7 @@ void CPU_JMPrel(int_32 reladdr, byte useAddressSize)
 {
 	REG_EIP += reladdr; //Apply to EIP!
 	REG_EIP &= CPU_EIPmask(useAddressSize); //Only 16-bits when required!
-	if (CPU_MMU_checkrights(CPU_SEGMENT_CS,CPU[activeCPU].registers->CS,REG_EIP,3,&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS],2,CPU_Operand_size[activeCPU])) //Limit broken or protection fault?
+	if (CPU_MMU_checkrights(CPU_SEGMENT_CS,REG_CS,REG_EIP,3,&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS],2,CPU_Operand_size[activeCPU])) //Limit broken or protection fault?
 	{
 		THROWDESCGP(0,0,0); //#GP(0) when out of limit range!
 	}
@@ -176,7 +176,7 @@ void CPU_JMPabs(uint_32 addr, byte useAddressSize)
 {
 	REG_EIP = addr; //Apply to EIP!
 	REG_EIP &= CPU_EIPmask(useAddressSize); //Only 16-bits when required!
-	if (CPU_MMU_checkrights(CPU_SEGMENT_CS,CPU[activeCPU].registers->CS,REG_EIP,3,&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS],2,CPU_Operand_size[activeCPU])) //Limit broken or protection fault?
+	if (CPU_MMU_checkrights(CPU_SEGMENT_CS,REG_CS,REG_EIP,3,&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS],2,CPU_Operand_size[activeCPU])) //Limit broken or protection fault?
 	{
 		THROWDESCGP(0,0,0); //#GP(0) when out of limit range!
 	}
@@ -763,37 +763,37 @@ OPTINLINE void CPU_initRegisters(byte isInit) //Init the registers!
 
 	//Stack registers
 	REG_ESP = 0; //Init offset of stack (top-1)
-	CPU[activeCPU].registers->SS = 0; //Stack segment!
+	REG_SS = 0; //Stack segment!
 
 
 	//Code location
 	if (EMULATED_CPU >= CPU_NECV30) //186+?
 	{
-		CPU[activeCPU].registers->CS = 0xF000; //We're this selector!
+		REG_CS = 0xF000; //We're this selector!
 		REG_EIP = 0xFFF0; //We're starting at this offset!
 	}
 	else //8086?
 	{
-		CPU[activeCPU].registers->CS = 0xFFFF; //Code segment: default to segment 0xFFFF to start at 0xFFFF0 (bios boot jump)!
+		REG_CS = 0xFFFF; //Code segment: default to segment 0xFFFF to start at 0xFFFF0 (bios boot jump)!
 		REG_EIP = 0; //Start of executable code!
 	}
 	
 	//Data registers!
-	CPU[activeCPU].registers->DS = 0; //Data segment!
-	CPU[activeCPU].registers->ES = 0; //Extra segment!
-	CPU[activeCPU].registers->FS = 0; //Far segment (extra segment)
-	CPU[activeCPU].registers->GS = 0; //??? segment (extra segment like FS)
+	REG_DS = 0; //Data segment!
+	REG_ES = 0; //Extra segment!
+	REG_FS = 0; //Far segment (extra segment)
+	REG_GS = 0; //??? segment (extra segment like FS)
 	REG_EFLAGS = 0x2; //Flags!
 
 	//Now the handling of solid state segments (might change, use index for that!)
-	CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_CS] = &CPU[activeCPU].registers->CS; //Link!
-	CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_SS] = &CPU[activeCPU].registers->SS; //Link!
-	CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_DS] = &CPU[activeCPU].registers->DS; //Link!
-	CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_ES] = &CPU[activeCPU].registers->ES; //Link!
-	CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_FS] = &CPU[activeCPU].registers->FS; //Link!
-	CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_GS] = &CPU[activeCPU].registers->GS; //Link!
-	CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_TR] = &CPU[activeCPU].registers->TR; //Link!
-	CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_LDTR] = &CPU[activeCPU].registers->LDTR; //Link!
+	CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_CS] = &REG_CS; //Link!
+	CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_SS] = &REG_SS; //Link!
+	CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_DS] = &REG_DS; //Link!
+	CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_ES] = &REG_ES; //Link!
+	CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_FS] = &REG_FS; //Link!
+	CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_GS] = &REG_GS; //Link!
+	CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_TR] = &REG_TR; //Link!
+	CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_LDTR] = &REG_LDTR; //Link!
 
 	memset(&CPU[activeCPU].SEG_DESCRIPTOR, 0, sizeof(CPU[activeCPU].SEG_DESCRIPTOR)); //Clear the descriptor cache!
 	CPU[activeCPU].have_oldSegReg = 0; //No backups for any segment registers are loaded!
@@ -808,10 +808,10 @@ OPTINLINE void CPU_initRegisters(byte isInit) //Init the registers!
 	CPU[activeCPU].registers->GDTR.limit = 0xFFFF; //From bochs!
 
 	//LDTR (invalid)
-	CPU[activeCPU].registers->LDTR = 0; //No LDTR (also invalid)!
+	REG_LDTR = 0; //No LDTR (also invalid)!
 
 	//TR (invalid)
-	CPU[activeCPU].registers->TR = 0; //No TR (also invalid)!
+	REG_TR = 0; //No TR (also invalid)!
 
 	if (EMULATED_CPU == CPU_80286) //80286 CPU?
 	{
@@ -872,7 +872,7 @@ OPTINLINE void CPU_initRegisters(byte isInit) //Init the registers!
 	}
 	else //186-?
 	{
-		CSBase = CPU[activeCPU].registers->CS<<4; //CS base itself!
+		CSBase = REG_CS<<4; //CS base itself!
 		CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].desc.base_mid = (CSBase>>16); //Mid range!
 		CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].desc.base_low = (CSBase&0xFFFF); //Low range!
 	}
@@ -1524,7 +1524,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 			BIU_instructionStart(); //Handle all when instructions are starting!
 		}
 
-		previousCSstart = CPU_MMU_start(CPU_SEGMENT_CS,CPU[activeCPU].registers->CS); //Save the used CS start address!
+		previousCSstart = CPU_MMU_start(CPU_SEGMENT_CS,REG_CS); //Save the used CS start address!
 
 		if (CPU[activeCPU].permanentreset) //We've entered a permanent reset?
 		{
@@ -1558,7 +1558,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 			CPU_exec_lastCS = CPU_exec_CS;
 			CPU_exec_lastEIP = CPU_exec_EIP;
 			//Save the current coordinates!
-			CPU_exec_CS = CPU[activeCPU].registers->CS; //CS of command!
+			CPU_exec_CS = REG_CS; //CS of command!
 			CPU_exec_EIP = (REG_EIP&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof); //EIP of command!
 		}
 	
@@ -1905,7 +1905,7 @@ void CPU_RealResetOP(byte doReset) //Rerun current Opcode? (From interrupt calls
 	if (likely(doReset)) //Not a repeating reset?
 	{
 		//Actually reset the currrent instruction!
-		CPU[activeCPU].registers->CS = CPU_exec_CS; //CS is reset!
+		REG_CS = CPU_exec_CS; //CS is reset!
 		REG_EIP = CPU_exec_EIP; //Destination address is reset!
 		CPU_flushPIQ(CPU_exec_EIP); //Flush the PIQ, restoring the destination address to the start of the instruction!
 	}

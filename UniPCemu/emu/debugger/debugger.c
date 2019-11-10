@@ -552,10 +552,10 @@ void debugger_beforeCPU() //Action before the CPU changes it's registers!
 					goto nextspecial; //Check the next entry for special types/normal type!
 				}
 			}
-			originalverify.CS = debuggerregisters.CS;
-			originalverify.SS = debuggerregisters.SS;
-			originalverify.DS = debuggerregisters.DS;
-			originalverify.ES = debuggerregisters.ES;
+			originalverify.CS = REGD_CS(debuggerregisters);
+			originalverify.SS = REGD_SS(debuggerregisters);
+			originalverify.DS = REGD_DS(debuggerregisters);
+			originalverify.ES = REGD_ES(debuggerregisters);
 			originalverify.SI = REGD_SI(debuggerregisters);
 			originalverify.DI = REGD_DI(debuggerregisters);
 			originalverify.SP = REGD_SP(debuggerregisters);
@@ -579,10 +579,10 @@ void debugger_beforeCPU() //Action before the CPU changes it's registers!
 					dolog("debugger", "Invalid data according to debuggerverify.dat before executing the following instruction(Entry number %08x):",debugger_index); //Show where we got our error!
 					debugger_logregisters("debugger",&debuggerregisters,debuggerHLT,debuggerReset); //Log the original registers!
 					//Apply the debugger registers to the actual register set!
-					CPU[activeCPU].registers->CS = verify.CS;
-					CPU[activeCPU].registers->SS = verify.SS;
-					CPU[activeCPU].registers->DS = verify.DS;
-					CPU[activeCPU].registers->ES = verify.ES;
+					REG_CS = verify.CS;
+					REG_SS = verify.SS;
+					REG_DS = verify.DS;
+					REG_ES = verify.ES;
 					REG_SI = verify.SI;
 					REG_DI = verify.DI;
 					REG_SP = verify.SP;
@@ -744,11 +744,11 @@ void debugger_logregisters(char *filename, CPU_registers *registers, byte halted
 		dolog(filename,"SP: %04x BP: %04x SI: %04x DI: %04x",REGR_SP(registers),REGR_BP(registers),REGR_SI(registers),REGR_DI(registers)); //Segment registers!
 		if (EMULATED_CPU==CPU_80286) //Protected mode available?
 		{
-			dolog(filename,"CS: %04x DS: %04x ES: %04x SS: %04x TR: %04x LDTR: %04x",registers->CS,registers->DS,registers->ES,registers->SS,registers->TR,registers->LDTR); //Segment registers!
+			dolog(filename,"CS: %04x DS: %04x ES: %04x SS: %04x TR: %04x LDTR: %04x",REGR_CS(registers),REGR_DS(registers),REGR_ES(registers),REGR_SS(registers),REGR_TR(registers),REGR_LDTR(registers)); //Segment registers!
 		}
 		else //Real mode only?
 		{
-			dolog(filename,"CS: %04x DS: %04x ES: %04x SS: %04x",registers->CS,registers->DS,registers->ES,registers->SS); //Segment registers!
+			dolog(filename,"CS: %04x DS: %04x ES: %04x SS: %04x",REGR_CS(registers),REGR_DS(registers),REGR_ES(registers),REGR_SS(registers)); //Segment registers!
 		}
 		dolog(filename,"IP: %04x FLAGS: %04x",REGR_IP(registers),REGR_FLAGS(registers)); //Rest!
 		if (EMULATED_CPU==CPU_80286) //80286 has CR0 as well?
@@ -767,7 +767,7 @@ void debugger_logregisters(char *filename, CPU_registers *registers, byte halted
 		dolog(filename,"EAX: %08x EBX: %08x ECX: %08x EDX: %08x",REGR_EAX(registers),REGR_EBX(registers),REGR_ECX(registers),REGR_EDX(registers)); //Basic registers!
 		dolog(filename,"ESP: %08x EBP: %08x ESI: %08x EDI: %08x",REGR_ESP(registers),REGR_EBP(registers),REGR_ESI(registers),REGR_EDI(registers)); //Segment registers!
 		
-		dolog(filename,"CS: %04x DS: %04x ES: %04x FS: %04x GS: %04x SS: %04x TR: %04x LDTR: %04x",registers->CS,registers->DS,registers->ES,registers->FS,registers->GS,registers->SS,registers->TR,registers->LDTR); //Segment registers!
+		dolog(filename,"CS: %04x DS: %04x ES: %04x FS: %04x GS: %04x SS: %04x TR: %04x LDTR: %04x",REGR_CS(registers),REGR_DS(registers),REGR_ES(registers),REGR_FS(registers),REGR_GS(registers),REGR_SS(registers),REGR_TR(registers),REGR_LDTR(registers)); //Segment registers!
 
 		dolog(filename,"EIP: %08x EFLAGS: %08x",REGR_EIP(registers),REGR_EFLAGS(registers)); //Rest!
 		
@@ -942,22 +942,22 @@ OPTINLINE void debugger_autolog()
 			{
 				if ((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT)) //Common log format?
 				{
-					snprintf(executedinstruction,sizeof(executedinstruction),"%04x:%08x %s",debuggerregisters.CS,REGD_IP(debuggerregisters),fullcmd); //Log command, 16-bit disassembler style!
+					snprintf(executedinstruction,sizeof(executedinstruction),"%04x:%08x %s",REGD_CS(debuggerregisters),REGD_IP(debuggerregisters),fullcmd); //Log command, 16-bit disassembler style!
 				}
 				else //8086 compatible log?
 				{
-					snprintf(executedinstruction,sizeof(executedinstruction),"%04x:%04x %s",debuggerregisters.CS,REGD_IP(debuggerregisters),fullcmd); //Log command, 16-bit disassembler style!
+					snprintf(executedinstruction,sizeof(executedinstruction),"%04x:%04x %s",REGD_CS(debuggerregisters),REGD_IP(debuggerregisters),fullcmd); //Log command, 16-bit disassembler style!
 				}
 			}
 			else //286+? Use EIP!
 			{
 				if ((EMULATED_CPU>CPU_80286) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT)) //Newer? Use 32-bits addressing when newer or Common log format!
 				{
-					snprintf(executedinstruction,sizeof(executedinstruction),"%04x:%08x %s",debuggerregisters.CS,REGD_EIP(debuggerregisters),fullcmd); //Log command, 32-bit disassembler style!
+					snprintf(executedinstruction,sizeof(executedinstruction),"%04x:%08x %s",REGD_CS(debuggerregisters),REGD_EIP(debuggerregisters),fullcmd); //Log command, 32-bit disassembler style!
 				}
 				else //16-bits offset?
 				{
-					snprintf(executedinstruction,sizeof(executedinstruction),"%04x:%04x %s",debuggerregisters.CS,REGD_EIP(debuggerregisters),fullcmd); //Log command, 32-bit disassembler style!
+					snprintf(executedinstruction,sizeof(executedinstruction),"%04x:%04x %s",REGD_CS(debuggerregisters),REGD_EIP(debuggerregisters),fullcmd); //Log command, 32-bit disassembler style!
 				}
 			}
 			if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT)) //Not single line?
@@ -1163,19 +1163,19 @@ void debugger_screen() //Show debugger info on-screen!
 		if ((((debuggerregisters.CR0&1)==0) || (REGD_EFLAGS(debuggerregisters)&F_V8)) || (EMULATED_CPU == CPU_80286)) //Real mode, virtual 8086 mode or normal real-mode registers used in 16-bit protected mode?
 		{
 			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 15, debuggerrow++); //Second debug row!
-			GPU_textprintf(frameratesurface, fontcolor, backcolor, "CS:IP %04X:%04X", debuggerregisters.CS, REGD_IP(debuggerregisters)); //Debug CS:IP!
+			GPU_textprintf(frameratesurface, fontcolor, backcolor, "CS:IP %04X:%04X", REGD_CS(debuggerregisters), REGD_IP(debuggerregisters)); //Debug CS:IP!
 		}
 		else //386+?
 		{
 			if (EMULATED_CPU>=CPU_80386) //32-bit CPU?
 			{
 				GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 20, debuggerrow++); //Second debug row!
-				GPU_textprintf(frameratesurface, fontcolor, backcolor, "CS:EIP %04X:%08X", debuggerregisters.CS, REGD_EIP(debuggerregisters)); //Debug IP!
+				GPU_textprintf(frameratesurface, fontcolor, backcolor, "CS:EIP %04X:%08X", REGD_CS(debuggerregisters), REGD_EIP(debuggerregisters)); //Debug IP!
 			}
 			else //286-?
 			{
 				GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 16, debuggerrow++); //Second debug row!
-				GPU_textprintf(frameratesurface, fontcolor, backcolor, "CS:IP %04X:%04X", debuggerregisters.CS, REGD_IP(debuggerregisters)); //Debug IP!
+				GPU_textprintf(frameratesurface, fontcolor, backcolor, "CS:IP %04X:%04X", REGD_CS(debuggerregisters), REGD_IP(debuggerregisters)); //Debug IP!
 			}
 		}
 
@@ -1200,18 +1200,18 @@ void debugger_screen() //Show debugger info on-screen!
 
 		//Now: Rest segments!
 		GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 16, debuggerrow++); //Second debug row!
-		GPU_textprintf(frameratesurface, fontcolor, backcolor, "DS:%04X; ES:%04X", debuggerregisters.DS, debuggerregisters.ES); //Debug DS&ES!
+		GPU_textprintf(frameratesurface, fontcolor, backcolor, "DS:%04X; ES:%04X", REGD_CS(debuggerregisters), REGD_ES(debuggerregisters)); //Debug DS&ES!
 		GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 7, debuggerrow++); //Second debug row!
-		GPU_textprintf(frameratesurface, fontcolor, backcolor, "SS:%04X", debuggerregisters.SS); //Debug SS!
+		GPU_textprintf(frameratesurface, fontcolor, backcolor, "SS:%04X", REGD_SS(debuggerregisters)); //Debug SS!
 		if (EMULATED_CPU >= CPU_80386) //386+ has more plain segment registers(F segment and G segment)?
 		{
 			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 16, debuggerrow++); //Second debug row!
-			GPU_textprintf(frameratesurface, fontcolor, backcolor, "FS:%04X; GS:%04X", debuggerregisters.FS, debuggerregisters.GS); //Debug FS&GS!
+			GPU_textprintf(frameratesurface, fontcolor, backcolor, "FS:%04X; GS:%04X", REGD_FS(debuggerregisters), REGD_GS(debuggerregisters)); //Debug FS&GS!
 		}
 		if (EMULATED_CPU >= CPU_80286) //Protected mode-capable CPU has Task and Local Descriptor Table registers?
 		{
 			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 18, debuggerrow++); //Second debug row!
-			GPU_textprintf(frameratesurface, fontcolor, backcolor, "TR:%04X; LDTR:%04X", debuggerregisters.TR, debuggerregisters.LDTR); //Debug TR&LDTR!
+			GPU_textprintf(frameratesurface, fontcolor, backcolor, "TR:%04X; LDTR:%04X", REGD_TR(debuggerregisters), REGD_LDTR(debuggerregisters)); //Debug TR&LDTR!
 		}
 
 		//General purpose registers!

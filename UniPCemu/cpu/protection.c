@@ -1082,7 +1082,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 				{
 					if (callgatetype==2) //32-bit source?
 					{
-						argument = MMU_rdw(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, REG_ESP&getstackaddrsizelimiter(), 0,!STACK_SEGMENT_DESCRIPTOR_B_BIT()); //POP 32-bit argument!
+						argument = MMU_rdw(CPU_SEGMENT_SS, REG_SS, REG_ESP&getstackaddrsizelimiter(), 0,!STACK_SEGMENT_DESCRIPTOR_B_BIT()); //POP 32-bit argument!
 						if (STACK_SEGMENT_DESCRIPTOR_B_BIT()) //32-bits?
 						{
 							REG_ESP += 4; //Increase!
@@ -1094,7 +1094,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 					}
 					else //16-bit source?
 					{
-						argument = MMU_rw(CPU_SEGMENT_SS, CPU[activeCPU].registers->SS, (REG_ESP&getstackaddrsizelimiter()), 0,!STACK_SEGMENT_DESCRIPTOR_B_BIT()); //POP 16-bit argument!
+						argument = MMU_rw(CPU_SEGMENT_SS, REG_SS, (REG_ESP&getstackaddrsizelimiter()), 0,!STACK_SEGMENT_DESCRIPTOR_B_BIT()); //POP 16-bit argument!
 						if (STACK_SEGMENT_DESCRIPTOR_B_BIT()) //32-bits?
 						{
 							REG_ESP += 2; //Increase!
@@ -1210,12 +1210,12 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 					//Push the old address to the new stack!
 					if (CPU[activeCPU].CallGateSize) //32-bit?
 					{
-						CPU_PUSH16(&CPU[activeCPU].registers->CS,1);
+						CPU_PUSH16(&REG_CS,1);
 						CPU_PUSH32(&REG_EIP);
 					}
 					else //16-bit?
 					{
-						CPU_PUSH16(&CPU[activeCPU].registers->CS,0);
+						CPU_PUSH16(&REG_CS,0);
 						CPU_PUSH16(&REG_IP,0);
 					}
 				}
@@ -1403,7 +1403,7 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 				REG_EIP = destEIP; //The current OPCode: just jump to the address specified by the descriptor OR command!
 				if (((isJMPorCALL & 0x1FF) == 4) || ((isJMPorCALL & 0x1FF) == 3)) //IRET/RETF required limit check!
 				{
-					if (CPU_MMU_checkrights(CPU_SEGMENT_CS, CPU[activeCPU].registers->CS, REG_EIP, 3, &CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS], 2, CPU_Operand_size[activeCPU])) //Limit broken or protection fault?
+					if (CPU_MMU_checkrights(CPU_SEGMENT_CS, REG_CS, REG_EIP, 3, &CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS], 2, CPU_Operand_size[activeCPU])) //Limit broken or protection fault?
 					{
 						THROWDESCGP(0, 0, 0); //#GP(0) when out of limit range!
 						return 1; //Abort on fault!
@@ -1498,14 +1498,14 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 			{
 				if (CPU[activeCPU].internalinstructionstep==0) if (checkStackAccess(2, 1, 1)) return 1; //We're trying to push on the stack!
 				uint_32 pushingval;
-				pushingval = CPU[activeCPU].registers->CS; //What to push!
+				pushingval = REG_CS; //What to push!
 				if (CPU80386_internal_PUSHdw(0,&pushingval)) return 1;
 				if (CPU80386_internal_PUSHdw(2,&REG_EIP)) return 1;
 			}
 			else //16-bit?
 			{
 				if (CPU[activeCPU].internalinstructionstep==0) if(checkStackAccess(2, 1, 0)) return 1; //We're trying to push on the stack!
-				if (CPU8086_internal_PUSHw(0,&CPU[activeCPU].registers->CS,0)) return 1;
+				if (CPU8086_internal_PUSHw(0,&REG_CS,0)) return 1;
 				if (CPU8086_internal_PUSHw(2,&REG_IP,0)) return 1;
 			}
 		}
@@ -1720,22 +1720,22 @@ byte checkPortRights(word port) //Are we allowed to not use this port?
 		maplocation = (port>>3); //8 bits per byte!
 		mappos = (1<<(port&7)); //The bit within the byte specified!
 		mapvalue = 1; //Default to have the value 1!
-		if (((GENERALSEGMENT_TYPE(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR]) == AVL_SYSTEM_BUSY_TSS32BIT) || (GENERALSEGMENT_TYPE(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR]) == AVL_SYSTEM_TSS32BIT)) && CPU[activeCPU].registers->TR && GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) //Active 32-bit TSS?
+		if (((GENERALSEGMENT_TYPE(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR]) == AVL_SYSTEM_BUSY_TSS32BIT) || (GENERALSEGMENT_TYPE(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR]) == AVL_SYSTEM_TSS32BIT)) && REG_TR && GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) //Active 32-bit TSS?
 		{
 			uint_32 limit;
 			limit = CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].PRECALCS.limit; //The limit of the descriptor!
 			if (limit >= 0x67) //Valid to check?
 			{
-				if (checkMMUaccess16(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0x66, 0x40 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to segmentation!
-				if (checkMMUaccess16(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0x66, 0xA0 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to the remainder of checks!
-				mapbase = MMU_rw0(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0x66, 0, 1); //Add the map location to the specified address!
+				if (checkMMUaccess16(CPU_SEGMENT_TR, REG_TR, 0x66, 0x40 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to segmentation!
+				if (checkMMUaccess16(CPU_SEGMENT_TR, REG_TR, 0x66, 0xA0 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to the remainder of checks!
+				mapbase = MMU_rw0(CPU_SEGMENT_TR, REG_TR, 0x66, 0, 1); //Add the map location to the specified address!
 				maplocation += mapbase; //The actual location!
 				//Custom, not in documentation: 
 				if ((maplocation <= limit) && (mapbase < limit) && (mapbase >= 0x68)) //Not over the limit? We're an valid entry! There is no map when the base address is greater than or equal to the TSS limit().
 				{
-					if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, maplocation, 0x40 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to segmentation!
-					if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, maplocation, 0xA0 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to the remainder of checks!
-					mapvalue = (MMU_rb0(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, maplocation, 0, 1)&mappos); //We're the bit to use!
+					if (checkMMUaccess(CPU_SEGMENT_TR, REG_TR, maplocation, 0x40 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to segmentation!
+					if (checkMMUaccess(CPU_SEGMENT_TR, REG_TR, maplocation, 0xA0 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to the remainder of checks!
+					mapvalue = (MMU_rb0(CPU_SEGMENT_TR, REG_TR, maplocation, 0, 1)&mappos); //We're the bit to use!
 				}
 			}
 		}
@@ -1758,23 +1758,23 @@ byte getTSSIRmap(word intnr) //What are we to do with this interrupt? 0=Perform 
 	maplocation = (intnr>>3); //8 bits per byte!
 	mappos = (1<<(intnr&7)); //The bit within the byte specified!
 	mapvalue = 1; //Default to have the value 1!
-	if (((GENERALSEGMENT_TYPE(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR]) == AVL_SYSTEM_BUSY_TSS32BIT) || (GENERALSEGMENT_TYPE(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR]) == AVL_SYSTEM_TSS32BIT)) && CPU[activeCPU].registers->TR && GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) //Active 32-bit TSS?
+	if (((GENERALSEGMENT_TYPE(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR]) == AVL_SYSTEM_BUSY_TSS32BIT) || (GENERALSEGMENT_TYPE(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR]) == AVL_SYSTEM_TSS32BIT)) && REG_TR && GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) //Active 32-bit TSS?
 	{
 		uint_32 limit;
 		limit = CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].PRECALCS.limit; //The limit of the descriptor!
 		if (limit >= 0x67) //Valid to check?
 		{
-			if (checkMMUaccess16(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0x66, 0x40 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to segmentation!
-			if (checkMMUaccess16(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0x66, 0xA0 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to the remainder of checks!
-			mapbase = MMU_rw0(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, 0x66, 0, 1); //Add the map location to the specified address!
+			if (checkMMUaccess16(CPU_SEGMENT_TR, REG_TR, 0x66, 0x40 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to segmentation!
+			if (checkMMUaccess16(CPU_SEGMENT_TR, REG_TR, 0x66, 0xA0 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to the remainder of checks!
+			mapbase = MMU_rw0(CPU_SEGMENT_TR, REG_TR, 0x66, 0, 1); //Add the map location to the specified address!
 			//Custom, not in documentation: 
 			if (((mapbase-1U) <= limit) && (mapbase >= (0x68U+0x20U))) //Not over the limit? We're an valid entry! There is no map when the base address is greater than or equal to the TSS limit().
 			{
 				maplocation += mapbase; //The actual location!
 				maplocation -= 0x20; //Start of the IR map!
-				if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, maplocation, 0x40 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to segmentation!
-				if (checkMMUaccess(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, maplocation, 0xA0 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to the remainder of checks!
-				mapvalue = (MMU_rb0(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, maplocation, 0, 1)&mappos); //We're the bit to use!
+				if (checkMMUaccess(CPU_SEGMENT_TR, REG_TR, maplocation, 0x40 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to segmentation!
+				if (checkMMUaccess(CPU_SEGMENT_TR, REG_TR, maplocation, 0xA0 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to the remainder of checks!
+				mapvalue = (MMU_rb0(CPU_SEGMENT_TR, REG_TR, maplocation, 0, 1)&mappos); //We're the bit to use!
 			}
 		}
 	}
@@ -1806,28 +1806,28 @@ byte switchStacks(byte newCPL)
 		TSS_StackPos += (4<<TSSSize)*(newCPL&3); //Start of the correct TSS (E)SP! 4 for 16-bit TSS, 8 for 32-bit TSS!
 		//Check against memory first!
 		//First two are the SP!
-		if (checkMMUaccess16(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, TSS_StackPos, 0x40 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to segmentation!
+		if (checkMMUaccess16(CPU_SEGMENT_TR, REG_TR, TSS_StackPos, 0x40 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to segmentation!
 		//Next two are either high ESP or SS!
-		if (checkMMUaccess16(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, TSS_StackPos+2, 0x40 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to segmentation!
+		if (checkMMUaccess16(CPU_SEGMENT_TR, REG_TR, TSS_StackPos+2, 0x40 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to segmentation!
 		if (TSSSize) //Extra checks for 32-bit?
 		{
 			//The 32-bit TSS SSn value!
-			if (checkMMUaccess16(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, TSS_StackPos+4, 0x40 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to segmentation!
+			if (checkMMUaccess16(CPU_SEGMENT_TR, REG_TR, TSS_StackPos+4, 0x40 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to segmentation!
 		}
 		//First two are the SP!
-		if (checkMMUaccess16(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, TSS_StackPos, 0xA0 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to the remainder of checks!
+		if (checkMMUaccess16(CPU_SEGMENT_TR, REG_TR, TSS_StackPos, 0xA0 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to the remainder of checks!
 		//Next two are either high ESP or SS!
-		if (checkMMUaccess16(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, TSS_StackPos+2, 0xA0 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to the remainder of checks!
+		if (checkMMUaccess16(CPU_SEGMENT_TR, REG_TR, TSS_StackPos+2, 0xA0 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to the remainder of checks!
 		if (TSSSize) //Extra checks for 32-bit?
 		{
 			//The 32-bit TSS SSn value!
-			if (checkMMUaccess16(CPU_SEGMENT_TR, CPU[activeCPU].registers->TR, TSS_StackPos+4, 0xA0 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to the remainder of checks!
+			if (checkMMUaccess16(CPU_SEGMENT_TR, REG_TR, TSS_StackPos+4, 0xA0 | 1, 0, 1, 0)) return 2; //Check if the address is valid according to the remainder of checks!
 		}
 		//Memory is now validated! Load the values from memory!
 
-		ESPn = TSSSize?MMU_rdw0(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0,1):MMU_rw0(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0,1); //Read (E)SP for the privilege level from the TSS!
+		ESPn = TSSSize?MMU_rdw0(CPU_SEGMENT_TR,REG_TR,TSS_StackPos,0,1):MMU_rw0(CPU_SEGMENT_TR,REG_TR,TSS_StackPos,0,1); //Read (E)SP for the privilege level from the TSS!
 		TSS_StackPos += (2<<TSSSize); //Convert the (E)SP location to SS location!
-		SSn = MMU_rw0(CPU_SEGMENT_TR,CPU[activeCPU].registers->TR,TSS_StackPos,0,1); //SS!
+		SSn = MMU_rw0(CPU_SEGMENT_TR,REG_TR,TSS_StackPos,0,1); //SS!
 		if (segmentWritten(CPU_SEGMENT_SS,SSn,0x8000|0x200|((newCPL<<8)&0x400)|0x1000|((newCPL&3)<<13))) return 1; //Read SS, privilege level changes, ignore DPL vs CPL check! Fault=#TS. EXT bit when set in bit 2 of newCPL. Don't throw #SS for normal faults, throw #TS instead!
 		if (TSSSize) //32-bit?
 		{
@@ -1959,7 +1959,7 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 			}
 			return 0; //Error, by specified reason!
 		}
-		CPU_executionphase_starttaskswitch(CPU_SEGMENT_TR, &newdescriptor, &CPU[activeCPU].registers->TR, desttask, ((2|0x80)|(EXT<<10)),1,errorcode); //Execute a task switch to the new task! We're switching tasks like a CALL instruction(https://xem.github.io/minix86/manual/intel-x86-and-64-manual-vol3/o_fe12b1e2a880e0ce-250.html)! We're a call based on an interrupt!
+		CPU_executionphase_starttaskswitch(CPU_SEGMENT_TR, &newdescriptor, &REG_TR, desttask, ((2|0x80)|(EXT<<10)),1,errorcode); //Execute a task switch to the new task! We're switching tasks like a CALL instruction(https://xem.github.io/minix86/manual/intel-x86-and-64-manual-vol3/o_fe12b1e2a880e0ce-250.html)! We're a call based on an interrupt!
 		break;
 	default: //All other cases?
 		is32bit = ((IDTENTRY_TYPE(idtentry)&IDTENTRY_32BIT_GATEEXTENSIONFLAG)>>IDTENTRY_32BIT_GATEEXTENSIONFLAG_SHIFT); //Enable 32-bit gate?
@@ -2154,7 +2154,7 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 			{
 				CPU_PUSH32(&EFLAGSbackup); //Push original EFLAGS!
 				uint_32 val;
-				val = CPU[activeCPU].registers->CS;
+				val = REG_CS;
 				CPU_PUSH32(&val);
 				CPU_PUSH32(&REG_EIP); //Push EIP!
 			}
@@ -2162,7 +2162,7 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 			{
 				word temp2 = (word)(EFLAGSbackup&0xFFFF);
 				CPU_PUSH16(&temp2,0); //Push FLAGS!
-				CPU_PUSH16(&CPU[activeCPU].registers->CS, 0); //Push CS!
+				CPU_PUSH16(&REG_CS, 0); //Push CS!
 				CPU_PUSH16(&REG_IP,0); //Push IP!
 			}
 

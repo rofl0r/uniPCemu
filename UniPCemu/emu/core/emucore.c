@@ -39,6 +39,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/hardware/sermouse.h" //Serial mouse support!
 #include "headers/mmu/mmuhandler.h" //MMU handler support!
 #include "headers/bios/biosmenu.h" //For running the BIOS!
+#include "headers/cpu/easyregs.h" //Easy register support!
 
 //All graphics now!
 #include "headers/interrupts/interrupt10.h" //Interrupt 10h support!
@@ -1125,7 +1126,7 @@ OPTINLINE byte coreHandler()
 							}
 							CPU_exec_lastCS = CPU_exec_CS;
 							CPU_exec_lastEIP = CPU_exec_EIP;
-							CPU_exec_CS = CPU[activeCPU].registers->CS; //Save for error handling!
+							CPU_exec_CS = REG_CS; //Save for error handling!
 							CPU_exec_EIP = (REG_EIP&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof); //Save for error handling!
 							CPU_commitState(); //Save fault data to go back to when exceptions occur!
 							call_hard_inthandler(HWINT_nr); //get next interrupt from the i8259, if any!
@@ -1143,11 +1144,11 @@ OPTINLINE byte coreHandler()
 							switch (getcpumode()) //What CPU mode are we to debug?
 							{
 							case CPU_MODE_REAL: //Real mode?
-								applysinglestep = ((((CPU[activeCPU].registers->CS == ((singlestepaddress >> 16) & 0xFFFF)) | (singlestepaddress & 0x4000000000000ULL)) && ((REG_IP == (singlestepaddress & 0xFFFF)) || (singlestepaddress & 0x1000000000000ULL))) || (singlestepaddress & 0x2000000000000ULL)); //Single step enabled?
+								applysinglestep = ((((REG_CS == ((singlestepaddress >> 16) & 0xFFFF)) | (singlestepaddress & 0x4000000000000ULL)) && ((REG_IP == (singlestepaddress & 0xFFFF)) || (singlestepaddress & 0x1000000000000ULL))) || (singlestepaddress & 0x2000000000000ULL)); //Single step enabled?
 								break;
 							case CPU_MODE_PROTECTED: //Protected mode?
 							case CPU_MODE_8086: //Virtual 8086 mode?
-								applysinglestep = ((((CPU[activeCPU].registers->CS == ((singlestepaddress >> 32) & 0xFFFF)) | (singlestepaddress & 0x4000000000000ULL)) && ((REG_EIP == (singlestepaddress & 0xFFFFFFFF)) || (singlestepaddress & 0x1000000000000ULL))) || (singlestepaddress & 0x2000000000000ULL)); //Single step enabled?
+								applysinglestep = ((((REG_CS == ((singlestepaddress >> 32) & 0xFFFF)) | (singlestepaddress & 0x4000000000000ULL)) && ((REG_EIP == (singlestepaddress & 0xFFFFFFFF)) || (singlestepaddress & 0x1000000000000ULL))) || (singlestepaddress & 0x2000000000000ULL)); //Single step enabled?
 								break;
 							default: //Invalid mode?
 								break;
@@ -1163,7 +1164,7 @@ OPTINLINE byte coreHandler()
 						}
 						if (unlikely(doEMUtasksinglestep)) //Task filter enabled for breakpoints?
 						{
-							applysinglestep &= ((((CPU[activeCPU].registers->TR == ((singlestepTaskaddress >> 32) & 0xFFFF)) | (singlestepTaskaddress & 0x4000000000000ULL)) && (((CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].PRECALCS.base == (singlestepTaskaddress & 0xFFFFFFFF)) && GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) || (singlestepTaskaddress & 0x1000000000000ULL))) || (singlestepTaskaddress & 0x2000000000000ULL)); //Single step enabled?
+							applysinglestep &= ((((REG_TR == ((singlestepTaskaddress >> 32) & 0xFFFF)) | (singlestepTaskaddress & 0x4000000000000ULL)) && (((CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].PRECALCS.base == (singlestepTaskaddress & 0xFFFFFFFF)) && GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) || (singlestepTaskaddress & 0x1000000000000ULL))) || (singlestepTaskaddress & 0x2000000000000ULL)); //Single step enabled?
 						}
 						if (unlikely(doEMUCR3singlestep)) //CR3 filter enabled for breakpoints?
 						{
@@ -1179,7 +1180,7 @@ OPTINLINE byte coreHandler()
 				uint_32 addr_start, addr_left, curaddr; //Start of the currently executing instruction in real memory! We're testing 5 instructions!
 				addr_left=2*LOG_BOGUS;
 				curaddr = 0;
-				addr_start = CPU_MMU_start(CPU_SEGMENT_CS,CPU[activeCPU].registers->CS); //Base of the currently executing block!
+				addr_start = CPU_MMU_start(CPU_SEGMENT_CS,REG_CS); //Base of the currently executing block!
 				addr_start += REG_EIP; //Add the address for the address we're executing!
 			
 				for (;addr_left;++curaddr) //Test all addresses!
@@ -1192,7 +1193,7 @@ OPTINLINE byte coreHandler()
 				}
 				if (addr_left==0) //Bogus memory detected?
 				{
-					dolog("bogus","Bogus exection memory detected(%u 0000h opcodes) at %04X:%08X! Previous instruction: %02X(0F:%u)@%04X:%08X",LOG_BOGUS,CPU[activeCPU].registers->CS,REG_EIP,CPU[activeCPU].previousopcode,CPU[activeCPU].previousopcode0F,CPU_exec_lastCS,CPU_exec_lastEIP); //Log the warning of entering bogus memory!
+					dolog("bogus","Bogus exection memory detected(%u 0000h opcodes) at %04X:%08X! Previous instruction: %02X(0F:%u)@%04X:%08X",LOG_BOGUS,REG_CS,REG_EIP,CPU[activeCPU].previousopcode,CPU[activeCPU].previousopcode0F,CPU_exec_lastCS,CPU_exec_lastEIP); //Log the warning of entering bogus memory!
 				}
 				#endif
 			}
