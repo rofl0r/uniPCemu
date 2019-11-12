@@ -712,11 +712,11 @@ byte CPU_handleInterruptGate(byte EXT, byte table, uint_32 descriptorbase, RAWSE
 
 /*
 
-getsegment_seg: Gets a segment, if allowed.
+getsegment_seg: Gets a segment, if allowed, for protected mode.
 parameters:
-	whatsegment: What segment is used?
-	segment: The segment to get.
-	isJMPorCALL: 0 for normal segment setting. 1 for JMP, 2 for CALL, 3 for IRET. bit7=Disable privilege level checking, bit8=Disable SAVEDESCRIPTOR writeback, bit9=task switch, bit10=Set EXT bit on faulting, bit 11=TSS Busy requirement(1=Busy, 0=Non-busy), bit 12=bit 13-14 are the CPL instead for privilege checks. bit13-14: used CPL, bit 15: don't throw #SS when set and not a present cause of the fault.
+	whatsegment: For what segment is to be fetched?
+	segment: The segment selector to get.
+	isJMPorCALL: 0 for normal segment setting. 1 for JMP, 2 for CALL, 3 for IRET, 4 for RETF. bit7=Disable privilege level checking, bit8=Disable SAVEDESCRIPTOR writeback, bit9=task switch, bit10=Set EXT bit on faulting, bit 11=TSS Busy requirement(1=Busy, 0=Non-busy), bit 12=bit 13-14 are the CPL instead for privilege checks. bit13-14: used CPL, bit 15: don't throw #SS when set and not a present cause of the fault.
 result:
 	The segment when available, NULL on error or disallow.
 
