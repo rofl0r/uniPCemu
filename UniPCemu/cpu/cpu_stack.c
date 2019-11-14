@@ -3,9 +3,6 @@
 #include "headers/cpu/protection.h" //Protection support!
 #include "headers/cpu/easyregs.h" //Easy register support!
 
-//Are we to zero extend 16-bit pushes on a 32-bit stack to 32-bits to push?
-#define CPU_PUSH16_32 0
-
 uint_32 getstackaddrsizelimiter()
 {
 	return STACK_SEGMENT_DESCRIPTOR_B_BIT() ? 0xFFFFFFFF : 0xFFFF; //Stack address size!
@@ -200,8 +197,8 @@ void CPU_PUSH16(word* val, byte is32instruction) //Push Word!
 	else //286+?
 	{
 		word oldval = *val; //Original value, saved before decrementing (E)SP!
-		stack_push(is32instruction); //We're pushing a 16-bit or 32-bit value!
-		if (is32instruction && CPU_PUSH16_32) //32-bit?
+		stack_push(is32instruction&1); //We're pushing a 16-bit or 32-bit value!
+		if ((is32instruction & 1) & (((~is32instruction) >> 1) & 1)) //32-bit?
 		{
 			MMU_wdw(CPU_SEGMENT_SS, REG_SS, (REG_ESP & getstackaddrsizelimiter()), (uint_32)oldval, !STACK_SEGMENT_DESCRIPTOR_B_BIT()); //Put value!
 		}
@@ -233,10 +230,10 @@ byte CPU_PUSH16_BIU(word* val, byte is32instruction) //Push Word!
 		if (CPU[activeCPU].pushbusy == 0)
 		{
 			oldval = *val; //Original value, saved before decrementing (E)SP!
-			stack_push(is32instruction); //We're pushing a 16-bit or 32-bit value!
+			stack_push(is32instruction&1); //We're pushing a 16-bit or 32-bit value!
 			CPU[activeCPU].pushbusy = 1; //We're pending!
 		}
-		if (is32instruction && CPU_PUSH16_32) //32-bit?
+		if ((is32instruction & 1) & (((~is32instruction) >> 1) & 1)) //32-bit?
 		{
 			if (CPU_request_MMUwdw(CPU_SEGMENT_SS, (REG_ESP & getstackaddrsizelimiter()), oldval, !STACK_SEGMENT_DESCRIPTOR_B_BIT())) //Request Put value!
 			{
@@ -268,7 +265,7 @@ word CPU_POP16(byte is32instruction) //Pop Word!
 	*/
 	result = MMU_rw(CPU_SEGMENT_SS, REG_SS, (REG_ESP & getstackaddrsizelimiter()), 0, !STACK_SEGMENT_DESCRIPTOR_B_BIT()); //Get value!
 //}
-	stack_pop(/*CODE_SEGMENT_DESCRIPTOR_D_BIT()*/ is32instruction); //We're popping a 16-bit value!
+	stack_pop(/*CODE_SEGMENT_DESCRIPTOR_D_BIT()*/ is32instruction&1); //We're popping a 16-bit value!
 	return result; //Give the result!
 }
 
@@ -286,7 +283,7 @@ byte CPU_POP16_BIU(byte is32instruction) //Pop Word!
 //}
 	if (result) //Requested?
 	{
-		stack_pop(/*CODE_SEGMENT_DESCRIPTOR_D_BIT()*/ is32instruction); //We're popping a 16-bit value!
+		stack_pop(/*CODE_SEGMENT_DESCRIPTOR_D_BIT()*/ is32instruction&1); //We're popping a 16-bit value!
 	}
 	return result; //Give the result!
 }
