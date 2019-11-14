@@ -3,6 +3,9 @@
 #include "headers/cpu/protection.h" //Protection support!
 #include "headers/cpu/easyregs.h" //Easy register support!
 
+//Are we to zero extend 16-bit pushes on a 32-bit stack to 32-bits to push?
+#define CPU_PUSH16_32 0
+
 uint_32 getstackaddrsizelimiter()
 {
 	return STACK_SEGMENT_DESCRIPTOR_B_BIT() ? 0xFFFFFFFF : 0xFFFF; //Stack address size!
@@ -198,7 +201,7 @@ void CPU_PUSH16(word* val, byte is32instruction) //Push Word!
 	{
 		word oldval = *val; //Original value, saved before decrementing (E)SP!
 		stack_push(is32instruction); //We're pushing a 16-bit or 32-bit value!
-		if (is32instruction) //32-bit?
+		if (is32instruction && CPU_PUSH16_32) //32-bit?
 		{
 			MMU_wdw(CPU_SEGMENT_SS, REG_SS, (REG_ESP & getstackaddrsizelimiter()), (uint_32)oldval, !STACK_SEGMENT_DESCRIPTOR_B_BIT()); //Put value!
 		}
@@ -233,7 +236,7 @@ byte CPU_PUSH16_BIU(word* val, byte is32instruction) //Push Word!
 			stack_push(is32instruction); //We're pushing a 16-bit or 32-bit value!
 			CPU[activeCPU].pushbusy = 1; //We're pending!
 		}
-		if (is32instruction) //32-bit?
+		if (is32instruction && CPU_PUSH16_32) //32-bit?
 		{
 			if (CPU_request_MMUwdw(CPU_SEGMENT_SS, (REG_ESP & getstackaddrsizelimiter()), oldval, !STACK_SEGMENT_DESCRIPTOR_B_BIT())) //Request Put value!
 			{
