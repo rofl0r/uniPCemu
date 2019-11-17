@@ -1289,6 +1289,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 			DACmode &= ~4; //Use one pixel clock to latch the two bytes?
 		}
 		VGA->precalcs.DACmode = DACmode; //Apply the new DAC mode!
+		updateSequencerPixelDivider(VGA, (SEQ_DATA*)VGA->Sequencer); //Update the sequencer as well!
 	}
 
 	if (SequencerUpdated || AttrUpdated || (whereupdated==(WHEREUPDATED_ATTRIBUTECONTROLLER|0x10)) || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_SEQUENCER | 0x04))
@@ -1376,7 +1377,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		et34k_tempreg = (GETBITS(VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER,3,1))|((VGA->precalcs.linearmode&8)>>2); //Dot Clock Rate!
 		if (VGA->enable_SVGA == 2) //ET3000 seems to oddly provide the DCR in bit 2 sometimes?
 		{
-			et34k_tempreg |= GETBITS(VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER, 1, 1); //Use bit 2 as well!
+			et34k_tempreg |= GETBITS(VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER, 1, 1); //Use bit 1 as well!
 		}
 		updateCRTC |= (VGA->precalcs.ClockingModeRegister_DCR != et34k_tempreg); //Update the CRTC!
 		VGA->precalcs.ClockingModeRegister_DCR = et34k_tempreg;

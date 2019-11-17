@@ -75,6 +75,8 @@ typedef struct
 	byte linearcounterdivider; //The linear counter clock divider itself!
 	byte is_topwindow; //Are we the top window?
 	word topwindowCRTbase; //What top-window scanline are we at?
+	byte pixelclockdivider; //Pixel clock divider to divide the pixel clock by!
+	byte currentpixelclock; //What are we dividing by the pixel clock divider!
 } SEQ_DATA; //Sequencer used data!
 
 #include "headers/packed.h"
@@ -119,5 +121,6 @@ void VGA_VRetrace(SEQ_DATA *Sequencer, VGA_Type *VGA);
 void VGA_HRetrace(SEQ_DATA *Sequencer, VGA_Type *VGA);
 void updateLightPenMode(VGA_Type *VGA);
 void updateCGAMDARenderer(); //Update the renderer to use!
+void updateSequencerPixelDivider(VGA_Type* VGA, SEQ_DATA* Sequencer); //Update the sequencer pixel divider!
 
 #endif

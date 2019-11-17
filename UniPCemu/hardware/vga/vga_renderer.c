@@ -404,6 +404,21 @@ static VGA_AttributeController_Mode attributecontroller_modes[4] = { VGA_Attribu
 //0=4-bit, 1=8-bit
 static VGA_AttributeController_Mode attributecontroller_VGAmodes[2] = { VGA_AttributeController_4bit, VGA_AttributeController_8bit }; //Both modes we use!
 
+void updateSequencerPixelDivider(VGA_Type* VGA, SEQ_DATA* Sequencer)
+{
+	byte val;
+	val = 0; //Default: don't divide!
+	if (VGA->precalcs.DACmode & 4) //Doubling enabled?
+	{
+		val = (val << 1) | 1; //Double the amount of clocks we're latching!
+	}
+	if (VGA->precalcs.linearmode&8) //Double clocking that's supposed to be divided?
+	{
+		val = (val << 1) | 1; //Double the amount of clocks we're latching!
+	}
+	Sequencer->pixelclockdivider = val; //Latch this many clocks before processing it!
+}
+
 VGA_AttributeController_Mode attrmode = VGA_AttributeController_4bit; //Default mode!
 
 void updateVGAAttributeController_Mode(VGA_Type *VGA)
@@ -416,6 +431,7 @@ void updateVGAAttributeController_Mode(VGA_Type *VGA)
 	{
 		attrmode = attributecontroller_VGAmodes[VGA->precalcs.AttributeModeControlRegister_ColorEnable8Bit]; //Apply the current mode according to VGA registers!
 	}
+	updateSequencerPixelDivider(VGA, (SEQ_DATA*)(VGA->Sequencer)); //Update the pixel divider!
 }
 
 OPTINLINE byte VGA_AttributeController(VGA_AttributeInfo *Sequencer_attributeinfo, VGA_Type *VGA) //Process attribute to DAC index!
@@ -554,6 +570,7 @@ void VGA_HTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
 	VGA_Sequencer_updateRow(VGA, Sequencer); //Scanline has been changed!
 	Sequencer->DACcounter = 0; //Reset the DAC counter!
 	Sequencer->lastDACcolor = 0; //Reset the last DAC color!
+	Sequencer->currentpixelclock = 0; //Reset the pixel clock we're dividing!
 }
 
 //Retrace handlers!
@@ -645,7 +662,10 @@ void VGA_Blank_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attrib
 	drawPixel(VGA, RGB(0x00, 0x00, 0x00)); //Draw blank!
 	//drawPixel(VGA, RGB(0x00, 0xFF, 0x00)); //Draw blank green for debugging!
 	video_updateLightPen(VGA,0); //Update the light pen!
-	++VGA->CRTC.x; //Next x!
+	if ((++Sequencer->currentpixelclock & Sequencer->pixelclockdivider) == 0) //Are we to tick the CRTC pixel clock?
+	{
+		++VGA->CRTC.x; //Next x!
+	}
 }
 
 void VGA_Blank_CGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
@@ -657,7 +677,10 @@ void VGA_Blank_CGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attrib
 		CGALineBuffer[VGA->CRTC.x] = 0; //Take the literal pixel color of the CGA for later NTSC conversion!
 	}
 	video_updateLightPen(VGA,1); //Update the light pen!
-	++VGA->CRTC.x; //Next x!
+	if ((++Sequencer->currentpixelclock & Sequencer->pixelclockdivider) == 0) //Are we to tick the CRTC pixel clock?
+	{
+		++VGA->CRTC.x; //Next x!
+	}
 }
 
 void VGA_ActiveDisplay_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
@@ -719,7 +742,10 @@ void VGA_ActiveDisplay_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_At
 	{
 		drawPixel(VGA, DACcolor); //Draw the color pixel(s)!
 		video_updateLightPen(VGA,0); //Update the light pen!
-		++VGA->CRTC.x; //Next x!
+		if ((++Sequencer->currentpixelclock & Sequencer->pixelclockdivider) == 0) //Are we to tick the CRTC pixel clock?
+		{
+			++VGA->CRTC.x; //Next x!
+		}
 	} while (--doublepixels); //Any pixels left to render?
 }
 
@@ -733,7 +759,10 @@ void VGA_ActiveDisplay_noblanking_CGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_At
 		CGALineBuffer[VGA->CRTC.x] = (byte)attributeinfo->attribute; //Take the literal pixel color of the CGA for later NTSC conversion!
 	}
 	video_updateLightPen(VGA,1); //Update the light pen!
-	++VGA->CRTC.x; //Next x!
+	if ((++Sequencer->currentpixelclock & Sequencer->pixelclockdivider) == 0) //Are we to tick the CRTC pixel clock?
+	{
+		++VGA->CRTC.x; //Next x!
+	}
 }
 
 void VGA_Overscan_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
@@ -761,7 +790,10 @@ void VGA_Overscan_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_Attribu
 		}
 	//}
 	video_updateLightPen(VGA,0); //Update the light pen!
-	++VGA->CRTC.x; //Next x!
+	if ((++Sequencer->currentpixelclock & Sequencer->pixelclockdivider) == 0) //Are we to tick the CRTC pixel clock?
+	{
+		++VGA->CRTC.x; //Next x!
+	}
 }
 
 void VGA_Overscan_noblanking_CGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
@@ -774,7 +806,10 @@ void VGA_Overscan_noblanking_CGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_Attribu
 		CGALineBuffer[VGA->CRTC.x] = VGA->precalcs.overscancolor; //Take the literal pixel color of the CGA for later NTSC conversion!
 	}
 	video_updateLightPen(VGA,1); //Update the light pen!
-	++VGA->CRTC.x; //Next x!
+	if ((++Sequencer->currentpixelclock & Sequencer->pixelclockdivider) == 0) //Are we to tick the CRTC pixel clock?
+	{
+		++VGA->CRTC.x; //Next x!
+	}
 }
 
 void updateVGASequencer_Mode(VGA_Type *VGA)
