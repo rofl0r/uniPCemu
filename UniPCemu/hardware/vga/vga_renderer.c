@@ -461,7 +461,6 @@ OPTINLINE void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
 
 	//row is the vertical timing counter
 	row >>= VGA->precalcs.scandoubling; //Apply scan doubling to the row scan counter(inner character row and thus, by extension, the row itself)!
-	row >>= VGA->precalcs.CRTCModeControlRegister_SLDIV; //Apply Scan Doubling on the row scan counter: we take effect on content (double scanning)!
 	//Apply scanline division to the current row timing!
 
 	row += VGA->precalcs.presetrowscan; //Apply the preset row scan to the scanline!
@@ -1071,6 +1070,7 @@ OPTINLINE uint_32 get_display(VGA_Type *VGA, word Scanline, word x) //Get/adjust
 {
 	INLINEREGISTER uint_32 stat; //The status of the pixel!
 	//We are a maximum of 4096x1024 size!
+	Scanline >>= VGA->precalcs.CRTCModeControlRegister_SLDIV; //Apply Scan Doubling on the row scan counter: we take effect on content (double scanning)!
 	Scanline &= 0xFFF; //Range safety: 4095 scanlines!
 	x &= 0xFFF; //Range safety: 4095 columns!
 	stat = VGA->CRTC.rowstatus[Scanline]; //Get row status!
