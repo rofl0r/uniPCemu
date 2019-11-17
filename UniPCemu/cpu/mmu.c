@@ -309,6 +309,7 @@ byte Paging_directrb(sword segdesc, uint_32 realaddress, byte writewordbackup, b
 
 	//Normal memory access!
 	result = MMU_INTERNAL_directrb_realaddr(realaddress,index); //Read from MMU/hardware!
+	processBUS(realaddress, index, result); //Process us on the BUS!
 
 	if (unlikely(MMU_logging==1)) //To log?
 	{
@@ -344,6 +345,7 @@ void Paging_directwb(sword segdesc, uint_32 realaddress, byte val, byte index, b
 	wrapaddr[1] = MMU.wraparround; //What wrap to apply when enabled!
 	realaddress &= effectivecpuaddresspins; //Only 20-bits address is available on a XT without newer CPU! Only 24-bits is available on a AT!
 	realaddress &= wrapaddr[(((MMU.A20LineEnabled==0) && (((realaddress&~0xFFFFF)==0x100000)||(is_Compaq!=1)))&1)]; //Apply A20, when to be applied!
+	processBUS(realaddress, index, val); //Process us on the BUS!
 
 	//Normal memory access!
 	MMU_INTERNAL_directwb_realaddr(realaddress,val,index); //Set data!
@@ -385,7 +387,6 @@ OPTINLINE byte MMU_INTERNAL_rb(sword segdesc, word segment, uint_32 offset, byte
 	realaddress = MMU_realaddr(segdesc, segment, offset, writeword, is_offset16); //Real adress!
 
 	result = Paging_directrb(segdesc,realaddress,writewordbackup,opcode,index,getCPL()); //Read through the paging unit and hardware layer!
-	processBUS(realaddress, index, result); //Process us on the BUS!
 
 	if (unlikely(MMU_logging==1)) //To log?
 	{
@@ -410,7 +411,6 @@ OPTINLINE byte MMU_INTERNAL_rb0(sword segdesc, word segment, uint_32 offset, byt
 	realaddress = MMU_realaddr(segdesc, segment, offset, writeword, is_offset16); //Real adress!
 
 	result = Paging_directrb(segdesc,realaddress,writewordbackup,opcode,index,0); //Read through the paging unit and hardware layer!
-	processBUS(realaddress, index, result); //Process us on the BUS!
 
 	if (unlikely(MMU_logging==1)) //To log?
 	{
@@ -477,7 +477,6 @@ OPTINLINE void MMU_INTERNAL_wb(sword segdesc, word segment, uint_32 offset, byte
 		debugger_logmemoryaccess(1,offset,val,LOGMEMORYACCESS_NORMAL); //Log it!
 	}
 
-	processBUS(realaddress, index, val); //Process us on the BUS!
 	Paging_directwb(segdesc,realaddress,val,index,is_offset16,writewordbackup,getCPL()); //Write through the paging unit and hardware layer!
 }
 
