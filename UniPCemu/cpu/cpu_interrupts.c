@@ -368,7 +368,8 @@ void CPU_IRET()
 		//Load POPped registers into the segment registers, CS:EIP and SS:ESP in V86 mode(raises no faults) to restore the task.
 		if (segmentWritten(CPU_SEGMENT_CS,tempCS,3)) return; //We're loading because of an IRET!
 		if (segmentWritten(CPU_SEGMENT_SS,tempSS,0)) return; //Load SS!
-		REG_ESP = tempesp; //Set the new ESP of the V86 task!
+		//REG_ESP = tempesp; //Set the new ESP of the V86 task!
+		REG_SP = tempesp; //Set the new SP of the V86 task! OSDev says: https://wiki.osdev.org/CPU_Bugs#Affecting_almost_all_modern_architectures x86 IRET will not clear upper bits of the stack register (32:16) when returning to 16-bit mode
 		if (segmentWritten(CPU_SEGMENT_ES,V86SegRegs[0],0)) return; //Load ES!
 		if (segmentWritten(CPU_SEGMENT_DS,V86SegRegs[1],0)) return; //Load DS!
 		if (segmentWritten(CPU_SEGMENT_FS, V86SegRegs[2], 0)) return; //Load FS!

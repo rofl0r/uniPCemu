@@ -1321,7 +1321,15 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 					segmentWritten_tempSS = CPU_POP16(CPU_Operand_size[activeCPU]);
 
 					if (segmentWritten(CPU_SEGMENT_SS,segmentWritten_tempSS,(getRPL(value)<<13)|0x1000)) return 1; //Back to our calling stack!
-					REG_ESP = tempesp;
+					//OSDev says: https://wiki.osdev.org/CPU_Bugs#Affecting_almost_all_modern_architectures x86 IRET will not clear upper bits of the stack register (32:16) when returning to 16-bit mode
+					if (CPU_Operand_size[activeCPU])
+					{
+						REG_ESP = tempesp; //Write ESP!
+					}
+					else
+					{
+						REG_SP = tempesp; //Write SP!
+					}
 
 					RETF_segmentregister = 1; //We're checking the segments for privilege changes to be invalidated!
 				}
