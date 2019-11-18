@@ -412,10 +412,12 @@ void updateSequencerPixelDivider(VGA_Type* VGA, SEQ_DATA* Sequencer)
 	{
 		val = (val << 1) | 1; //Double the amount of clocks we're latching!
 	}
+	/*
 	if (VGA->precalcs.linearmode&8) //Double clocking that's supposed to be divided?
 	{
 		val = (val << 1) | 1; //Double the amount of clocks we're latching!
 	}
+	*/
 	Sequencer->pixelclockdivider = val; //Latch this many clocks before processing it!
 }
 
