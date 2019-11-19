@@ -2956,7 +2956,7 @@ void CPU80386_OP8F() //Undocumented GRP opcode 8F r/m32
 		if (unlikely(CPU[activeCPU].instructionstep == 0))
 		{
 			modrm_recalc(&params); //Recalc if using (e)sp as the destination offset!
-			if (modrm_check32(&params, MODRM_src0, 0|0x40)) return; if (modrm_check32(&params, MODRM_src0, 0|0xA0)) return; } //Abort when needed!
+			if (modrm_check32(&params, MODRM_src0, 0|0x40)) return; if (modrm_check32(&params, MODRM_src0, 0|0xA0)) return; //Abort when needed!
 		}
 		if (CPU80386_instructionstepwritemodrmdw(0,value,MODRM_src0)) return; //POP r/m32
 		if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
