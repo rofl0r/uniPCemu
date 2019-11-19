@@ -2449,6 +2449,37 @@ uint_32 *modrm_addr32(MODRM_PARAMS *params, int whichregister, int forreading)
 
 //CPU kernel functions
 
+//Calculate the offsets used for the modr/m byte!
+void modrm_recalc(MODRM_PARAMS *param)
+{
+	param->EA_cycles = 0; //No EA cycles for register accesses by default!
+
+	param->info[0].memorymask = ~0; //Default to full memory access!
+	param->info[1].memorymask = ~0; //Default to full memory access!
+	param->info[0].is16bit = 0; //Default to full memory access!
+	param->info[1].is16bit = 0; //Default to full memory access!
+
+	param->havethreevariables = 0; //Default: not 3 params added!
+
+	switch (param->sizeparam&7) //What size?
+	{
+	case 0: //8-bits?
+		modrm_decode8(param, &param->info[0], 0); //#0 reg!
+		modrm_decode8(param, &param->info[1], 1); //#0 modr/m!
+		break;
+	case 1: //16-bits?
+		modrm_decode16(param, &param->info[0], 0); //#0 reg!
+		modrm_decode16(param, &param->info[1], 1); //#0 modr/m!
+		break;
+	case 2: //32-bits?
+		modrm_decode32(param, &param->info[0], 0); //#0 reg!
+		modrm_decode32(param, &param->info[1], 1); //#0 modr/m!
+		break;
+	default:
+		halt_modrm("Unknown decoder size: %u",param->sizeparam); //Unknown size!
+	}
+}
+
 /*
 
 specialflags:
@@ -2542,33 +2573,7 @@ byte modrm_readparams(MODRM_PARAMS *param, byte size, byte specialflags, byte OP
 		param->instructionfetch.MODRM_instructionfetch = 4; //Finished with all stages of the modR/M data!
 	}
 
-	param->EA_cycles = 0; //No EA cycles for register accesses by default!
-
-	param->info[0].memorymask = ~0; //Default to full memory access!
-	param->info[1].memorymask = ~0; //Default to full memory access!
-	param->info[0].is16bit = 0; //Default to full memory access!
-	param->info[1].is16bit = 0; //Default to full memory access!
-
-	param->havethreevariables = 0; //Default: not 3 params added!
-	
-	//Decode appropiately!
-	switch (param->sizeparam&7) //What size?
-	{
-	case 0: //8-bits?
-		modrm_decode8(param, &param->info[0], 0); //#0 reg!
-		modrm_decode8(param, &param->info[1], 1); //#0 modr/m!
-		break;
-	case 1: //16-bits?
-		modrm_decode16(param, &param->info[0], 0); //#0 reg!
-		modrm_decode16(param, &param->info[1], 1); //#0 modr/m!
-		break;
-	case 2: //32-bits?
-		modrm_decode32(param, &param->info[0], 0); //#0 reg!
-		modrm_decode32(param, &param->info[1], 1); //#0 modr/m!
-		break;
-	default:
-		halt_modrm("Unknown decoder size: %u",param->sizeparam); //Unknown size!
-	}
+	modrm_recalc(param); //Calculate the params!
 
 	if (param->reg_is_segmentregister && (param->info[0].reg16==NULL)) //Invalid segment register specified?
 	{

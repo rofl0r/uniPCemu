@@ -4573,11 +4573,15 @@ void CPU8086_OP8F() //Undocumented GRP opcode 8F r/m16
 			modrm_generateInstructionTEXT("POP",16,0,PARAM_MODRM_0); //POP Ew
 		}
 		if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(1,0,0)) return; ++CPU[activeCPU].stackchecked; }
-		if (unlikely(CPU[activeCPU].instructionstep == 0)) { if (modrm_check16(&params, MODRM_src0, 0|0x40)) return; if (modrm_check16(&params, MODRM_src0, 0|0xA0)) return; } //Abort when needed!
 		static word value;
 		//Execution step!
 		if (CPU8086_instructionstepPOPtimeout(0)) return; /*POP timeout*/
 		if (CPU8086_POPw(2,&value,0)) return; //POP first!
+		if (unlikely(CPU[activeCPU].instructionstep == 0))
+		{ 
+			modrm_recalc(&params); //Recalc if using (e)sp as the destination offset!
+			if (modrm_check16(&params, MODRM_src0, 0|0x40)) return; if (modrm_check16(&params, MODRM_src0, 0|0xA0)) return;
+		} //Abort when needed!
 		if (CPU8086_instructionstepwritemodrmw(0,value,MODRM_src0,0)) return; //POP r/m16
 		if ((params.info[MODRM_src0].reg16 == &REG_SS) && (params.info[MODRM_src0].isreg==1)) //Popping into SS?
 		{
