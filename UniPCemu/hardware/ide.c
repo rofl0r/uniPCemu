@@ -5022,6 +5022,7 @@ byte outATA16(word port, word value)
 	{
 		if (ATA[channel].Drive[ATA_activeDrive(channel)].Enable8BitTransfers) return 0; //We're only 8-bit data transfers!
 	}
+	if (!ATA_Drives[channel][ATA_activeDrive(channel)] == 0) return 0; //Invalid drive!
 	ATA_writedata(channel, (value&0xFF)); //Write the data low!
 	ATA_writedata(channel, ((value >> 8) & 0xFF)); //Write the data high!
 	return 1;
@@ -5042,6 +5043,7 @@ byte outATA32(word port, uint_32 value)
 	{
 		if (ATA[channel].Drive[ATA_activeDrive(channel)].Enable8BitTransfers) return 0; //We're only 8-bit data transfers!
 	}
+	if (!ATA_Drives[channel][ATA_activeDrive(channel)] == 0) return 0; //Invalid drive!
 	outATA16(port, (value&0xFFFF)); //Write the data low!
 	outATA16(port, ((value >> 16) & 0xFFFF)); //Write the data high!
 	return 1;
@@ -5063,11 +5065,11 @@ byte outATA8(word port, byte value)
 	}
 	port -= getPORTaddress(ATA_channel); //Get the port from the base!
 	ATA_slave = ATA[ATA_channel].activedrive; //Slave?
-	if (!ATA_Drives[ATA_channel][0]) return 0; //No drives mapped here?
+	if (!(ATA_Drives[ATA_channel][0]|ATA_Drives[ATA_channel][1])) return 0; //No drives mapped here?
 	switch (port) //What port?
 	{
 	case 0: //DATA?
-		if (ATA[ATA_channel].Drive[ATA_activeDrive(ATA_channel)].Enable8BitTransfers) //Enabled 8-bit transfers?
+		if (ATA[ATA_channel].Drive[ATA_activeDrive(ATA_channel)].Enable8BitTransfers && (ATA_Drives[ATA_channel][ATA_slave])) //Enabled 8-bit transfers?
 		{
 			ATA_writedata(ATA_channel, value); //Write the data!
 			return 1; //We're enabled!
@@ -5156,7 +5158,7 @@ byte outATA8(word port, byte value)
 	return 0; //Safety!
 port3_write: //Special port #3?
 	port -= (getControlPORTaddress(ATA_channel)+2); //Get the port from the base!
-	if (!ATA_Drives[ATA_channel][ATA_activeDrive(ATA_channel)] || (!ATA_Drives[ATA_channel][0])) //Invalid drive or controller?
+	if (!(ATA_Drives[ATA_channel][0]|ATA_Drives[ATA_channel][1])) //Invalid drive or controller?
 	{
 		return 0; //Ignore!
 	}
@@ -5216,6 +5218,7 @@ byte inATA16(word port, word *result)
 			return 0; //Not our port?
 		}
 	}
+	if (ATA_Drives[channel][ATA_activeDrive(channel)] == 0) return 0; //Invalid drive!
 	if (ATA[channel].Drive[ATA_activeDrive(channel)].Enable8BitTransfers) return 0; //We're only 8-bit data transfers!
 	byte buffer;
 	word resultbuffer;
@@ -5240,6 +5243,7 @@ byte inATA32(word port, uint_32 *result)
 			return 0; //Not our port?
 		}
 	}
+	if (ATA_Drives[channel][ATA_activeDrive(channel)] == 0) return 0; //Invalid drive!
 	if (ATA[channel].Drive[ATA_activeDrive(channel)].Enable8BitTransfers) return 0; //We're only 8-bit data transfers!
 	word buffer;
 	uint_32 resultbuffer;
@@ -5267,17 +5271,17 @@ byte inATA8(word port, byte *result)
 			return 0; //Not our port?
 		}
 	}
-	if (!ATA_Drives[ATA_channel][ATA_activeDrive(ATA_channel)]) //Invalid drive?
+	port -= getPORTaddress(ATA_channel); //Get the port from the base!
+	ATA_slave = ATA[ATA_channel].activedrive; //Slave?
+	if ((!ATA_Drives[ATA_channel][0]) && (!ATA_Drives[ATA_channel][1])) //Invalid controller when no drives present?
 	{
 		*result = 0; //Give 0: we're not present!
 		return 1; //OK!
 	}
-	port -= getPORTaddress(ATA_channel); //Get the port from the base!
-	ATA_slave = ATA[ATA_channel].activedrive; //Slave?
 	switch (port) //What port?
 	{
 	case 0: //DATA?
-		if (ATA[ATA_channel].Drive[ATA_activeDrive(ATA_channel)].Enable8BitTransfers) //Enabled 8-bit transfers?
+		if (ATA[ATA_channel].Drive[ATA_activeDrive(ATA_channel)].Enable8BitTransfers && ATA_Drives[ATA_channel][ATA_slave]) //Enabled 8-bit transfers?
 		{
 			ATA_readdata(ATA_channel, result); //Read the data!
 			return 1; //We're enabled!
@@ -5346,27 +5350,28 @@ byte inATA8(word port, byte *result)
 	return 0; //Unsupported!
 port3_read: //Special port #3?
 	port -= (getControlPORTaddress(ATA_channel)+2); //Get the port from the base!
-	if (!ATA_Drives[ATA_channel][ATA_activeDrive(ATA_channel)]) //Invalid drive?
-	{
-		*result = 0; //Give 0: we're not present!
-		return 1; //OK!
-	}
 	ATA_slave = ATA[ATA_channel].activedrive; //Slave?
 	switch (port) //What port?
 	{
 	case 0: //Alternate status register?
+		if (!ATA_Drives[ATA_channel][ATA_activeDrive(ATA_channel)]) //Invalid drive?
+		{
+			*result = 0; //Give 0: we're not present!
+			return 1; //OK!
+		}
 		ATA_updateStatus(ATA_channel); //Update the status register if needed!
 		*result = ATA[ATA_channel].Drive[ATA_activeDrive(ATA_channel)].STATUSREGISTER; //Get status!
 #ifdef ATA_LOG
 		dolog("ATA", "Alternate status register read: %02X %u.%u", *result, ATA_channel, ATA_activeDrive(ATA_channel));
 #endif
-		if (ATA_Drives[ATA_channel][ATA_activeDrive(ATA_channel)] == 0) //Invalid drive?
-		{
-			*result = 0; //Return 0 for invalid drives!
-		}
 		return 1; //OK!
 		break;
 	case 1: //Drive address register?
+		if (!(ATA_Drives[ATA_channel][0]|ATA_Drives[ATA_channel][1])) //Invalid controller?
+		{
+			*result = 0; //Give 0: we're not present!
+			return 1; //OK!
+		}
 		*result = (ATA[ATA_channel].DriveAddressRegister&0x7F); //Give the data, make sure we don't apply the flag shared with the Floppy Disk Controller!
 #ifdef ATA_LOG
 		dolog("ATA", "Drive address register read: %02X %u.%u", *result, ATA_channel, ATA_activeDrive(ATA_channel));
