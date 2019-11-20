@@ -5143,7 +5143,7 @@ byte outATA8(word port, byte value)
 	case 7: //Command?
 		if (ATA_Drives[ATA_channel][ATA_activeDrive(ATA_channel)] == 0) //Invalid drive?
 		{
-			return; //Commands are ignored!
+			return 0; //Commands are ignored!
 		}
 		ATA_removeIRQ(ATA_channel,ATA_activeDrive(ATA_channel)); //Lower the IRQ by writes too, not just reads!
 		ATA_executeCommand(ATA_channel,value); //Execute a command!
