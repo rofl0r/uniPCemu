@@ -5022,7 +5022,7 @@ byte outATA16(word port, word value)
 	{
 		if (ATA[channel].Drive[ATA_activeDrive(channel)].Enable8BitTransfers) return 0; //We're only 8-bit data transfers!
 	}
-	if (!ATA_Drives[channel][ATA_activeDrive(channel)] == 0) return 0; //Invalid drive!
+	if (!ATA_Drives[channel][ATA_activeDrive(channel)]) return 0; //Invalid drive!
 	ATA_writedata(channel, (value&0xFF)); //Write the data low!
 	ATA_writedata(channel, ((value >> 8) & 0xFF)); //Write the data high!
 	return 1;
@@ -5043,7 +5043,7 @@ byte outATA32(word port, uint_32 value)
 	{
 		if (ATA[channel].Drive[ATA_activeDrive(channel)].Enable8BitTransfers) return 0; //We're only 8-bit data transfers!
 	}
-	if (!ATA_Drives[channel][ATA_activeDrive(channel)] == 0) return 0; //Invalid drive!
+	if (!ATA_Drives[channel][ATA_activeDrive(channel)]) return 0; //Invalid drive!
 	outATA16(port, (value&0xFFFF)); //Write the data low!
 	outATA16(port, ((value >> 16) & 0xFFFF)); //Write the data high!
 	return 1;
