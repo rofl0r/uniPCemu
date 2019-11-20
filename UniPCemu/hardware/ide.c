@@ -5141,6 +5141,10 @@ byte outATA8(word port, byte value)
 		return 1; //OK!
 		break;
 	case 7: //Command?
+		if (ATA_Drives[ATA_channel][ATA_activeDrive(ATA_channel)] == 0) //Invalid drive?
+		{
+			return; //Commands are ignored!
+		}
 		ATA_removeIRQ(ATA_channel,ATA_activeDrive(ATA_channel)); //Lower the IRQ by writes too, not just reads!
 		ATA_executeCommand(ATA_channel,value); //Execute a command!
 		return 1; //OK!
@@ -5325,6 +5329,10 @@ byte inATA8(word port, byte *result)
 		ATA_updateStatus(ATA_channel); //Update the status register if needed!
 		ATA_removeIRQ(ATA_channel,ATA_activeDrive(ATA_channel)); //Acnowledge IRQ!
 		*result = ATA[ATA_channel].Drive[ATA_activeDrive(ATA_channel)].STATUSREGISTER; //Get status!
+		if (ATA_Drives[ATA_channel][ATA_activeDrive(ATA_channel)] == 0) //Invalid drive?
+		{
+			*result = 0; //Return 0 for invalid drives!
+		}
 		ATA_STATUSREGISTER_DRIVEWRITEFAULTW(ATA_channel,ATA_activeDrive(ATA_channel),0); //Reset write fault flag!
 #ifdef ATA_LOG
 		dolog("ATA", "Status register read: %02X %u.%u", *result, ATA_channel, ATA_activeDrive(ATA_channel));
@@ -5351,6 +5359,10 @@ port3_read: //Special port #3?
 #ifdef ATA_LOG
 		dolog("ATA", "Alternate status register read: %02X %u.%u", *result, ATA_channel, ATA_activeDrive(ATA_channel));
 #endif
+		if (ATA_Drives[ATA_channel][ATA_activeDrive(ATA_channel)] == 0) //Invalid drive?
+		{
+			*result = 0; //Return 0 for invalid drives!
+		}
 		return 1; //OK!
 		break;
 	case 1: //Drive address register?
