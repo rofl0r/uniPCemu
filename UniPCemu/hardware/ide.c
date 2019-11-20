@@ -5063,6 +5063,7 @@ byte outATA8(word port, byte value)
 	}
 	port -= getPORTaddress(ATA_channel); //Get the port from the base!
 	ATA_slave = ATA[ATA_channel].activedrive; //Slave?
+	if (!ATA_Drives[ATA_channel][0]) return 0; //No drives mapped here?
 	switch (port) //What port?
 	{
 	case 0: //DATA?
@@ -5155,9 +5156,9 @@ byte outATA8(word port, byte value)
 	return 0; //Safety!
 port3_write: //Special port #3?
 	port -= (getControlPORTaddress(ATA_channel)+2); //Get the port from the base!
-	if (!ATA_Drives[ATA_channel][ATA_activeDrive(ATA_channel)]) //Invalid drive?
+	if (!ATA_Drives[ATA_channel][ATA_activeDrive(ATA_channel)] || (!ATA_Drives[ATA_channel][0])) //Invalid drive or controller?
 	{
-		return 1; //OK!
+		return 0; //Ignore!
 	}
 	ATA_slave = ATA[ATA_channel].activedrive; //Slave?
 	switch (port) //What port?
