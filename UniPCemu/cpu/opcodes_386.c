@@ -2953,7 +2953,7 @@ void CPU80386_OP8F() //Undocumented GRP opcode 8F r/m32
 		//Execution step!
 		if (CPU80386_instructionstepPOPtimeout(0)) return; /*POP timeout*/
 		if (CPU80386_POPdw(2,&value)) return; //POP first!
-		if (unlikely(CPU[activeCPU].instructionstep == 0))
+		if (unlikely(CPU[activeCPU].modrmstep == 0))
 		{
 			modrm_recalc(&params); //Recalc if using (e)sp as the destination offset!
 			if (modrm_check32(&params, MODRM_src0, 0|0x40)) return; if (modrm_check32(&params, MODRM_src0, 0|0xA0)) return; //Abort when needed!

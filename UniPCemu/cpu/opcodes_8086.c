@@ -4577,7 +4577,7 @@ void CPU8086_OP8F() //Undocumented GRP opcode 8F r/m16
 		//Execution step!
 		if (CPU8086_instructionstepPOPtimeout(0)) return; /*POP timeout*/
 		if (CPU8086_POPw(2,&value,0)) return; //POP first!
-		if (unlikely(CPU[activeCPU].instructionstep == 0))
+		if (unlikely(CPU[activeCPU].modrmstep == 0))
 		{ 
 			modrm_recalc(&params); //Recalc if using (e)sp as the destination offset!
 			if (modrm_check16(&params, MODRM_src0, 0|0x40)) return; if (modrm_check16(&params, MODRM_src0, 0|0xA0)) return; //Abort when needed!
