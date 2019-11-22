@@ -5722,6 +5722,12 @@ void initATA()
 	register_PCI(&PCI_IDE,1,0, sizeof(PCI_IDE),&ATA_ConfigurationSpaceChanged); //Register the PCI data area!
 	//Initialise our data area!
 	resetPCISpaceIDE();
+	PCI_IDE.BAR[0] = 1; //I/O!
+	PCI_IDE.BAR[1] = 1; //I/O!
+	PCI_IDE.BAR[2] = 1; //I/O!
+	PCI_IDE.BAR[3] = 1; //I/O!
+	PCI_IDE.BAR[4] = 1; //I/O!
+	PCI_IDE.BAR[5] = 1; //I/O!
 	ATA[0].Drive[0].resetTiming = ATA[0].Drive[1].resetTiming = 0.0; //Clear the reset timing!
 	ATA[1].Drive[0].resetTiming = ATA[1].Drive[1].resetTiming = 0.0; //Clear the reset timing!
 	ATA[0].DriveAddressRegister = ATA[1].DriveAddressRegister = 0xFF; //According to Bochs, it's always 1's when unsupported!
