@@ -4453,25 +4453,31 @@ void ATA_reset(byte channel, byte slave)
 	//Clear errors!
 	if ((fullslaveinfo & 0x80) || (!(ATA_Drives[channel][slave] >= CDROM0))) //ATAPI reset for ATAPI devices or non-ATAPI reset for non-ATAPI devices?
 	{
-		ATA[channel].Drive[slave].PARAMETERS.reportReady = 1; //Report ready now!
-		if ((fullslaveinfo&0x80) || ((ATA_STATUSREGISTER_ERRORR(channel,slave)==0) && ((fullslaveinfo&0x80)==0))) //Pending error for these drives?
-			ATA[channel].Drive[slave].ERRORREGISTER = 0x00; //No error, but being a reserved value of 0 usually!
-		else //SRST reset with error left to handle?
-			if (ATA_Drives[channel][slave] >= CDROM0) //CD-ROM drive?
-			{
-				ATA[channel].Drive[slave].ERRORREGISTER = (ATA[channel].Drive[slave].ERRORREGISTER&0xF0)|0x01; //No error, but being a reserved value of 1 usually!
-			}
-			else //HDD?
-			{
-				ATA[channel].Drive[slave].ERRORREGISTER = 0x01; //No error, but being a reserved value of 1 usually!
-			}
+		if ((fullslaveinfo & 0x80) == 0) //Normal reset?
+		{
+			if ((fullslaveinfo & 0x80) || ((ATA_STATUSREGISTER_ERRORR(channel, slave) == 0) && ((fullslaveinfo & 0x80) == 0))) //Pending error for these drives?
+				ATA[channel].Drive[slave].ERRORREGISTER = 0x00; //No error, but being a reserved value of 0 usually!
+			else //SRST reset with error left to handle?
+				if (ATA_Drives[channel][slave] >= CDROM0) //CD-ROM drive?
+				{
+					ATA[channel].Drive[slave].ERRORREGISTER = (ATA[channel].Drive[slave].ERRORREGISTER & 0xF0) | 0x01; //No error, but being a reserved value of 1 usually!
+				}
+				else //HDD?
+				{
+					ATA[channel].Drive[slave].ERRORREGISTER = 0x01; //No error, but being a reserved value of 1 usually!
+				}
+		}
+		else //ATAPI reset?
+		{
+			ATA[channel].Drive[slave].ERRORREGISTER &= 0x7F; //Clear bit 7 of the error register, according to ATA/ATAPI-4!
+		}
 	}
 	else
 	{
 		slave &= 0x7F;
-		ATA[channel].Drive[slave].PARAMETERS.reportReady = 0; //Report not ready now!
 		ATA[channel].Drive[slave].ERRORREGISTER = 0x00; //No error, but being a reserved value of 0 usually!
 	}
+	ATA[channel].Drive[slave].PARAMETERS.reportReady = 0; //Report not ready now!
 	//Clear Drive/Head register, leaving the specified drive as it is!
 	ATA_DRIVEHEAD_HEADW(channel,slave,0); //What head?
 	ATA_DRIVEHEAD_LBAMODE_2W(channel,slave,0); //LBA mode?
@@ -4488,14 +4494,17 @@ void ATA_reset(byte channel, byte slave)
 	giveSignature(channel, slave); //Give the signature!
 	EMU_setDiskBusy(ATA_Drives[channel][slave], 0); //We're not reading or writing anything anymore!
 
+	//Bochs and Dosbox: Both SRST and ATAPI reset don't trigger an IRQ!
+	/*
 	if ((fullslaveinfo & 0x80) && ((ATA_Drives[channel][slave] >= CDROM0))) //ATAPI reset for ATAPI devices that's not a SRST reset?
 	{
 		ATA[channel].Drive[slave].resetTriggersIRQ = 1; //Triggers an IRQ on completion!
 	}
 	else
 	{
+	*/
 		ATA[channel].Drive[slave].resetTriggersIRQ = 0; //No IRQ on completion!
-	}
+	//}
 }
 
 OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a command!
@@ -5069,7 +5078,7 @@ byte outATA8(word port, byte value)
 	switch (port) //What port?
 	{
 	case 0: //DATA?
-		if (ATA[ATA_channel].Drive[ATA_activeDrive(ATA_channel)].Enable8BitTransfers && (ATA_Drives[ATA_channel][ATA_slave])) //Enabled 8-bit transfers?
+		if (ATA_Drives[ATA_channel][ATA_slave]) //Enabled transfers?
 		{
 			ATA_writedata(ATA_channel, value); //Write the data!
 			return 1; //We're enabled!
@@ -5283,7 +5292,7 @@ byte inATA8(word port, byte *result)
 	switch (port) //What port?
 	{
 	case 0: //DATA?
-		if (ATA[ATA_channel].Drive[ATA_activeDrive(ATA_channel)].Enable8BitTransfers && ATA_Drives[ATA_channel][ATA_slave]) //Enabled 8-bit transfers?
+		if (ATA_Drives[ATA_channel][ATA_slave]) //Enabled transfers?
 		{
 			ATA_readdata(ATA_channel, result); //Read the data!
 			return 1; //We're enabled!
