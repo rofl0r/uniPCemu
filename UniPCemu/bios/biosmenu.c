@@ -1127,7 +1127,6 @@ int ExecuteList(int x, int y, char *defaultentry, int maxlen, list_information i
 			{
 				result = numlist-1; //Bottom of the list!
 			}
-			result &= 0xFF; //Only 255 entries max!
 			printCurrent(x,y,itemlist[result],maxlen,informationhandler); //Create our current entry!
 		}
 		else if ((key&BUTTON_DOWN)>0) //DOWN?
@@ -1140,7 +1139,6 @@ int ExecuteList(int x, int y, char *defaultentry, int maxlen, list_information i
 			{
 				result = 0; //Top of the list!
 			}
-			result &= 0xFF; //Only 255 entries max!
 			printCurrent(x, y, itemlist[result], maxlen,informationhandler); //Create our current entry!
 		}
 		else if ((key&BUTTON_LEFT)>0) //LEFT?
@@ -1152,7 +1150,6 @@ int ExecuteList(int x, int y, char *defaultentry, int maxlen, list_information i
 			{
 				result = resultcopy; //Go to the item that's found!
 			}
-			result &= 0xFF; //Only 255 entries max!
 			printCurrent(x,y,itemlist[result],maxlen,informationhandler); //Create our current entry!
 		}
 		else if ((key&BUTTON_RIGHT)>0) //RIGHT?
@@ -1164,7 +1161,6 @@ int ExecuteList(int x, int y, char *defaultentry, int maxlen, list_information i
 			{
 				result = resultcopy; //Go to the item that's found!
 			}
-			result &= 0xFF; //Only 255 entries max!
 			printCurrent(x, y, itemlist[result], maxlen,informationhandler); //Create our current entry!
 		}
 		else if (((key&(BUTTON_CROSS|BUTTON_START))>0) || (key&BUTTON_PLAY && BIOS_EnablePlay)) //OK?
