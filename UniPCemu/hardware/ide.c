@@ -4477,7 +4477,15 @@ void ATA_reset(byte channel, byte slave)
 		slave &= 0x7F;
 		ATA[channel].Drive[slave].ERRORREGISTER = 0x00; //No error, but being a reserved value of 0 usually!
 	}
-	ATA[channel].Drive[slave].PARAMETERS.reportReady = 0; //Report not ready now!
+	if ((ATA_Drives[channel][slave]==0) || (ATA_Drives[channel][slave] >= CDROM0)) //CD-ROM style reset?
+	{
+		ATA[channel].Drive[slave].PARAMETERS.reportReady = 0; //Report not ready now!
+	}
+	else //ATA-style reset?
+	{
+		ATA[channel].Drive[slave].PARAMETERS.reportReady = 1; //Report ready now!
+	}
+
 	//Clear Drive/Head register, leaving the specified drive as it is!
 	ATA_DRIVEHEAD_HEADW(channel,slave,0); //What head?
 	ATA_DRIVEHEAD_LBAMODE_2W(channel,slave,0); //LBA mode?
