@@ -24,4 +24,7 @@ byte CPU_PUSH32_BIU(uint_32* val); //Push DWord!
 uint_32 CPU_POP32(); //Full stack used!
 byte CPU_POP32_BIU(); //Full stack used!
 
+//For opcode POP r/m16/32
+void stack_push(byte dword); //Push 16/32-bits to stack!
+void stack_pop(byte dword); //Push 16/32-bits to stack!
 #endif

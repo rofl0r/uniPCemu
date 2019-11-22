@@ -19,7 +19,7 @@ sbyte stack_popchange(byte dword)
 	return (2 << dword); //Decrease!
 }
 
-OPTINLINE void stack_push(byte dword) //Push 16/32-bits to stack!
+void stack_push(byte dword) //Push 16/32-bits to stack!
 {
 	if (STACK_SEGMENT_DESCRIPTOR_B_BIT()) //32-bits?
 	{
@@ -31,7 +31,7 @@ OPTINLINE void stack_push(byte dword) //Push 16/32-bits to stack!
 	}
 }
 
-OPTINLINE void stack_pop(byte dword) //Push 16/32-bits to stack!
+void stack_pop(byte dword) //Push 16/32-bits to stack!
 {
 	if (STACK_SEGMENT_DESCRIPTOR_B_BIT()) //32-bits?
 	{

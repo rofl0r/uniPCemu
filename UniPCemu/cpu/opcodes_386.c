@@ -2948,16 +2948,19 @@ void CPU80386_OP8F() //Undocumented GRP opcode 8F r/m32
 		{
 			modrm_generateInstructionTEXT("POP",32,0,PARAM_MODRM_0); //POPW Ew
 		}
-		if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(1,0,1)) return; ++CPU[activeCPU].stackchecked; }
+		if (unlikely(CPU[activeCPU].stackchecked==0)) {
+			if (checkStackAccess(1,0,1)) return;
+			stack_push(1); //Pushed a dword!
+			modrm_recalc(&params); //Recalc if using (e)sp as the destination offset!
+			if (modrm_check32(&params, MODRM_src0, 0|0x40)) return;
+			if (modrm_check32(&params, MODRM_src0, 0|0xA0)) return; //Abort when needed!
+			stack_pop(1); //Popped a dword!
+			++CPU[activeCPU].stackchecked;
+		}
 		static uint_32 value;
 		//Execution step!
 		if (CPU80386_instructionstepPOPtimeout(0)) return; /*POP timeout*/
 		if (CPU80386_POPdw(2,&value)) return; //POP first!
-		if (unlikely(CPU[activeCPU].modrmstep == 0))
-		{
-			modrm_recalc(&params); //Recalc if using (e)sp as the destination offset!
-			if (modrm_check32(&params, MODRM_src0, 0|0x40)) return; if (modrm_check32(&params, MODRM_src0, 0|0xA0)) return; //Abort when needed!
-		}
 		if (CPU80386_instructionstepwritemodrmdw(0,value,MODRM_src0)) return; //POP r/m32
 		if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 		{
