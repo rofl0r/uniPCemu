@@ -4574,11 +4574,11 @@ void CPU8086_OP8F() //Undocumented GRP opcode 8F r/m16
 		}
 		if (unlikely(CPU[activeCPU].stackchecked==0)) {
 			if (checkStackAccess(1,0,0)) return;
-			stack_push(0); //Pushed a word!
+			stack_pop(0); //Popped a word!
 			modrm_recalc(&params); //Recalc if using (e)sp as the destination offset!
 			if (modrm_check16(&params, MODRM_src0, 0|0x40)) return;
 			if (modrm_check16(&params, MODRM_src0, 0|0xA0)) return; //Abort when needed!
-			stack_pop(0); //Popped a word!
+			stack_push(0); //Popped a word!
 			++CPU[activeCPU].stackchecked;
 		}
 		static word value;
