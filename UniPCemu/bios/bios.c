@@ -1153,7 +1153,7 @@ int BIOS_SaveData() //Save BIOS settings!
 	safestrcat(sound_comment, sizeof(sound_comment), "directmidi: 0=Disabled, 1=Enabled\n");
 	safestrcat(sound_comment, sizeof(sound_comment), "gameblaster: 0=Disabled, 1=Enabled\n");
 	safestrcat(sound_comment, sizeof(sound_comment), "gameblaster_volume: Volume of the game blaster, in percent(>=0)\n");
-	safestrcat(sound_comment, sizeof(sound_comment), "soundblaster: 0=Disabled, 1=Version 1.5, 2=Version 2.0\n");
+	safestrcat(sound_comment, sizeof(sound_comment), "soundblaster: 0=Disabled, 1=Version 1.0(with Game Blaster) or 1.5(without Game Blaster), 2=Version 2.0\n");
 	safestrcat(sound_comment, sizeof(sound_comment), "soundsource_volume: Volume of the sound source, in percent(>=0)");
 	char *sound_commentused = NULL;
 	if (sound_comment[0]) sound_commentused = &sound_comment[0];

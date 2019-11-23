@@ -4830,7 +4830,7 @@ void BIOS_InitSoundText()
 	switch (BIOS_Settings.useSoundBlaster)
 	{
 	case 1:
-		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Version 1.5");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Version 1.0 (with GB)/1.5 (without GB)");
 		break;
 	case 2:
 		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Version 2.0");
@@ -6867,7 +6867,7 @@ void BIOS_useSoundBlaster()
 		cleardata(&itemlist[i][0], sizeof(itemlist[i])); //Reset!
 	}
 	safestrcpy(itemlist[0],sizeof(itemlist[0]), "Disabled"); //Set filename from options!
-	safestrcpy(itemlist[1],sizeof(itemlist[0]), "Version 1.5"); //Set filename from options!
+	safestrcpy(itemlist[1],sizeof(itemlist[0]), "Version 1.0(with Game Blaster) or 1.5(without Game Blaster)"); //Set filename from options!
 	safestrcpy(itemlist[2],sizeof(itemlist[0]), "Version 2.0"); //Set filename from options!
 	int current = 0;
 	switch (BIOS_Settings.useSoundBlaster) //What setting?
