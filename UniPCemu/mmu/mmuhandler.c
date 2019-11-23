@@ -226,7 +226,7 @@ uint_32 MMU_memorymaplocpatch[4]; //Memory to substract for the mapped memory wh
 //Memory hole start/end locations!
 #define LOW_MEMORYHOLE_START 0xA0000
 #define LOW_MEMORYHOLE_END 0x100000
-#define MID_MEMORYHOLE_START 0xF00000
+#define MID_MEMORYHOLE_START 0xFA0000
 #define MID_MEMORYHOLE_END 0x1000000
 #define HIGH_MEMORYHOLE_START 0xC0000000
 #define HIGH_MEMORYHOLE_END 0x100000000ULL
