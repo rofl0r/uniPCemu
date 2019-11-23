@@ -442,7 +442,7 @@ OPTINLINE byte applyMemoryHoles(uint_32 *realaddress, byte isread)
 	if (unlikely(memoryhole)) //Memory hole?
 	{
 		// *nonexistant = 1; //We're non-existant!
-		if (BIOSROM_LowMemoryBecomesHighMemory && (memoryhole==1) && BIOSROM_LowMemoryBecomesHighMemory) //Compaq remaps RAM from E0000-FFFFF to FE0000-FFFFFF.
+		if (BIOSROM_LowMemoryBecomesHighMemory && (memoryhole==1)) //Compaq remaps RAM from E0000-FFFFF to FE0000-FFFFFF.
 		{
 			if ((originaladdress>=0xE0000) && (originaladdress<=0xFFFFF)) //Low memory hole to remap to the available memory hole memory? This is the size that's defined in MMU_RESERVEDMEMORY!
 			{
