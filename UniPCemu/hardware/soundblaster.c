@@ -51,8 +51,12 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #define ADPCM_FORMAT_4BIT 0x03
 
 //Sound Blaster version used!
+//Probably reporting 1.05. No documentation found on this. Docs say 1.?, so might be something different.
+#define SB_VERSION10 0x0105
+//Version 1.5
 #define SB_VERSION15 0x0105
-#define SB_VERSION20 0x0200
+//Version 2.0
+#define SB_VERSION20 0x0201
 
 #define SB_VERSION SOUNDBLASTER.version
 
@@ -1201,11 +1205,18 @@ void initSoundBlaster(word baseaddr, byte version)
 	#endif
 
 
-	switch (version) //What version to emulate?
+	switch (version & 0x7F) //What version to emulate?
 	{
 	default:
 	case 0: //DSP 1.05?
-		SOUNDBLASTER.version = SB_VERSION15; //1.5 version!
+		if (version & 0x80) //With Game Blaster included? Then we're a Sound Blaster 1.0. Otherwise, a Sound Blaster 1.5.
+		{
+			SOUNDBLASTER.version = SB_VERSION10; //1.0 version!
+		}
+		else //Without Game Blaster?
+		{
+			SOUNDBLASTER.version = SB_VERSION15; //1.5 version!
+		}
 		break;
 	case 1: //DSP 2.01?
 		SOUNDBLASTER.version = SB_VERSION20; //2.0 version!
