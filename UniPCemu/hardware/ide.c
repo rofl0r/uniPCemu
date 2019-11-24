@@ -1662,12 +1662,15 @@ void updateATA(DOUBLE timepassed) //ATA timing!
 			if (ATA[0].Drive[0].ATAPI_PendingExecuteTransfer<=0.0) //Finished?
 			{
 				ATA[0].Drive[0].ATAPI_PendingExecuteTransfer = 0.0; //Timer finished!
-				if (ATA[0].Drive[0].ATAPI_bytecountleft_IRQ==1) //Anything left to give an IRQ for? Bytecountleft: >0=Data left to transfer(raise IRQ with reason), 0=Finishing interrupt, entering result phase!
+				if ((ATA[0].Drive[0].ATAPI_bytecountleft_IRQ==1) || (ATA[0].Drive[0].ATAPI_bytecountleft_IRQ==3)) //Anything left to give an IRQ for? Bytecountleft: >0=Data left to transfer(raise IRQ with reason), 0=Finishing interrupt, entering result phase, IRQ=3:no IRQ!
 				{
 					ATA_channel = 0;
 					ATA_slave = 0;
 					ATAPI_generateInterruptReason(0,0); //Generate our reason!
-					ATA_IRQ(0,0,(DOUBLE)0,0); //Raise an IRQ!
+					if (ATA[0].Drive[0].ATAPI_bytecountleft_IRQ != 3) //Raise IRQ?
+					{
+						ATA_IRQ(0, 0, (DOUBLE)0, 0); //Raise an IRQ!
+					}
 				}
 			}
 		}
@@ -1678,12 +1681,15 @@ void updateATA(DOUBLE timepassed) //ATA timing!
 			if (ATA[0].Drive[1].ATAPI_PendingExecuteTransfer<=0.0) //Finished?
 			{
 				ATA[0].Drive[1].ATAPI_PendingExecuteTransfer = 0.0; //Timer finished!
-				if (ATA[0].Drive[1].ATAPI_bytecountleft_IRQ==1) //Anything left to give an IRQ for? Bytecountleft: >0=Data left to transfer(raise IRQ with reason), 0=Finishing interrupt, entering result phase!
+				if ((ATA[0].Drive[1].ATAPI_bytecountleft_IRQ == 1) || (ATA[0].Drive[1].ATAPI_bytecountleft_IRQ == 3)) //Anything left to give an IRQ for? Bytecountleft: >0=Data left to transfer(raise IRQ with reason), 0=Finishing interrupt, entering result phase, IRQ=3:no IRQ!
 				{
 					ATA_channel = 0;
 					ATA_slave = 1;
 					ATAPI_generateInterruptReason(0,1); //Generate our reason!
-					ATA_IRQ(0,1,(DOUBLE)0,0); //Raise an IRQ!
+					if (ATA[0].Drive[1].ATAPI_bytecountleft_IRQ != 3) //Raise IRQ?
+					{
+						ATA_IRQ(0, 1, (DOUBLE)0, 0); //Raise an IRQ!
+					}
 				}
 			}
 		}
@@ -1694,12 +1700,15 @@ void updateATA(DOUBLE timepassed) //ATA timing!
 			if (ATA[1].Drive[0].ATAPI_PendingExecuteTransfer<=0.0) //Finished?
 			{
 				ATA[1].Drive[0].ATAPI_PendingExecuteTransfer = 0.0; //Timer finished!
-				if (ATA[1].Drive[0].ATAPI_bytecountleft_IRQ==1) //Anything left to give an IRQ for? Bytecountleft: >0=Data left to transfer(raise IRQ with reason), 0=Finishing interrupt, entering result phase!
+				if ((ATA[1].Drive[0].ATAPI_bytecountleft_IRQ == 1) || (ATA[1].Drive[0].ATAPI_bytecountleft_IRQ == 3)) //Anything left to give an IRQ for? Bytecountleft: >0=Data left to transfer(raise IRQ with reason), 0=Finishing interrupt, entering result phase, IRQ=3:no IRQ!
 				{
 					ATA_channel = 1;
 					ATA_slave = 0;
-					ATAPI_generateInterruptReason(1,0); //Generate our reason!
-					ATA_IRQ(1,0,(DOUBLE)0,0); //Raise an IRQ!
+					ATAPI_generateInterruptReason(1, 0); //Generate our reason!
+					if (ATA[1].Drive[0].ATAPI_bytecountleft_IRQ != 3) //Raise IRQ?
+					{
+						ATA_IRQ(1, 0, (DOUBLE)0, 0); //Raise an IRQ!
+					}
 				}
 			}
 		}
@@ -1710,12 +1719,15 @@ void updateATA(DOUBLE timepassed) //ATA timing!
 			if (ATA[1].Drive[1].ATAPI_PendingExecuteTransfer<=0.0) //Finished?
 			{
 				ATA[1].Drive[1].ATAPI_PendingExecuteTransfer = 0.0; //Timer finished!
-				if (ATA[1].Drive[1].ATAPI_bytecountleft_IRQ==1) //Anything left to give an IRQ for? Bytecountleft: >0=Data left to transfer(raise IRQ with reason), 0=Finishing interrupt, entering result phase!
+				if ((ATA[1].Drive[1].ATAPI_bytecountleft_IRQ == 1) || (ATA[1].Drive[1].ATAPI_bytecountleft_IRQ == 3)) //Anything left to give an IRQ for? Bytecountleft: >0=Data left to transfer(raise IRQ with reason), 0=Finishing interrupt, entering result phase, IRQ=3:no IRQ!
 				{
 					ATA_channel = 1;
 					ATA_slave = 1;
 					ATAPI_generateInterruptReason(1,1); //Generate our reason!
-					ATA_IRQ(1,1,(DOUBLE)0,0); //Raise an IRQ!
+					if (ATA[1].Drive[1].ATAPI_bytecountleft_IRQ != 3) //Raise IRQ?
+					{
+						ATA_IRQ(1, 1, (DOUBLE)0, 0); //Raise an IRQ!
+					}
 				}
 			}
 		}
@@ -4804,7 +4816,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 2; //We're requesting data to be written!
 		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 1; //We're processing an ATAPI/SCSI packet!
 		//Packet doesn't raise an IRQ! Just Busy/DRQ is used here!
-		ATAPI_giveresultsize(channel,ATA_activeDrive(channel),12,1); //We're entering a mini-Busy-result phase: raise an IRQ afterwards!
+		ATAPI_giveresultsize(channel,ATA_activeDrive(channel),12,3); //We're entering a mini-Busy-result phase: don't raise an IRQ afterwards(according to )!
 		break;
 	case 0xDA: //Get media status?
 #ifdef ATA_LOG
