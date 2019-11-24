@@ -79,26 +79,28 @@ OPTINLINE void EOI(byte PIC, byte source) //Process and (Automatic) EOI send to 
 {
 	if (__HW_DISABLED) return; //Abort!
 	byte i;
-	for (i=0; i<8; i++)
+	for (i = 0; i < 8; i++)
+	{
 		if ((i8259.isr[PIC] >> i) & 1)
 		{
 			i8259.isr[PIC] ^= (1 << i);
 			byte IRQ;
 			IRQ = (PIC << 3) | i; //The IRQ we've finished!
 			byte currentsrc;
-			for (currentsrc=0;currentsrc<0x10;++currentsrc) //Check all sources!
+			for (currentsrc = 0; currentsrc < 0x10; ++currentsrc) //Check all sources!
 			{
-				if (i8259.finishirq[IRQ][currentsrc]) //Gotten a handler?
+				if (i8259.isr2[IRQ][currentsrc]) //We've finished?
 				{
-					if (i8259.isr2[IRQ][currentsrc]) //We've finished?
+					if (i8259.finishirq[IRQ][currentsrc]) //Gotten a handler?
 					{
 						i8259.finishirq[IRQ][currentsrc](IRQ); //We're done with this IRQ!
-						i8259.isr2[IRQ][currentsrc] ^= (1<<i); //Not in service anymore!
 					}
+					i8259.isr2[IRQ][currentsrc] ^= (1 << i); //Not in service anymore!
 				}
 			}
 			return;
 		}
+	}
 }
 
 extern byte is_XT; //Are we emulating a XT architecture?
@@ -122,18 +124,24 @@ byte out8259(word portnum, byte value)
 			i8259.readmode[pic] = 0; //Default to IRR reading after a reset!
 			return 1;
 		}
-		if ((value & 0x98)==8)   //it's an OCW3
+		if ((value & 0x98)==0x08) //it's an OCW3
 		{
 			if (value & 2) i8259.readmode[pic] = value & 1; //Read ISR instead of IRR on reads? Only modify this setting when setting this setting(bit 2 is set)!
+			return 1;
 		}
-		//We're a OCW2!
-		if (value & 0x20)   //EOI command
+		if ((value & 0x18) == 0) //it's an OCW2
 		{
-			for (source=0;source<0x10;++source) //Check all sources!
+			//We're a OCW2!
+			//if (((value & 0xE0)==0x20) || ((value&0xE0)==0x60)) //EOI command
+			if ((value&0xE0)!=0x40) //Ignore type! Not a NOP?
 			{
-				EOI(pic,source); //Send an EOI from this source!
+				for (source = 0; source < 0x10; ++source) //Check all sources!
+				{
+					EOI(pic, source); //Send an EOI from this source!
+				}
 			}
 		}
+		return 1;
 		break;
 	case 1:
 		if ((i8259.icwstep[pic] == 2) && (i8259.icw[pic][0] & 2))
@@ -153,6 +161,7 @@ byte out8259(word portnum, byte value)
 		{
 			i8259.icw[0][0] &= ~2; //Enable second PIC always!
 		}
+		//OCW1!
 		//if we get to this point, this is just a new IMR value
 		i8259.imr[pic] = value;
 		break;
