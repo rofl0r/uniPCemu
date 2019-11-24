@@ -89,13 +89,13 @@ OPTINLINE void EOI(byte PIC, byte source) //Process and (Automatic) EOI send to 
 			byte currentsrc;
 			for (currentsrc = 0; currentsrc < 0x10; ++currentsrc) //Check all sources!
 			{
-				if (i8259.isr2[IRQ][currentsrc]) //We've finished?
+				if (i8259.isr2[PIC][currentsrc]&(1<<(IRQ&7))) //We've finished?
 				{
 					if (i8259.finishirq[IRQ][currentsrc]) //Gotten a handler?
 					{
 						i8259.finishirq[IRQ][currentsrc](IRQ); //We're done with this IRQ!
 					}
-					i8259.isr2[IRQ][currentsrc] ^= (1 << i); //Not in service anymore!
+					i8259.isr2[PIC][currentsrc] ^= (1 << i); //Not in service anymore!
 				}
 			}
 			return;
@@ -135,9 +135,12 @@ byte out8259(word portnum, byte value)
 			//if (((value & 0xE0)==0x20) || ((value&0xE0)==0x60)) //EOI command
 			if ((value&0xE0)!=0x40) //Ignore type! Not a NOP?
 			{
-				for (source = 0; source < 0x10; ++source) //Check all sources!
+				if (value & 0x20) //It's an EOI-type command(non-specific, specific, rotate on non-specific, rotate on specific)?
 				{
-					EOI(pic, source); //Send an EOI from this source!
+					for (source = 0; source < 0x10; ++source) //Check all sources!
+					{
+						EOI(pic, source); //Send an EOI from this source!
+					}
 				}
 			}
 		}
