@@ -242,7 +242,7 @@ OPTINLINE void ACNIR(byte PIC, byte IR, byte source) //Acnowledge request!
 	{
 		ACNIR(0,2,source); //Acnowledging request on first PIC too! This keeps us from firing until acnowledged properly!
 	}
-	for (irr2index = 0;irr2index < 8;++irr2index) //Verify if anything is left!
+	for (irr2index = 0;irr2index < 0x10;++irr2index) //Verify if anything is left!
 	{
 		if (i8259.irr3[PIC][irr2index] & (1 << (IR & 7))) //Request still set?
 		{
@@ -300,7 +300,7 @@ void raiseirq(byte irqnum)
 	byte oldIRR = 0;
 	//Handle edge-triggered IRR!
 	hasirr = 0; //Init IRR state!
-	for (irr2index = 0;irr2index < 8;++irr2index) //Verify if anything is left!
+	for (irr2index = 0;irr2index < 0x10;++irr2index) //Verify if anything is left!
 	{
 		if (i8259.irr2[PIC][irr2index] & (1 << (irqnum & 7))) //Request still set?
 		{
@@ -312,7 +312,7 @@ void raiseirq(byte irqnum)
 
 	i8259.irr2[PIC][requestingindex] |= (1 << (irqnum & 7)); //Add the IRQ to request!
 	hasirr = 0; //Init IRR state!
-	for (irr2index = 0;irr2index < 8;++irr2index) //Verify if anything is left!
+	for (irr2index = 0;irr2index < 0x10;++irr2index) //Verify if anything is left!
 	{
 		if (i8259.irr2[PIC][irr2index] & (1 << (irqnum & 7))) //Request still set?
 		{
@@ -340,7 +340,7 @@ void lowerirq(byte irqnum)
 	i8259.irr2[PIC][requestingindex] &= ~(1 << (irqnum & 7)); //Lower the IRQ line to request!
 	i8259.irr3[PIC][requestingindex] &= ~(1 << (irqnum & 7)); //Remove the request being used itself!
 	hasirr = 0; //Init IRR state!
-	for (irr2index = 0;irr2index < 8;++irr2index) //Verify if anything is left!
+	for (irr2index = 0;irr2index < 0x10;++irr2index) //Verify if anything is left!
 	{
 		if (i8259.irr3[PIC][irr2index] & (1 << (irqnum & 7))) //Request still set?
 		{
