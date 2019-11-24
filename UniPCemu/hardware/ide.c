@@ -524,10 +524,10 @@ OPTINLINE void ATA_IRQ(byte channel, byte slave, DOUBLE timeout, byte enforceBus
 
 OPTINLINE void ATA_removeIRQ(byte channel, byte slave)
 {
+	ATA[channel].Drive[slave].IRQraised = 0; //Lowered!
 	if (is_XT)
 	{
 		//Always allow removing an IRQ if it's raised! This doesn't depend on any flags set in registers!
-		ATA[channel].Drive[slave].IRQraised = 0; //Lowered!
 		switch (channel)
 		{
 		case 0: //Primary channel?
@@ -5657,6 +5657,26 @@ void ATA_DiskChanged(int disk)
 	}
 }
 
+void startIDEIRQ(byte IRQ)
+{
+	byte channel, drive;
+	channel = 0xFF; //None detected!
+	if ((is_XT && (IRQ == ATA_PRIMARYIRQ_XT)) || ((is_XT == 0) && (IRQ == ATA_PRIMARYIRQ_AT))) //Primary?
+	{
+		channel = 0; //Primary!
+	}
+	else if ((is_XT && (IRQ == ATA_SECONDARYIRQ_XT)) || ((is_XT == 0) && (IRQ == ATA_SECONDARYIRQ_AT))) //Secondary?
+	{
+		channel = 1; //Secondary!
+	}
+	if (unlikely(channel == 0xFF)) return; //Don't handle if it's not us!
+	drive = ATA_activeDrive(channel); //Active drive!
+	if (ATA[channel].Drive[drive].IRQraised==1) //IRQ has been raised and not acnowledged?
+	{
+		ATA[channel].Drive[drive].IRQraised = 3; //We're fully raised and acnowledged!
+	}
+}
+
 void initATA()
 {
 	byte slave;
@@ -5672,6 +5692,18 @@ void initATA()
 	//32-bits port!
 	register_PORTIND(&inATA32);
 	register_PORTOUTD(&outATA32);
+
+
+	if (is_XT)
+	{
+		registerIRQ(ATA_PRIMARYIRQ_XT, &startIDEIRQ, NULL); //Register our IRQ finish!
+		registerIRQ(ATA_SECONDARYIRQ_XT, &startIDEIRQ, NULL); //Register our IRQ finish!
+	}
+	else
+	{
+		registerIRQ(ATA_PRIMARYIRQ_AT, &startIDEIRQ, NULL); //Register our IRQ finish!
+		registerIRQ(ATA_SECONDARYIRQ_AT, &startIDEIRQ, NULL); //Register our IRQ finish!
+	}
 
 
 	//We don't implement DMA: this is done by our own DMA controller!
