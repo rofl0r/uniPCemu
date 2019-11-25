@@ -1402,21 +1402,21 @@ void BIOS_ejectdisk(int disk) //Eject an ejectable disk?
 	switch (disk) //What disk?
 	{
 	case FLOPPY0: //Floppy 0?
-		if (strcmp(BIOS_Settings.floppy0,"")==0) //Specified?
+		if (strcmp(BIOS_Settings.floppy0,"")!=0) //Specified?
 		{
 			safestrcpy(BIOS_Settings.floppy0,sizeof(BIOS_Settings.floppy0), ""); //Clear the option!
 			ejected = 1; //We're ejected!
 		}
 		break;
 	case FLOPPY1: //Floppy 1?
-		if (strcmp(BIOS_Settings.floppy1, "")==0) //Specified?
+		if (strcmp(BIOS_Settings.floppy1, "")!=0) //Specified?
 		{
 			safestrcpy(BIOS_Settings.floppy1,sizeof(BIOS_Settings.floppy1), ""); //Clear the option!
 			ejected = 1; //We're ejected!
 		}
 		break;
 	case CDROM0: //CD-ROM0?
-		if (strcmp(BIOS_Settings.cdrom0, "")==0) //Specified?
+		if (strcmp(BIOS_Settings.cdrom0, "")!=0) //Specified?
 		{
 			if (ATA_allowDiskChange(disk,2)) //Allowed to be changed?
 			{
@@ -1426,7 +1426,7 @@ void BIOS_ejectdisk(int disk) //Eject an ejectable disk?
 		}
 		break;
 	case CDROM1: //CD-ROM1?
-		if (strcmp(BIOS_Settings.cdrom1, "")==0) //Specified?
+		if (strcmp(BIOS_Settings.cdrom1, "")!=0) //Specified?
 		{
 			if (ATA_allowDiskChange(disk,2)) //Allowed to be changed?
 			{
