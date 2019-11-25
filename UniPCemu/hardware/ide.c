@@ -4281,8 +4281,9 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			ATA[channel].Drive[drive].isSpinning = 1; //We're running now!
 			break;
 		case 2: //Eject the disc if possible?
-			if (ATA_allowDiskChange(ATA_Drives[channel][drive],2) && (!ATA[channel].Drive[drive].isSpinning)) //Do we allow the disc to be changed? Don't allow ejecting when running!
+			if (ATA_allowDiskChange(ATA_Drives[channel][drive],2)) //Do we allow the disc to be changed? Stop spinning if spinning!
 			{
+				ATA[channel].Drive[channel].isSpinning = 0; //Not spinning!
 				requestEjectDisk(ATA_Drives[channel][drive]); //Request for the specified disk to be ejected!
 				ATA[channel].Drive[channel].allowDiskInsertion = !is_mounted(ATA_Drives[channel][drive]); //Allow the disk to be inserted afterwards!
 			}
