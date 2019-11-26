@@ -57,6 +57,7 @@ typedef struct
 	uint8_t irr[2]; //request register to be read by the emulated CPU!
 	uint8_t irr2[2][0x10]; //Extended IRR for determining requesting hardware! This is the actual status of an IR line(high and low)!
 	uint8_t irr3[2][0x10]; //Extended IRR for determining requesting hardware! This one is actually used to store the status from hardware until it's handled!
+	uint8_t irr3_a[2][0x10]; //Ack line!
 	uint8_t isr[2]; //service register
 	uint8_t isr2[2][0x10]; //Alternative in-service register, for handling sources!
 	uint8_t icwstep[2]; //used during initialization to keep track of which ICW we're at

@@ -87,16 +87,14 @@ OPTINLINE void EOI(byte PIC, byte source) //Process and (Automatic) EOI send to 
 			byte IRQ;
 			IRQ = (PIC << 3) | i; //The IRQ we've finished!
 			byte currentsrc;
-			for (currentsrc = 0; currentsrc < 0x10; ++currentsrc) //Check all sources!
+			currentsrc = src; //Check the specified source!
+			if (i8259.isr2[PIC][currentsrc]&(1<<(IRQ&7))) //We've finished?
 			{
-				if (i8259.isr2[PIC][currentsrc]&(1<<(IRQ&7))) //We've finished?
+				if (i8259.finishirq[IRQ][currentsrc]) //Gotten a handler?
 				{
-					if (i8259.finishirq[IRQ][currentsrc]) //Gotten a handler?
-					{
-						i8259.finishirq[IRQ][currentsrc](IRQ); //We're done with this IRQ!
-					}
-					i8259.isr2[PIC][currentsrc] ^= (1 << i); //Not in service anymore!
+					i8259.finishirq[IRQ][currentsrc](IRQ|(currentsrc<<4)); //We're done with this IRQ!
 				}
+				i8259.isr2[PIC][currentsrc] ^= (1 << i); //Not in service anymore!
 			}
 			return;
 		}
@@ -119,6 +117,7 @@ byte out8259(word portnum, byte value)
 			i8259.icwstep[pic] = 0; //Init ICWStep!
 			memset(&i8259.irr,0,sizeof(i8259.irr)); //Reset IRR raised sense!
 			memset(&i8259.irr3,0,sizeof(i8259.irr3)); //Reset IRR shared raised sense!
+			memset(&i8259.irr3_a,0,sizeof(i8259.irr3_a)); //Reset IRR shared raised sense!
 			i8259.imr[pic] = 0; //clear interrupt mask register
 			i8259.icw[pic][i8259.icwstep[pic]++] = value; //Set the ICW1!
 			i8259.readmode[pic] = 0; //Default to IRR reading after a reset!
@@ -196,9 +195,36 @@ OPTINLINE byte getunprocessedinterrupt(byte PIC)
 	return result; //Give the result!
 }
 
+void acnowledgeirrs()
+{
+	//Move IRR3 to IRR and acnowledge!
+	byte IRQ, source, PIC, IR;
+	for (PIC=0;PIC<2;++PIC)
+		for (IR=0;IR<8;++IR)
+		{
+			IRQ = (PIC << 3) | IR; //The IRQ we're accepting!
+			if ((i8259.irr[PIC]&(1<<IR))==0) //Nothing acnowledged yet?
+			{
+				for (source = 0;source < 0x10;++source) //Verify if anything is left!
+				{
+					if ((i8259.irr3_a[PIC][source]&(1 << IR))==0) //Not acnowledged yet?
+					{
+						if (i8259.acceptirq[IRQ][source]) //Gotten a handler?
+						{
+							i8259.acceptirq[IRQ][source](IRQ|(irr2index<<4)); //We're accepting the IRQ from this source!
+						}
+						i8259.irr3_a[PIC][source] |= (1 << IR); //Add the IRQ to request because of the rise!
+						i8259.irr[PIC] |= (1 << IR); //Add the IRQ to request because of the rise!
+					}
+				}
+			}
+		}
+}
+
 byte PICInterrupt() //We have an interrupt ready to process?
 {
 	if (__HW_DISABLED) return 0; //Abort!
+	acnowledgeirrs(); //Acnowledge IRR!
 	if (getunprocessedinterrupt(0)) //Primary PIC interrupt?
 	{
 		i8259.activePIC = 0; //From PIC0!
@@ -217,7 +243,7 @@ byte PICInterrupt() //We have an interrupt ready to process?
 OPTINLINE byte IRRequested(byte PIC, byte IR, byte source) //We have this requested?
 {
 	if (__HW_DISABLED) return 0; //Abort!
-	return (((getunprocessedinterrupt(PIC) & (i8259.irr3[PIC&1][source]))>> IR) & 1); //Interrupt requested on the specified source?
+	return (((getunprocessedinterrupt(PIC) & (i8259.irr3_a[PIC&1][source]))>> IR) & 1); //Interrupt requested on the specified source?
 }
 
 OPTINLINE void ACNIR(byte PIC, byte IR, byte source) //Acnowledge request!
@@ -225,15 +251,10 @@ OPTINLINE void ACNIR(byte PIC, byte IR, byte source) //Acnowledge request!
 	byte irr2index;
 	if (__HW_DISABLED) return; //Abort!
 	i8259.irr3[PIC][source] &= ~(1 << IR); //Turn source IRR off!
+	i8259.irr3_a[PIC][source] &= ~(1 << IR); //Turn source IRR off!
 	i8259.irr[PIC] &= ~(1<<IR); //Clear the request!
 	i8259.isr[PIC] |= (1 << IR); //Turn in-service on!
 	i8259.isr2[PIC][source] |= (1 << IR); //Turn the source on!
-	byte IRQ;
-	IRQ = (PIC << 3) | IR; //The IRQ we're accepting!
-	if (i8259.acceptirq[IRQ][source]) //Gotten a handler?
-	{
-		i8259.acceptirq[IRQ][source](IRQ); //We're accepting the IRQ from this source!
-	}
 	if ((i8259.icw[PIC][3]&2)==2) //Automatic EOI?
 	{
 		EOI(PIC,source); //Send an EOI!
@@ -241,14 +262,6 @@ OPTINLINE void ACNIR(byte PIC, byte IR, byte source) //Acnowledge request!
 	if (PIC) //Second PIC?
 	{
 		ACNIR(0,2,source); //Acnowledging request on first PIC too! This keeps us from firing until acnowledged properly!
-	}
-	for (irr2index = 0;irr2index < 0x10;++irr2index) //Verify if anything is left!
-	{
-		if (i8259.irr3[PIC][irr2index] & (1 << (IR & 7))) //Request still set?
-		{
-			i8259.irr[PIC] |= (1<<(IR&7)); //We still have an IRR in pending!
-			break; //Stop searching!
-		}
 	}
 }
 
@@ -323,7 +336,6 @@ void raiseirq(byte irqnum)
 
 	if (hasirr && ((hasirr^oldIRR)&1)) //The line is actually raised?
 	{
-		i8259.irr[PIC] |= (1 << (irqnum & 7)); //Add the IRQ to request because of the rise!
 		i8259.irr3[PIC][requestingindex] |= (1 << (irqnum & 7)); //Add the IRQ to request because of the rise! This causes us to be the reason during shared IR lines!
 	}
 }
@@ -351,6 +363,7 @@ void lowerirq(byte irqnum)
 	if (hasirr==0) //Were we lowered completely? We're lowered!
 	{
 		i8259.irr[PIC] &= ~(1<<(irqnum&7)); //Remove the request, if any!
+		i8259.irr3_a[PIC][irr2index] &= ~(1<<(irqnum&7)); //Remove the request, if any!
 	}
 }
 
