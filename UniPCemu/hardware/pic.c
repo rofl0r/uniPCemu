@@ -248,7 +248,6 @@ OPTINLINE byte IRRequested(byte PIC, byte IR, byte source) //We have this reques
 
 OPTINLINE void ACNIR(byte PIC, byte IR, byte source) //Acnowledge request!
 {
-	byte irr2index;
 	if (__HW_DISABLED) return; //Abort!
 	i8259.irr3[PIC][source] &= ~(1 << IR); //Turn source IRR off!
 	i8259.irr3_a[PIC][source] &= ~(1 << IR); //Turn source IRR off!
