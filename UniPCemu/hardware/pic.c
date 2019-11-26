@@ -87,7 +87,7 @@ OPTINLINE void EOI(byte PIC, byte source) //Process and (Automatic) EOI send to 
 			byte IRQ;
 			IRQ = (PIC << 3) | i; //The IRQ we've finished!
 			byte currentsrc;
-			currentsrc = src; //Check the specified source!
+			currentsrc = source; //Check the specified source!
 			if (i8259.isr2[PIC][currentsrc]&(1<<(IRQ&7))) //We've finished?
 			{
 				if (i8259.finishirq[IRQ][currentsrc]) //Gotten a handler?
