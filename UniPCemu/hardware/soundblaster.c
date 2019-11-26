@@ -1082,7 +1082,7 @@ byte inSoundBlaster(word port, byte *result)
 		return 1; //Handled!
 	case 0xE: //DSP - Data Available Status, DSP - IRQ Acknowledge, 8-bit
 		*result = (peekfifobuffer(SOUNDBLASTER.DSPindata,&dummy)<<7)|0x7F; //Do we have data available? Also check for the Direct DMA on older Sound Blasters!
-		if (SOUNDBLASTER.IRQ8Pending&2) //Pending and acnowledged(might not have been done)?
+		if ((SOUNDBLASTER.IRQ8Pending&3)==3) //Pending and acnowledged(might not have been done)?
 		{
 			SOUNDBLASTER.IRQ8Pending = 0; //Not pending anymore!
 			lowerirq(__SOUNDBLASTER_IRQ8); //Lower the IRQ!
