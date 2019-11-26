@@ -187,8 +187,6 @@ void updateSoundBlaster(DOUBLE timepassed, uint_32 MHZ14passed)
 		if (unlikely(soundblaster_IRR <= 0.0)) //Expired?
 		{
 			//Execute Soft IRR after the requested timeout has passed!
-			writefifobuffer(SOUNDBLASTER.DSPindata, 0xAA); //Acnowledged!
-			fifobuffer_gotolast(SOUNDBLASTER.DSPindata); //Give the result!
 			SoundBlaster_IRQ8();
 		}
 	}
