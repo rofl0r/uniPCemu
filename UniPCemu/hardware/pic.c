@@ -351,6 +351,7 @@ void lowerirq(byte irqnum)
 	byte PIC = (irqnum>>3); //IRQ8+ is high PIC!
 	i8259.irr2[PIC][requestingindex] &= ~(1 << (irqnum & 7)); //Lower the IRQ line to request!
 	i8259.irr3[PIC][requestingindex] &= ~(1 << (irqnum & 7)); //Remove the request being used itself!
+	i8259.irr3_a[PIC][requestingindex] &= ~(1<<(irqnum&7)); //Remove the request, if any!
 	hasirr = 0; //Init IRR state!
 	for (irr2index = 0;irr2index < 0x10;++irr2index) //Verify if anything is left!
 	{
@@ -363,7 +364,6 @@ void lowerirq(byte irqnum)
 	if (hasirr==0) //Were we lowered completely? We're lowered!
 	{
 		i8259.irr[PIC] &= ~(1<<(irqnum&7)); //Remove the request, if any!
-		i8259.irr3_a[PIC][irr2index] &= ~(1<<(irqnum&7)); //Remove the request, if any!
 	}
 }
 
