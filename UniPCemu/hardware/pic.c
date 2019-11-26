@@ -207,7 +207,7 @@ void acnowledgeirrs()
 			{
 				for (source = 0;source < 0x10;++source) //Verify if anything is left!
 				{
-					if ((i8259.irr3_a[PIC][source]&(1 << IR))==0) //Not acnowledged yet?
+					if (((i8259.irr3_a[PIC][source]&(1 << IR))==0) && (i8259.irr3[PIC][source] & (1 << IR))) //Not acnowledged yet and high?
 					{
 						if (i8259.acceptirq[IRQ][source]) //Gotten a handler?
 						{
