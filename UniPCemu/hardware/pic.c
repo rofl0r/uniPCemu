@@ -115,9 +115,9 @@ byte out8259(word portnum, byte value)
 		if (value & 0x10)   //begin initialization sequence(OCS)
 		{
 			i8259.icwstep[pic] = 0; //Init ICWStep!
-			memset(&i8259.irr,0,sizeof(i8259.irr)); //Reset IRR raised sense!
-			memset(&i8259.irr3,0,sizeof(i8259.irr3)); //Reset IRR shared raised sense!
-			memset(&i8259.irr3_a,0,sizeof(i8259.irr3_a)); //Reset IRR shared raised sense!
+			memset(&i8259.irr[pic],0,sizeof(i8259.irr[pic])); //Reset IRR raised sense!
+			memset(&i8259.irr3[pic],0,sizeof(i8259.irr3[pic])); //Reset IRR shared raised sense!
+			memset(&i8259.irr3_a[pic],0,sizeof(i8259.irr3_a[pic])); //Reset IRR shared raised sense!
 			i8259.imr[pic] = 0; //clear interrupt mask register
 			i8259.icw[pic][i8259.icwstep[pic]++] = value; //Set the ICW1!
 			i8259.readmode[pic] = 0; //Default to IRR reading after a reset!
