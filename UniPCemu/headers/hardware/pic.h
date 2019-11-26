@@ -77,6 +77,7 @@ byte in8259(word portnum, byte *result); //In port
 byte out8259(word portnum, byte value); //Out port
 byte PICInterrupt(); //We have an interrupt ready to process?
 byte nextintr(); //Next interrupt to handle
+void acnowledgeirrs(); //Acnowledge IRR!
 
 void registerIRQ(byte IRQ, IRQHandler acceptIRQ, IRQHandler finishIRQ); //Register IRQ handler!
 

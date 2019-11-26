@@ -224,7 +224,6 @@ void acnowledgeirrs()
 byte PICInterrupt() //We have an interrupt ready to process?
 {
 	if (__HW_DISABLED) return 0; //Abort!
-	acnowledgeirrs(); //Acnowledge IRR!
 	if (getunprocessedinterrupt(0)) //Primary PIC interrupt?
 	{
 		i8259.activePIC = 0; //From PIC0!
