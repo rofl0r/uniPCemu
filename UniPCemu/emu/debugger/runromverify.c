@@ -178,6 +178,7 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 		{
 			if (CPU[activeCPU].instructionfetch.CPU_isFetching && (CPU[activeCPU].instructionfetch.CPU_fetchphase==1)) //We're starting a new instruction?
 			{
+				acnowledgeirrs(); //Acnowledge IRR!
 				if ((!CPU[activeCPU].trapped) && CPU[activeCPU].registers && CPU[activeCPU].allowInterrupts && (CPU[activeCPU].permanentreset==0) && (CPU[activeCPU].internalinterruptstep==0)) //Only check for hardware interrupts when not trapped and allowed to execute interrupts(not permanently reset)!
 				{
 					if (FLAG_IF) //Interrupts available?

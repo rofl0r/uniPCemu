@@ -1071,6 +1071,7 @@ OPTINLINE byte coreHandler()
 				return 0; //Stop execution!
 			}
 
+			acnowledgeirrs(); //Acnowledge IRR!
 			if (unlikely(FLAG_IF && PICInterrupt() && ((CPU[activeCPU].halt&2)==0))) //We have an interrupt? Clear Halt State when allowed to!
 			{
 				CPU[activeCPU].halt = 0; //Interrupt->Resume from HLT
