@@ -211,7 +211,7 @@ void acnowledgeirrs()
 					{
 						if (i8259.acceptirq[IRQ][source]) //Gotten a handler?
 						{
-							i8259.acceptirq[IRQ][source](IRQ|(irr2index<<4)); //We're accepting the IRQ from this source!
+							i8259.acceptirq[IRQ][source](IRQ|(source<<4)); //We're accepting the IRQ from this source!
 						}
 						i8259.irr3_a[PIC][source] |= (1 << IR); //Add the IRQ to request because of the rise!
 						i8259.irr[PIC] |= (1 << IR); //Add the IRQ to request because of the rise!
