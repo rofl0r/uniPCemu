@@ -583,21 +583,22 @@ void CPU286_OP0F02() //LAR /r
 			}
 			switch (GENERALSEGMENT_TYPE(verdescriptor))
 			{
-			case AVL_SYSTEM_RESERVED_0: //Invalid type?
-			case AVL_SYSTEM_INTERRUPTGATE16BIT:
-			case AVL_SYSTEM_TRAPGATE16BIT:
-			case AVL_SYSTEM_RESERVED_1:
-			case AVL_SYSTEM_RESERVED_2:
-			case AVL_SYSTEM_RESERVED_3:
-			case AVL_SYSTEM_INTERRUPTGATE32BIT:
-			case AVL_SYSTEM_TRAPGATE32BIT:
+			default://Other system types are invalid!
 				if (GENERALSEGMENT_S(verdescriptor) == 0) //System?
 				{
 					FLAGW_ZF(0); //Invalid descriptor type!
 					break;
 				}
-			default: //Valid type?
-				if (GENERALSEGMENT_S(verdescriptor)) //System?
+			case AVL_SYSTEM_TSS16BIT:
+			case AVL_SYSTEM_LDT:
+			case AVL_SYSTEM_BUSY_TSS16BIT:
+			case AVL_SYSTEM_CALLGATE16BIT:
+			case AVL_SYSTEM_TASKGATE:
+			case AVL_SYSTEM_TSS32BIT:
+			case AVL_SYSTEM_BUSY_TSS32BIT:
+			case AVL_SYSTEM_CALLGATE32BIT:
+			//All non-system types are valid!
+				if (GENERALSEGMENT_S(verdescriptor)) //Non-System?
 				{
 					switch (verdescriptor.desc.AccessRights) //What type?
 					{
