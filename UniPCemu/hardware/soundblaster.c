@@ -1032,6 +1032,8 @@ void DSP_HWreset()
 	SOUNDBLASTER.ADPCM_currentreference = 0; //Reset the reference!
 	fifobuffer_clear(SOUNDBLASTER.DSPindata); //Clear the input buffer!
 	fifobuffer_clear(SOUNDBLASTER.DSPoutdata); //Clear the output buffer!
+	lowerirq(__SOUNDBLASTER_IRQ8); //Lower the IRQ!
+	acnowledgeIRQrequest(__SOUNDBLASTER_IRQ8); //Acnowledge!
 	sb_leftsample = sb_rightsample = 0x80; //Silence output!
 }
 
