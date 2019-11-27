@@ -378,12 +378,6 @@ void CPU386_OP0F02() //LAR /r
 			case AVL_SYSTEM_BUSY_TSS32BIT:
 			case AVL_SYSTEM_CALLGATE32BIT:
 				//All non-system types are valid!
-				if (GENERALSEGMENT_S(verdescriptor)) //Non-System?
-				{
-					FLAGW_ZF(0); //Invalid descriptor type!
-					break;
-				}
-			default: //Valid type?
 				if (GENERALSEGMENT_S(verdescriptor)) //System?
 				{
 					switch (verdescriptor.desc.AccessRights) //What type?
