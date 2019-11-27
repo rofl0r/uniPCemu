@@ -380,7 +380,7 @@ void CPU386_OP0F02() //LAR /r
 				//All non-system types are valid!
 				if (GENERALSEGMENT_S(verdescriptor)) //System?
 				{
-					switch (verdescriptor.desc.AccessRights) //What type?
+					switch (GENERALSEGMENT_TYPE(verdescriptor)) //What type?
 					{
 					case AVL_CODE_EXECUTEONLY_CONFORMING:
 					case AVL_CODE_EXECUTEONLY_CONFORMING_ACCESSED:
@@ -471,7 +471,7 @@ void CPU386_OP0F03() //LSL /r
 			//All non-system types are valid!
 				if (GENERALSEGMENT_S(verdescriptor)) //Non-System?
 				{
-					switch (verdescriptor.desc.AccessRights) //What type?
+					switch (GENERALSEGMENT_TYPE(verdescriptor)) //What type?
 					{
 					case AVL_CODE_EXECUTEONLY_CONFORMING:
 					case AVL_CODE_EXECUTEONLY_CONFORMING_ACCESSED:
