@@ -432,7 +432,6 @@ void updateVGAAttributeController_Mode(VGA_Type *VGA)
 	}
 	else //VGA compatibility mode?
 	{
-	applyVGAcompatibleattrmode: //Apply the 4-bit mode instead!
 		VGA->precalcs.planerenderer_16bitDAC = 0; //Don't apply the special plane rendering!
 		attrmode = attributecontroller_VGAmodes[VGA->precalcs.AttributeModeControlRegister_ColorEnable8Bit]; //Apply the current mode according to VGA registers!
 	}
