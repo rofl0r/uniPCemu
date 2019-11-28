@@ -421,6 +421,7 @@ void updateSequencerPixelDivider(VGA_Type* VGA, SEQ_DATA* Sequencer)
 	Sequencer->pixelclockdivider = val; //Latch this many clocks before processing it!
 }
 
+extern byte attrmode_enablepalette;
 VGA_AttributeController_Mode attrmode = VGA_AttributeController_4bit; //Default mode!
 
 void updateVGAAttributeController_Mode(VGA_Type *VGA)
@@ -428,11 +429,14 @@ void updateVGAAttributeController_Mode(VGA_Type *VGA)
 	if (VGA->precalcs.AttributeController_16bitDAC) //16-bit DAC override active?
 	{
 		attrmode = attributecontroller_modes[VGA->precalcs.AttributeController_16bitDAC]; //Apply the current mode!
+		attrmode_enablepalette = 0; //Disable the pallette!
 	}
 	else //VGA compatibility mode?
 	{
 		attrmode = attributecontroller_VGAmodes[VGA->precalcs.AttributeModeControlRegister_ColorEnable8Bit]; //Apply the current mode according to VGA registers!
+		attrmode_enablepalette = 1; //Enable the pallette lookup!
 	}
+	VGA_AttributeController_calcAttributes(VGA); //Recalculate the attributes!
 	updateSequencerPixelDivider(VGA, (SEQ_DATA*)(VGA->Sequencer)); //Update the pixel divider!
 }
 
