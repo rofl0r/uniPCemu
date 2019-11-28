@@ -184,7 +184,7 @@ Handler decodegraphicspixels = loadplanarshiftmode; //Active graphics mode!
 
 void updateVGAGraphics_Mode(VGA_Type *VGA)
 {
-	decodegraphicspixels = loadpixel_jmptbl[VGA->precalcs.GraphicsModeRegister_ShiftRegister|VGA->precalcs.AttributeController_16bitDAC]; //Apply the current mode(with 8/16-bit support)!
+	decodegraphicspixels = loadpixel_jmptbl[VGA->precalcs.GraphicsModeRegister_ShiftRegister|VGA->precalcs.planerenderer_16bitDAC]; //Apply the current mode(with 8/16-bit support)!
 }
 
 void VGA_GraphicsDecoder(VGA_Type *VGA, word loadedlocation) //Graphics decoder!

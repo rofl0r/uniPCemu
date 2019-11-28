@@ -873,6 +873,10 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		{
 			et34k_tempreg = 0; //Ignore the reserved value, forcing VGA mode in that case!
 		}
+		if ((et34k_reg(et34kdata, 3c4, 07) & 2) == 0) //SCLK not divided? Then we're in normal mode!
+		{
+			et34k_tempreg = 0; //Ignore the reserved value, forcing VGA mode in that case!
+		}
 		VGA->precalcs.AttributeController_16bitDAC = et34k_tempreg; //Set the new mode to use (mode 2/3 or 0)!
 		//Modes 2&3 set forced 8-bit and 16-bit Attribute modes!
 		updateVGAAttributeController_Mode(VGA); //Update the attribute controller mode, which might have changed!
@@ -1292,6 +1296,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		}
 		VGA->precalcs.DACmode = DACmode; //Apply the new DAC mode!
 		updateSequencerPixelDivider(VGA, (SEQ_DATA*)VGA->Sequencer); //Update the sequencer as well!
+		updateVGAAttributeController_Mode(VGA); //Update the attribute mode!
 	}
 
 	if (SequencerUpdated || AttrUpdated || (whereupdated==(WHEREUPDATED_ATTRIBUTECONTROLLER|0x10)) || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_SEQUENCER | 0x04))

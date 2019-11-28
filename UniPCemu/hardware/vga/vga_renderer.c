@@ -430,9 +430,16 @@ void updateVGAAttributeController_Mode(VGA_Type *VGA)
 	{
 		attrmode = attributecontroller_modes[VGA->precalcs.AttributeController_16bitDAC]; //Apply the current mode!
 		attrmode_enablepalette = 0; //Disable the pallette!
+		if (VGA->precalcs.AttributeModeControlRegister_ColorEnable8Bit == 0) //We're in a weird 4-bit mode instead?
+		{
+			goto applyVGAcompatibleattrmode; //Apply the VGA mode instead!
+		}
+		VGA->precalcs.planerenderer_16bitDAC = VGA->precalcs.AttributeController_16bitDAC; //Use directly!
 	}
 	else //VGA compatibility mode?
 	{
+	applyVGAcompatibleattrmode: //Apply the 4-bit mode instead!
+		VGA->precalcs.planerenderer_16bitDAC = 0; //Don't apply the special plane rendering!
 		attrmode = attributecontroller_VGAmodes[VGA->precalcs.AttributeModeControlRegister_ColorEnable8Bit]; //Apply the current mode according to VGA registers!
 		attrmode_enablepalette = 1; //Enable the pallette lookup!
 	}
