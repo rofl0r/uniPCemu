@@ -708,7 +708,7 @@ void VGA_ActiveDisplay_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_At
 		Sequencer->lastDACcolor = attributeinfo->attribute; //Latching this attribute!
 		if ((attributeinfo->attributesize == 2) && ((VGA->precalcs.DACmode & 2)==0)) //Using a rising 8-bit, falling 8-bit combination to produce 2 pixels from a 16-bit rise/fall input?
 		{
-			if (splittingpixels) //Falling byte of the 16-bit clock?
+			if (splittingpixels==0) //Falling byte of the 16-bit clock(the rising clock has been shifted high, the falling clock isn't shifted)?
 			{
 				Sequencer->lastDACcolor >>= 8; //Latching this attribute!
 			}
