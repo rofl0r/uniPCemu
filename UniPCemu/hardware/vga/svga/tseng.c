@@ -1262,10 +1262,12 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		DACmode = VGA->precalcs.DACmode; //Load the current DAC mode!
 		if (VGA->precalcs.AttributeController_16bitDAC == 3) //In 16-bit mode? Raise the DAC's HICOL input, thus making it 16-bit too!
 		{
-			DACmode |= 3; //Set bit 0: we're full range, Set bit 1: we're a 16-bit mode!
+			//DACmode |= 3; //Set bit 0: we're full range, Set bit 1: we're a 16-bit mode!
+			goto legacyDACmode; //Let the DAC determine what mode it's in normally!
 		}
 		else //Legacy DAC mode? Use the DAC itself for determining the mode it's rendering in!
 		{
+			legacyDACmode:
 			if ((et34k_tempreg & 0xC0) == 0x80) //15-bit hicolor mode?
 			{
 				DACmode &= ~1; //Clear bit 0: we're one bit less!
