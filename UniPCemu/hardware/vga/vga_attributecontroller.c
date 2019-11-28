@@ -36,8 +36,6 @@ OPTINLINE byte getattributeback(byte textmode, byte attr,byte filter)
 	return attr; //Need attribute registers below used!
 }
 
-byte attrmode_enablepalette = 1;
-
 //Dependant on mode control register and underline location register
 void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 {
@@ -87,7 +85,7 @@ void VGA_AttributeController_calcAttributes(VGA_Type *VGA)
 		}
 		colorselect76 = VGA->precalcs.colorselect76; //Retrieve pallete bits 7-6!
 	}
-	paletteenable &= ((VGA->precalcs.BypassPalette|(attrmode_enablepalette?0:1))?0:1); //Bypass the palette if needed!
+	paletteenable &= ((VGA->precalcs.BypassPalette)?0:1); //Bypass the palette if needed!
 
 	backgroundfilter = ((~(enableblink<<3))&0xF); //Background filter depends on blink & full background when not in monochrome mode!
 
