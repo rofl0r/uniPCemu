@@ -687,9 +687,11 @@ void VGA_Blank_CGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attrib
 void VGA_ActiveDisplay_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
 	uint_32 DACcolor; //The latched color!
+	byte splittingpixels=0,issplittingpixels=0;
 	INLINEREGISTER byte doublepixels=0;
 	if (hretrace) return; //Don't handle during horizontal retraces!
 	//Active display!
+	nextsplitpixel: //Process the next splitting pixel if available(during the falling clock)!
 	if ((VGA->precalcs.DACmode&4)==4) //Not latching in 1 raising&lowering(by the attribute controller) clock(Not mode 2, but mode 1)?
 	{
 		//Latch a 8-bit pixel?
@@ -704,6 +706,16 @@ void VGA_ActiveDisplay_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_At
 	else //Pseudo-color mode or Mode 2 15/16-bit DAC?
 	{
 		Sequencer->lastDACcolor = attributeinfo->attribute; //Latching this attribute!
+		if ((attributeinfo->attributesize == 2) && ((VGA->precalcs.DACmode & 2)==0)) //Using a rising 8-bit, falling 8-bit combination to produce 2 pixels from a 16-bit rise/fall input?
+		{
+			if (splittingpixels) //Falling byte of the 16-bit clock?
+			{
+				Sequencer->lastDACcolor >>= 8; //Latching this attribute!
+			}
+			Sequencer->lastDACcolor &= 0xFF; //Latching this attribute as 8-bit pixels!
+			splittingpixels ^= 1; //Start or stop a split pixel!
+			issplittingpixels = 1; //We're using the rise/fall method!
+		}
 	}
 
 	doublepixels = ((1<<(VGA->precalcs.ClockingModeRegister_DCR&1))<<attributeinfo->attributesize); //Double the pixels(half horizontal clock) and multiply for each extra pixel clock taken?
@@ -712,6 +724,7 @@ void VGA_ActiveDisplay_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_At
 		//doublepixels <<= (2>>attributeinfo->attributesize); //On top of the attribute doubling the clocks used, we (qua)druple it again for nibbles, double it for bytes and do nothing for words! 
 		doublepixels <<= 1; //Double the pixels being plotted during active display!
 	}
+	doublepixels >>= issplittingpixels; //Halve when using a split-pixel method!
 
 	//Convert the pixel to a RGB value before drawing any blocks of pixels!
 	if (VGA->precalcs.DACmode&2) //16-bit color?
@@ -748,6 +761,7 @@ void VGA_ActiveDisplay_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_At
 			++VGA->CRTC.x; //Next x!
 		}
 	} while (--doublepixels); //Any pixels left to render?
+	if (unlikely(splittingpixels)) goto nextsplitpixel; //Handle the falling clock if we're using a 8-bit rising/falling method!
 }
 
 void VGA_ActiveDisplay_noblanking_CGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
