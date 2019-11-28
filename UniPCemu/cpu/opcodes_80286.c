@@ -249,7 +249,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 					goto invalidresultVERR286;
 				}
 				if (
-					((MAX(getCPL(),getRPL(oper1))>GENERALSEGMENT_DPL(verdescriptor)) && (!((getLoadedTYPE(&verdescriptor)==1) && EXECSEGMENT_C(verdescriptor)))) || //We are a lower privilege level with either a data/system/non-conforming segment descriptor? Conforming code segments don't check!
+					((MAX(getCPL(),getRPL(oper1))>GENERALSEGMENT_DPL(verdescriptor)) && (!((getLoadedTYPE(&verdescriptor)==1) && EXECSEGMENT_C(verdescriptor))))  //We are a lower privilege level with either a data/system/non-conforming segment descriptor? Conforming code segments don't check!
 					)
 				{
 					FLAGW_ZF(0); //We're invalid!
@@ -304,7 +304,7 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 					goto invalidresultVERW286;
 				}
 				if (
-					((MAX(getCPL(),getRPL(oper1))>GENERALSEGMENT_DPL(verdescriptor)) && (!((getLoadedTYPE(&verdescriptor)==1) && EXECSEGMENT_C(verdescriptor)))) || //We are a lower privilege level with either a data/system/non-conforming segment descriptor? Conforming code segments don't check!
+					((MAX(getCPL(),getRPL(oper1))>GENERALSEGMENT_DPL(verdescriptor)) && (!((getLoadedTYPE(&verdescriptor)==1) && EXECSEGMENT_C(verdescriptor)))) //We are a lower privilege level with either a data/system/non-conforming segment descriptor? Conforming code segments don't check!
 					)
 				{
 					FLAGW_ZF(0); //We're invalid!
