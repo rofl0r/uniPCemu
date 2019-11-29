@@ -852,7 +852,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 	11=High-color 16-bits/pixel
 	*/
 
-	if (AttrUpdated || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_ATTRIBUTECONTROLLER|0x16)) || (whereupdated == (WHEREUPDATED_ATTRIBUTECONTROLLER | 0x10))) //Attribute misc. register?
+	if (AttrUpdated || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_ATTRIBUTECONTROLLER|0x16)) || (whereupdated == (WHEREUPDATED_ATTRIBUTECONTROLLER | 0x10)) || (whereupdated == (WHEREUPDATED_SEQUENCER | 0x7))) //Attribute misc. register?
 	{
 		#ifdef LOG_UNHANDLED_SVGA_ACCESSES
 		handled = 1;
