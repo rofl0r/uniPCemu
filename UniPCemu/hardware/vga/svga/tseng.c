@@ -1405,6 +1405,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		et34k_tempreg |= GETBITS(VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER, 0, 1); //Bit 0 of the Clocking Mode Register(Tseng calls it the TS Mode register) is also included!
 		switch (et34k_tempreg) //What extended clocking mode?
 		{
+		default:
 		case 0: //VGA-compatible modes?
 		case 1: //VGA-compatible modes?
 		case 5: //Unknown/undocumented? Assume VGA-compatible!

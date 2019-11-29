@@ -96,6 +96,11 @@ void VGA_calcprecalcs_CRTC(void *useVGA) //Precalculate CRTC precalcs!
 		VGA->CRTC.charcolstatus[(current<<1)|1] = current%charsize; //Doesn't affect the rendering process itself!
 		VGA->CRTC.textcharcolstatus[current << 1] = current / textcharsize;
 		VGA->CRTC.textcharcolstatus[(current << 1) | 1] = innerpixel = current % textcharsize;
+		if (usegraphicsrate) //Graphics mode is used? Don't use the extended text-mode sizes!
+		{
+			VGA->CRTC.textcharcolstatus[current << 1] = VGA->CRTC.charcolstatus[current << 1];
+			VGA->CRTC.textcharcolstatus[(current << 1) | 1] = innerpixel = VGA->CRTC.charcolstatus[(current << 1) | 1];
+		}
 		VGA->CRTC.colstatus[current] = get_display_x(VGA,((current>>theshift))); //Translate to display rate!
 
 		//Determine some extra information!
@@ -137,7 +142,7 @@ void VGA_calcprecalcs_CRTC(void *useVGA) //Precalculate CRTC precalcs!
 			{
 				if ((++graphicshalfclockrate & 3) == 1) goto tickdiv4; //Tick 1&5, use 4 clock division for pixels 1&5, ignoring character width completely!
 			}
-			else if (((fetchrate == 1) || (fetchrate == 5))) //Half clock rate? Tick clocks 1&5 out of 8 or 9!
+			else if (((fetchrate == 1) || (fetchrate == 5))) //Half clock rate? Tick clocks 1&5 out of 8 or 9+!
 			{
 				tickdiv4: //Graphics DIV4 clock!
 				if (!firstfetch) //Not the first fetch?
