@@ -181,12 +181,16 @@ byte getcharxy(VGA_Type *VGA, byte attribute, byte character, byte x, byte y) //
 
 	attribute >>= 3; //...
 	attribute &= 1; //... Take bit 3 to get the actual attribute we need!
-	if (unlikely(newx>7)) //Extra ninth bit?
+	if (unlikely((newx==8))) //Extra ninth bit?
 	{
-		newx = 7; //Only 7 max!
-		if (likely(getcharacterwidth(VGA)!=8)) //What width? 9 wide?
+		if (likely(VGA->precalcs.textcharacterwidth==9)) //What width? 9 wide?
 		{
 			if ((GETBITS(VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER,2,1)==0) || ((character & 0xE0) != 0xC0)) return 0; //9th bit is always background or not a line graphics character?
+			newx = 7; //Only 7 max!
+		}
+		else if (VGA->precalcs.textcharacterwidth == 8) //8 wide?
+		{
+			newx = 7; //Only 7 max!
 		}
 	}
 	

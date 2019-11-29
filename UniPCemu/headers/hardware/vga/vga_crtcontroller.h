@@ -90,6 +90,7 @@ word get_display_x(VGA_Type *VGA, word x); //Horizontal check!
 //Character sizes in pixels!
 //Character sizes in pixels!
 #define getcharacterwidth(VGA) VGA->precalcs.characterwidth
+#define gettextcharacterwidth(VGA) VGA->precalcs.textcharacterwidth
 //8 or 9 dots per line?
 
 #define getcharacterheight(VGA) VGA->precalcs.characterheight

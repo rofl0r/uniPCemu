@@ -61,7 +61,7 @@ void VGA_calcprecalcs_CRTC(void *useVGA) //Precalculate CRTC precalcs!
 
 	//Horizontal coordinates!
 	charsize = getcharacterwidth(VGA); //Now, based on width!
-	textcharsize = VGA->precalcs.textcharacterwidth; //Text character width instead!
+	textcharsize = gettextcharacterwidth(VGA); //Text character width instead!
 	current = 0; //Init!
 	word extrastatus;
 	byte pixelrate=1;
@@ -324,6 +324,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 	byte CRTUpdated=0, updateCGACRTCONTROLLER=0;
 	byte CRTUpdatedCharwidth=0;
 	byte overflowupdated=0;
+	byte graphicsmodechanges=0;
 
 	if (whereupdated==WHEREUPDATED_ALL) //Update all? Init!
 	{
@@ -460,10 +461,15 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 
 	if ((whereupdated==(WHEREUPDATED_GRAPHICSCONTROLLER|0x06)) || FullUpdate) //Misc graphics register?
 	{
-		if (VGA->precalcs.graphicsmode != GETBITS(VGA->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER,0,1)) adjustVGASpeed(); //Auto-adjust VGA speed!
+		if (VGA->precalcs.graphicsmode != GETBITS(VGA->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER, 0, 1)) //Graphics mode changed?
+		{
+			adjustVGASpeed(); //Auto-adjust VGA speed!
+		}
+		graphicsmodechanges = VGA->precalcs.graphicsmode; //Save the old mode!
 		VGA->precalcs.graphicsmode = GETBITS(VGA->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER,0,1)?1:0; //Update Graphics mode!
 		VGA->precalcs.graphicsmode_nibbled = VGA->precalcs.graphicsmode?3:0; //Allow nibbled to be used (1 or 2) during graphics modes only!
 		VGA->precalcs.textmode = !VGA->precalcs.graphicsmode; //Text mode instead, since we must have faster graphics mode (intensive changes)!
+		updateCRTC |= (graphicsmodechanges != VGA->precalcs.graphicsmode); //Changed graphics mode updates the CRTC as well?
 		updateVGASequencer_Mode(VGA); //Update the sequencer mode!
 		VGA_updateVRAMmaps(VGA); //Update the active VRAM maps!
 		//dolog("VGA","VTotal after gm: %u",VGA->precalcs.verticaltotal); //Log it!
