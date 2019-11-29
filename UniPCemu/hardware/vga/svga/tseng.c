@@ -1183,7 +1183,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 
 	//Misc settings
 	if (CRTUpdated || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x36))
-		|| (whereupdated==(WHEREUPDATED_SEQUENCER|0x4)) || (whereupdated==(WHEREUPDATED_GRAPHICSCONTROLLER|0x5)) //Memory addres
+		|| (whereupdated==(WHEREUPDATED_SEQUENCER|0x4)) || (whereupdated==(WHEREUPDATED_GRAPHICSCONTROLLER|0x5)) //Memory address
 		 ) //Video system configuration #1!
 	{
 		#ifdef LOG_UNHANDLED_SVGA_ACCESSES
@@ -1389,6 +1389,10 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 	if (((whereupdated==(WHEREUPDATED_SEQUENCER|0x01)) || FullUpdate || !VGA->precalcs.characterwidth) || (VGA->precalcs.charwidthupdated) //Sequencer register updated?
 		|| (SequencerUpdated || AttrUpdated || (whereupdated==(WHEREUPDATED_ATTRIBUTECONTROLLER|0x10)) || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_SEQUENCER | 0x04)))
 		|| ((whereupdated==(WHEREUPDATED_SEQUENCER|0x06)))
+		//Double width font updated is checked below?
+		|| (CRTUpdated || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x36))
+			|| (whereupdated == (WHEREUPDATED_GRAPHICSCONTROLLER | 0x5)) //Memory address
+			)
 		)
 	{
 		if (VGA->precalcs.ClockingModeRegister_DCR != et34k_tempreg) adjustVGASpeed(); //Auto-adjust our VGA speed!
@@ -1402,14 +1406,16 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 
 		et34k_tempreg = et34k_reg(et34kdata, 3c4, 06); //TS State Control
 		et34k_tempreg &= 0x06; //Only bits 1-2 are used!
+		if (VGA->precalcs.doublewidthfont == 0) //Double width not enabled? Then we're invalid(VGA-compatible)!
+		{
+			et34k_tempreg = 0; //VGA-compatible!
+		}
 		et34k_tempreg |= GETBITS(VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER, 0, 1); //Bit 0 of the Clocking Mode Register(Tseng calls it the TS Mode register) is also included!
 		switch (et34k_tempreg) //What extended clocking mode?
 		{
 		default:
 		case 0: //VGA-compatible modes?
 		case 1: //VGA-compatible modes?
-		case 5: //Unknown/undocumented? Assume VGA-compatible!
-		case 6: //Unknown/undocumented? Assume VGA-compatible!
 			newcharwidth = GETBITS(VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER, 0, 1) ? 8 : 9; //Character width!
 			newtextwidth = VGA->precalcs.characterwidth; //Text character width(same as normal characterwidth by default)!
 			break;
@@ -1417,11 +1423,16 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		case 3: //11 dots/char?
 		case 4: //12 dots/char?
 			newcharwidth = 8; //Character width!
-			newtextwidth = (8|et34k_tempreg); //Text character width(same as normal characterwidth by default)!
+			newtextwidth = (8|et34k_tempreg); //Text character width!
+			break;
+		case 5: //WhatVGA says 7 dots/char!
+		case 6: //WhatVGA says 6 dots/char!
+			newcharwidth = 8; //Character width!
+			newtextwidth = (6 | (et34k_tempreg&1)); //Text character width!
 			break;
 		case 7: //16 dots/char?
 			newcharwidth = 8; //Character width!
-			newtextwidth = 16; //Text character width(same as normal characterwidth by default)!
+			newtextwidth = 16; //Text character width!
 			break;
 		}
 		updateCRTC |= (VGA->precalcs.characterwidth != newcharwidth); //Char width updated?
