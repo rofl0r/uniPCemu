@@ -43,13 +43,20 @@ OPTINLINE byte reverse8_VGA(byte b) { //Reverses byte value bits!
 
 OPTINLINE void fillgetcharxy_values(VGA_Type *VGA, int_32 address)
 {
-	byte *getcharxy_values;
+	byte doublewidthfont=0;
+	word *getcharxy_values;
 	getcharxy_values = &VGA->getcharxy_values[0]; //The values!
 	word character = 0; //From 0-255!
 	sbyte singlerow = -1; //Single row only?
 	byte y=0; //From 0-32 (5 bits)!
+	word precalcposition; //The position in the precalcs to use!
 	if (likely(address!=-1)) //Single character row only?
 	{
+		if (((VGA->enable_SVGA == 2) || (VGA->enable_SVGA == 1)) && VGA->SVGAExtension) //ET3000/ET4000 enabled?
+		{
+			doublewidthfont = VGA->precalcs.doublewidthfont; //Enable the double width font to be used?
+			//The fonts are in plane 2&3. Plane 2 is like the VGA plane, but plane 3 is only used with double width fonts(combined at the same address as plane 2)!
+		}
 		character = (word)((address >> 5) & 0xFF); //Only single character to edit!
 		singlerow = (sbyte)(address&0x1F); //The single row to edit!
 		y = singlerow; //Only process this row!
@@ -90,8 +97,12 @@ OPTINLINE void fillgetcharxy_values(VGA_Type *VGA, int_32 address)
 				character2 <<= 5; //Multiply by 32!
 				characterset_offset += character2; //Start of the character!
 				characterset_offset += y; //Add the row!
-				
-				getcharxy_values[(character<<6)|(y<<1)|attribute] = reverse8_VGA(readVRAMplane(VGA,2,characterset_offset,0)); //Read the row from the character generator! Don't do anything special, just because we're from the renderer! Also reverse the data in the byte for a little speedup! Store the row for the character generator!
+				precalcposition = ((character << 6) | (y << 1) | attribute); //Where in the precalcs is our font row located?
+				getcharxy_values[precalcposition] = reverse8_VGA(readVRAMplane(VGA,2,characterset_offset,0)); //Read the row from the character generator! Don't do anything special, just because we're from the renderer! Also reverse the data in the byte for a little speedup! Store the row for the character generator!
+				if (doublewidthfont) //Double width font? Plane 3 adds 8 more foreground/background values for the other set!
+				{
+					getcharxy_values[precalcposition] |= ((reverse8_VGA(readVRAMplane(VGA, 3, characterset_offset, 0)))<<8); //Read the row from the character generator! Don't do anything special, just because we're from the renderer! Also reverse the data in the byte for a little speedup! Store the row for the character generator!
+				}
 				if (likely(singlerow!=-1)) goto nextattr; //Don't change the row if a single line is updated!
 				++y; //Next row!
 			}
@@ -112,7 +123,7 @@ void dumpVGATextFonts()
 	char fullfilename[256];
 	cleardata(&fullfilename[0],sizeof(fullfilename)); //Init!
 	uint_32 displayindex;
-	byte *getcharxy_values;
+	word *getcharxy_values;
 
 	byte currentattribute;
 	byte currentcharacter;
@@ -149,7 +160,7 @@ void dumpVGATextFonts()
 	writeBMP(fullfilename,&textdisplay[0],256*8,32*2,0,0,256*8); //Dump our font to the BMP file! We're two characters high (one for every font table) and 256 characters wide(total characters in the font).
 }
 
-void VGA_plane2updated(VGA_Type *VGA, uint_32 address) //Plane 2 has been updated?
+void VGA_plane23updated(VGA_Type *VGA, uint_32 address) //Plane 2 has been updated?
 {
 	fillgetcharxy_values(VGA,address); //Update the character: character number is increased every 32 locations (5 bits row index), but we include the character set too(bits 13-15), so ignore that for correct character and character set handling!
 }

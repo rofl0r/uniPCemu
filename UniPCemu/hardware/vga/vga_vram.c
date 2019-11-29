@@ -59,8 +59,8 @@ void writeVRAMplane(VGA_Type *VGA, byte plane, uint_32 offset, uint_32 bank, byt
 
 	if (unlikely(fulloffset2>=VGA->VRAM_size)) return; //VRAM valid, simple check?
 	VGA->VRAM[fulloffset2] = value; //Set the data in VRAM!
-	if (unlikely(plane==2)) //Character RAM updated?
+	if (unlikely(plane&2)) //Character RAM updated(both plane 2/3)?
 	{
-		VGA_plane2updated(VGA,offset); //Plane 2 has been updated!	
+		VGA_plane23updated(VGA,offset); //Plane 2 has been updated!	
 	}
 }

@@ -47,7 +47,7 @@ void VGA_calcprecalcs_CRTC(void *useVGA) //Precalculate CRTC precalcs!
 {
 	VGA_Type *VGA = (VGA_Type *)useVGA; //The VGA to use!
 	uint_32 current;
-	byte charsize;
+	byte charsize,textcharsize;
 	//Column and row status for each pixel on-screen!
 	charsize = getcharacterheight(VGA); //First, based on height!
 	current = 0; //Init!
@@ -61,6 +61,7 @@ void VGA_calcprecalcs_CRTC(void *useVGA) //Precalculate CRTC precalcs!
 
 	//Horizontal coordinates!
 	charsize = getcharacterwidth(VGA); //Now, based on width!
+	textcharsize = VGA->precalcs.textcharacterwidth; //Text character width instead!
 	current = 0; //Init!
 	word extrastatus;
 	byte pixelrate=1;
@@ -92,7 +93,9 @@ void VGA_calcprecalcs_CRTC(void *useVGA) //Precalculate CRTC precalcs!
 	for (;current<NUMITEMS(VGA->CRTC.colstatus);)
 	{
 		VGA->CRTC.charcolstatus[current<<1] = current/charsize;
-		VGA->CRTC.charcolstatus[(current<<1)|1] = innerpixel = current%charsize;
+		VGA->CRTC.charcolstatus[(current<<1)|1] = current%charsize; //Doesn't affect the rendering process itself!
+		VGA->CRTC.textcharcolstatus[current << 1] = current / textcharsize;
+		VGA->CRTC.textcharcolstatus[(current << 1) | 1] = innerpixel = current % textcharsize;
 		VGA->CRTC.colstatus[current] = get_display_x(VGA,((current>>theshift))); //Translate to display rate!
 
 		//Determine some extra information!
@@ -369,6 +372,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		//CGA forces character width to 8 wide!
 		if (VGA->precalcs.characterwidth != (GETBITS(VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER,0,1)?8:9)) adjustVGASpeed(); //Auto-adjust our VGA speed!
 		VGA->precalcs.characterwidth = GETBITS(VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER,0,1)?8:9; //Character width!
+		VGA->precalcs.textcharacterwidth = VGA->precalcs.characterwidth; //Text character width(same as normal characterwidth by default)!
 		if (VGA->precalcs.ClockingModeRegister_DCR != GETBITS(VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER,3,1)) adjustVGASpeed(); //Auto-adjust our VGA speed!
 		VGA->precalcs.ClockingModeRegister_DCR = GETBITS(VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER,3,1); //Dot Clock Rate!
 

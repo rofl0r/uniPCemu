@@ -92,7 +92,8 @@ typedef struct //Contains the precalculated values!
 	
 	byte overscancolor; //Default overscan color!
 	
-	byte characterwidth; //Character width!
+	byte characterwidth; //Character width for the CRTC!
+	byte textcharacterwidth; //Text mode character width(can be extended past 8/9 pixels/char).
 	byte characterheight; //Character height!
 
 	uint_32 startaddress[2]; //Combination of start address high&low register for normal and top screen (reset) operations!
@@ -168,6 +169,8 @@ typedef struct //Contains the precalculated values!
 	byte EGA_DisableInternalVideoDrivers; //Disable internal video drivers(EGA)?
 	byte use14MHzclock; //14MHz clocking?
 	byte enableInterlacing; //Enable interlacing?
+	byte doublewidthfont; //Enable double width font to be used(index 36h bit 3 of the Tseng chips being set)?
+	byte extendedfont; //Enable extended font dots/char(bits 1-2 of the Sequencer register 6 of the Tseng chips)? 
 } VGA_PRECALCS; //VGA pre-calculations!
 
 typedef void (*VGA_calcprecalcsextensionhandler)(void *VGA, uint_32 whereupdated); //Calculate them!

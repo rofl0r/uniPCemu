@@ -27,6 +27,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/hardware/vga/vga_sequencer_graphicsmode.h" //Graphics mode support!
 #include "headers/hardware/vga/vga_vram.h" //Mapping support for different addressing modes!
 #include "headers/cpu/cpu.h" //NMI support!
+#include "headers/hardware/vga/vga_vramtext.h" //Extended text mode support!
 
 //Log unhandled (S)VGA accesses on the ET34k emulation?
 //#define LOG_UNHANDLED_SVGA_ACCESSES
@@ -803,6 +804,8 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 	byte verticaltimingsupdated = 0; //Vertical timings are updated?
 	byte et34k_tempreg;
 	byte DACmode; //Current/new DAC mode!
+	byte newcharwidth, newtextwidth; //Change detection!
+	byte newfontwidth; //Change detection!
 	uint_32 tempdata; //Saved data!
 	if (!et34k(VGA)) return; //No extension registered?
 
@@ -1244,6 +1247,13 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 			VGA_WriteMemoryMode = VGA->precalcs.WriteMemoryMode; //VGA compatiblity mode!
 		}
 		updateVGAMMUAddressMode(); //Update the currently assigned memory mode for mapping memory by address!
+
+		newfontwidth = ((et34k_tempreg & 4) >> 2); //Are we to use 16-bit wide fonts?
+		if (unlikely(VGA->precalcs.doublewidthfont != newfontwidth)) //Font width is changed?
+		{
+			VGA->precalcs.doublewidthfont = newfontwidth; //Apply double font width or not!
+			VGA_charsetupdated(VGA); //Update the character set, as a new width is to be applied!
+		}
 	}
 
 	if (CRTUpdated || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_SEQUENCER | 0x04)) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x37))
@@ -1378,6 +1388,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 
 	if (((whereupdated==(WHEREUPDATED_SEQUENCER|0x01)) || FullUpdate || !VGA->precalcs.characterwidth) || (VGA->precalcs.charwidthupdated) //Sequencer register updated?
 		|| (SequencerUpdated || AttrUpdated || (whereupdated==(WHEREUPDATED_ATTRIBUTECONTROLLER|0x10)) || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_SEQUENCER | 0x04)))
+		|| ((whereupdated==(WHEREUPDATED_SEQUENCER|0x06)))
 		)
 	{
 		if (VGA->precalcs.ClockingModeRegister_DCR != et34k_tempreg) adjustVGASpeed(); //Auto-adjust our VGA speed!
@@ -1388,6 +1399,34 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		}
 		updateCRTC |= (VGA->precalcs.ClockingModeRegister_DCR != et34k_tempreg); //Update the CRTC!
 		VGA->precalcs.ClockingModeRegister_DCR = et34k_tempreg;
+
+		et34k_tempreg = et34k_reg(et34kdata, 3c4, 06); //TS State Control
+		et34k_tempreg &= 0x06; //Only bits 1-2 are used!
+		et34k_tempreg |= GETBITS(VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER, 0, 1); //Bit 0 of the Clocking Mode Register(Tseng calls it the TS Mode register) is also included!
+		switch (et34k_tempreg) //What extended clocking mode?
+		{
+		case 0: //VGA-compatible modes?
+		case 1: //VGA-compatible modes?
+		case 5: //Unknown/undocumented? Assume VGA-compatible!
+		case 6: //Unknown/undocumented? Assume VGA-compatible!
+			newcharwidth = GETBITS(VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER, 0, 1) ? 8 : 9; //Character width!
+			newtextwidth = VGA->precalcs.characterwidth; //Text character width(same as normal characterwidth by default)!
+			break;
+		case 2: //10 dots/char?
+		case 3: //11 dots/char?
+		case 4: //12 dots/char?
+			newcharwidth = 8; //Character width!
+			newtextwidth = (8|et34k_tempreg); //Text character width(same as normal characterwidth by default)!
+			break;
+		case 7: //16 dots/char?
+			newcharwidth = 8; //Character width!
+			newtextwidth = 16; //Text character width(same as normal characterwidth by default)!
+			break;
+		}
+		updateCRTC |= (VGA->precalcs.characterwidth != newcharwidth); //Char width updated?
+		updateCRTC |= (VGA->precalcs.textcharacterwidth != newtextwidth); //Char width updated?
+		VGA->precalcs.characterwidth = newcharwidth; //Char clock width!
+		VGA->precalcs.textcharacterwidth = newtextwidth; //Text character width!
 	}
 
 	if (updateCRTC) //Update CRTC?

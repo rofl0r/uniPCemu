@@ -76,15 +76,15 @@ OPTINLINE byte is_cursorscanline(VGA_Type *VGA,byte Rendery,word Sequencer_textm
 byte character=0;
 word attribute=0; //Currently loaded data!
 byte iscursor=0; //Are we a cursor scanline?
-byte characterpixels[9]; //All possible character pixels!
+byte characterpixels[16]; //All possible character pixels!
 
 extern LOADEDPLANESCONTAINER loadedplanes; //All read planes for the current processing!
 
 byte charxbuffer[256]; //Full character inner x location!
 
-OPTINLINE byte getcharrow(VGA_Type *VGA, byte attribute3, byte character, byte y) //Retrieve a characters y row on/off from table!
+OPTINLINE word getcharrow(VGA_Type *VGA, byte attribute3, byte character, byte y) //Retrieve a characters y row on/off from table!
 {
-	static byte lastrow; //Last retrieved character row data!
+	static word lastrow; //Last retrieved character row data!
 	static word lastcharinfo = 0; //attribute|character|row|1, bit0=Set?
 	INLINEREGISTER word lastlookup;
 	INLINEREGISTER word charloc;
@@ -106,7 +106,7 @@ OPTINLINE byte getcharrow(VGA_Type *VGA, byte attribute3, byte character, byte y
 void VGA_TextDecoder(VGA_Type *VGA, word loadedlocation)
 {
 	INLINEREGISTER byte x, attr3;
-	INLINEREGISTER byte charrow; //The row read!
+	INLINEREGISTER word charrow; //The row read!
 	//We do nothing: text mode uses multiple planes at the same time!
 	character = loadedplanes.splitplanes[0]; //Character!
 	attribute = loadedplanes.splitplanes[1]<<VGA_SEQUENCER_ATTRIBUTESHIFT; //Attribute!
@@ -149,7 +149,7 @@ void VGA_TextDecoder(VGA_Type *VGA, word loadedlocation)
 		}
 		else goto VGAtext;
 	}
-	else //VGA mode?
+	else //(S)VGA mode?
 	{
 	VGAtext: //VGA text catch-all!
 		attr3 = (byte)attribute; //Load the attribute!
@@ -157,14 +157,14 @@ void VGA_TextDecoder(VGA_Type *VGA, word loadedlocation)
 		attr3 &= 1; //... Take bit 3 to get the actual attribute we need!
 		x = 0; //Start with the first pixel!
 		charrow = getcharrow(VGA,attr3,character, ((SEQ_DATA *)VGA->Sequencer)->charinner_y); //Read the current row to use!
-		attr3 = 8; //How far to go?
+		attr3 = 16; //How far to go?
 		do //Process all coordinates of our row!
 		{
 			characterpixels[x++] = (charrow&1); //Read current coordinate!
 			charrow >>= 1; //Shift to the next pixel!
 		} while (likely(--attr3)); //Loop while anything left!
 
-		if (VGA->precalcs.characterwidth == 9) //What width? 9 wide?
+		if (VGA->precalcs.textcharacterwidth == 9) //What width? 9 wide?
 		{
 			if (unlikely((GETBITS(VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER,2,1)==0) || ((character & 0xE0) != 0xC0))) //Not a line drawing character or line drawing characters disabled in 9 pixel wide mode?
 			{
@@ -188,6 +188,6 @@ void VGA_Sequencer_TextMode(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInf
 	charinner <<= 1;
 	charinner |= 1; //Calculate our column value!
 	//Now retrieve the font/back pixel
-	attributeinfo->fontpixel = (characterpixels[attributeinfo->charinner_x = VGA->CRTC.charcolstatus[charinner]] | iscursor); //We're the font pixel?
+	attributeinfo->fontpixel = (characterpixels[attributeinfo->charinner_x = VGA->CRTC.textcharcolstatus[charinner]] | iscursor); //We're the font pixel?
 	attributeinfo->attribute = attribute; //The attribute for this pixel!
 }

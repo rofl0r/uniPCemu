@@ -341,6 +341,7 @@ typedef struct
 	word charrowstatus[0x2000]; //Character row status (double the row status, for character and inner)
 	uint_32 colstatus[0x1000]; //Column status!
 	word charcolstatus[0x2000]; //Character column status (double the row status, for character and inner)
+	word textcharcolstatus[0x2000]; //Character column status (double the row status, for character and inner)
 	word extrahorizontalstatus[0x2000]; //Extra status information for rendering active display!
 	//Current processing coordinates on-screen!
 	word x; //X coordinate on the screen!
@@ -362,7 +363,7 @@ typedef struct
 
 	uint_32 ExpandTable[256]; //Expand Table (originally 32-bit) for VRAM read and write by CPU!
 	uint_32 FillTable[16]; //Fill table for memory writes!
-	byte getcharxy_values[0x4000]; //All getcharxy values!
+	word getcharxy_values[0x4000]; //All getcharxy values!
 	byte blink8; //Blink rate 8 frames?
 	byte blink16; //Blink rate 16 frames?
 	byte blink32; //Blink rate 32 frames?
@@ -458,7 +459,7 @@ void VGAmemIO_reset(); //Reset/initialise memory mapped I/O for VGA!
 
 void VGA_dumpFonts(); //Dump all VGA fonts!
 
-void VGA_plane2updated(VGA_Type *VGA, uint_32 address); //Plane 2 has been updated?
+void VGA_plane23updated(VGA_Type *VGA, uint_32 address); //Plane 2/3 has been updated?
 
 void setVGA_NMIonPrecursors(byte enabled); //Trigger an NMI when our precursors are called?
 
