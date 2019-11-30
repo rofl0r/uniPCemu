@@ -230,6 +230,7 @@ void BIOS_DirectInput_remap_RCTRL_to_LWIN(); //Remap RCTRL to LWIN!
 void BIOS_DirectInput_remap_accentgrave_to_tab_during_RCTRL(); //Remap accent grave to tab during RCTRL to LWIN mapping!
 void BIOS_floppy0_nodisk_type();
 void BIOS_floppy1_nodisk_type();
+void BIOS_DirectInput_Disable_RALT(); //Disable RALT during Direct Input mode!
 
 
 //First, global handler!
@@ -311,6 +312,7 @@ Handler BIOS_Menus[] =
 	,BIOS_DirectInput_remap_accentgrave_to_tab_during_RCTRL //Remap accent grave to tab during RCTRL to LWIN mapping is #73!
 	,BIOS_floppy0_nodisk_type //Floppy A without disk type is #74!
 	,BIOS_floppy1_nodisk_type //Floppy B without disk type is #75!
+	,BIOS_DirectInput_Disable_RALT //Disable RALT during Direct Input mode is #76!
 };
 
 //Not implemented?
@@ -4011,6 +4013,17 @@ setJoysticktext: //For fixing it!
 	{
 		safestrcat(menuoptions[advancedoptions++], sizeof(menuoptions[0]), "Disabled");
 	}
+
+	optioninfo[advancedoptions] = 6; //BIOS_DirectInput_Disable_RALT
+	safestrcpy(menuoptions[advancedoptions], sizeof(menuoptions[0]), "Disable RALT during Direct Input: "); //Disable RALT during Direct Input!
+	if (BIOS_Settings.input_settings.DirectInput_Disable_RALT)
+	{
+		safestrcat(menuoptions[advancedoptions++], sizeof(menuoptions[0]), "Enabled");
+	}
+	else
+	{
+		safestrcat(menuoptions[advancedoptions++], sizeof(menuoptions[0]), "Disabled");
+	}
 }
 
 void BIOS_inputMenu() //Manage stuff concerning input.
@@ -4028,7 +4041,8 @@ void BIOS_inputMenu() //Manage stuff concerning input.
 	case 2:
 	case 3:
 	case 4:
-	case 5: //Valid option?
+	case 5:
+	case 6: //Valid option?
 		switch (optioninfo[menuresult]) //What option has been chosen, since we are dynamic size?
 		{
 		case 0: //Gaming mode buttons?
@@ -4048,6 +4062,9 @@ void BIOS_inputMenu() //Manage stuff concerning input.
 			break;
 		case 5:
 			BIOS_Menu = 73; //Remap accent grave to tab during RCTRL to LWIN mapping is #73!
+			break;
+		case 6:
+			BIOS_Menu = 76; //Disable RALT during Direct Input is #76!
 			break;
 		default:
 			break;
@@ -7880,6 +7897,14 @@ void BIOS_DirectInput_remap_accentgrave_to_tab_during_RCTRL()
 	BIOS_Changed = 1; //We're changed!
 	BIOS_Menu = 25; //Goto Input menu!
 }
+
+void BIOS_DirectInput_Disable_RALT()
+{
+	BIOS_Settings.input_settings.DirectInput_Disable_RALT = !BIOS_Settings.input_settings.DirectInput_Disable_RALT;
+	BIOS_Changed = 1; //We're changed!
+	BIOS_Menu = 25; //Goto Input menu!
+}
+
 
 void BIOS_floppy0_nodisk_type()
 {
