@@ -738,7 +738,7 @@ void debugger_logdescriptors(char* filename)
 			if (((whatdesc == CPU_SEGMENT_FS) || (whatdesc == CPU_SEGMENT_GS)) && (EMULATED_CPU < CPU_80386)) continue; //Skip non-present descriptors!
 			if (likely(textseg && (whatdesc<NUMITEMS(debuggersegmentregistercache)))) //Valid name/entry?
 			{
-				dolog(filename, "%s descriptor:%08X%08X", textseg, (debuggersegmentregistercache[whatdesc].desc.DATA64 >> 32), (debuggersegmentregistercache[whatdesc].desc.DATA64 & 0xFFFFFFFF)); //Log the descriptor's cache!
+				dolog(filename, "%s descriptor: %08X%08X", textseg, (debuggersegmentregistercache[whatdesc].desc.DATA64 >> 32), (debuggersegmentregistercache[whatdesc].desc.DATA64 & 0xFFFFFFFF)); //Log the descriptor's cache!
 			}
 		}
 	}
