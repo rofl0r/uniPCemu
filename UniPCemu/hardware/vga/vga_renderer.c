@@ -870,6 +870,10 @@ void updateVGASequencer_Mode(VGA_Type *VGA)
 void updateVGADAC_Mode(VGA_Type* VGA)
 {
 	VGA->precalcs.effectiveDACmode = VGA->precalcs.DACmode; //Use the selected DAC mode!
+	if (unlikely((VGA->precalcs.graphicsmode == 0) && (VGA->precalcs.effectiveDACmode & 0x7))) //Not in graphics mode? Force 8-bit DAC compatiblity mode!
+	{
+		VGA->precalcs.effectiveDACmode = 0; //Force VGA-compatible text mode!
+	}
 }
 
 VGA_Sequencer_Mode activedisplay_noblanking_handler = NULL;
