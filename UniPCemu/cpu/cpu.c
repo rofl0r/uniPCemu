@@ -1501,6 +1501,7 @@ extern byte didJump; //Did we jump this instruction?
 extern byte ENTER_L; //Level value of the ENTER instruction!
 extern byte hascallinterrupttaken_type; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task gate flag. Left at 0xFF when nothing is used(unknown case?)
 extern byte CPU_interruptraised; //Interrupt raised flag?
+extern byte custommem; //Used in some instructions!
 
 
 void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
@@ -1557,6 +1558,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		ENTER_L = 0; //Default to no L depth!
 		hascallinterrupttaken_type = 0xFF; //Default to no call/interrupt taken type!
 		CPU_interruptraised = 0; //Default: no interrupt raised!
+		custommem = 0; //Used in some instructions!
 
 		//Now, starting the instruction preprocessing!
 		CPU[activeCPU].is_reset = 0; //We're not reset anymore from now on!
