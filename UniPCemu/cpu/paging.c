@@ -327,9 +327,12 @@ byte CPU_Paging_checkPage(uint_32 address, byte readflags, byte CPL)
 	return (isvalidpage(address,((readflags&(~0x10))==0),CPL,(readflags&0x10),0)==0); //Are we an invalid page? We've raised an error! Bit4 is set during Prefetch operations!
 }
 
+byte successfullpagemapping = 0;
+
 uint_32 mappage(uint_32 address, byte iswrite, byte CPL) //Maps a page to real memory when needed!
 {
 	uint_32 result; //What address?
+	successfullpagemapping = 1; //Set the flag for debugging!
 	if (is_paging()==0) return address; //Direct address when not paging!
 	byte effectiveUS;
 	byte RW;
@@ -373,6 +376,7 @@ uint_32 mappage(uint_32 address, byte iswrite, byte CPL) //Maps a page to real m
 			}
 		}
 	}
+	successfullpagemapping = 0; //Insuccessful: errored out!
 	return address; //Untranslated!
 }
 
