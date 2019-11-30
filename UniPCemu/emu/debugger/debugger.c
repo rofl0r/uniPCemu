@@ -76,6 +76,7 @@ byte singlestep; //Enforce single step by CPU/hardware special debugging effects
 byte lastHLTstatus = 0; //Last halt status for debugger! 1=Was halting, 0=Not halting!
 
 CPU_registers debuggerregisters; //Backup of the CPU's register states before the CPU starts changing them!
+SEGMENT_DESCRIPTOR debuggersegmentregistercache[8]; //All segment descriptors
 byte debuggerHLT = 0;
 byte debuggerReset = 0; //Are we a reset CPU?
 
@@ -493,6 +494,7 @@ void debugger_beforeCPU() //Action before the CPU changes it's registers!
 		if (!CPU[activeCPU].repeating) //Not repeating an instruction?
 		{
 			memcpy(&debuggerregisters, CPU[activeCPU].registers, sizeof(debuggerregisters)); //Copy the registers to our buffer for logging and debugging etc.
+			memcpy(&debuggersegmentregistercache, CPU[activeCPU].SEG_DESCRIPTOR, MIN(sizeof(CPU[0].SEG_DESCRIPTOR),sizeof(debuggersegmentregistercache))); //Copy the registers to our buffer for logging and debugging etc.
 		}
 		//Initialise debugger texts!
 		cleardata(&debugger_prefix[0],sizeof(debugger_prefix));
@@ -718,6 +720,30 @@ OPTINLINE char decodeHLTreset(byte halted,byte isreset)
 	return ' '; //Nothing to report, give empty!
 }
 
+byte descordering[8] = { CPU_SEGMENT_CS,CPU_SEGMENT_DS,CPU_SEGMENT_ES,CPU_SEGMENT_FS,CPU_SEGMENT_GS,CPU_SEGMENT_SS,CPU_SEGMENT_TR,CPU_SEGMENT_LDTR };
+
+void debugger_logdescriptors(char* filename)
+{
+	byte whatdesc;
+	byte descnr;
+	char* textseg;
+	uint_64 descriptorval;
+	//Descriptors themselves!
+	if (EMULATED_CPU >= CPU_80286) //Having descriptors on this CPU?
+	{
+		for (descnr = 0; descnr < NUMITEMS(debuggersegmentregistercache); ++descnr) //Process all segment descriptors!
+		{
+			whatdesc = descordering[descnr]; //The processing descriptor, ordered!
+			textseg = CPU_segmentname(whatdesc); //Get the text value of the segment!
+			if (((whatdesc == CPU_SEGMENT_FS) || (whatdesc == CPU_SEGMENT_GS)) && (EMULATED_CPU < CPU_80386)) continue; //Skip non-present descriptors!
+			if (likely(textseg && (whatdesc<NUMITEMS(debuggersegmentregistercache)))) //Valid name/entry?
+			{
+				dolog(filename, "%s descriptor:%08X%08X", textseg, (debuggersegmentregistercache[whatdesc].desc.DATA64 >> 32), (debuggersegmentregistercache[whatdesc].desc.DATA64 & 0xFFFFFFFF)); //Log the descriptor's cache!
+			}
+		}
+	}
+}
+
 void debugger_logregisters(char *filename, CPU_registers *registers, byte halted, byte isreset)
 {
 	if (likely(DEBUGGER_LOGREGISTERS==0)) //Disable register loggimg?
@@ -755,6 +781,10 @@ void debugger_logregisters(char *filename, CPU_registers *registers, byte halted
 		{
 			dolog(filename, "CR0: %04x", (registers->CR0&0xFFFF)); //Rest!
 			dolog(filename,"GDTR: " LONGLONGSPRINTx " IDTR: " LONGLONGSPRINTx,(LONG64SPRINTF)registers->GDTR.data,(LONG64SPRINTF)registers->IDTR.data); //GDTR/IDTR!
+			if (advancedlog) //Advanced log enabled?
+			{
+				debugger_logdescriptors(filename); //Log descriptors too!
+			}
 		}
 		#endif
 		dolog(filename,"FLAGSINFO: %s%c",debugger_generateFlags(registers),decodeHLTreset(halted,isreset)); //Log the flags!
@@ -781,6 +811,10 @@ void debugger_logregisters(char *filename, CPU_registers *registers, byte halted
 		dolog(filename, "DR6: %08x DR7: %08x", registers->DR6, registers->DR7); //Rest!
 
 		dolog(filename,"GDTR: " LONGLONGSPRINTx " IDTR: " LONGLONGSPRINTx,(LONG64SPRINTF)registers->GDTR.data,(LONG64SPRINTF)registers->IDTR.data); //GDTR/IDTR!
+		if (advancedlog) //Advanced log enabled?
+		{
+			debugger_logdescriptors(filename); //Log descriptors too!
+		}
 		#endif
 		//Finally, flags seperated!
 		dolog(filename,"FLAGSINFO: %s%c",debugger_generateFlags(registers),(char)(halted?'H':' ')); //Log the flags!
@@ -790,23 +824,12 @@ void debugger_logregisters(char *filename, CPU_registers *registers, byte halted
 
 void debugger_logmisc(char *filename, CPU_registers *registers, byte halted, byte isreset, CPU_type *theCPU)
 {
-	byte descnr;
-	char* textseg;
 	if ((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT)) //Common log format?
 	{
 		return; //No misc logging, we're disabled for now!
 	}
 	if ((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_NOREGISTERS) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_SINGLELINE) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_SINGLELINE) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED)) return; //Don't log us: don't log register state!
 	log_timestampbackup = log_logtimestamp(2); //Save state!
-	//Descriptors themselves!
-	for (descnr = 0; descnr < NUMITEMS(CPU[0].SEG_DESCRIPTOR); ++descnr) //Process all segment descriptors!
-	{
-		textseg = CPU_segmentname(descnr); //Get the text value of the segment!
-		if (likely(textseg)) //Valid name?
-		{
-			dolog(filename, "%s descriptor:%08X%08X", textseg, (CPU[activeCPU].SEG_DESCRIPTOR[descnr].desc.DATA64>>32), (CPU[activeCPU].SEG_DESCRIPTOR[descnr].desc.DATA64&0xFFFFFFFF)); //Log the descriptor's cache!
-		}
-	}
 	//Interrupt status
 	int i;
 	//Full interrupt status!
