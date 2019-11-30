@@ -470,7 +470,10 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		VGA->precalcs.graphicsmode_nibbled = VGA->precalcs.graphicsmode?3:0; //Allow nibbled to be used (1 or 2) during graphics modes only!
 		VGA->precalcs.textmode = !VGA->precalcs.graphicsmode; //Text mode instead, since we must have faster graphics mode (intensive changes)!
 		updateCRTC |= (graphicsmodechanges != VGA->precalcs.graphicsmode); //Changed graphics mode updates the CRTC as well?
-		updateVGASequencer_Mode(VGA); //Update the sequencer mode!
+		if ((graphicsmodechanges != VGA->precalcs.graphicsmode))
+		{
+			updateVGASequencer_Mode(VGA); //Update the sequencer mode!
+		}
 		VGA_updateVRAMmaps(VGA); //Update the active VRAM maps!
 		//dolog("VGA","VTotal after gm: %u",VGA->precalcs.verticaltotal); //Log it!
 		adjustVGASpeed(); //Auto-adjust our VGA speed!

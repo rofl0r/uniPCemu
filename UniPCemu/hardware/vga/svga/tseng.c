@@ -1306,6 +1306,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 			DACmode &= ~4; //Use one pixel clock to latch the two bytes?
 		}
 		VGA->precalcs.DACmode = DACmode; //Apply the new DAC mode!
+		updateVGADAC_Mode(VGA); //Update the effective DAC mode!
 		updateSequencerPixelDivider(VGA, (SEQ_DATA*)VGA->Sequencer); //Update the sequencer as well!
 		updateVGAAttributeController_Mode(VGA); //Update the attribute mode!
 	}

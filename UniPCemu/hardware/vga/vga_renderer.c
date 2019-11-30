@@ -862,6 +862,14 @@ void VGA_Overscan_noblanking_CGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_Attribu
 void updateVGASequencer_Mode(VGA_Type *VGA)
 {
 	VGA->precalcs.extrasignal = VGA->precalcs.graphicsmode?VGA_DISPLAYGRAPHICSMODE:0x0000; //Apply the current mode (graphics vs text mode)!
+	updateVGADAC_Mode(VGA); //Update the effective DAC mode!
+	updateSequencerPixelDivider(VGA, (SEQ_DATA*)VGA->Sequencer); //Update the sequencer as well!
+	updateVGAAttributeController_Mode(VGA); //Update the attribute mode!
+}
+
+void updateVGADAC_Mode(VGA_Type* VGA)
+{
+	VGA->precalcs.effectiveDACmode = VGA->precalcs.DACmode; //Use the selected DAC mode!
 }
 
 VGA_Sequencer_Mode activedisplay_noblanking_handler = NULL;
