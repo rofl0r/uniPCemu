@@ -727,7 +727,6 @@ void debugger_logdescriptors(char* filename)
 	byte whatdesc;
 	byte descnr;
 	char* textseg;
-	uint_64 descriptorval;
 	//Descriptors themselves!
 	if (EMULATED_CPU >= CPU_80286) //Having descriptors on this CPU?
 	{
