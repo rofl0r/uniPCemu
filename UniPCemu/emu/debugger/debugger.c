@@ -790,11 +790,24 @@ void debugger_logregisters(char *filename, CPU_registers *registers, byte halted
 
 void debugger_logmisc(char *filename, CPU_registers *registers, byte halted, byte isreset, CPU_type *theCPU)
 {
+	byte descnr;
+	char* textseg;
 	if ((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT)) //Common log format?
 	{
 		return; //No misc logging, we're disabled for now!
 	}
 	if ((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_NOREGISTERS) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_SINGLELINE) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_SINGLELINE) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED)) return; //Don't log us: don't log register state!
+	log_timestampbackup = log_logtimestamp(2); //Save state!
+	//Descriptors themselves!
+	for (descnr = 0; descnr < NUMITEMS(CPU[0].SEG_DESCRIPTOR); ++descnr) //Process all segment descriptors!
+	{
+		textseg = CPU_segmentname(descnr); //Get the text value of the segment!
+		if (likely(textseg)) //Valid name?
+		{
+			dolog(filename, "%s descriptor:%08X%08X", textseg, (CPU[activeCPU].SEG_DESCRIPTOR[descnr].desc.DATA64>>32), (CPU[activeCPU].SEG_DESCRIPTOR[descnr].desc.DATA64&0xFFFFFFFF)); //Log the descriptor's cache!
+		}
+	}
+	//Interrupt status
 	int i;
 	//Full interrupt status!
 	char buffer[0x11] = ""; //Empty buffer to fill!
@@ -803,7 +816,6 @@ void debugger_logmisc(char *filename, CPU_registers *registers, byte halted, byt
 	{
 		safescatnprintf(buffer,sizeof(buffer),"%u",(i8259.irr[(i&8)>>3]>>(i&7))&1); //Show the interrupt status!
 	}
-	log_timestampbackup = log_logtimestamp(2); //Save state!
 	log_logtimestamp(debugger_loggingtimestamp); //Are we to log the timestamp?
 	dolog(filename,"Interrupt status: %s",buffer); //Log the interrupt status!
 	safestrcpy(buffer,sizeof(buffer),""); //Clear the buffer!

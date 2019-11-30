@@ -1404,7 +1404,7 @@ byte isV86()
 
 //Final stuff:
 
-char textsegments[][5] =   //Comply to CPU_REGISTER_XX order!
+char textsegments[8][5] =   //Comply to CPU_REGISTER_XX order!
 {
 	"CS",
 	"SS",
@@ -1423,6 +1423,15 @@ char *CPU_textsegment(byte defaultsegment) //Plain segment to use!
 		return &textsegments[defaultsegment][0]; //Default segment!
 	}
 	return &textsegments[CPU[activeCPU].segment_register][0]; //Use Data Segment (or different in case) for data!
+}
+
+char* CPU_segmentname(byte segment) //Plain segment to use!
+{
+	if (unlikely(segment >= NUMITEMS(textsegments))) //Invalid segment?
+	{
+		return NULL; //Invalid segment!
+	}
+	return &textsegments[segment][0]; //Give the name of the segment!
 }
 
 void CPU_afterexec(); //Prototype for below!

@@ -983,6 +983,7 @@ void CPU_exec(); //Run one CPU OPCode!
 
 word CPU_segment(byte defaultsegment); //Plain segment to use (Plain and overrides)!
 char *CPU_textsegment(byte defaultsegment); //Plain segment to use (text)!
+char* CPU_segmentname(byte segment); //Plain segment to use!
 
 byte call_soft_inthandler(byte intnr, int_64 errorcode, byte is_interrupt); //Software interrupt handler (FROM software interrupts only (int>=0x20 for software call from Handler))!
 void call_hard_inthandler(byte intnr); //Software interrupt handler (FROM hardware only)!
