@@ -867,6 +867,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		et34kdata->protect3C0_PaletteRAM = (et34k_tempreg&0x02)?1:0; //Protect Internal/External Palette RAM if specified!
 		horizontaltimingsupdated = (et34kdata->doublehorizontaltimings != (((et34k_tempreg&0x10) && (VGA->enable_SVGA==2))?1:0)); //Horizontal timings double has been changed?
 		et34kdata->doublehorizontaltimings = (((et34k_tempreg & 0x10) && (VGA->enable_SVGA == 2))?1:0); //Double the horizontal timings?
+		VGA->precalcs.charactercode_16bit = ((et34k_tempreg & 0x40) >> 6); //The new character code size!
 
 		et34k_tempreg >>= 4; //Shift to our position!
 		et34k_tempreg &= 3; //Only 2 bits are used for detection!

@@ -278,6 +278,7 @@ void VGA_Sequencer_calcScanlineData(VGA_Type *VGA) //Recalcs all scanline data f
 typedef void (*Sequencer_pixelhandler)(VGA_Type *VGA,VGA_AttributeInfo *Sequencer_Attributeinfo, word tempx,word tempy,word x,word Scanline,uint_32 bytepanning); //Pixel(s) handler!
 
 LOADEDPLANESCONTAINER loadedplanes; //All four loaded planes!
+LOADEDPLANESCONTAINER loadedplaneshigh; //All four loaded planes!
 
 typedef void (*VGA_Sequencer_planedecoder)(VGA_Type *VGA, word loadedlocation);
 
@@ -347,6 +348,7 @@ uint_32 currentvramlocation;
 OPTINLINE void VGA_loadcharacterplanes(VGA_Type *VGA, SEQ_DATA *Sequencer) //Load the planes!
 {
 	INLINEREGISTER uint_32 vramlocation; //The location we load at!
+	uint_32 vramlocationbackup; //Backup for 16-bit modes!
 	//Horizontal logic
 	VGA_Sequencer_planedecoder planesdecoder[2] = { VGA_TextDecoder, VGA_GraphicsDecoder }; //Use the correct decoder!
 
@@ -354,11 +356,31 @@ OPTINLINE void VGA_loadcharacterplanes(VGA_Type *VGA, SEQ_DATA *Sequencer) //Loa
 	vramlocation = Sequencer->memoryaddress; //Load the address to be loaded!
 	lightpen_currentvramlocation = vramlocation; //Save the new current location for light pen detection!
 
-	//Column/Row logic
-	currentvramlocation = vramlocation = patch_map1314(VGA, addresswrap(VGA, vramlocation)); //Apply address wrap and MAP13/14?
+	if (VGA->precalcs.charactercode_16bit && VGA->precalcs.textmode) //16-bit character code?
+	{
+		vramlocationbackup = vramlocation; //Backup for the first byte to properly fetch!
+		++vramlocation; //Fetch the high byte first!
+		//Column/Row logic
+		currentvramlocation = vramlocation = patch_map1314(VGA, addresswrap(VGA, vramlocation)); //Apply address wrap and MAP13/14?
 
-	//Now calculate and give the planes to be used!
-	loadedplanes.loadedplanes = VGA_VRAMDIRECTPLANAR(VGA,vramlocation,0); //Load the 4 planes from VRAM, as an entire DWORD!
+		//Now calculate and give the planes to be used!
+		loadedplaneshigh.loadedplanes = VGA_VRAMDIRECTPLANAR(VGA, vramlocation, 0); //Load the 4 planes from VRAM, as an entire DWORD!
+		vramlocation = vramlocationbackup; //Now fetching the low byte!
+		//Column/Row logic
+		currentvramlocation = vramlocation = patch_map1314(VGA, addresswrap(VGA, vramlocation)); //Apply address wrap and MAP13/14?
+
+		//Now calculate and give the planes to be used!
+		loadedplanes.loadedplanes = VGA_VRAMDIRECTPLANAR(VGA, vramlocation, 0); //Load the 4 planes from VRAM, as an entire DWORD!
+	}
+	else //VGA-compatible latching?
+	{
+		//Column/Row logic
+		currentvramlocation = vramlocation = patch_map1314(VGA, addresswrap(VGA, vramlocation)); //Apply address wrap and MAP13/14?
+
+		//Now calculate and give the planes to be used!
+		loadedplanes.loadedplanes = VGA_VRAMDIRECTPLANAR(VGA, vramlocation, 0); //Load the 4 planes from VRAM, as an entire DWORD!
+		loadedplaneshigh.loadedplanes = 0; //No high planes!
+	}
 
 	//Now the buffer is ready to be processed into pixels!
 	planesdecoder[VGA->precalcs.graphicsmode](VGA,vramlocation); //Use the decoder to get the pixels or characters!
@@ -384,7 +406,14 @@ OPTINLINE byte VGA_ActiveDisplay_timing(SEQ_DATA *Sequencer, VGA_Type *VGA)
 		if ((++Sequencer->linearcounterdivider&VGA->precalcs.characterclockshift) == 0) //Increase memory address counter?
 		{
 			Sequencer->linearcounterdivider = 0; //Reset!
-			++Sequencer->memoryaddress; //Increase the memory address counter!
+			if (likely(!(VGA->precalcs.charactercode_16bit && VGA->precalcs.textmode))) //8-bit memory location?
+			{
+				++Sequencer->memoryaddress; //Increase the memory address counter!
+			}
+			else //16-bit memory location?
+			{
+				Sequencer->memoryaddress += 2; //Increase the memory address counter!
+			}
 		}
 
 		if (unlikely((++Sequencer->memoryaddressclock&VGA->precalcs.VideoLoadRateMask) == 0)) //Reload data this clock?

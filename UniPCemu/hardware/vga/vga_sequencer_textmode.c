@@ -73,12 +73,13 @@ OPTINLINE byte is_cursorscanline(VGA_Type *VGA,byte Rendery,word Sequencer_textm
 	return 0; //No cursor!
 }
 
-byte character=0;
+word character=0;
 word attribute=0; //Currently loaded data!
 byte iscursor=0; //Are we a cursor scanline?
 byte characterpixels[16]; //All possible character pixels!
 
 extern LOADEDPLANESCONTAINER loadedplanes; //All read planes for the current processing!
+extern LOADEDPLANESCONTAINER loadedplaneshigh; //All read planes for the current processing!
 
 byte charxbuffer[256]; //Full character inner x location!
 
@@ -108,7 +109,7 @@ void VGA_TextDecoder(VGA_Type *VGA, word loadedlocation)
 	INLINEREGISTER byte x, attr3;
 	INLINEREGISTER word charrow; //The row read!
 	//We do nothing: text mode uses multiple planes at the same time!
-	character = loadedplanes.splitplanes[0]; //Character!
+	character = loadedplanes.splitplanes[0]|(loadedplaneshigh.splitplanes[0]<<8); //Character!
 	attribute = loadedplanes.splitplanes[1]<<VGA_SEQUENCER_ATTRIBUTESHIFT; //Attribute!
 	iscursor = is_cursorscanline(VGA, ((SEQ_DATA *)VGA->Sequencer)->charinner_y, loadedlocation); //Are we a cursor?
 	if (unlikely(CGAMDAEMULATION_ENABLED(VGA))) //Enabled CGA/MDA emulation?
@@ -156,7 +157,14 @@ void VGA_TextDecoder(VGA_Type *VGA, word loadedlocation)
 		attr3 >>= 3; //...
 		attr3 &= 1; //... Take bit 3 to get the actual attribute we need!
 		x = 0; //Start with the first pixel!
-		charrow = getcharrow(VGA,attr3,character, ((SEQ_DATA *)VGA->Sequencer)->charinner_y); //Read the current row to use!
+		if (likely((character & 0xFF00) == 0)) //Compatible VGA-character(English character as the ET4000 manual states it, always true for VGA)? Fetch from DRAM!
+		{
+			charrow = getcharrow(VGA, attr3, character, ((SEQ_DATA*)VGA->Sequencer)->charinner_y); //Read the current row to use!
+		}
+		else //Non-English character as the ET4000 manual states it(appendix 6.1) are fetched through some external EPROMs. English characters(index<=0xFF?) are handled normally through the DRAM font(normal VGA lookup)
+		{
+			charrow = 0; //We don't have an external ROM, so simply give no character data!
+		}
 		attr3 = 16; //How far to go?
 		do //Process all coordinates of our row!
 		{
