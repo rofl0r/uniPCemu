@@ -2192,8 +2192,11 @@ OPTINLINE void ATAPI_giveresultsize(byte channel, byte drive, word size, byte ra
 		ATA[channel].Drive[drive].ATAPI_bytecountleft_IRQ = raiseIRQ; //Are we to raise an IRQ when starting a new data transfer?
 		ATA[channel].Drive[drive].ATAPI_PendingExecuteTransfer = ATAPI_PENDINGEXECUTETRANSFER_DATATIMING; //Wait 20us before giving the new data that's to be transferred!
 
-		ATA[channel].Drive[drive].PARAMETERS.cylinderlow = (size&0xFF); //Low byte of the result size!
-		ATA[channel].Drive[drive].PARAMETERS.cylinderhigh = ((size>>8)&0xFF); //High byte of the result size!
+		if (raiseIRQ != 3) //Without IRQ being raised, we're not giving the size in the registers(leave it alone for the execution phase to start!)!
+		{
+			ATA[channel].Drive[drive].PARAMETERS.cylinderlow = (size & 0xFF); //Low byte of the result size!
+			ATA[channel].Drive[drive].PARAMETERS.cylinderhigh = ((size >> 8) & 0xFF); //High byte of the result size!
+		}
 	}
 	else //Finishing an transfer and entering result phase? This is what we do when nothing is to be transferred anymore!
 	{
