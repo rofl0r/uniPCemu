@@ -220,6 +220,7 @@ struct
 		byte EnableMediaStatusNotification; //Enable Media Status Notification?
 		byte preventMediumRemoval; //Are we preventing medium removal for removable disks(CD-ROM)?
 		byte allowDiskInsertion; //Allow a disk to be inserted?
+		byte ATAPI_caddyejected; //Caddy ejected?
 		byte MediumChangeRequested; //Is the user requesting the drive to be ejected?
 		byte isSpinning; //Are we spinning the disc?
 		uint_32 ATAPI_LBA; //ATAPI LBA storage!
@@ -700,6 +701,7 @@ void ATAPI_dynamicloadingprocess_CDinserted(byte channel, byte drive)
 	case LOAD_INSERT_CD: //A CD-ROM has been inserted into or removed from the caddy?
 		if (ATA[channel].Drive[drive].diskInserted) //Inserted?
 		{
+			ATA[channel].Drive[drive].ATAPI_caddyejected = 0; //Not ejected anymore!
 			ATA[channel].Drive[drive].PendingLoadingMode = LOAD_DISC_LOADING; //Start loading!
 			ATA[channel].Drive[drive].PendingSpinType = ATAPI_SPINUP; //Spin up!
 			ATA[channel].Drive[drive].ATAPI_diskchangeTimeout = ATAPI_SPINUP_TIMEOUT; //Timeout to spinup complete!
@@ -707,6 +709,7 @@ void ATAPI_dynamicloadingprocess_CDinserted(byte channel, byte drive)
 		}
 		else //No disc?
 		{
+			ATA[channel].Drive[drive].ATAPI_caddyejected = 0; //Not ejected anymore!
 			ATA[channel].Drive[drive].PendingLoadingMode = LOAD_NO_DISC; //No disc inserted!
 			ATA[channel].Drive[drive].PendingSpinType = ATAPI_SPINUP; //Spin up!
 			ATA[channel].Drive[drive].ATAPI_diskchangeTimeout = 0.0f; //Timeout to spinup complete!
@@ -2687,7 +2690,7 @@ byte ATA_allowDiskChange(int disk, byte ejectRequested) //Are we allowing this d
 	{
 		ATA[disk_channel].Drive[disk_drive].MediumChangeRequested = 1; //We're requesting the medium to change!
 	}
-	return (!(ATA[disk_channel].Drive[disk_drive].preventMediumRemoval && (ejectRequested!=2))) || (ATA[disk_channel].Drive[disk_drive].allowDiskInsertion); //Are we not preventing removal of this medium?
+	return (!(ATA[disk_channel].Drive[disk_drive].preventMediumRemoval && (ejectRequested!=2))) || (ATA[disk_channel].Drive[disk_drive].allowDiskInsertion || ATA[disk_channel].Drive[disk_drive].ATAPI_caddyejected); //Are we not preventing removal of this medium?
 }
 
 byte ATAPI_supportedmodepagecodes[0x4] = { 0x01, 0x0D, 0x0E, 0x2A }; //Supported pages!
@@ -4289,6 +4292,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 				ATA[channel].Drive[channel].isSpinning = 0; //Not spinning!
 				requestEjectDisk(ATA_Drives[channel][drive]); //Request for the specified disk to be ejected!
 				ATA[channel].Drive[channel].allowDiskInsertion = !is_mounted(ATA_Drives[channel][drive]); //Allow the disk to be inserted afterwards!
+				ATA[channel].Drive[channel].ATAPI_caddyejected = 1; //We're ejected!
 			}
 			else //Not allowed to change?
 			{
@@ -4298,6 +4302,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			}
 			break;
 		case 3: //Load the disc (Close tray)?
+			ATA[channel].Drive[channel].ATAPI_caddyejected = 0; //We're not ejected anymore!
 			break;
 		default:
 			break;
@@ -5782,8 +5787,10 @@ void initATA()
 	ATA_DiskChanged(CDROM1); //Init CDROM1!
 	ATA[CDROM_channel].Drive[0].diskInserted = is_mounted(CDROM0); //Init Mounted and inserted?
 	ATA[CDROM_channel].Drive[1].diskInserted = is_mounted(CDROM1); //Init Mounted and inserted?
-	ATA[CDROM_channel].Drive[0].allowDiskInsertion = 1; //Allow disk insertion!
-	ATA[CDROM_channel].Drive[1].allowDiskInsertion = 1; //Allow disk insertion!
+	ATA[CDROM_channel].Drive[0].allowDiskInsertion = 1; //Allow disk insertion and caddy ejected!
+	ATA[CDROM_channel].Drive[1].allowDiskInsertion = 1; //Allow disk insertion and caddy ejected!
+	ATA[CDROM_channel].Drive[0].ATAPI_caddyejected = !is_mounted(CDROM0); //Caddy ejected?
+	ATA[CDROM_channel].Drive[1].ATAPI_caddyejected = !is_mounted(CDROM1); //Caddy ejected?
 	CDROM_DiskChanged = 1; //We're changing when updating!
 	memset(&PCI_IDE, 0, sizeof(PCI_IDE)); //Initialise to 0!
 	register_PCI(&PCI_IDE,1,0, sizeof(PCI_IDE),&ATA_ConfigurationSpaceChanged); //Register the PCI data area!
