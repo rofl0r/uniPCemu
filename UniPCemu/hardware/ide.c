@@ -702,6 +702,7 @@ void ATAPI_dynamicloadingprocess_CDinserted(byte channel, byte drive)
 		if (ATA[channel].Drive[drive].diskInserted) //Inserted?
 		{
 			ATA[channel].Drive[drive].ATAPI_caddyejected = 0; //Not ejected anymore!
+			EMU_setDiskBusy(ATA_Drives[channel][drive], 0 | (ATA[channel].Drive[drive].ATAPI_caddyejected << 1)); //We're not reading anymore!
 			ATA[channel].Drive[drive].PendingLoadingMode = LOAD_DISC_LOADING; //Start loading!
 			ATA[channel].Drive[drive].PendingSpinType = ATAPI_SPINUP; //Spin up!
 			ATA[channel].Drive[drive].ATAPI_diskchangeTimeout = ATAPI_SPINUP_TIMEOUT; //Timeout to spinup complete!
@@ -710,6 +711,7 @@ void ATAPI_dynamicloadingprocess_CDinserted(byte channel, byte drive)
 		else //No disc?
 		{
 			ATA[channel].Drive[drive].ATAPI_caddyejected = 0; //Not ejected anymore!
+			EMU_setDiskBusy(ATA_Drives[channel][drive], 0 | (ATA[channel].Drive[drive].ATAPI_caddyejected << 1)); //We're not reading anymore!
 			ATA[channel].Drive[drive].PendingLoadingMode = LOAD_NO_DISC; //No disc inserted!
 			ATA[channel].Drive[drive].PendingSpinType = ATAPI_SPINUP; //Spin up!
 			ATA[channel].Drive[drive].ATAPI_diskchangeTimeout = 0.0f; //Timeout to spinup complete!
@@ -2250,7 +2252,7 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 			finishedreadingATAPI: //No logical blocks shall be transferred?
 			ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel,drive,0); //Seek complete!
 			ATA[channel].Drive[drive].commandstatus = 0; //We're back in command mode!
-			EMU_setDiskBusy(ATA_Drives[channel][drive], 0); //We're not reading anymore!
+			EMU_setDiskBusy(ATA_Drives[channel][drive], 0| (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_caddyejected << 1)); //We're not reading anymore!
 			ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //We've finished transferring ATAPI data now!
 			ATAPI_giveresultsize(channel,drive,0,1); //No result size!
 			return 0; //We're finished!
@@ -2455,8 +2457,8 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 				}
 				if (datablock_ready==0) //Invalid?
 				{
-					//For all other sector types, the device shall set the ILI bit in the Request Sense Standard Data(for read sector(s) only) and return a “ILLEGAL MODE FOR THIS TRACK” error!
-					//Fill the Request Sense standard data with “ILLEGAL MODE FOR THIS TRACK”!
+					//For all other sector types, the device shall set the ILI bit in the Request Sense Standard Data(for read sector(s) only) and return a ILLEGAL MODE FOR THIS TRACK error!
+					//Fill the Request Sense standard data with ILLEGAL MODE FOR THIS TRACK!
 					abortreason = SENSE_ILLEGAL_REQUEST; //Illegal request:
 					additionalsensecode = ASC_ILLEGAL_MODE_FOR_THIS_TRACK_OR_INCOMPATIBLE_MEDIUM; //Illegal mode or incompatible medium!
 
@@ -2500,8 +2502,8 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 	if ((ATA[channel].Drive[drive].ATAPI_LBA > disk_size) && (datablock_ready==0)) //Past the end of the disk?
 	{
 		ATAPI_readSector_OOR:
-		//For all other sector types, the device shall set the ILI bit in the Request Sense Standard Data(for read sector(s) only) and return a “ILLEGAL MODE FOR THIS TRACK” error!
-		//Fill the Request Sense standard data with “ILLEGAL MODE FOR THIS TRACK”!
+		//For all other sector types, the device shall set the ILI bit in the Request Sense Standard Data(for read sector(s) only) and return a ILLEGAL MODE FOR THIS TRACK error!
+		//Fill the Request Sense standard data with ILLEGAL MODE FOR THIS TRACK!
 		abortreason = SENSE_ILLEGAL_REQUEST; //Illegal request:
 		additionalsensecode = ASC_LOGICAL_BLOCK_OOR; //Illegal mode or incompatible medium!
 #ifdef ATA_LOG
@@ -2558,7 +2560,7 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 		datadest = &ATA[channel].Drive[drive].data[0]; //Start of our buffer!
 	}
 
-	EMU_setDiskBusy(ATA_Drives[channel][drive], 1); //We're reading!
+	EMU_setDiskBusy(ATA_Drives[channel][drive], 1| (ATA[channel].Drive[drive].ATAPI_caddyejected << 1)); //We're reading!
 	if (ATA[channel].Drive[drive].ATAPI_diskchangepending)
 	{
 		ATA[channel].Drive[drive].ATAPI_diskchangepending = 0; //Not pending anymore!
@@ -2566,7 +2568,7 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 
 	if (!(is_mounted(ATA_Drives[channel][drive])&&ATA[channel].Drive[drive].diskInserted)) { //Error out if not present!
 		//Handle like an invalid command!
-		EMU_setDiskBusy(ATA_Drives[channel][drive], 0); //We're doing nothing!
+		EMU_setDiskBusy(ATA_Drives[channel][drive], 0| (ATA[channel].Drive[drive].ATAPI_caddyejected << 1)); //We're doing nothing!
 		ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
 		ATA[channel].Drive[drive].commandstatus = 0xFF; //Move to error mode!
 		ATAPI_giveresultsize(channel,drive,0,1); //No result size!
@@ -2650,7 +2652,7 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 		ATAPI_aborted = 1; //Aborted!
 	ATAPI_erroroutread:
 		ATA_STATUSREGISTER_ERRORW(channel,drive,1); //Set error bit!
-		EMU_setDiskBusy(ATA_Drives[channel][drive], 0); //We're doing nothing!
+		EMU_setDiskBusy(ATA_Drives[channel][drive], 0|(ATA[channel].Drive[drive].ATAPI_caddyejected << 1)); //We're doing nothing!
 		ATA[channel].Drive[drive].commandstatus = 0xFF; //Error!
 		ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //We've finished transferring ATAPI data now!
 		ATAPI_giveresultsize(channel,drive,0,1); //No result size!
@@ -4284,10 +4286,11 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		case 2: //Eject the disc if possible?
 			if (ATA_allowDiskChange(ATA_Drives[channel][drive],2)) //Do we allow the disc to be changed? Stop spinning if spinning!
 			{
-				ATA[channel].Drive[channel].isSpinning = 0; //Not spinning!
+				ATA[channel].Drive[drive].isSpinning = 0; //Not spinning!
 				requestEjectDisk(ATA_Drives[channel][drive]); //Request for the specified disk to be ejected!
-				ATA[channel].Drive[channel].allowDiskInsertion = !is_mounted(ATA_Drives[channel][drive]); //Allow the disk to be inserted afterwards!
-				ATA[channel].Drive[channel].ATAPI_caddyejected = 1; //We're ejected!
+				ATA[channel].Drive[drive].allowDiskInsertion = !is_mounted(ATA_Drives[channel][drive]); //Allow the disk to be inserted afterwards!
+				ATA[channel].Drive[drive].ATAPI_caddyejected = 1; //We're ejected!
+				EMU_setDiskBusy(ATA_Drives[channel][drive], 0 | (ATA[channel].Drive[drive].ATAPI_caddyejected << 1)); //We're not reading anymore!
 			}
 			else //Not allowed to change?
 			{
@@ -4297,7 +4300,8 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			}
 			break;
 		case 3: //Load the disc (Close tray)?
-			ATA[channel].Drive[channel].ATAPI_caddyejected = 0; //We're not ejected anymore!
+			ATA[channel].Drive[drive].ATAPI_caddyejected = 0; //We're not ejected anymore!
+			EMU_setDiskBusy(ATA_Drives[channel][drive], 0 | (ATA[channel].Drive[drive].ATAPI_caddyejected << 1)); //We're not reading anymore!
 			break;
 		default:
 			break;
@@ -4516,7 +4520,7 @@ void ATA_reset(byte channel, byte slave)
 		ATA[channel].Drive[slave].Enable8BitTransfers = 0; //Disable 8-bit transfers only!
 	}
 	giveSignature(channel, slave); //Give the signature!
-	EMU_setDiskBusy(ATA_Drives[channel][slave], 0); //We're not reading or writing anything anymore!
+	EMU_setDiskBusy(ATA_Drives[channel][slave], 0| (ATA[channel].Drive[slave].ATAPI_caddyejected << 1)); //We're not reading or writing anything anymore!
 
 	//Bochs and Dosbox: Both SRST and ATAPI reset don't trigger an IRQ!
 	/*
@@ -5536,6 +5540,7 @@ void ATA_DiskChanged(int disk)
 		ATA[disk_channel].Drive[disk_drive].ATAPI_mediaChanged = 1; //Media has been changed(Microsoft way)?
 		ATA[disk_channel].Drive[disk_drive].ATAPI_mediaChanged2 = 1; //Media has been changed(Documented way)?
 		ATA[disk_channel].Drive[disk_drive].diskInserted = is_mounted(ATA_Drives[disk_channel][disk_drive]); //Are we inserted from the emulated point of view?
+		EMU_setDiskBusy(ATA_Drives[disk_channel][disk_drive], 0 | (ATA[disk_channel].Drive[disk_drive].ATAPI_caddyejected << 1)); //We're not reading anymore!
 		//Run an event handler for the OS!
 		if (ATA[disk_channel].Drive[disk_drive].PARAMETERS.reportReady) //Ready?
 		{
@@ -5784,8 +5789,10 @@ void initATA()
 	ATA[CDROM_channel].Drive[1].diskInserted = is_mounted(CDROM1); //Init Mounted and inserted?
 	ATA[CDROM_channel].Drive[0].allowDiskInsertion = 1; //Allow disk insertion and caddy ejected!
 	ATA[CDROM_channel].Drive[1].allowDiskInsertion = 1; //Allow disk insertion and caddy ejected!
-	ATA[CDROM_channel].Drive[0].ATAPI_caddyejected = !is_mounted(CDROM0); //Caddy ejected?
-	ATA[CDROM_channel].Drive[1].ATAPI_caddyejected = !is_mounted(CDROM1); //Caddy ejected?
+	ATA[CDROM_channel].Drive[0].ATAPI_caddyejected = 0; //Caddy ejected?
+	ATA[CDROM_channel].Drive[1].ATAPI_caddyejected = 0; //Caddy ejected?
+	EMU_setDiskBusy(ATA_Drives[CDROM_channel][0], 0 | (ATA[CDROM_channel].Drive[0].ATAPI_caddyejected << 1)); //We're not reading anymore!
+	EMU_setDiskBusy(ATA_Drives[CDROM_channel][1], 0 | (ATA[CDROM_channel].Drive[1].ATAPI_caddyejected << 1)); //We're not reading anymore!
 	CDROM_DiskChanged = 1; //We're changing when updating!
 	memset(&PCI_IDE, 0, sizeof(PCI_IDE)); //Initialise to 0!
 	register_PCI(&PCI_IDE,1,0, sizeof(PCI_IDE),&ATA_ConfigurationSpaceChanged); //Register the PCI data area!
