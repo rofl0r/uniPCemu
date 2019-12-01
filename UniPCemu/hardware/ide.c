@@ -155,7 +155,7 @@ typedef struct
 	byte tracktype;
 } TRACK_GEOMETRY;
 
-struct
+typedef struct
 {
 	struct
 	{
@@ -273,7 +273,9 @@ struct
 	DOUBLE driveselectTiming;
 	DOUBLE playerTiming; //The timer for the player samples!
 	DOUBLE playerTick; //The time of one sample!
-} ATA[2]; //Two channels of ATA drives!
+} ATA_ChannelContainerType;
+
+ATA_ChannelContainerType ATA[2]; //Two channels of ATA drives!
 
 byte CDROM_channel = 0xFF; //Default: no CD-ROM channel!
 
