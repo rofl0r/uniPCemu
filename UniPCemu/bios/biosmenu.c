@@ -3665,7 +3665,7 @@ extern byte force_memoryredetect; //From the MMU: force memory redetect on load?
 void BIOS_MemReAlloc() //Reallocates BIOS memory!
 {
 	BIOS_Menu = 8; //Goto Advanced menu!
-	BIOS_Settings.memory = 0; //Reset the memory flag!
+	*(getarchmemory()) = 0; //Reset the memory flag!
 	BIOS_Changed = 1; //We're changed!
 	reboot_needed |= 2; //We need to reboot!
 	return; //Disable due to the fact that memory allocations aren't 100% OK atm. Redetect the memory after rebooting!
@@ -5125,10 +5125,6 @@ void BIOS_Architecture()
 		if (file != current) //Not current?
 		{
 			BIOS_Changed = 1; //Changed!
-			if (((BIOS_Settings.architecture==ARCHITECTURE_XT) && (file!=ARCHITECTURE_XT))) //Switching from XT architecture? Memory will need to be updated!
-			{
-				BIOS_MemReAlloc(); //Reallocate memory for the new architecture, if needed!
-			}
 			BIOS_Settings.architecture = file; //Select PS/2 Mouse setting!
 			reboot_needed |= 1; //A reboot is needed when applied!
 		}
@@ -6054,24 +6050,33 @@ void BIOS_ClearCMOS() //Clear the CMOS!
 	CMOS.Loaded = 0; //Unload the CMOS: discard anything that's loaded when saving!
 	memset(&CMOS.DATA,0,sizeof(CMOS.DATA)); //Clear the data!
 	unlock(LOCK_CPU); //We're finished with the main thread!
+	uint_32 memorybackup;
 	if (is_PS2) //PS/2?
 	{
+		memorybackup = BIOS_Settings.PS2CMOS.memory; //Backup!
 		memset(&BIOS_Settings.PS2CMOS, 0, sizeof(BIOS_Settings.PS2CMOS));
+		BIOS_Settings.PS2CMOS.memory = memorybackup; //Restore!
 		BIOS_Settings.got_PS2CMOS = 0; //We haven't gotten a CMOS!
 	}
 	else if (is_Compaq)
 	{
+		memorybackup = BIOS_Settings.CompaqCMOS.memory; //Backup!
 		memset(&BIOS_Settings.CompaqCMOS, 0, sizeof(BIOS_Settings.CompaqCMOS));
+		BIOS_Settings.CompaqCMOS.memory = memorybackup; //Restore!
 		BIOS_Settings.got_CompaqCMOS = 0; //We haven't gotten a CMOS!
 	}
 	else if (is_XT)
 	{
+		memorybackup = BIOS_Settings.XTCMOS.memory; //Backup!
 		memset(&BIOS_Settings.XTCMOS, 0, sizeof(BIOS_Settings.XTCMOS));
+		BIOS_Settings.XTCMOS.memory = memorybackup; //Restore!
 		BIOS_Settings.got_XTCMOS = 0; //We haven't gotten a CMOS!
 	}
 	else //AT?
 	{
+		memorybackup = BIOS_Settings.ATCMOS.memory; //Backup!
 		memset(&BIOS_Settings.ATCMOS, 0, sizeof(BIOS_Settings.ATCMOS));
+		BIOS_Settings.ATCMOS.memory = memorybackup; //Restore!
 		BIOS_Settings.got_ATCMOS = 0; //We haven't gotten a CMOS!
 	}
 	BIOS_Menu = 8; //Goto Advanced Menu!
@@ -7727,11 +7732,14 @@ void BIOS_CMOSTiming() //Time the CMOS!
 	CMOS.Loaded = 1; //Unload the CMOS: discard anything that's loaded when saving!
 	CMOS.DATA.cycletiming = !CMOS.DATA.cycletiming; //Reverse!
 	unlock(LOCK_CPU); //We're finished with the main thread!
+	uint_32 memorybackup;
 	if (is_PS2) //PS/2?
 	{
 		if (!BIOS_Settings.got_PS2CMOS)
 		{
+			memorybackup = BIOS_Settings.PS2CMOS.memory; //Backup!
 			memset(&BIOS_Settings.PS2CMOS,0,sizeof(BIOS_Settings.PS2CMOS)); //Init!
+			BIOS_Settings.PS2CMOS.memory = memorybackup; //Restore!
 		}
 		BIOS_Settings.PS2CMOS.cycletiming = !BIOS_Settings.PS2CMOS.cycletiming; //Reverse!
 		BIOS_Settings.got_PS2CMOS = 1; //We hav gotten a CMOS!
@@ -7740,7 +7748,9 @@ void BIOS_CMOSTiming() //Time the CMOS!
 	{
 		if (!BIOS_Settings.got_CompaqCMOS)
 		{
+			memorybackup = BIOS_Settings.CompaqCMOS.memory; //Backup!
 			memset(&BIOS_Settings.CompaqCMOS,0,sizeof(BIOS_Settings.CompaqCMOS)); //Init!
+			BIOS_Settings.CompaqCMOS.memory = memorybackup; //Restore!
 		}
 		BIOS_Settings.CompaqCMOS.cycletiming = !BIOS_Settings.CompaqCMOS.cycletiming; //Reverse!
 		BIOS_Settings.got_CompaqCMOS = 1; //We hav gotten a CMOS!
@@ -7749,7 +7759,9 @@ void BIOS_CMOSTiming() //Time the CMOS!
 	{
 		if (!BIOS_Settings.got_XTCMOS)
 		{
+			memorybackup = BIOS_Settings.XTCMOS.memory; //Backup!
 			memset(&BIOS_Settings.XTCMOS,0,sizeof(BIOS_Settings.XTCMOS)); //Init!
+			BIOS_Settings.XTCMOS.memory = memorybackup; //Restore!
 		}
 		BIOS_Settings.XTCMOS.cycletiming = !BIOS_Settings.XTCMOS.cycletiming; //Reverse!
 		BIOS_Settings.got_XTCMOS = 1; //We hav gotten a CMOS!
@@ -7758,7 +7770,9 @@ void BIOS_CMOSTiming() //Time the CMOS!
 	{
 		if (!BIOS_Settings.got_ATCMOS)
 		{
+			memorybackup = BIOS_Settings.ATCMOS.memory; //Backup!
 			memset(&BIOS_Settings.ATCMOS,0,sizeof(BIOS_Settings.ATCMOS)); //Init!
+			BIOS_Settings.ATCMOS.memory = memorybackup; //Restore!
 		}
 		BIOS_Settings.ATCMOS.cycletiming = !BIOS_Settings.ATCMOS.cycletiming; //Reverse!
 		BIOS_Settings.got_ATCMOS = 1; //We hav gotten a CMOS!
@@ -7973,11 +7987,14 @@ void BIOS_floppy0_nodisk_type()
 	CMOS.Loaded = 1; //Unload the CMOS: discard anything that's loaded when saving!
 	CMOS.DATA.floppy0_nodisk_type = newtype; //Reverse!
 	unlock(LOCK_CPU); //We're finished with the main thread!
+	uint_32 memorybackup;
 	if (is_PS2) //PS/2?
 	{
 		if (!BIOS_Settings.got_PS2CMOS)
 		{
+			memorybackup = BIOS_Settings.PS2CMOS.memory; //Backup!
 			memset(&BIOS_Settings.PS2CMOS, 0, sizeof(BIOS_Settings.PS2CMOS)); //Init!
+			BIOS_Settings.PS2CMOS.memory = memorybackup; //Restore!
 		}
 		BIOS_Settings.PS2CMOS.floppy0_nodisk_type = result; //Reverse!
 		BIOS_Settings.got_PS2CMOS = 1; //We hav gotten a CMOS!
@@ -7986,7 +8003,9 @@ void BIOS_floppy0_nodisk_type()
 	{
 		if (!BIOS_Settings.got_CompaqCMOS)
 		{
+			memorybackup = BIOS_Settings.CompaqCMOS.memory; //Backup!
 			memset(&BIOS_Settings.CompaqCMOS, 0, sizeof(BIOS_Settings.CompaqCMOS)); //Init!
+			BIOS_Settings.CompaqCMOS.memory = memorybackup; //Restore!
 		}
 		BIOS_Settings.CompaqCMOS.floppy0_nodisk_type = result; //Reverse!
 		BIOS_Settings.got_CompaqCMOS = 1; //We hav gotten a CMOS!
@@ -7995,7 +8014,9 @@ void BIOS_floppy0_nodisk_type()
 	{
 		if (!BIOS_Settings.got_XTCMOS)
 		{
+			memorybackup = BIOS_Settings.XTCMOS.memory; //Backup!
 			memset(&BIOS_Settings.XTCMOS, 0, sizeof(BIOS_Settings.XTCMOS)); //Init!
+			BIOS_Settings.XTCMOS.memory = memorybackup; //Restore!
 		}
 		BIOS_Settings.XTCMOS.floppy0_nodisk_type = result; //Reverse!
 		BIOS_Settings.got_XTCMOS = 1; //We hav gotten a CMOS!
@@ -8004,7 +8025,9 @@ void BIOS_floppy0_nodisk_type()
 	{
 		if (!BIOS_Settings.got_ATCMOS)
 		{
+			memorybackup = BIOS_Settings.ATCMOS.memory; //Backup!
 			memset(&BIOS_Settings.ATCMOS, 0, sizeof(BIOS_Settings.ATCMOS)); //Init!
+			BIOS_Settings.ATCMOS.memory = memorybackup; //Restore!
 		}
 		BIOS_Settings.ATCMOS.floppy0_nodisk_type = result; //Reverse!
 		BIOS_Settings.got_ATCMOS = 1; //We hav gotten a CMOS!
@@ -8078,11 +8101,14 @@ void BIOS_floppy1_nodisk_type()
 	CMOS.Loaded = 1; //Unload the CMOS: discard anything that's loaded when saving!
 	CMOS.DATA.floppy1_nodisk_type = newtype; //Reverse!
 	unlock(LOCK_CPU); //We're finished with the main thread!
+	uint_32 memorybackup;
 	if (is_PS2) //PS/2?
 	{
 		if (!BIOS_Settings.got_PS2CMOS)
 		{
+			memorybackup = BIOS_Settings.PS2CMOS.memory; //Backup!
 			memset(&BIOS_Settings.PS2CMOS, 0, sizeof(BIOS_Settings.PS2CMOS)); //Init!
+			BIOS_Settings.PS2CMOS.memory = memorybackup;
 		}
 		BIOS_Settings.PS2CMOS.floppy1_nodisk_type = result; //Reverse!
 		BIOS_Settings.got_PS2CMOS = 1; //We hav gotten a CMOS!
@@ -8091,7 +8117,9 @@ void BIOS_floppy1_nodisk_type()
 	{
 		if (!BIOS_Settings.got_CompaqCMOS)
 		{
+			memorybackup = BIOS_Settings.CompaqCMOS.memory; //Backup!
 			memset(&BIOS_Settings.CompaqCMOS, 0, sizeof(BIOS_Settings.CompaqCMOS)); //Init!
+			BIOS_Settings.CompaqCMOS.memory = memorybackup; //Restore!
 		}
 		BIOS_Settings.CompaqCMOS.floppy1_nodisk_type = result; //Reverse!
 		BIOS_Settings.got_CompaqCMOS = 1; //We hav gotten a CMOS!
@@ -8100,7 +8128,9 @@ void BIOS_floppy1_nodisk_type()
 	{
 		if (!BIOS_Settings.got_XTCMOS)
 		{
+			memorybackup = BIOS_Settings.XTCMOS.memory; //Backup!
 			memset(&BIOS_Settings.XTCMOS, 0, sizeof(BIOS_Settings.XTCMOS)); //Init!
+			BIOS_Settings.XTCMOS.memory = memorybackup; //Restore!
 		}
 		BIOS_Settings.XTCMOS.floppy1_nodisk_type = result; //Reverse!
 		BIOS_Settings.got_XTCMOS = 1; //We hav gotten a CMOS!
@@ -8109,7 +8139,9 @@ void BIOS_floppy1_nodisk_type()
 	{
 		if (!BIOS_Settings.got_ATCMOS)
 		{
+			memorybackup = BIOS_Settings.ATCMOS.memory; //Backup!
 			memset(&BIOS_Settings.ATCMOS, 0, sizeof(BIOS_Settings.ATCMOS)); //Init!
+			BIOS_Settings.ATCMOS.memory = memorybackup; //Restore!
 		}
 		BIOS_Settings.ATCMOS.floppy1_nodisk_type = result; //Reverse!
 		BIOS_Settings.got_ATCMOS = 1; //We hav gotten a CMOS!

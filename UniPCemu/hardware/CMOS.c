@@ -671,29 +671,38 @@ void CMOS_cleartimedata(CMOSDATA* CMOS)
 
 void saveCMOS()
 {
+	uint_32 memorybackup;
 	if (CMOS.Loaded==0) return; //Don't save when not loaded/initialised!
 	if (is_PS2) //PS/2 CMOS?
 	{
+		memorybackup = BIOS_Settings.PS2CMOS.memory; //Backup the memory field!
 		memcpy(&BIOS_Settings.PS2CMOS, &CMOS.DATA, sizeof(CMOS.DATA)); //Copy the CMOS to BIOS!
 		CMOS_cleartimedata(&BIOS_Settings.PS2CMOS);
+		BIOS_Settings.PS2CMOS.memory = memorybackup; //Backup restored!
 		BIOS_Settings.got_PS2CMOS = 1; //We've saved an CMOS!
 	}
 	if (is_Compaq) //Compaq?
 	{
+		memorybackup = BIOS_Settings.CompaqCMOS.memory; //Backup the memory field!
 		memcpy(&BIOS_Settings.CompaqCMOS, &CMOS.DATA, sizeof(CMOS.DATA)); //Copy the CMOS to BIOS!
 		BIOS_Settings.got_CompaqCMOS = 1; //We've saved an CMOS!
+		BIOS_Settings.CompaqCMOS.memory = memorybackup; //Backup restored!
 		CMOS_cleartimedata(&BIOS_Settings.CompaqCMOS);
 	}
 	else if (is_XT) //XT CMOS?
 	{
+		memorybackup = BIOS_Settings.XTCMOS.memory; //Backup the memory field!
 		memcpy(&BIOS_Settings.XTCMOS, &CMOS.DATA, sizeof(CMOS.DATA)); //Copy the CMOS to BIOS!
 		BIOS_Settings.got_XTCMOS = 1; //We've saved an CMOS!
+		BIOS_Settings.XTCMOS.memory = memorybackup; //Backup restored!
 		CMOS_cleartimedata(&BIOS_Settings.XTCMOS);
 	}
 	else //AT CMOS?
 	{
+		memorybackup = BIOS_Settings.ATCMOS.memory; //Backup the memory field!
 		memcpy(&BIOS_Settings.ATCMOS, &CMOS.DATA, sizeof(CMOS.DATA)); //Copy the CMOS to BIOS!
 		BIOS_Settings.got_ATCMOS = 1; //We've saved an CMOS!
+		BIOS_Settings.ATCMOS.memory = memorybackup; //Backup restored!
 		CMOS_cleartimedata(&BIOS_Settings.ATCMOS);
 	}
 }

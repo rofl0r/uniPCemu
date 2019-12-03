@@ -413,10 +413,12 @@ void initEMU(int full) //Init!
 	debugrow("Loading basic BIOS I/O...");
 	BIOS_LoadIO(0); //Load basic BIOS I/O, also VGA information, don't show checksum errors!
 
+	autoDetectArchitecture(); //Detect the architecture to use!
+
 	//Check for memory requirements of the system!
-	if ((BIOS_Settings.memory & 0xFFFF) && (EMULATED_CPU >= CPU_80286)) //IBM PC/AT has specific memory requirements? Needs to be 64K aligned!
+	if ((*(getarchmemory()) & 0xFFFF) && (EMULATED_CPU >= CPU_80286)) //IBM PC/AT has specific memory requirements? Needs to be 64K aligned!
 	{
-		BIOS_Settings.memory &= ~0xFFFF; //We're forcing a redetection of available memory, if it's needed! Else, just round down memory to the nearest compatible 64K memory!
+		*(getarchmemory()) &= ~0xFFFF; //We're forcing a redetection of available memory, if it's needed! Else, just round down memory to the nearest compatible 64K memory!
 	}
 
 	debugrow("Initializing I/O port handling...");
@@ -430,8 +432,6 @@ void initEMU(int full) //Init!
 	
 	debugrow("Initialising audio subsystem...");
 	resetchannels(); //Reset all channels!
-
-	autoDetectArchitecture(); //Detect the architecture to use!
 
 	debugrow("Initializing 8259...");
 	init8259(); //Initialise the 8259 (PIC)!

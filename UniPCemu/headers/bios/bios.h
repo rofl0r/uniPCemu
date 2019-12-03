@@ -69,7 +69,6 @@ typedef struct
 	byte hdd0_readonly; //read-only?
 	byte hdd1_readonly; //read-only?
 
-	uint_32 memory; //Memory used by the emulator!
 	word emulated_CPU; //Emulated CPU?
 
 	byte bootorder; //Boot order?
@@ -310,6 +309,10 @@ void BIOS_LoadData(); //Loads the data!
 int BIOS_SaveData(); //Save BIOS settings!
 
 //Stuff for other units:
+//Retrieve the current architecture's memory size field for manipulation of it!
+uint_32* getarchmemory(); //Get the memory field for the current architecture!
+
+//Retrieve the MMU size to use!
 uint_32 BIOS_GetMMUSize(); //For MMU!
 int boot_system(); //Tries to boot using BIOS Boot Order. TRUE on success, FALSE on error/not booted.
 

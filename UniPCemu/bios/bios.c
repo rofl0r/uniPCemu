@@ -73,6 +73,33 @@ extern char capturepath[256];
 extern char logpath[256];
 extern char ROMpath[256];
 
+extern byte is_XT; //Are we emulating a XT architecture?
+extern byte is_Compaq; //Are we emulating a Compaq architecture?
+extern byte is_PS2; //Are we emulating PS/2 architecture extensions?
+uint_32 *getarchmemory() //Get the memory field for the current architecture!
+{
+	//First, determine the current CMOS!
+	CMOSDATA* currentCMOS;
+	if (is_PS2) //PS/2?
+	{
+		currentCMOS = &BIOS_Settings.PS2CMOS; //We've used!
+	}
+	else if (is_Compaq)
+	{
+		currentCMOS = &BIOS_Settings.CompaqCMOS; //We've used!
+	}
+	else if (is_XT)
+	{
+		currentCMOS = &BIOS_Settings.XTCMOS; //We've used!
+	}
+	else //AT?
+	{
+		currentCMOS = &BIOS_Settings.ATCMOS; //We've used!
+	}
+	//Now, give the selected CMOS's memory field!
+	return &currentCMOS->memory; //Give the memory field for the current architecture!
+}
+
 void BIOS_updateDirectories()
 {
 #if defined(ANDROID) || defined(IS_LINUX)
@@ -453,10 +480,6 @@ void forceBIOSSave()
 	BIOS_SaveData(); //Save the BIOS, ignoring the result!
 }
 
-extern byte is_XT; //Are we emulating a XT architecture?
-extern byte is_Compaq; //Are we emulating a Compaq architecture?
-extern byte is_PS2; //Are we emulating PS/2 architecture extensions?
-
 void autoDetectArchitecture()
 {
 	is_XT = (BIOS_Settings.architecture==ARCHITECTURE_XT); //XT architecture?
@@ -631,32 +654,34 @@ void autoDetectMemorySize(int tosave) //Auto detect memory size (tosave=save BIO
 		}
 	}
 	if (memoryblocks<0) memoryblocks = 0; //No memory left?
+	uint_32* archmem;
+	archmem = getarchmemory(); //Get the architecture's memory field!
 	if (is_XT) //XT?
 	{
-		BIOS_Settings.memory = memoryblocks * MEMORY_BLOCKSIZE_XT; //Whole blocks of memory only!
+		*archmem = memoryblocks * MEMORY_BLOCKSIZE_XT; //Whole blocks of memory only!
 	}
 	else
 	{
-		BIOS_Settings.memory = memoryblocks * (AThighblocks?MEMORY_BLOCKSIZE_AT_HIGH:MEMORY_BLOCKSIZE_AT_LOW); //Whole blocks of memory only, either low memory or high memory blocks!
+		*archmem = memoryblocks * (AThighblocks?MEMORY_BLOCKSIZE_AT_HIGH:MEMORY_BLOCKSIZE_AT_LOW); //Whole blocks of memory only, either low memory or high memory blocks!
 	}
 	if (EMULATED_CPU<=CPU_NECV30) //80286-? We don't need more than 1MB memory(unusable memory)!
 	{
-		if (BIOS_Settings.memory>=0x100000) BIOS_Settings.memory = 0x100000; //1MB memory max!
+		if (*archmem>=0x100000) *archmem = 0x100000; //1MB memory max!
 	}
 	else if (EMULATED_CPU<=CPU_80286) //80286-? We don't need more than 16MB memory(unusable memory)!
 	{
-		if (BIOS_Settings.memory>=0xF00000) BIOS_Settings.memory = 0x1000000; //16MB memory max!
+		if (*archmem>=0xF00000) *archmem = 0x1000000; //16MB memory max!
 	}
 	if (!memoryblocks) //Not enough memory (at least 16KB or AT specs required)?
 	{
-		raiseError("Settings","Ran out of enough memory to use! Free memory: %u bytes",BIOS_Settings.memory); //Show error&quit: not enough memory to work with!
+		raiseError("Settings","Ran out of enough memory to use! Free memory: %u bytes",*archmem); //Show error&quit: not enough memory to work with!
 		sleep(); //Wait forever!
 	}
-	//dolog("BIOS","Detected memory: %u bytes",BIOS_Settings.memory);
+	//dolog("BIOS","Detected memory: %u bytes",*(getarchmem()));
 
-	if ((uint_64)BIOS_Settings.memory>=((uint_64)4096<<20)) //Past 4G?
+	if ((uint_64)*archmem>=((uint_64)4096<<20)) //Past 4G?
 	{
-		BIOS_Settings.memory = (uint_32)((((uint_64)4096)<<20)-MEMORY_BLOCKSIZE_AT_HIGH); //Limit to the max, just below 4G!
+		*archmem = (uint_32)((((uint_64)4096)<<20)-MEMORY_BLOCKSIZE_AT_HIGH); //Limit to the max, just below 4G!
 	}
 
 	if (tosave)
@@ -673,16 +698,28 @@ void BIOS_LoadDefaults(int tosave) //Load BIOS defaults, but not memory size!
 	{
 		printmsg(0xF,"\r\nSettings Checksum Error. "); //Checksum error.
 	}
-	
-	uint_32 oldmem = BIOS_Settings.memory; //Memory installed!
+
+	uint_32 memorytypes[4];
+	//Backup memory settings first!
+	memorytypes[0] = BIOS_Settings.XTCMOS.memory;
+	memorytypes[1] = BIOS_Settings.ATCMOS.memory;
+	memorytypes[2] = BIOS_Settings.CompaqCMOS.memory;
+	memorytypes[3] = BIOS_Settings.PS2CMOS.memory;
+
+	//Zero out!
 	memset(&BIOS_Settings,0,sizeof(BIOS_Settings)); //Reset to empty!
+
+	//Restore memory settings!
+	BIOS_Settings.XTCMOS.memory = memorytypes[0];
+	BIOS_Settings.ATCMOS.memory = memorytypes[1];
+	BIOS_Settings.CompaqCMOS.memory = memorytypes[2];
+	BIOS_Settings.PS2CMOS.memory = memorytypes[3];
 	
 	if (!file_exists(BIOS_Settings_file)) //New file?
 	{
 		BIOS_Settings.firstrun = 1; //We're the first run!
 	}
 	
-	BIOS_Settings.memory = oldmem; //Keep this intact!
 	//Now load the defaults.
 
 	memset(&BIOS_Settings.floppy0[0],0,sizeof(BIOS_Settings.floppy0));
@@ -767,6 +804,7 @@ void loadBIOSCMOS(CMOSDATA *CMOS, char *section)
 {
 	word index;
 	char field[256];
+	CMOS->memory = (uint_32)get_private_profile_uint64(section, "memory", 0, BIOS_Settings_file);
 	CMOS->timedivergeance = get_private_profile_int64(section,"TimeDivergeance_seconds",0,BIOS_Settings_file);
 	CMOS->timedivergeance2 = get_private_profile_int64(section,"TimeDivergeance_microseconds",0,BIOS_Settings_file);
 	CMOS->s100 = (byte)get_private_profile_uint64(section,"s100",0,BIOS_Settings_file);
@@ -828,7 +866,6 @@ void BIOS_LoadData() //Load BIOS settings!
 	//Machine
 	BIOS_Settings.emulated_CPU = (word)get_private_profile_uint64("machine", "cpu", DEFAULT_CPU, BIOS_Settings_file);
 	BIOS_Settings.DataBusSize = (byte)get_private_profile_uint64("machine", "databussize", 0, BIOS_Settings_file); //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
-	BIOS_Settings.memory = (uint_32)get_private_profile_uint64("machine", "memory", 0, BIOS_Settings_file);
 	BIOS_Settings.architecture = (byte)get_private_profile_uint64("machine", "architecture", ARCHITECTURE_XT, BIOS_Settings_file); //Are we using the XT/AT/PS/2 architecture?
 	BIOS_Settings.executionmode = (byte)get_private_profile_uint64("machine", "executionmode", DEFAULT_EXECUTIONMODE, BIOS_Settings_file); //What mode to execute in during runtime?
 	BIOS_Settings.CPUSpeed = (uint_32)get_private_profile_uint64("machine", "cpuspeed", 0, BIOS_Settings_file);
@@ -1004,6 +1041,7 @@ byte saveBIOSCMOS(CMOSDATA *CMOS, char *section, char *section_comment)
 {
 	word index;
 	char field[256];
+	if (!write_private_profile_uint64(section, section_comment, "memory", CMOS->memory, BIOS_Settings_file)) return 0;
 	if (!write_private_profile_int64(section,section_comment,"TimeDivergeance_seconds",CMOS->timedivergeance,BIOS_Settings_file)) return 0;
 	if (!write_private_profile_int64(section,section_comment,"TimeDivergeance_microseconds",CMOS->timedivergeance2,BIOS_Settings_file)) return 0;
 	if (!write_private_profile_uint64(section,section_comment,"s100",CMOS->s100,BIOS_Settings_file)) return 0;
@@ -1074,7 +1112,6 @@ int BIOS_SaveData() //Save BIOS settings!
 	memset(&machine_comment, 0, sizeof(machine_comment)); //Init!
 	safestrcat(machine_comment, sizeof(machine_comment), "cpu: 0=8086/8088, 1=NEC V20/V30, 2=80286, 3=80386, 4=80486, 5=Intel Pentium(without FPU)\n");
 	safestrcat(machine_comment, sizeof(machine_comment), "databussize: 0=Full sized data bus of 16/32-bits, 1=Reduced data bus size\n");
-	safestrcat(machine_comment, sizeof(machine_comment), "memory: memory size in bytes\n");
 	safestrcat(machine_comment, sizeof(machine_comment), "architecture: 0=XT, 1=AT, 2=Compaq Deskpro 386, 3=Compaq Deskpro 386 with PS/2 mouse\n");
 	safestrcat(machine_comment, sizeof(machine_comment), "executionmode: 0=Use emulator internal BIOS, 1=Run debug directory files, else TESTROM.DAT at 0000:0000, 2=Run TESTROM.DAT at 0000:0000, 3=Debug video card output, 4=Load BIOS from ROM directory as BIOSROM.u* and OPTROM.*, 5=Run sound test\n");
 	safestrcat(machine_comment, sizeof(machine_comment), "cpuspeed: 0=default, otherwise, limited to n cycles(>=0)\n");
@@ -1088,7 +1125,6 @@ int BIOS_SaveData() //Save BIOS settings!
 	if (machine_comment[0]) machine_commentused = &machine_comment[0];
 	if (!write_private_profile_uint64("machine", machine_commentused, "cpu", BIOS_Settings.emulated_CPU, BIOS_Settings_file)) return 0;
 	if (!write_private_profile_uint64("machine", machine_commentused, "databussize", BIOS_Settings.DataBusSize, BIOS_Settings_file)) return 0; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
-	if (!write_private_profile_uint64("machine", machine_commentused, "memory", BIOS_Settings.memory, BIOS_Settings_file)) return 0;
 	if (!write_private_profile_uint64("machine", machine_commentused, "architecture", BIOS_Settings.architecture, BIOS_Settings_file)) return 0; //Are we using the XT/AT/PS/2 architecture?
 	if (!write_private_profile_uint64("machine", machine_commentused, "executionmode", BIOS_Settings.executionmode, BIOS_Settings_file)) return 0; //What mode to execute in during runtime?
 	if (!write_private_profile_uint64("machine", machine_commentused, "cpuspeed", BIOS_Settings.CPUSpeed, BIOS_Settings_file)) return 0;
@@ -1336,6 +1372,7 @@ int BIOS_SaveData() //Save BIOS settings!
 	//CMOS
 	memset(&cmos_comment,0,sizeof(cmos_comment)); //Init!
 	safestrcat(cmos_comment,sizeof(cmos_comment),"gotCMOS: 0=Don't load CMOS. 1=CMOS data is valid and to be loaded.\n");
+	safestrcat(cmos_comment,sizeof(cmos_comment),"memory: memory size in bytes\n");
 	safestrcat(cmos_comment,sizeof(cmos_comment),"TimeDivergeance_seconds: Time to be added to get the emulated time, in seconds.\n");
 	safestrcat(cmos_comment,sizeof(cmos_comment),"TimeDivergeance_microseconds: Time to be added to get the emulated time, in microseconds.\n");
 	safestrcat(cmos_comment,sizeof(cmos_comment),"s100: 100th second register content on XT RTC (0-255, Usually BCD stored as integer)\n");
@@ -1378,7 +1415,7 @@ int BIOS_SaveData() //Save BIOS settings!
 uint_32 BIOS_GetMMUSize() //For MMU!
 {
 	if (__HW_DISABLED) return MBMEMORY; //Abort with default value (1MB memory)!
-	return BIOS_Settings.memory; //Use all available memory always!
+	return *(getarchmemory()); //Use all available memory always!
 }
 
 extern byte backgroundpolicy; //Background task policy. 0=Full halt of the application, 1=Keep running without video and audio muted, 2=Keep running with audio playback, recording muted, 3=Keep running fully without video.
