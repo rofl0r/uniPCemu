@@ -1044,7 +1044,8 @@ byte resetModem(byte state)
 void MODEM_sendAutodetectionPNPmessage()
 {
 	//return; //We don't know what to send yet, so disable the PNP feature for now!
-	char actualmessage[] = "\x28\x00\x01PNPC10F\\00000001\\MODEM,PNPC10F\\ModemCC\x29"; //"PNPC10F"=Standard Modem. Order is(in order of escapes: ID("PNP"), product ID("PNPC10F"), Serial number(00000001), Class name("MODEM"), Device ID(",PNPC10F"), User name("Modem", this is what's reported to the user as plain text)
+	//According to https://git.kontron-electronics.de/linux/linux-imx-exceet/blob/115a57c5b31ab560574fe1a09deaba2ae89e77b5/drivers/serial/8250_pnp.c , PNPC10F should be a "Standard Modem".
+	char actualmessage[] = "\x28\x00\x01PNPC10F\\00000001\\MODEM,PNPC10F\\ModemCC\x29"; //"PNPC10F"=Standard Modem. Order is(in order of escapes: ID("PNP"), product ID("PNPC10F"), Serial number(00000001), Class name("MODEM", as literally in the Plug and Play Exernal COM Device Specification Version 1.00 February 28, 1995), Device ID(",PNPC10F"), User name("Modem", this is what's reported to the user as plain text)
 	char message[256]; //Buffer for the message to be modified into!
 	memset(&message, 0, sizeof(message)); //Init the message to fill!
 	word size;
