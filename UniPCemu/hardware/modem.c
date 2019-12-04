@@ -242,8 +242,9 @@ struct
 	byte canrecvdata; //Can we start receiving data to the UART?
 	byte linechanges; //For detecting line changes!
 	byte outputline; //Raw line that's output!
-	byte effectivelinechanges; //For detecting line changes!
+	byte outputlinechanges; //For detecting line changes!
 	byte effectiveline; //Effective line to actually use!
+	byte effectivelinechanges; //For detecting line changes!
 	sword connectionid; //Normal connection ID for the internal modem!
 } modem;
 
@@ -1081,6 +1082,8 @@ void MODEM_sendAutodetectionPNPmessage()
 	writefifobuffer(modem.inputbuffer,modem.linefeedcharacter);
 }
 
+void modem_updatelines(byte lines); //Prototype for modem_setModemControl!
+
 void modem_setModemControl(byte line) //Set output lines of the Modem!
 {
 	//Handle modem specifics here!
@@ -1089,19 +1092,24 @@ void modem_setModemControl(byte line) //Set output lines of the Modem!
 	modem.outputline = line; //The line that's output!
 	if ((modem.linechanges^line)&2) //RTS changed?
 	{
+		modem_updatelines(1|4); //Update RTS internally, don't acnowledge RTS to CTS yet!
 		modem.RTSlineDelay = modem.effectiveRTSlineDelay; //Start timing the CTS line delay!
 	}
 	if (((modem.linechanges^line)&1)) //DTR changed?
 	{
 		modem.DTRlineDelay = modem.effectiveDTRlineDelay; //Start timing the CTS line delay!
+		modem_updatelines(2|4); //Update DTR, don't acnowledge yet!
 	}
 	modem.linechanges = line; //Save for reference!
 }
 
 void modem_updatelines(byte lines)
 {
-	modem.effectiveline = ((modem.effectiveline&~lines)|(modem.outputline&lines)); //Apply the line(s)!
-	if (((modem.effectiveline&1)==0) && ((modem.effectivelinechanges^modem.effectiveline)&1)) //Became not ready?
+	if ((lines & 4) == 0) //Update effective lines?
+	{
+		modem.effectiveline = ((modem.effectiveline & ~(lines & 3)) | (modem.outputline & (lines & 3))); //Apply the line(s)!
+	}
+	if ((((modem.effectiveline&1)==0) && ((modem.effectivelinechanges^modem.effectiveline)&1)) && ((lines&4)==0)) //Became not ready?
 	{
 		modem.detectiontimer[0] = (DOUBLE)0; //Stop timing!
 		modem.detectiontimer[1] = (DOUBLE)0; //Stop timing!
@@ -1127,31 +1135,35 @@ void modem_updatelines(byte lines)
 				break;
 		}
 	}
-	if (((modem.effectiveline&1)==1) && ((modem.effectivelinechanges^modem.effectiveline)&1)) //DTR set?
+	if (((modem.outputline&1)==1) && ((modem.outputlinechanges^modem.outputline)&1)) //DTR set?
 	{
 		modem.detectiontimer[0] = (DOUBLE)150000000.0; //Timer 150ms!
 		modem.detectiontimer[1] = (DOUBLE)250000000.0; //Timer 250ms!
 		//Run the RTS checks now!
 	}
-	if ((modem.effectiveline&2) && (modem.detectiontimer[0])) //RTS and T1 not expired?
+	if ((modem.outputline&2) && (modem.detectiontimer[0])) //RTS and T1 not expired?
 	{
 		modem_startidling:
 		modem.detectiontimer[0] = (DOUBLE)0; //Stop timing!
 		modem.detectiontimer[1] = (DOUBLE)0; //Stop timing!
 		goto finishupmodemlinechanges; //Finish up!
 	}
-	if ((modem.effectiveline&2) && (!modem.detectiontimer[0]) && (modem.detectiontimer[1])) //RTS and T1 expired and T2 not expired?
+	if ((modem.outputline&2) && (!modem.detectiontimer[0]) && (modem.detectiontimer[1])) //RTS and T1 expired and T2 not expired?
 	{
 		//Send serial PNP message!
 		MODEM_sendAutodetectionPNPmessage();
 		goto modem_startidling; //Start idling again!
 	}
-	if ((modem.effectiveline&2) && (!modem.detectiontimer[1])) //RTS and T2 expired?
+	if ((modem.outputline&2) && (!modem.detectiontimer[1])) //RTS and T2 expired?
 	{
 		goto modem_startidling; //Start idling again!
 	}
 	finishupmodemlinechanges:
-	modem.effectivelinechanges = modem.effectiveline; //Save for reference!
+	modem.outputlinechanges = modem.outputline; //Save for reference!
+	if ((lines & 4) == 0) //Apply effective line?
+	{
+		modem.effectivelinechanges = modem.effectiveline; //Save for reference!
+	}
 }
 
 byte modem_hasData() //Do we have data for input?
@@ -2329,13 +2341,13 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 	{
 		modem.DTRlineDelay -= timepassed;
 	}
-	if (modem.RTSlineDelay && modem.DTRlineDelay) //Both timing?
+	if (modem.RTSlineDelay) //Both timing?
 	{
 		if ((modem.RTSlineDelay<=(DOUBLE)0.0f) && (modem.DTRlineDelay<=(DOUBLE)0.0f)) //Both expired?
 		{
 			modem.RTSlineDelay = (DOUBLE)0; //Stop timer!
 			modem.DTRlineDelay = (DOUBLE)0; //Stop timer!
-			modem_updatelines(3); //Update lines!
+			modem_updatelines(3); //Update both lines at the same time!
 		}
 	}
 	if (modem.RTSlineDelay) //Timer running?
@@ -2343,7 +2355,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 		if (modem.RTSlineDelay<=(DOUBLE)0.0f) //Expired?
 		{
 			modem.RTSlineDelay = (DOUBLE)0; //Stop timer!
-			modem_updatelines(1); //Update line!
+			modem_updatelines(2); //Update line!
 		}
 	}
 	if (modem.DTRlineDelay) //Timer running?
@@ -2351,7 +2363,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 		if (modem.DTRlineDelay<=(DOUBLE)0.0f) //Expired?
 		{
 			modem.DTRlineDelay = (DOUBLE)0; //Stop timer!
-			modem_updatelines(2); //Update line!
+			modem_updatelines(1); //Update line!
 		}
 	}
 
