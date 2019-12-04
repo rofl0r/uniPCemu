@@ -221,21 +221,11 @@ byte VGA_ReadMode0(byte planes, uint_32 offset) //Read mode 0: Just read the nor
 
 byte VGA_ReadMode1(byte planes, uint_32 offset) //Read mode 1: Compare display memory with color defined by the Color Compare field. Colors Don't care field are not considered.
 {
-	INLINEREGISTER byte curplane;
-	INLINEREGISTER byte result=0; //The value we return, default to 0 if undefined!
-	//Each bit in the result represents one comparision between the reference color, with the bit being set if the comparision is true.
-	curplane = 0;
-	do//Check all planes!
-	{
-		if (GETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.COLORDONTCAREREGISTER,0,0xF)&(1 << curplane)) //We care about this plane?
-		{
-			if (readVRAMplane(getActiveVGA(), curplane, offset, readbank) == GETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.COLORCOMPAREREGISTER,0,0xF)) //Equal?
-			{
-				result |= (1 << curplane); //Set the bit: the comparision is true!
-			}
-		}
-	} while (++curplane!=4); //Process all planes!
-	return result; //Give the value!
+	byte dontcare;
+	uint_32 result;
+	dontcare = GETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.COLORDONTCAREREGISTER,0,0xF); //Don't care bits!
+	result = (getActiveVGA()->registers->ExternalRegisters.DATALATCH.latch&getActiveVGA->FillTable[dontcare])^(getActiveVGA()->FillTable[GETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.COLORCOMPAREREGISTER,0,0xF)^dontcare]);
+	return (byte)(~(result|(result>>8)|(result>>16)|(result>>24))); //Give the value!
 }
 
 OPTINLINE byte VGA_ReadModeOperation(byte planes, uint_32 offset)
