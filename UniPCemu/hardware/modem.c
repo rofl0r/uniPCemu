@@ -1044,7 +1044,7 @@ byte resetModem(byte state)
 void MODEM_sendAutodetectionPNPmessage()
 {
 	//return; //We don't know what to send yet, so disable the PNP feature for now!
-	char actualmessage[] = "\x28\x01\x24MDC0288\\00000001\\MODEM,ATM0096\\ModemCC\x29";
+	char actualmessage[] = "\x28\x00\x01PNPC10F\\00000001\\MODEM,PNPC10F\\ModemCC\x29"; //"PNPC10F"=Standard Modem. Order is(in order of escapes: ID("PNP"), product ID("PNPC10F"), Serial number(00000001), Class name("MODEM"), Device ID(",PNPC10F"), User name("Modem", this is what's reported to the user as plain text)
 	char message[256]; //Buffer for the message to be modified into!
 	memset(&message, 0, sizeof(message)); //Init the message to fill!
 	word size;
