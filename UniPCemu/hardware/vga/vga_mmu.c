@@ -224,7 +224,7 @@ byte VGA_ReadMode1(byte planes, uint_32 offset) //Read mode 1: Compare display m
 	byte dontcare;
 	uint_32 result;
 	dontcare = GETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.COLORDONTCAREREGISTER,0,0xF); //Don't care bits!
-	result = (getActiveVGA()->registers->ExternalRegisters.DATALATCH.latch&getActiveVGA->FillTable[dontcare])^(getActiveVGA()->FillTable[GETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.COLORCOMPAREREGISTER,0,0xF)^dontcare]);
+	result = (getActiveVGA()->registers->ExternalRegisters.DATALATCH.latch&getActiveVGA()->FillTable[dontcare])^(getActiveVGA()->FillTable[GETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.COLORCOMPAREREGISTER,0,0xF)^dontcare]);
 	return (byte)(~(result|(result>>8)|(result>>16)|(result>>24))); //Give the value!
 }
 
