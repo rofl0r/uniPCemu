@@ -1045,34 +1045,45 @@ void MODEM_sendAutodetectionPNPmessage()
 {
 	//return; //We don't know what to send yet, so disable the PNP feature for now!
 	//According to https://git.kontron-electronics.de/linux/linux-imx-exceet/blob/115a57c5b31ab560574fe1a09deaba2ae89e77b5/drivers/serial/8250_pnp.c , PNPC10F should be a "Standard Modem".
-	char actualmessage[] = "\x28\x01\x24PNPC10F\\00000001\\MODEM,PNPC10F\\ModemCC\x29"; //"PNPC10F"=Standard Modem. Order is(in order of escapes: Version(two 5-bits values, divided by 100 is the version number, high 5-bits first, low 5-bits second) ID("PNP"), product ID("PNPC10F"), Serial number(00000001), Class name("MODEM", as literally in the Plug and Play Exernal COM Device Specification Version 1.00 February 28, 1995), Device ID(",PNPC10F"), User name("Modem", this is what's reported to the user as plain text)
+	//"PNPC10F"=Standard Modem. Order is(in order of escapes: Version(two 5-bits values, divided by 100 is the version number, high 5-bits first, low 5-bits second) ID("PNP"), product ID(the ID), Serial number(00000001), Class name("MODEM", as literally in the Plug and Play Exernal COM Device Specification Version 1.00 February 28, 1995), Device ID("," followed by the ID), User name("Modem", this is what's reported to the user as plain text).
+	//The ID used to be "PNPC10F". Use PNPC102 for a safe Standard 28800bps modem.
+	char EISA_productID[] = "PNPC102"; //Product ID!
+	char DeviceID[] = ",PNPC102"; //Device ID!
+	char PNPHeader[] = "\x28\x01\x24"; //Header until EISA/product ID
+	char PNPMid[] = "\\00000001\\MODEM"; //After EISA/product ID until Device ID
+	char PNPFooter[] = "\\ModemCC\x29"; //Footer with checksum!
 	char message[256]; //Buffer for the message to be modified into!
 	memset(&message, 0, sizeof(message)); //Init the message to fill!
 	word size;
-	size = sizeof(actualmessage); //Size to send! Sizeof includes a final NULL byte, which we don't want to include! Taking sizeof's position gives us the byte past the string!
 	byte checksum;
-	char *p, *e, *y;
-	e = &actualmessage[size-1]; //End of the message buffer(when to stop, to allow for NULL characters to be sent as well)!
+	char *p, *e;
 	//Start generating the checksum!
-	message[size - 3] = 0; //Second checksum nibble!
-	message[size - 4] = 0; //First checksum nibble!
-	p = &actualmessage[0]; //Init message to fill in(a ROMmed constant)!
-	y = &message[0]; //Destination of the message to copy to!
 	checksum = 0; //Init checksum!
-	for (; (p != e);) //Not finished processing the entire checksum?
+	//Copy the initial buffer data over(excluding checksum)!
+	safestrcat(message,sizeof(message),PNPHeader); //Copy the message over to the actual buffer!
+	safestrcat(message,sizeof(message),EISA_productID); //Copy the product ID over!
+	safestrcat(message,sizeof(message),PNPMid); //Copy the second part of the message to the actual buffer!
+	safestrcat(message,sizeof(message),DeviceID); //Copy the device ID over!
+	safestrcat(message,sizeof(message),PNPFooter); //Copy the footer over!
+	size = safe_strlen(message,sizeof(message)); //Size to send! Sizeof includes a final NULL byte, which we don't want to include! Taking sizeof's position gives us the byte past the string!
+	e = &message[size-1]; //End of the message buffer(when to stop processing the checksum(the end PnP character). This selects from after the start byte until before the end byte, excluding the checksum itself)!
+	p = &message[1]; //Init message to calculate the checksum(a ROMmed constant) to the first used byte(the byte after the start of the )!
+	message[size - 2] = 0; //Second checksum nibble isn't counted!
+	message[size - 3] = 0; //First checksum nibble isn't counted!
+	for (;(p!=e);) //Not finished processing the entire checksum?
 	{
-		checksum += (*y++ = *p++); //Add to the checksum(minus the actual checksum bytes)! Also copy to the active message buffer!
+		checksum += *p++; //Add to the checksum(minus the actual checksum bytes)! Also copy to the active message buffer!
 	}
 	checksum &= 0xFF; //It's MOD 256 for all but the checksum fields itself to get the actual checksum!
-	message[size - 3] = ((checksum & 0xF) > 0xA) ? (((checksum & 0xF) - 0xA) + (byte)'A') : ((checksum & 0xF) + (byte)'0'); //Convert hex digit the low nibble checksum!
-	message[size - 4] = (((checksum>>4) & 0xF) > 0xA) ? ((((checksum>>4) & 0xF) - 0xA) + (byte)'A') : (((checksum>>4) & 0xF) + (byte)'0'); //Convert hex digit the high nibble checksum!
+	message[size - 2] = ((checksum & 0xF) > 0xA) ? (((checksum & 0xF) - 0xA) + (byte)'A') : ((checksum & 0xF) + (byte)'0'); //Convert hex digit the low nibble checksum!
+	message[size - 3] = (((checksum>>4) & 0xF) > 0xA) ? ((((checksum>>4) & 0xF) - 0xA) + (byte)'A') : (((checksum>>4) & 0xF) + (byte)'0'); //Convert hex digit the high nibble checksum!
 
 	//The PNP message is now ready to be sent to the Data Terminal!
 
 	fifobuffer_clear(modem.inputbuffer); //Clear the input buffer for out message!
 	char c;
 	p = &message[0]; //Init message!
-	e = &message[size-1]; //End of the message buffer! Don't include the terminating NULL character, so substract one to stop when reaching the NULL byte instead of directly after it!
+	e = &message[size]; //End of the message buffer! Don't include the terminating NULL character, so substract one to stop when reaching the NULL byte instead of directly after it!
 	for (; (p!=e) && ((fifobuffer_freesize(modem.inputbuffer)>2));) //Process the message, until either finished or not enough size left!
 	{
 		c = *p++; //Read a character to send!
