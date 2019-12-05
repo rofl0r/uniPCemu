@@ -1048,7 +1048,7 @@ void MODEM_sendAutodetectionPNPmessage()
 	//"PNPC10F"=Standard Modem. Order is(in order of escapes: Version(two 5-bits values, divided by 100 is the version number, high 5-bits first, low 5-bits second) ID("PNP"), product ID(the ID), Serial number(00000001), Class name("MODEM", as literally in the Plug and Play Exernal COM Device Specification Version 1.00 February 28, 1995), Device ID("," followed by the ID), User name("Modem", this is what's reported to the user as plain text).
 	//The ID used to be "PNPC10F". Use PNPC102 for a safe Standard 28800bps modem.
 	char EISA_productID[] = "PNPC107"; //Product ID! Standard modem?
-	char DeviceID[] = ",PNPC107"; //Device ID! Standard modem?
+	char DeviceID[] = "\\PNPC107"; //Device ID! Standard modem?
 	char PNPHeader[] = "\x28\x01\x24"; //Header until EISA/product ID
 	char PNPMid[] = "\\00000001\\MODEM"; //After EISA/product ID until Device ID
 	char PNPFooter[] = "\\ModemCC\x29"; //Footer with checksum!
