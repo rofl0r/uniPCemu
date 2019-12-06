@@ -1104,13 +1104,27 @@ void modem_setModemControl(byte line) //Set output lines of the Modem!
 	modem.outputline = line; //The line that's output!
 	if ((modem.linechanges^line)&2) //RTS changed?
 	{
-		modem_updatelines(1|4); //Update RTS internally, don't acnowledge RTS to CTS yet!
 		modem.RTSlineDelay = modem.effectiveRTSlineDelay; //Start timing the CTS line delay!
+		if (modem.effectiveRTSlineDelay) //Gotten a delay?
+		{
+			modem_updatelines(2 | 4); //Update RTS internally, don't acnowledge RTS to CTS yet!
+		}
+		else
+		{
+			modem_updatelines(2); //Update RTS internally, acnowledge RTS to CTS!
+		}
 	}
 	if (((modem.linechanges^line)&1)) //DTR changed?
 	{
 		modem.DTRlineDelay = modem.effectiveDTRlineDelay; //Start timing the CTS line delay!
-		modem_updatelines(2|4); //Update DTR, don't acnowledge yet!
+		if (modem.DTRlineDelay) //Gotten a delay?
+		{
+			modem_updatelines(1 | 4); //Update DTR, don't acnowledge yet!
+		}
+		else
+		{
+			modem_updatelines(1); //Update DTR, acnowledge!
+		}
 	}
 	modem.linechanges = line; //Save for reference!
 }
@@ -1188,7 +1202,7 @@ byte modem_getstatus()
 {
 	//0: Clear to Send(Can we buffer data to be sent), 1: Data Set Ready(Not hang up, are we ready for use), 2: Ring Indicator, 3: Carrrier detect
 	return ((modem.CTSAlwaysActive==0)? ((modem.effectiveline >> 1) & 1) : ((modem.CTSAlwaysActive==2)?1:((modem.datamode==1)?((modem.connectionid>=0)?(fifobuffer_freesize(modem.outputbuffer[modem.connectionid])?1:0):0):1)))| //CTSAlwaysActive: 0:RTS, 1:ReadyToReceive, 2:Always 1
-			(modem.DSRisConnectionEstablished?((modem.connected==1)?2:0):((modem.effectiveline&1)<<1))| //DSRisConnectionEstablished: 0:1, 1:DTR
+			(modem.DSRisConnectionEstablished?((modem.connected==1)?2:0):((modem.outputline&1)<<1))| //DSRisConnectionEstablished: 0:1, 1:DTR
 			(((modem.ringing&1)&((~modem.ringing)>>1))?4:0)| //Ringing?
 			(((modem.connected==1)||(modem.DCDisCarrier==0))?8:0); //Connected or forced on?
 }
