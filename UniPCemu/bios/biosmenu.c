@@ -227,7 +227,8 @@ void BIOS_AdvancedLogSetting(); //Advanced log policy!
 void BIOS_taskBreakpoint(); //Task breakpoint!
 void BIOS_CR3breakpoint(); //CR3 breakpoint!
 void BIOS_DirectInput_remap_RCTRL_to_LWIN(); //Remap RCTRL to LWIN!
-void BIOS_DirectInput_remap_accentgrave_to_tab_during_RCTRL(); //Remap accent grave to tab during RCTRL to LWIN mapping!
+void BIOS_DirectInput_remap_accentgrave_to_tab(); //Remap accent grave to tab!
+void BIOS_DirectInput_remap_NUM0_to_Delete(); //Remap NUM0 to Delete!
 void BIOS_floppy0_nodisk_type();
 void BIOS_floppy1_nodisk_type();
 void BIOS_DirectInput_Disable_RALT(); //Disable RALT during Direct Input mode!
@@ -309,10 +310,11 @@ Handler BIOS_Menus[] =
 	,BIOS_taskBreakpoint //Task breakpoint is #70!
 	,BIOS_CR3breakpoint //CR3 breakpoint is #71!
 	,BIOS_DirectInput_remap_RCTRL_to_LWIN //Remap RCTRL to LWIN is #72!
-	,BIOS_DirectInput_remap_accentgrave_to_tab_during_RCTRL //Remap accent grave to tab during RCTRL to LWIN mapping is #73!
+	,BIOS_DirectInput_remap_accentgrave_to_tab //Remap accent grave to tab during RCTRL to LWIN mapping is #73!
 	,BIOS_floppy0_nodisk_type //Floppy A without disk type is #74!
 	,BIOS_floppy1_nodisk_type //Floppy B without disk type is #75!
 	,BIOS_DirectInput_Disable_RALT //Disable RALT during Direct Input mode is #76!
+	,BIOS_DirectInput_remap_NUM0_to_Delete //Remap NUM0 to Delete is #77!
 };
 
 //Not implemented?
@@ -4003,9 +4005,9 @@ setJoysticktext: //For fixing it!
 		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Disabled");
 	}
 
-	optioninfo[advancedoptions] = 5; //BIOS_DirectInput_remap_accentgrave_to_tab_during_RCTRL
-	safestrcpy(menuoptions[advancedoptions], sizeof(menuoptions[0]), "Remap Accent Grave to Tab during RCTRL remapping: "); //Remap Accent Grave to Tab during RCTRL remapping!
-	if (BIOS_Settings.input_settings.DirectInput_remap_accentgrave_to_tab_during_RCTRL)
+	optioninfo[advancedoptions] = 5; //BIOS_DirectInput_remap_accentgrave_to_tab
+	safestrcpy(menuoptions[advancedoptions], sizeof(menuoptions[0]), "Remap Accent Grave to Tab: "); //Remap Accent Grave to Tab during RCTRL remapping!
+	if (BIOS_Settings.input_settings.DirectInput_remap_accentgrave_to_tab)
 	{
 		safestrcat(menuoptions[advancedoptions++], sizeof(menuoptions[0]), "Enabled");
 	}
@@ -4014,7 +4016,18 @@ setJoysticktext: //For fixing it!
 		safestrcat(menuoptions[advancedoptions++], sizeof(menuoptions[0]), "Disabled");
 	}
 
-	optioninfo[advancedoptions] = 6; //BIOS_DirectInput_Disable_RALT
+	optioninfo[advancedoptions] = 6; //BIOS_DirectInput_remap_NUM0_to_Delete
+	safestrcpy(menuoptions[advancedoptions], sizeof(menuoptions[0]), "Remap NUM0 to Delete: "); //Remap Accent Grave to Tab during RCTRL remapping!
+	if (BIOS_Settings.input_settings.DirectInput_remap_NUM0_to_Delete)
+	{
+		safestrcat(menuoptions[advancedoptions++], sizeof(menuoptions[0]), "Enabled");
+	}
+	else
+	{
+		safestrcat(menuoptions[advancedoptions++], sizeof(menuoptions[0]), "Disabled");
+	}
+
+	optioninfo[advancedoptions] = 7; //BIOS_DirectInput_Disable_RALT
 	safestrcpy(menuoptions[advancedoptions], sizeof(menuoptions[0]), "Disable RALT during Direct Input: "); //Disable RALT during Direct Input!
 	if (BIOS_Settings.input_settings.DirectInput_Disable_RALT)
 	{
@@ -4042,7 +4055,8 @@ void BIOS_inputMenu() //Manage stuff concerning input.
 	case 3:
 	case 4:
 	case 5:
-	case 6: //Valid option?
+	case 6:
+	case 7: //Valid option?
 		switch (optioninfo[menuresult]) //What option has been chosen, since we are dynamic size?
 		{
 		case 0: //Gaming mode buttons?
@@ -4061,9 +4075,12 @@ void BIOS_inputMenu() //Manage stuff concerning input.
 			BIOS_Menu = 72; //Remap RCTRL to LWIN is #72!
 			break;
 		case 5:
-			BIOS_Menu = 73; //Remap accent grave to tab during RCTRL to LWIN mapping is #73!
+			BIOS_Menu = 73; //Remap accent grave to tab is #73!
 			break;
 		case 6:
+			BIOS_Menu = 77; //Remap NUM0 to Delete is #77!
+			break;
+		case 7:
 			BIOS_Menu = 76; //Disable RALT during Direct Input is #76!
 			break;
 		default:
@@ -7905,9 +7922,16 @@ void BIOS_DirectInput_remap_RCTRL_to_LWIN()
 	BIOS_Menu = 25; //Goto Input menu!
 }
 
-void BIOS_DirectInput_remap_accentgrave_to_tab_during_RCTRL()
+void BIOS_DirectInput_remap_accentgrave_to_tab()
 {
-	BIOS_Settings.input_settings.DirectInput_remap_accentgrave_to_tab_during_RCTRL = !BIOS_Settings.input_settings.DirectInput_remap_accentgrave_to_tab_during_RCTRL;
+	BIOS_Settings.input_settings.DirectInput_remap_accentgrave_to_tab = !BIOS_Settings.input_settings.DirectInput_remap_accentgrave_to_tab;
+	BIOS_Changed = 1; //We're changed!
+	BIOS_Menu = 25; //Goto Input menu!
+}
+
+void BIOS_DirectInput_remap_NUM0_to_Delete()
+{
+	BIOS_Settings.input_settings.DirectInput_remap_NUM0_to_Delete = !BIOS_Settings.input_settings.DirectInput_remap_NUM0_to_Delete;
 	BIOS_Changed = 1; //We're changed!
 	BIOS_Menu = 25; //Goto Input menu!
 }
