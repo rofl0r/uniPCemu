@@ -420,6 +420,7 @@ byte PORT_writeUART(word port, byte value)
 				{
 					UART_port[COMport].DataHoldingRegister = value; //We've received this data!
 					UART_port[COMport].LineStatusRegister |= 0x01; //We've received data!
+					UART_port[COMport].LineStatusRegister |= 0x60; //The Transmitter Holding Register and Shift Register are both empty!
 					UART_handleInputs(); //Handle any inputs on the UART!
 				}
 				else //Not in loopback mode?
@@ -465,6 +466,11 @@ byte PORT_writeUART(word port, byte value)
 			}
 			if ((UART_port[COMport].ModemControlRegister^UART_port[COMport].oldModemControlRegister)&0x10) //Loopback mode enabled or disabled?
 			{
+				if (UART_port[COMport].ModemControlRegister & 0x10) //Loopback is enabled? Clear the buffers!
+				{
+					UART_port[COMport].LineStatusRegister &= ~1; //Receiver buffer is empty!
+					UART_port[COMport].LineStatusRegister |= 0x60; //The Transmitter Holding Register and Shift Register are both empty!
+				}
 				UART_handleInputs(); //Update the loopback status as required by updating the status register!
 			}
 			UART_port[COMport].oldModemControlRegister = UART_port[COMport].ModemControlRegister; //Save the old value for reference!
@@ -571,6 +577,7 @@ void updateUART(DOUBLE timepassed)
 					{
 					case 0: //Checking for start of transfer?
 						if (unlikely(!(UART_port[UART].hasdata&&UART_port[UART].receivedata))) break; //Can't receive?
+						if (UART_port[UART].ModemControlRegister & 0x10) break; //Can't start to receive during loopback!
 						if (unlikely(UART_port[UART].hasdata())) //Do we have data to receive and not prioritizing sending data?
 						{
 							if (likely((UART_port[UART].LineStatusRegister & 0x01) == 0)) //No data received yet?
@@ -604,6 +611,7 @@ void updateUART(DOUBLE timepassed)
 					switch (UART_port[UART].sendPhase) //What receive phase?
 					{
 					case 0: //Checking for start of transfer?
+						if (UART_port[UART].ModemControlRegister & 0x10) break; //Can't start to send during loopback!
 						if (unlikely(UART_port[UART].senddata && ((UART_port[UART].LineStatusRegister & 0x20) == 0))) //Something to transfer?
 						{
 							//Start transferring data...
@@ -618,6 +626,7 @@ void updateUART(DOUBLE timepassed)
 						if (--UART_port[UART].sendTiming) break; //Busy transferring?
 						UART_port[UART].sendPhase = 2; //Finish transferring!
 					case 2: //Finish transfer!
+						if (UART_port[UART].ModemControlRegister & 0x10) break; //Can't finish to send during loopback!
 						//Finished transferring data.
 						UART_port[UART].senddata(UART_port[UART].TransmitterShiftRegister); //Send the data!
 
