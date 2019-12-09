@@ -764,15 +764,16 @@ void modem_responseResult(byte result) //What result to give!
 void modem_responseNumber(byte x)
 {
 	char s[256];
-	if (modem.verbosemode&1) //Code format result?
+	if (modem.verbosemode&1) //Text format result?
 	{
 		memset(&s,0,sizeof(s));
 		snprintf(s,sizeof(s),"%04u",x); //Convert to a string!
-		modem_responseString((byte *)&s,2|4); //Send the string to the user!
+		modem_responseString((byte *)&s,(1|2|4)); //Send the string to the user!
 	}
 	else
 	{
-		writefifobuffer(modem.inputbuffer,x); //Code variant instead!
+		modem_nrcpy((char*)&s[0], sizeof(s), x);
+		modem_responseString(&s[0], ((1 | 2) | 4));
 	}
 }
 
