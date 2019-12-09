@@ -470,6 +470,8 @@ byte PORT_writeUART(word port, byte value)
 				{
 					UART_port[COMport].LineStatusRegister &= ~1; //Receiver buffer is empty!
 					UART_port[COMport].LineStatusRegister |= 0x60; //The Transmitter Holding Register and Shift Register are both empty!
+					if (UART_port[COMport].setmodemcontrol) //Line handler is connected and not in loopback mode?
+						UART_port[COMport].setmodemcontrol(0); //Update the output lines for the peripheral!
 				}
 				UART_handleInputs(); //Update the loopback status as required by updating the status register!
 			}
@@ -512,9 +514,13 @@ void UART_handleInputs() //Handle any input to the UART!
 			SETBITS(UART_port[i].ModemStatusRegister, 5, 0x1, GETBITS(UART_port[i].ModemControlRegister, 1, 0x1)); //DTR on DSR
 			checknewmodemstatus = ((UART_port[i].ModemStatusRegister ^ (UART_port[i].oldModemStatusRegister)) & 0xF0); //Check the new status!
 		}
-		else //No status to report?
+		else //No status or device to report?
 		{
-			checknewmodemstatus = 0; //Check the new status!
+			//Update the modem status register accordingly!
+			SETBITS(UART_port[i].ModemStatusRegister, 6, 0x3, 0); //None!
+			SETBITS(UART_port[i].ModemStatusRegister, 4, 0x1, 0); //None
+			SETBITS(UART_port[i].ModemStatusRegister, 5, 0x1, 0); //None
+			checknewmodemstatus = ((UART_port[i].ModemStatusRegister ^ (UART_port[i].oldModemStatusRegister)) & 0xF0); //Check the new status!
 		}
 		if (likely(checknewmodemstatus)) //Are we to verify the new modem status?
 		{
