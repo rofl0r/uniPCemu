@@ -735,7 +735,17 @@ void modem_responseResult(byte result) //What result to give!
 	{
 		result = MODEMRESULT_ERROR; //Error!
 	}
-	if (modem.verbosemode&2) return; //Quiet mode? No response messages!
+	if ((modem.verbosemode & 6)==2) //All off?
+	{
+		return; //Quiet mode? No response messages!
+	}
+	if ((modem.verbosemode & 6) == 4) //No ring and connect/carrier?
+	{
+		if ((result == MODEMRESULT_RING) || (result == MODEMRESULT_CONNECT) || (result == MODEMRESULT_NOCARRIER)) //Don't send these when sending results?
+		{
+			return; //Don't send these results!
+		}
+	}
 	if (modem.verbosemode&1) //Text format result?
 	{
 		modem_responseString(&ATresultsString[result][0],(((result!=MODEMRESULT_CONNECT) || (modem.callprogressmethod==0))?3:1)|4); //Send the string to the user!
@@ -1422,6 +1432,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 					{
 						invalidPhonebookNumberDial: //Dialing invalid number?
 						modem_responseResult(MODEMRESULT_ERROR);
+						return; //Abort!
 					}
 				}
 				else
@@ -1465,13 +1476,16 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 			{
 			case 0: //EOS?
 				--pos; //Retry analyzing!
-			case '0': //Answer?
+			case '0': //Answer? All on!
 				n0 = 0;
 				goto doATQ;
-			case '1':
+			case '1': //All off!
 				n0 = 1;
+				goto doATQ;
+			case '2': //No ring and no Connect/Carrier in answer mode?
+				n0 = 2;
 				doATQ:
-				if (n0<2)
+				if (n0<3)
 				{
 					verbosemodepending = (n0<<1)|(verbosemodepending&1); //Quiet mode!
 				}
