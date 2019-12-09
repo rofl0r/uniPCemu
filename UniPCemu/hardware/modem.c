@@ -746,6 +746,15 @@ void modem_responseResult(byte result) //What result to give!
 			return; //Don't send these results!
 		}
 	}
+
+	//Now, the results can have different formats:
+	/*
+	- V0 information text: text<CR><LF>
+	- V0 numeric code: code<CR>
+	- V1 information text: <CR><LF>text<CR><LF>
+	- V1 numeric code: <CR><LF>verbose code<CR><LF>
+	*/
+
 	if (modem.verbosemode&1) //Text format result?
 	{
 		modem_responseString(&ATresultsString[result][0],(((result!=MODEMRESULT_CONNECT) || (modem.callprogressmethod==0))?3:1)|4); //Send the string to the user!
@@ -754,26 +763,32 @@ void modem_responseResult(byte result) //What result to give!
 			modem_responseString(&connectionspeed[0], (2 | 4)); //End the command properly with a speed indication in bps!
 		}
 	}
-	else //Numeric format result?
+	else //Numeric format result? This is V0 beign active! So just CR after!
 	{
 		modem_nrcpy((char*)&s[0],sizeof(s),ATresultsCode[result]);
-		modem_responseString(&s[0],((1|2)|4));
+		modem_responseString(&s[0],((2)));
 	}
 }
 
 void modem_responseNumber(byte x)
 {
 	char s[256];
+	/*
+	- V0 information text: text<CR><LF>
+	-> V0 numeric code: code<CR>
+	- V1 information text: <CR><LF>text<CR><LF>
+	-> V1 numeric code: <CR><LF>verbose code<CR><LF>
+	*/
 	if (modem.verbosemode&1) //Text format result?
 	{
 		memset(&s,0,sizeof(s));
 		snprintf(s,sizeof(s),"%04u",x); //Convert to a string!
-		modem_responseString((byte *)&s,(1|2|4)); //Send the string to the user!
+		modem_responseString((byte *)&s,(1|2|4)); //Send the string to the user! CRLF before and after!
 	}
 	else
 	{
 		modem_nrcpy((char*)&s[0], sizeof(s), x);
-		modem_responseString(&s[0], ((1 | 2) | 4));
+		modem_responseString(&s[0], (2)); //Send the numeric result to the user! CR after!
 	}
 }
 
