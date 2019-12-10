@@ -788,7 +788,7 @@ void modem_responseNumber(byte x)
 	else
 	{
 		modem_nrcpy((char*)&s[0], sizeof(s), x);
-		modem_responseString(&s[0], (2)); //Send the numeric result to the user! CR after!
+		modem_responseString((byte *)&s[0], (2)); //Send the numeric result to the user! CR after!
 	}
 }
 
