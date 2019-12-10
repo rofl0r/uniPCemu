@@ -662,6 +662,11 @@ void UART_registerdevice(byte portnumber, UART_setmodemcontrol setmodemcontrol, 
 	UART_port[portnumber].receivedata = receivedata;
 	UART_port[portnumber].senddata = senddata;
 	UART_port[portnumber].getmodemstatus = getmodemstatus;
+	if (getmodemstatus) //Init status!
+		UART_port[portnumber].activeModemStatus = UART_port[portnumber].getmodemstatus(); //Retrieve the modem status from the peripheral!
+	//Update the modem status register accordingly!
+	SETBITS(UART_port[portnumber].ModemStatusRegister, 4, 0xF, UART_port[portnumber].activeModemStatus); //Set the high bits of the modem status to our input lines!
+	UART_port[portnumber].oldModemStatusRegister = UART_port[portnumber].ModemStatusRegister; //Set the high bits of the modem status to our input lines!
 }
 
 void initUART() //Init software debugger!
@@ -676,7 +681,7 @@ void initUART() //Init software debugger!
 	for (i = 0;i < 4;i++)
 	{
 		UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTPENDINGW(i,1); //We're not executing!
-		UART_port[i].LineStatusRegister = 0x60; //Receiver buffer not ready for reading, Transmitter Holding register and Shift register are empty.
+		UART_port[i].LineStatusRegister = UART_port[i].oldLineStatusRegister = 0x60; //Receiver buffer not ready for reading, Transmitter Holding register and Shift register are empty.
 
 		//Make sure the DLAB is timed correctly!
 		UART_port[i].UART_DLABtimingdivider = ((uint_32)(UART_port[i].DLAB + 1) << 4); //Calculate the new divider!
