@@ -2226,7 +2226,6 @@ void initModem(byte enabled) //Initialise modem!
 		Packetserver_totalClients = Packetserver_availableClients; //Init: n clients available in total!
 		if (modem.inputbuffer && modem.inputdatabuffer[0] && modem.outputbuffer[0]) //Gotten buffers?
 		{
-			UART_registerdevice(modem.port,&modem_setModemControl,&modem_getstatus,&modem_hasData,&modem_readData,&modem_writeData); //Register our UART device!
 			modem.connectionport = BIOS_Settings.modemlistenport; //Default port to connect to if unspecified!
 			if (modem.connectionport==0) //Invalid?
 			{
@@ -2241,6 +2240,7 @@ void initModem(byte enabled) //Initialise modem!
 			modem.serverpolltick = (1000000000.0/(DOUBLE)MODEM_SERVERPOLLFREQUENCY); //Server polling rate of connections!
 			modem.networkpolltick = (1000000000.0/(DOUBLE)MODEM_DATATRANSFERFREQUENCY); //Data transfer polling rate!
 			#endif
+			UART_registerdevice(modem.port, &modem_setModemControl, &modem_getstatus, &modem_hasData, &modem_readData, &modem_writeData); //Register our UART device!
 		}
 		else
 		{
