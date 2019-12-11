@@ -725,7 +725,7 @@ void modem_responseString(byte *s, byte usecarriagereturn)
 void modem_nrcpy(char *s, word size, word nr)
 {
 	memset(s,0,size);
-	snprintf(s,size,"%u%u%u",(nr%1000)/100,(nr%100)/10,(nr%10)); //Convert to string!
+	snprintf(s,size,"%u",nr); //Convert to string!
 }
 void modem_responseResult(byte result) //What result to give!
 {
