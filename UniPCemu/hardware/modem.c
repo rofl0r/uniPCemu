@@ -177,8 +177,12 @@ typedef union PACKED
 //Normal modem operations!
 #define MODEM_BUFFERSIZE 256
 
+//Server polling speed
 #define MODEM_SERVERPOLLFREQUENCY 1000
+//Data tranfer frequency of transferring data
 #define MODEM_DATATRANSFERFREQUENCY 57600
+//Data transfer frequency of tranferring data, in the numeric result code of the connection numeric result code! Must match the MODEM_DATATRANSFERFREQUENCY
+#define MODEM_DATATRANSFERFREQUENCY_NR 18
 
 struct
 {
@@ -727,10 +731,10 @@ void modem_nrcpy(char *s, word size, word nr)
 	memset(s,0,size);
 	snprintf(s,size,"%u",nr); //Convert to string!
 }
+byte connectionspeed[256]; //Connection speed!
 void modem_responseResult(byte result) //What result to give!
 {
 	byte s[256];
-	byte connectionspeed[256] = " 12000"; //Connection speed!
 	if (result>=MIN(NUMITEMS(ATresultsString),NUMITEMS(ATresultsCode))) //Out of range of results to give?
 	{
 		result = MODEMRESULT_ERROR; //Error!
@@ -760,12 +764,22 @@ void modem_responseResult(byte result) //What result to give!
 		modem_responseString(&ATresultsString[result][0],(((result!=MODEMRESULT_CONNECT) || (modem.callprogressmethod==0))?3:1)|4); //Send the string to the user!
 		if ((result == MODEMRESULT_CONNECT) && modem.callprogressmethod) //Add speed as well?
 		{
+			memset(&connectionspeed,0,sizeof(connectionspeed)); //Init!
+			safestrcpy(connectionspeed, sizeof(connectionspeed), " "); //Init!
+			safescatnprintf(connectionspeed, sizeof(connectionspeed), "%u", (uint_32)MODEM_DATATRANSFERFREQUENCY); //Add the data transfer frequency!
 			modem_responseString(&connectionspeed[0], (2 | 4)); //End the command properly with a speed indication in bps!
 		}
 	}
 	else //Numeric format result? This is V0 beign active! So just CR after!
 	{
-		modem_nrcpy((char*)&s[0],sizeof(s),ATresultsCode[result]);
+		if ((result == MODEMRESULT_CONNECT) && modem.callprogressmethod) //Add speed as well?
+		{
+			modem_nrcpy((char*)&s[0], sizeof(s), MODEM_DATATRANSFERFREQUENCY_NR); //Report 57600!
+		}
+		else //Normal result code?
+		{
+			modem_nrcpy((char*)&s[0], sizeof(s), ATresultsCode[result]);
+		}
 		modem_responseString(&s[0],((2)));
 	}
 }
