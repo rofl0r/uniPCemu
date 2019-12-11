@@ -782,7 +782,7 @@ void modem_responseNumber(byte x)
 	if (modem.verbosemode&1) //Text format result?
 	{
 		memset(&s,0,sizeof(s));
-		snprintf(s,sizeof(s),"%04u",x); //Convert to a string!
+		snprintf(s,sizeof(s),"%u",x); //Convert to a string!
 		modem_responseString((byte *)&s,(1|2|4)); //Send the string to the user! CRLF before and after!
 	}
 	else
