@@ -1145,7 +1145,7 @@ void modem_setModemControl(byte line) //Set output lines of the Modem!
 	if ((modem.linechanges^line)&2) //RTS changed?
 	{
 		modem.RTSlineDelay = modem.effectiveRTSlineDelay; //Start timing the CTS line delay!
-		if (modem.effectiveRTSlineDelay) //Gotten a delay?
+		if (modem.RTSlineDelay) //Gotten a delay?
 		{
 			modem_updatelines(2 | 4); //Update RTS internally, don't acnowledge RTS to CTS yet!
 		}
@@ -2411,7 +2411,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 	{
 		modem.DTRlineDelay -= timepassed;
 	}
-	if (modem.RTSlineDelay) //Both timing?
+	if (modem.RTSlineDelay && modem.DTRlineDelay) //Both timing?
 	{
 		if ((modem.RTSlineDelay<=(DOUBLE)0.0f) && (modem.DTRlineDelay<=(DOUBLE)0.0f)) //Both expired?
 		{
