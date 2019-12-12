@@ -731,7 +731,7 @@ void modem_nrcpy(char *s, word size, word nr)
 	memset(s,0,size);
 	snprintf(s,size,"%u",nr); //Convert to string!
 }
-byte connectionspeed[256]; //Connection speed!
+char connectionspeed[256]; //Connection speed!
 void modem_responseResult(byte result) //What result to give!
 {
 	byte s[256];
@@ -767,7 +767,7 @@ void modem_responseResult(byte result) //What result to give!
 			memset(&connectionspeed,0,sizeof(connectionspeed)); //Init!
 			safestrcpy(connectionspeed, sizeof(connectionspeed), " "); //Init!
 			safescatnprintf(connectionspeed, sizeof(connectionspeed), "%u", (uint_32)MODEM_DATATRANSFERFREQUENCY); //Add the data transfer frequency!
-			modem_responseString(&connectionspeed[0], (2 | 4)); //End the command properly with a speed indication in bps!
+			modem_responseString((byte *)&connectionspeed[0], (2 | 4)); //End the command properly with a speed indication in bps!
 		}
 	}
 	else //Numeric format result? This is V0 beign active! So just CR after!
