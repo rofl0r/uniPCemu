@@ -2787,45 +2787,65 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 							}
 							if (datatotransmit == SLIP_END) //End-of-frame? Send the frame!
 							{
-								readfifobuffer(modem.inputdatabuffer[connectedclient], &datatotransmit); //Ignore the data, just discard the packet END!
-								//Clean up the packet container!
-								if (Packetserver_clients[connectedclient].packetserver_transmitlength > sizeof(ethernetheader.data)) //Anything buffered(the header is required)?
+								if (Packetserver_clients[connectedclient].packetserver_transmitstate) //Were we already escaping?
 								{
-									//Send the frame to the server, if we're able to!
-									if (Packetserver_clients[connectedclient].packetserver_transmitlength <= 0xFFFF) //Within length range?
+									if (packetServerAddWriteQueue(connectedclient, SLIP_ESC)) //Ignore the escaped sequence: it's invalid, thus parsed raw!
 									{
-										//dolog("ethernetcard","Sending generated packet(size: %u)!",packetserver_transmitlength);
-										//logpacket(1,packetserver_transmitbuffer,packetserver_transmitlength); //Log it!
+										Packetserver_clients[connectedclient].packetserver_transmitstate = 0; //We're not escaping something anymore!
+									}
+								}
+								if (Packetserver_clients[connectedclient].packetserver_transmitstate == 0) //Ready to send the packet(not waiting for the buffer to free)?
+								{
+									readfifobuffer(modem.inputdatabuffer[connectedclient], &datatotransmit); //Ignore the data, just discard the packet END!
+									//Clean up the packet container!
+									if (Packetserver_clients[connectedclient].packetserver_transmitlength > sizeof(ethernetheader.data)) //Anything buffered(the header is required)?
+									{
+										//Send the frame to the server, if we're able to!
+										if (Packetserver_clients[connectedclient].packetserver_transmitlength <= 0xFFFF) //Within length range?
+										{
+											//dolog("ethernetcard","Sending generated packet(size: %u)!",packetserver_transmitlength);
+											//logpacket(1,packetserver_transmitbuffer,packetserver_transmitlength); //Log it!
 
-										sendpkt_pcap(Packetserver_clients[connectedclient].packetserver_transmitbuffer, Packetserver_clients[connectedclient].packetserver_transmitlength); //Send the packet!
+											sendpkt_pcap(Packetserver_clients[connectedclient].packetserver_transmitbuffer, Packetserver_clients[connectedclient].packetserver_transmitlength); //Send the packet!
+										}
+										else
+										{
+											dolog("ethernetcard", "Error: Can't send packet: packet is too large to send(size: %u)!", Packetserver_clients[connectedclient].packetserver_transmitlength);
+										}
+
+										//Now, cleanup the buffered frame!
+										freez((void**)&Packetserver_clients[connectedclient].packetserver_transmitbuffer, Packetserver_clients[connectedclient].packetserver_transmitsize, "MODEM_SENDPACKET"); //Free 
+										Packetserver_clients[connectedclient].packetserver_transmitsize = 1024; //How large is out transmit buffer!
+										Packetserver_clients[connectedclient].packetserver_transmitbuffer = zalloc(1024, "MODEM_SENDPACKET", NULL); //Simple transmit buffer, the size of a packet byte(when encoded) to be able to buffer any packet(since any byte can be doubled)!
 									}
 									else
 									{
-										dolog("ethernetcard", "Error: Can't send packet: packet is too large to send(size: %u)!", Packetserver_clients[connectedclient].packetserver_transmitlength);
+										dolog("ethernetcard", "Error: Not enough buffered to send to the server(size: %u)!", Packetserver_clients[connectedclient].packetserver_transmitlength);
 									}
-
-									//Now, cleanup the buffered frame!
-									freez((void **)&Packetserver_clients[connectedclient].packetserver_transmitbuffer, Packetserver_clients[connectedclient].packetserver_transmitsize, "MODEM_SENDPACKET"); //Free 
-									Packetserver_clients[connectedclient].packetserver_transmitsize = 1024; //How large is out transmit buffer!
-									Packetserver_clients[connectedclient].packetserver_transmitbuffer = zalloc(1024, "MODEM_SENDPACKET", NULL); //Simple transmit buffer, the size of a packet byte(when encoded) to be able to buffer any packet(since any byte can be doubled)!
+									Packetserver_clients[connectedclient].packetserver_transmitlength = 0; //We're at the start of this buffer, nothing is sent yet!
+									Packetserver_clients[connectedclient].packetserver_transmitstate = 0; //Not escaped anymore!
 								}
-								else
-								{
-									dolog("ethernetcard", "Error: Not enough buffered to send to the server(size: %u)!", Packetserver_clients[connectedclient].packetserver_transmitlength);
-								}
-								Packetserver_clients[connectedclient].packetserver_transmitlength = 0; //We're at the start of this buffer, nothing is sent yet!
-								Packetserver_clients[connectedclient].packetserver_transmitstate = 0; //Not escaped anymore!
 							}
 							else if (datatotransmit == SLIP_ESC) //Escaped something?
 							{
-								readfifobuffer(modem.inputdatabuffer[connectedclient], &datatotransmit); //Discard, as it's processed!
-								Packetserver_clients[connectedclient].packetserver_transmitstate = 1; //We're escaping something! Multiple escapes are ignored and not sent!
+								if (Packetserver_clients[connectedclient].packetserver_transmitstate) //Were we already escaping?
+								{
+									if (packetServerAddWriteQueue(connectedclient, SLIP_ESC)) //Ignore the escaped sequence: it's invalid, thus parsed raw!
+									{
+										Packetserver_clients[connectedclient].packetserver_transmitstate = 0; //We're not escaping something anymore!
+									}
+								}
+								if (Packetserver_clients[connectedclient].packetserver_transmitstate == 0) //Can we start a new escape?
+								{
+									readfifobuffer(modem.inputdatabuffer[connectedclient], &datatotransmit); //Discard, as it's processed!
+									Packetserver_clients[connectedclient].packetserver_transmitstate = 1; //We're escaping something! Multiple escapes are ignored and not sent!
+								}
 							}
 							else //Active data?
 							{
 								if (Packetserver_clients[connectedclient].packetserver_transmitlength) //Gotten a valid packet?
 								{
-									if (Packetserver_clients[connectedclient].packetserver_transmitstate && (datatotransmit == SLIP_ESC_END)) //END sent?
+									if (Packetserver_clients[connectedclient].packetserver_transmitstate && (datatotransmit == SLIP_ESC_END)) //Transposed END sent?
 									{
 										if (packetServerAddWriteQueue(connectedclient,SLIP_END)) //Added to the queue?
 										{
@@ -2833,7 +2853,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 											Packetserver_clients[connectedclient].packetserver_transmitstate = 0; //We're not escaping something anymore!
 										}
 									}
-									else if (Packetserver_clients[connectedclient].packetserver_transmitstate && (datatotransmit == SLIP_ESC_ESC)) //ESC sent?
+									else if (Packetserver_clients[connectedclient].packetserver_transmitstate && (datatotransmit == SLIP_ESC_ESC)) //Transposed ESC sent?
 									{
 										if (packetServerAddWriteQueue(connectedclient,SLIP_ESC)) //Added to the queue?
 										{
@@ -2841,12 +2861,22 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 											Packetserver_clients[connectedclient].packetserver_transmitstate = 0; //We're not escaping something anymore!
 										}
 									}
-									else //Parse as a raw data when invalidly escaped or sent unescaped! Also terminate escape sequence!
+									else //Parse as a raw data when invalidly escaped or sent unescaped! Also terminate escape sequence as required!
 									{
-										if (packetServerAddWriteQueue(connectedclient,datatotransmit)) //Added to the queue?
+										if (Packetserver_clients[connectedclient].packetserver_transmitstate) //Were we escaping?
 										{
-											readfifobuffer(modem.inputdatabuffer[connectedclient], &datatotransmit); //Ignore the data, just discard the packet byte!
-											Packetserver_clients[connectedclient].packetserver_transmitstate = 0; //We're not escaping something anymore!
+											if (packetServerAddWriteQueue(connectedclient, SLIP_ESC)) //Ignore the escaped sequence: it's invalid, thus parsed unescaped!
+											{
+												Packetserver_clients[connectedclient].packetserver_transmitstate = 0; //We're not escaping something anymore!
+											}
+										}
+										if (Packetserver_clients[connectedclient].packetserver_transmitstate==0) //Can we parse the raw data?
+										{
+											if (packetServerAddWriteQueue(connectedclient, datatotransmit)) //Added to the queue?
+											{
+												readfifobuffer(modem.inputdatabuffer[connectedclient], &datatotransmit); //Ignore the data, just discard the packet byte!
+												Packetserver_clients[connectedclient].packetserver_transmitstate = 0; //We're not escaping something anymore!
+											}
 										}
 									}
 								}
