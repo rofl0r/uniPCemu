@@ -2361,11 +2361,108 @@ void logpacket(byte send, byte *buffer, uint_32 size)
 	dolog("ethernetcard","%s",logpacket_outbuffer); //What's received/sent!
 }
 
+void authstage_startrequest(DOUBLE timepassed, sword connectedclient, char *request, byte nextstage)
+{
+	if (Packetserver_clients[connectedclient].packetserver_stage_byte == PACKETSTAGE_INITIALIZING)
+	{
+		memset(&Packetserver_clients[connectedclient].packetserver_stage_str, 0, sizeof(Packetserver_clients[connectedclient].packetserver_stage_str));
+		safestrcpy(Packetserver_clients[connectedclient].packetserver_stage_str, sizeof(Packetserver_clients[connectedclient].packetserver_stage_str), request);
+		Packetserver_clients[connectedclient].packetserver_stage_byte = 0; //Init to start of string!
+		Packetserver_clients[connectedclient].packetserver_credentials_invalid = 0; //No invalid field detected yet!
+		Packetserver_clients[connectedclient].packetserver_delay = PACKETSERVER_MESSAGE_DELAY; //Delay this until we start transmitting!
+	}
+	Packetserver_clients[connectedclient].packetserver_delay -= timepassed; //Delaying!
+	if ((Packetserver_clients[connectedclient].packetserver_delay <= 0.0) || (!Packetserver_clients[connectedclient].packetserver_delay)) //Finished?
+	{
+		Packetserver_clients[connectedclient].packetserver_delay = (DOUBLE)0; //Finish the delay!
+		if (writefifobuffer(modem.outputbuffer[connectedclient], Packetserver_clients[connectedclient].packetserver_stage_str[Packetserver_clients[connectedclient].packetserver_stage_byte])) //Transmitted?
+		{
+			if (++Packetserver_clients[connectedclient].packetserver_stage_byte == safestrlen(Packetserver_clients[connectedclient].packetserver_stage_str, sizeof(Packetserver_clients[connectedclient].packetserver_stage_str))) //Finished?
+			{
+				Packetserver_clients[connectedclient].packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Prepare for next step!
+				Packetserver_clients[connectedclient].packetserver_stage = nextstage;
+			}
+		}
+	}
+}
+
+//result: 0: busy, 1: Finished, 2: goto sendoutputbuffer
+byte authstage_enterfield(DOUBLE timepassed, sword connectedclient, char* field, uint_32 size, byte specialinit, char charmask)
+{
+	byte textinputfield = 0;
+	byte isbackspace = 0;
+	if (Packetserver_clients[connectedclient].packetserver_stage_byte == PACKETSTAGE_INITIALIZING)
+	{
+		memset(field, 0, size);
+		Packetserver_clients[connectedclient].packetserver_stage_byte = 0; //Init to start filling!
+		Packetserver_clients[connectedclient].packetserver_stage_byte_overflown = 0; //Not yet overflown!
+		if (specialinit==1) //Special init for protocol?
+		{
+			#if defined(PACKETSERVER_ENABLED) && !defined(NOPCAP)
+			if (!(BIOS_Settings.ethernetserver_settings.users[0].username[0] && BIOS_Settings.ethernetserver_settings.users[0].password[0])) //Gotten no credentials?
+			{
+				Packetserver_clients[connectedclient].packetserver_credentials_invalid = 0; //Init!
+			}
+			#endif
+		}
+	}
+	if (peekfifobuffer(modem.inputdatabuffer[connectedclient], &textinputfield)) //Transmitted?
+	{
+		isbackspace = (textinputfield == 8) ? 1 : 0; //Are we backspace?
+		if (isbackspace) //Backspace?
+		{
+			if (Packetserver_clients[connectedclient].packetserver_stage_byte == 0) goto ignorebackspaceoutputfield; //To ignore?
+			//We're a valid backspace!
+			if (fifobuffer_freesize(modem.outputbuffer[connectedclient]) < 3) //Not enough to contain backspace result?
+			{
+				return 2; //Not ready to process the writes!
+			}
+		}
+		if (writefifobuffer(modem.outputbuffer[connectedclient], (isbackspace || (textinputfield == '\r') || (textinputfield == '\n') || (!charmask)) ? textinputfield : charmask)) //Echo back to user, encrypted if needed!
+		{
+			if (isbackspace) //Backspace requires extra data?
+			{
+				if (!writefifobuffer(modem.outputbuffer[connectedclient], ' ')) return 2; //Clear previous input!
+				if (!writefifobuffer(modem.outputbuffer[connectedclient], textinputfield)) return 2; //Another backspace to end up where we need to be!
+			}
+		ignorebackspaceoutputfield: //Ignore the output part! Don't send back to the user!
+			readfifobuffer(modem.inputdatabuffer[connectedclient], &textinputfield); //Discard the input!
+			if ((textinputfield == '\r') || (textinputfield == '\n')) //Finished?
+			{
+				field[Packetserver_clients[connectedclient].packetserver_stage_byte] = '\0'; //Finish the string!
+				Packetserver_clients[connectedclient].packetserver_credentials_invalid |= Packetserver_clients[connectedclient].packetserver_stage_byte_overflown; //Overflow has occurred?
+				Packetserver_clients[connectedclient].packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Prepare for next step!
+				return 1; //Finished!
+			}
+			else
+			{
+				if (isbackspace) //Backspace?
+				{
+					field[Packetserver_clients[connectedclient].packetserver_stage_byte] = '\0'; //Ending!
+					if (Packetserver_clients[connectedclient].packetserver_stage_byte) //Non-empty?
+					{
+						--Packetserver_clients[connectedclient].packetserver_stage_byte; //Previous character!
+						field[Packetserver_clients[connectedclient].packetserver_stage_byte] = '\0'; //Erase last character!
+					}
+				}
+				else if ((textinputfield == '\0') || ((Packetserver_clients[connectedclient].packetserver_stage_byte + 1) >= size) || Packetserver_clients[connectedclient].packetserver_stage_byte_overflown) //Future overflow, overflow already occurring or invalid input to add?
+				{
+					Packetserver_clients[connectedclient].packetserver_stage_byte_overflown = 1; //Overflow detected!
+				}
+				else //Valid content to add?
+				{
+					field[Packetserver_clients[connectedclient].packetserver_stage_byte++] = textinputfield; //Add input!
+				}
+			}
+		}
+	}
+	return 0; //Still busy!
+}
+
 void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 {
 	sword connectedclient;
 	sword connectionid;
-	byte isbackspace = 0;
 	byte datatotransmit;
 	ETHERNETHEADER ethernetheader;
 	modem.timer += timepassed; //Add time to the timer!
@@ -2760,269 +2857,69 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 					//Handle an authentication stage
 						if (Packetserver_clients[connectedclient].packetserver_stage == PACKETSTAGE_REQUESTUSERNAME)
 						{
-							if (Packetserver_clients[connectedclient].packetserver_stage_byte == PACKETSTAGE_INITIALIZING)
-							{
-								memset(&Packetserver_clients[connectedclient].packetserver_stage_str, 0, sizeof(Packetserver_clients[connectedclient].packetserver_stage_str));
-								safestrcpy(Packetserver_clients[connectedclient].packetserver_stage_str, sizeof(Packetserver_clients[connectedclient].packetserver_stage_str), "username:");
-								Packetserver_clients[connectedclient].packetserver_stage_byte = 0; //Init to start of string!
-								Packetserver_clients[connectedclient].packetserver_credentials_invalid = 0; //No invalid field detected yet!
-								Packetserver_clients[connectedclient].packetserver_delay = PACKETSERVER_MESSAGE_DELAY; //Delay this until we start transmitting!
-							}
-							Packetserver_clients[connectedclient].packetserver_delay -= timepassed; //Delaying!
-							if ((Packetserver_clients[connectedclient].packetserver_delay <= 0.0) || (!Packetserver_clients[connectedclient].packetserver_delay)) //Finished?
-							{
-								Packetserver_clients[connectedclient].packetserver_delay = (DOUBLE)0; //Finish the delay!
-								if (writefifobuffer(modem.outputbuffer[connectedclient], Packetserver_clients[connectedclient].packetserver_stage_str[Packetserver_clients[connectedclient].packetserver_stage_byte])) //Transmitted?
-								{
-									if (++Packetserver_clients[connectedclient].packetserver_stage_byte == safestrlen(Packetserver_clients[connectedclient].packetserver_stage_str, sizeof(Packetserver_clients[connectedclient].packetserver_stage_str))) //Finished?
-									{
-										Packetserver_clients[connectedclient].packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Prepare for next step!
-										Packetserver_clients[connectedclient].packetserver_stage = PACKETSTAGE_ENTERUSERNAME;
-									}
-								}
-							}
+							authstage_startrequest(timepassed,connectedclient,"username:",PACKETSTAGE_ENTERUSERNAME);
 						}
 
-						byte textinputfield = 0;
 						if (Packetserver_clients[connectedclient].packetserver_stage == PACKETSTAGE_ENTERUSERNAME)
 						{
-							if (Packetserver_clients[connectedclient].packetserver_stage_byte == PACKETSTAGE_INITIALIZING)
+							switch (authstage_enterfield(timepassed, connectedclient, &Packetserver_clients[connectedclient].packetserver_username[0], sizeof(Packetserver_clients[connectedclient].packetserver_username),0,(char)0))
 							{
-								memset(&Packetserver_clients[connectedclient].packetserver_username, 0, sizeof(Packetserver_clients[connectedclient].packetserver_username));
-								Packetserver_clients[connectedclient].packetserver_stage_byte = 0; //Init to start filling!
-								Packetserver_clients[connectedclient].packetserver_stage_byte_overflown = 0; //Not yet overflown!
-							}
-							if (peekfifobuffer(modem.inputdatabuffer[connectedclient], &textinputfield)) //Transmitted?
-							{
-								isbackspace = (textinputfield == 8) ? 1 : 0; //Are we backspace?
-								if (isbackspace) //Backspace?
-								{
-									if (Packetserver_clients[connectedclient].packetserver_stage_byte == 0) goto ignorebackspaceoutputusername; //To ignore?
-									//We're a valid backspace!
-									if (fifobuffer_freesize(modem.outputbuffer[connectedclient]) < 3) //Not enough to contain backspace result?
-									{
-										goto sendoutputbuffer; //Not ready to process the writes!
-									}
-								}
-								if (writefifobuffer(modem.outputbuffer[connectedclient], textinputfield)) //Echo back to user!
-								{
-									if (isbackspace) //Backspace requires extra data?
-									{
-										if (!writefifobuffer(modem.outputbuffer[connectedclient], ' ')) goto sendoutputbuffer; //Clear previous input!
-										if (!writefifobuffer(modem.outputbuffer[connectedclient], textinputfield)) goto sendoutputbuffer; //Another backspace to end up where we need to be!
-									}
-								ignorebackspaceoutputusername: //Ignore the output part! Don't send back to the user!
-									readfifobuffer(modem.inputdatabuffer[connectedclient], &textinputfield); //Discard the input!
-									if ((textinputfield == '\r') || (textinputfield == '\n')) //Finished?
-									{
-										Packetserver_clients[connectedclient].packetserver_username[Packetserver_clients[connectedclient].packetserver_stage_byte] = '\0'; //Finish the string!
-										Packetserver_clients[connectedclient].packetserver_credentials_invalid |= Packetserver_clients[connectedclient].packetserver_stage_byte_overflown; //Overflow has occurred?
-										Packetserver_clients[connectedclient].packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Prepare for next step!
-										Packetserver_clients[connectedclient].packetserver_stage = PACKETSTAGE_REQUESTPASSWORD;
-									}
-									else
-									{
-										if (isbackspace) //Backspace?
-										{
-											Packetserver_clients[connectedclient].packetserver_username[Packetserver_clients[connectedclient].packetserver_stage_byte] = '\0'; //Ending!
-											if (Packetserver_clients[connectedclient].packetserver_stage_byte) //Non-empty?
-											{
-												--Packetserver_clients[connectedclient].packetserver_stage_byte; //Previous character!
-												Packetserver_clients[connectedclient].packetserver_username[Packetserver_clients[connectedclient].packetserver_stage_byte] = '\0'; //Erase last character!
-											}
-										}
-										else if ((textinputfield == '\0') || ((Packetserver_clients[connectedclient].packetserver_stage_byte + 1) >= sizeof(Packetserver_clients[connectedclient].packetserver_username)) || Packetserver_clients[connectedclient].packetserver_stage_byte_overflown) //Future overflow, overflow already occurring or invalid input to add?
-										{
-											Packetserver_clients[connectedclient].packetserver_stage_byte_overflown = 1; //Overflow detected!
-										}
-										else //Valid content to add?
-										{
-											Packetserver_clients[connectedclient].packetserver_username[Packetserver_clients[connectedclient].packetserver_stage_byte++] = textinputfield; //Add input!
-										}
-									}
-								}
+							case 0: //Do nothing!
+								break;
+							case 1: //Finished stage!
+								Packetserver_clients[connectedclient].packetserver_stage = PACKETSTAGE_REQUESTPASSWORD;
+								break;
+							case 2: //Send the output buffer!
+								goto sendoutputbuffer;
+								break;
 							}
 						}
 
 						if (Packetserver_clients[connectedclient].packetserver_stage == PACKETSTAGE_REQUESTPASSWORD)
 						{
-							if (Packetserver_clients[connectedclient].packetserver_stage_byte == PACKETSTAGE_INITIALIZING)
-							{
-								memset(&Packetserver_clients[connectedclient].packetserver_stage_str, 0, sizeof(Packetserver_clients[connectedclient].packetserver_stage_str));
-								safestrcpy(Packetserver_clients[connectedclient].packetserver_stage_str, sizeof(Packetserver_clients[connectedclient].packetserver_stage_str), "password:");
-								Packetserver_clients[connectedclient].packetserver_stage_byte = 0; //Init to start of string!
-								Packetserver_clients[connectedclient].packetserver_delay = PACKETSERVER_MESSAGE_DELAY; //Delay this until we start transmitting!
-							}
-							Packetserver_clients[connectedclient].packetserver_delay -= timepassed; //Delaying!
-							if ((Packetserver_clients[connectedclient].packetserver_delay <= 0.0) || (!Packetserver_clients[connectedclient].packetserver_delay)) //Finished?
-							{
-								Packetserver_clients[connectedclient].packetserver_delay = (DOUBLE)0; //Finish the delay!
-								if (writefifobuffer(modem.outputbuffer[connectedclient], Packetserver_clients[connectedclient].packetserver_stage_str[Packetserver_clients[connectedclient].packetserver_stage_byte])) //Transmitted?
-								{
-									if (++Packetserver_clients[connectedclient].packetserver_stage_byte == safestrlen(Packetserver_clients[connectedclient].packetserver_stage_str, sizeof(Packetserver_clients[connectedclient].packetserver_stage_str))) //Finished?
-									{
-										Packetserver_clients[connectedclient].packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Prepare for next step!
-										Packetserver_clients[connectedclient].packetserver_stage = PACKETSTAGE_ENTERPASSWORD;
-									}
-								}
-							}
+							authstage_startrequest(timepassed,connectedclient,"password:",PACKETSTAGE_ENTERPASSWORD);
 						}
 
 						if (Packetserver_clients[connectedclient].packetserver_stage == PACKETSTAGE_ENTERPASSWORD)
 						{
-							if (Packetserver_clients[connectedclient].packetserver_stage_byte == PACKETSTAGE_INITIALIZING)
+							switch (authstage_enterfield(timepassed, connectedclient, &Packetserver_clients[connectedclient].packetserver_password[0], sizeof(Packetserver_clients[connectedclient].packetserver_password), 0, '*'))
 							{
-								memset(&Packetserver_clients[connectedclient].packetserver_password, 0, sizeof(Packetserver_clients[connectedclient].packetserver_password));
-								Packetserver_clients[connectedclient].packetserver_stage_byte = 0; //Init to start filling!
-								Packetserver_clients[connectedclient].packetserver_stage_byte_overflown = 0; //Not yet overflown!
-							}
-							if (peekfifobuffer(modem.inputdatabuffer[connectedclient], &textinputfield)) //Transmitted?
-							{
-								isbackspace = (textinputfield == 8) ? 1 : 0; //Are we backspace?
-								if (isbackspace) //Backspace?
-								{
-									if (Packetserver_clients[connectedclient].packetserver_stage_byte == 0) goto ignorebackspaceoutputpassword; //To ignore?
-									//We're a valid backspace!
-									if (fifobuffer_freesize(modem.outputbuffer[connectedclient]) < 3) //Not enough to contain backspace result?
-									{
-										goto sendoutputbuffer; //Not ready to process the writes!
-									}
-								}
-								if (writefifobuffer(modem.outputbuffer[connectedclient], (isbackspace || (textinputfield == '\r') || (textinputfield == '\n')) ? textinputfield : '*')) //Echo back to user, encrypted if needed!
-								{
-									if (isbackspace) //Backspace requires extra data?
-									{
-										if (!writefifobuffer(modem.outputbuffer[connectedclient], ' ')) goto sendoutputbuffer; //Clear previous input!
-										if (!writefifobuffer(modem.outputbuffer[connectedclient], textinputfield)) goto sendoutputbuffer; //Another backspace to end up where we need to be!
-									}
-								ignorebackspaceoutputpassword: //Ignore the output part! Don't send back to the user!
-									readfifobuffer(modem.inputdatabuffer[connectedclient], &textinputfield); //Discard the input!
-									if ((textinputfield == '\r') || (textinputfield == '\n')) //Finished?
-									{
-										Packetserver_clients[connectedclient].packetserver_password[Packetserver_clients[connectedclient].packetserver_stage_byte] = '\0'; //Finish the string!
-										Packetserver_clients[connectedclient].packetserver_credentials_invalid |= Packetserver_clients[connectedclient].packetserver_stage_byte_overflown; //Overflow has occurred?
-										Packetserver_clients[connectedclient].packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Prepare for next step!
-										Packetserver_clients[connectedclient].packetserver_stage = PACKETSTAGE_REQUESTPROTOCOL;
-									}
-									else
-									{
-										if (isbackspace) //Backspace?
-										{
-											Packetserver_clients[connectedclient].packetserver_password[Packetserver_clients[connectedclient].packetserver_stage_byte] = '\0'; //Ending!
-											if (Packetserver_clients[connectedclient].packetserver_stage_byte) //Non-empty?
-											{
-												--Packetserver_clients[connectedclient].packetserver_stage_byte; //Previous character!
-												Packetserver_clients[connectedclient].packetserver_password[Packetserver_clients[connectedclient].packetserver_stage_byte] = '\0'; //Erase last character!
-											}
-										}
-										else if ((textinputfield == '\0') || ((Packetserver_clients[connectedclient].packetserver_stage_byte + 1) >= sizeof(Packetserver_clients[connectedclient].packetserver_password)) || Packetserver_clients[connectedclient].packetserver_stage_byte_overflown) //Future overflow, overflow already occurring or invalid input to add?
-										{
-											Packetserver_clients[connectedclient].packetserver_stage_byte_overflown = 1; //Overflow detected!
-										}
-										else //Valid content to add?
-										{
-											Packetserver_clients[connectedclient].packetserver_password[Packetserver_clients[connectedclient].packetserver_stage_byte++] = textinputfield; //Add input!
-										}
-									}
-								}
+							case 0: //Do nothing!
+								break;
+							case 1: //Finished stage!
+								Packetserver_clients[connectedclient].packetserver_stage = PACKETSTAGE_REQUESTPROTOCOL;
+								break;
+							case 2: //Send the output buffer!
+								goto sendoutputbuffer;
+								break;
 							}
 						}
 
 						if (Packetserver_clients[connectedclient].packetserver_stage == PACKETSTAGE_REQUESTPROTOCOL)
 						{
-							if (Packetserver_clients[connectedclient].packetserver_stage_byte == PACKETSTAGE_INITIALIZING)
-							{
-								memset(&Packetserver_clients[connectedclient].packetserver_stage_str, 0, sizeof(Packetserver_clients[connectedclient].packetserver_stage_str));
-								safestrcpy(Packetserver_clients[connectedclient].packetserver_stage_str, sizeof(Packetserver_clients[connectedclient].packetserver_stage_str), "protocol:");
-								Packetserver_clients[connectedclient].packetserver_stage_byte = 0; //Init to start of string!
-								Packetserver_clients[connectedclient].packetserver_delay = PACKETSERVER_MESSAGE_DELAY; //Delay this until we start transmitting!
-							}
-							Packetserver_clients[connectedclient].packetserver_delay -= timepassed; //Delaying!
-							if ((Packetserver_clients[connectedclient].packetserver_delay <= 0.0) || (!Packetserver_clients[connectedclient].packetserver_delay)) //Finished?
-							{
-								Packetserver_clients[connectedclient].packetserver_delay = (DOUBLE)0; //Finish the delay!
-								if (writefifobuffer(modem.outputbuffer[connectedclient], Packetserver_clients[connectedclient].packetserver_stage_str[Packetserver_clients[connectedclient].packetserver_stage_byte])) //Transmitted?
-								{
-									if (++Packetserver_clients[connectedclient].packetserver_stage_byte == safestrlen(Packetserver_clients[connectedclient].packetserver_stage_str, sizeof(Packetserver_clients[connectedclient].packetserver_stage_str))) //Finished?
-									{
-										Packetserver_clients[connectedclient].packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Prepare for next step!
-										Packetserver_clients[connectedclient].packetserver_stage = PACKETSTAGE_ENTERPROTOCOL;
-									}
-								}
-							}
+							authstage_startrequest(timepassed,connectedclient,"protocol:",PACKETSTAGE_ENTERPROTOCOL);
 						}
 
 						if (Packetserver_clients[connectedclient].packetserver_stage == PACKETSTAGE_ENTERPROTOCOL)
 						{
-							if (Packetserver_clients[connectedclient].packetserver_stage_byte == PACKETSTAGE_INITIALIZING)
+							switch (authstage_enterfield(timepassed, connectedclient, &Packetserver_clients[connectedclient].packetserver_protocol[0], sizeof(Packetserver_clients[connectedclient].packetserver_protocol),1,(char)0))
 							{
-								memset(&Packetserver_clients[connectedclient].packetserver_protocol, 0, sizeof(Packetserver_clients[connectedclient].packetserver_protocol));
-								Packetserver_clients[connectedclient].packetserver_stage_byte = 0; //Init to start filling!
-								Packetserver_clients[connectedclient].packetserver_stage_byte_overflown = 0; //Not yet overflown!
-	#if defined(PACKETSERVER_ENABLED) && !defined(NOPCAP)
-								if (!(BIOS_Settings.ethernetserver_settings.users[0].username[0] && BIOS_Settings.ethernetserver_settings.users[0].password[0])) //Gotten no credentials?
+							case 0: //Do nothing!
+								break;
+							case 1: //Finished stage!
+								if (Packetserver_clients[connectedclient].packetserver_credentials_invalid) goto packetserver_autherror; //Authentication error!
+								if (packetserver_authenticate(connectedclient)) //Authenticated?
 								{
-									Packetserver_clients[connectedclient].packetserver_credentials_invalid = 0; //Init!
+									Packetserver_clients[connectedclient].packetserver_slipprotocol = (strcmp(Packetserver_clients[connectedclient].packetserver_protocol, "slip") == 0) ? 1 : 0; //Are we using the slip protocol?
+									Packetserver_clients[connectedclient].packetserver_stage = PACKETSTAGE_INFORMATION; //We're logged in!
 								}
-	#endif
+								else goto packetserver_autherror; //Authentication error!
+								break;
+							case 2: //Send the output buffer!
+								goto sendoutputbuffer;
+								break;
 							}
-							if (peekfifobuffer(modem.inputdatabuffer[connectedclient], &textinputfield)) //Transmitted?
-							{
-								isbackspace = (textinputfield == 8) ? 1 : 0; //Are we backspace?
-								if (isbackspace) //Backspace?
-								{
-									if (Packetserver_clients[connectedclient].packetserver_stage_byte == 0) goto ignorebackspaceoutputprotocol; //To ignore?
-									//We're a valid backspace!
-									if (fifobuffer_freesize(modem.outputbuffer[connectedclient]) < 3) //Not enough to contain backspace result?
-									{
-										goto sendoutputbuffer; //Not ready to process the writes!
-									}
-								}
-								if (writefifobuffer(modem.outputbuffer[connectedclient], textinputfield)) //Echo back to user!
-								{
-									if (isbackspace) //Backspace requires extra data?
-									{
-										if (!writefifobuffer(modem.outputbuffer[connectedclient], ' ')) goto sendoutputbuffer; //Clear previous input!
-										if (!writefifobuffer(modem.outputbuffer[connectedclient], textinputfield)) goto sendoutputbuffer; //Another backspace to end up where we need to be!
-									}
-								ignorebackspaceoutputprotocol: //Ignore the output part! Don't send back to the user!
-									readfifobuffer(modem.inputdatabuffer[connectedclient], &textinputfield); //Discard the input!
-									if ((textinputfield == '\r') || (textinputfield == '\n')) //Finished?
-									{
-										Packetserver_clients[connectedclient].packetserver_protocol[Packetserver_clients[connectedclient].packetserver_stage_byte] = '\0'; //Finish the string!
-										Packetserver_clients[connectedclient].packetserver_credentials_invalid |= Packetserver_clients[connectedclient].packetserver_stage_byte_overflown; //Overflow has occurred?
-										Packetserver_clients[connectedclient].packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Prepare for next step!
-										if (Packetserver_clients[connectedclient].packetserver_credentials_invalid) goto packetserver_autherror; //Authentication error!
-										if (packetserver_authenticate(connectedclient)) //Authenticated?
-										{
-											Packetserver_clients[connectedclient].packetserver_slipprotocol = (strcmp(Packetserver_clients[connectedclient].packetserver_protocol, "slip") == 0) ? 1 : 0; //Are we using the slip protocol?
-											Packetserver_clients[connectedclient].packetserver_stage = PACKETSTAGE_INFORMATION; //We're logged in!
-										}
-										else goto packetserver_autherror; //Authentication error!
-									}
-									else
-									{
-										if (isbackspace) //Backspace?
-										{
-											Packetserver_clients[connectedclient].packetserver_protocol[Packetserver_clients[connectedclient].packetserver_stage_byte] = '\0'; //Ending!
-											if (Packetserver_clients[connectedclient].packetserver_stage_byte) //Non-empty?
-											{
-												--Packetserver_clients[connectedclient].packetserver_stage_byte; //Previous character!
-												Packetserver_clients[connectedclient].packetserver_protocol[Packetserver_clients[connectedclient].packetserver_stage_byte] = '\0'; //Erase last character!
-											}
-										}
-										else if ((textinputfield == '\0') || ((Packetserver_clients[connectedclient].packetserver_stage_byte + 1) >= sizeof(Packetserver_clients[connectedclient].packetserver_protocol)) || Packetserver_clients[connectedclient].packetserver_stage_byte_overflown) //Future overflow, overflow already occurring or invalid input to add?
-										{
-											Packetserver_clients[connectedclient].packetserver_stage_byte_overflown = 1; //Overflow detected!
-										}
-										else //Valid content to add?
-										{
-											Packetserver_clients[connectedclient].packetserver_protocol[Packetserver_clients[connectedclient].packetserver_stage_byte++] = textinputfield; //Add input!
-										}
-									}
-								}
-								}
-							}
+						}
 
 						if (Packetserver_clients[connectedclient].packetserver_stage == PACKETSTAGE_INFORMATION)
 						{
