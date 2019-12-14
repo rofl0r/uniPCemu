@@ -1140,6 +1140,12 @@ void modem_setModemControl(byte line) //Set output lines of the Modem!
 {
 	//Handle modem specifics here!
 	//0: Data Terminal Ready(we can are ready to work), 1: Request to Send(UART can receive data), 4=Set during mark state of the TxD line.
+	if ((line & 0x10) == 0) //Mark not set?
+	{
+		//When mark isn't set, the detection timers are stopped, as TxD is required to be idle when using the detection scheme!
+		modem.detectiontimer[0] = (DOUBLE)0; //Stop timing!
+		modem.detectiontimer[1] = (DOUBLE)0; //Stop timing!
+	}
 	line &= 0xF; //Ignore unused lines!
 	modem.canrecvdata = (line&2); //Can we receive data?
 	modem.outputline = line; //The line that's output!
