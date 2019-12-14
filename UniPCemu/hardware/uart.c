@@ -491,7 +491,7 @@ byte PORT_writeUART(word port, byte value)
 void UART_handleInputs() //Handle any input to the UART!
 {
 	int i;
-	byte modemstatusinterrupt, checknewmodemstatus;
+	byte modemstatusinterrupt, checknewmodemstatus, linestatusbitsset;
 
 	//Raise the IRQ for the first device to give input!
 	for (i = 0;i < 4;i++) //Process all ports!
@@ -522,7 +522,7 @@ void UART_handleInputs() //Handle any input to the UART!
 			SETBITS(UART_port[i].ModemStatusRegister, 5, 0x1, 0); //None
 			checknewmodemstatus = ((UART_port[i].ModemStatusRegister ^ (UART_port[i].oldModemStatusRegister)) & 0xF0); //Check the new status!
 		}
-		if (likely(checknewmodemstatus)) //Are we to verify the new modem status?
+		if (unlikely(checknewmodemstatus)) //Are we to verify the new modem status?
 		{
 			//First, check for interrupts to be triggered!
 			modemstatusinterrupt |= (((UART_port[i].ModemStatusRegister^UART_port[i].oldModemStatusRegister) >> 4) & 0xB); //Bits have changed set bits 0,1,3? Ring has other indicators!
@@ -532,15 +532,16 @@ void UART_handleInputs() //Handle any input to the UART!
 			UART_port[i].ModemStatusRegister |= (((UART_port[i].oldModemStatusRegister&(~UART_port[i].ModemStatusRegister)) >> 4) & 0x4); //Only set the Ring lowered bit when the ring indicator is lowered!
 			UART_port[i].oldModemStatusRegister = UART_port[i].ModemStatusRegister; //Update the old modem status register!
 		}
-		if (unlikely((((UART_port[i].oldLineStatusRegister^UART_port[i].LineStatusRegister)&UART_port[i].LineStatusRegister) & 0x1E) || (UART_port[i].interrupt_causes[3]))) //Line status has raised an error or required to be raised?
+		linestatusbitsset = ((UART_port[i].oldLineStatusRegister ^ UART_port[i].LineStatusRegister) & UART_port[i].LineStatusRegister); //What bits have been set?
+		if (unlikely((linestatusbitsset & 0x1E) || (UART_port[i].interrupt_causes[3]))) //Line status has raised an error or required to be raised?
 		{
 			launchUARTIRQ(i, 3); //We're changing the Line Status Register!
 		}
-		if (unlikely((((UART_port[i].oldLineStatusRegister^UART_port[i].LineStatusRegister)&UART_port[i].LineStatusRegister) & 0x01) || (UART_port[i].interrupt_causes[2]))) //Have we received data or required to be raised?
+		if (unlikely((linestatusbitsset & 0x01) || (UART_port[i].interrupt_causes[2]))) //Have we received data or required to be raised?
 		{
 			launchUARTIRQ(i, 2); //We've received data!
 		}
-		if (unlikely((((UART_port[i].oldLineStatusRegister^UART_port[i].LineStatusRegister)&UART_port[i].LineStatusRegister) & 0x20) || (UART_port[i].interrupt_causes[1]))) //Sent a byte of data(full transmitter holder register becomes empty)?
+		if (unlikely((linestatusbitsset & 0x20) || (UART_port[i].interrupt_causes[1]))) //Sent a byte of data(full transmitter holder register becomes empty)?
 		{
 			launchUARTIRQ(i, 1); //We've sent data!
 		}
