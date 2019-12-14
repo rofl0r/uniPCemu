@@ -84,8 +84,8 @@ struct
 #define UART_LINECONTROLREGISTER_DLABR(UART) ((UART_port[UART].LineControlRegister>>7)&1)
 
 //Simple cause. 0=Modem Status Interrupt, 1=Transmitter Holding Register Empty Interrupt, 2=Received Data Available Interrrupt, 3=Receiver Line Status Interrupt!
-#define UART_INTERRUPTCAUSE_SIMPLECAUSER(UART) ((UART_port[UART].InterruptIdentificationRegister>>1)&3)
-#define UART_INTERRUPTCAUSE_SIMPLECAUSEW(UART,val) UART_port[UART].InterruptIdentificationRegister=((UART_port[UART].InterruptIdentificationRegister&(~6))|((val&3)<<1))
+#define UART_INTERRUPTCAUSE_SIMPLECAUSER(UART) ((UART_port[UART].InterruptIdentificationRegister>>1)&7)
+#define UART_INTERRUPTCAUSE_SIMPLECAUSEW(UART,val) UART_port[UART].InterruptIdentificationRegister=((UART_port[UART].InterruptIdentificationRegister&(~0xE))|((val&7)<<1))
 
 #define UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTPENDINGR(UART) (UART_port[UART].InterruptIdentificationRegister&1)
 #define UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTPENDINGW(UART,val) UART_port[UART].InterruptIdentificationRegister=((UART_port[UART].InterruptIdentificationRegister&(~1))|(val&1))
