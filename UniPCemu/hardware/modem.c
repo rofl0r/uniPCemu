@@ -1046,13 +1046,52 @@ byte resetModem(byte state)
 		modem_updateRegister((byte)reg); //This register has been updated!
 	}
 
+	/*
+
+	According to , defaults are:
+	B0: communicationstandard=0
+	E1: echomode=1
+	F0
+	L3: speakervolume=3
+	M1: speakercontrol=1
+	N1
+	Q0: verbosemode=0<<1|(verbosemode&1)
+	T
+	V1: verboseemode=1|verbosemode
+	W1
+	X4: callprogressmethod=4
+	Y0
+	&C1: DCDmodeisCarrier=1
+	&D2: DTRoffRresponse=2
+	&K3: flowcontrol=3
+	&Q5
+	&R1: CTSalwaysActive=1
+	&S0: DSRisConnectionEstablished=0
+	\A1
+	\B3
+	\K5
+	\N3: 
+	%C3
+	%E2
+
+	*/
 	modem.communicationstandard = 0; //Default communication standard!
-
-	//Result defaults
 	modem.echomode = 1; //Default: echo back!
+	//Speaker controls
+	modem.speakervolume = 3; //Max level speaker volume!
+	modem.speakercontrol = 1; //Enabled speaker!
+	//Result defaults
 	modem.verbosemode = 1; //Text-mode verbose!
+	modem.callprogressmethod = 4;
+	//Default handling of the Hardware lines is also loaded:
+	modem.DCDisCarrier = 1; //Default: DCD=Set Data Carrier Detect (DCD) signal according to remote modem data carrier signal..
+	modem.DTROffResponse = 2; //Default: Hang-up and Goto AT command mode?!
+	modem.flowcontrol = 3; //Default: Enable RTS/CTS flow control!
+	modem.CTSAlwaysActive = 1; //Default: CTS controlled by flow control!
+	modem.DSRisConnectionEstablished = 0; //Default: DSR always ON!
+	//Finish up the default settings!
+	modem.datamode = 0; //In command mode!
 
-	modem.flowcontrol = 0; //Default flow control!
 	memset(&modem.lastnumber,0,sizeof(modem.lastnumber)); //No last number!
 	modem.offhook = 0; //On-hook!
 	if (modem.connected&1) //Are we still connected?
@@ -1063,18 +1102,9 @@ byte resetModem(byte state)
 		modem.connectionid = -1; //Not connected anymore!
 	}
 
-	//Default handling of the Hardware lines is also loaded:
-	modem.DTROffResponse = 2; //Default: full reset!
-	modem.DSRisConnectionEstablished = 0; //Default: assert high always!
-	modem.DCDisCarrier = 1; //Default: DCD=Carrier detected.
-	modem.CTSAlwaysActive = 2; //Default: always active!
 
 	//Misc data
 	memset(&modem.previousATCommand,0,sizeof(modem.previousATCommand)); //No previous command!
-
-	//Speaker controls
-	modem.speakercontrol = 0; //Disabled speaker!
-	modem.speakervolume = 0; //Muted speaker!
 
 	if (loadModemProfile(state)) //Loaded?
 	{
