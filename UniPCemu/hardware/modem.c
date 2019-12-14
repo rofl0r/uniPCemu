@@ -210,6 +210,8 @@ struct
 	DOUBLE DTRlineDelay; //Delay line on the DSR!
 	DOUBLE effectiveDTRlineDelay; //Effective DSR line delay to use!
 
+	byte TxDisMark; //Is TxD currently in mark state?
+
 	//Various parameters used!
 	byte communicationstandard; //What communication standard!
 	byte echomode; //Echo everything back to use user?
@@ -1142,12 +1144,13 @@ void modem_setModemControl(byte line) //Set output lines of the Modem!
 	//0: Data Terminal Ready(we can are ready to work), 1: Request to Send(UART can receive data), 4=Set during mark state of the TxD line.
 	if ((line & 0x10) == 0) //Mark not set?
 	{
-		//When mark isn't set, the detection timers are stopped, as TxD is required to be idle when using the detection scheme!
+		//TxD isn't mark, the detection timers are stopped, as TxD is required to be mark when using the detection scheme!
 		modem.detectiontimer[0] = (DOUBLE)0; //Stop timing!
 		modem.detectiontimer[1] = (DOUBLE)0; //Stop timing!
 	}
-	line &= 0xF; //Ignore unused lines!
 	modem.canrecvdata = (line&2); //Can we receive data?
+	modem.TxDisMark = ((line & 0x10) >> 4); //Is TxD set to mark?
+	line &= 0xF; //Ignore unused lines!
 	modem.outputline = line; //The line that's output!
 	if ((modem.linechanges^line)&2) //RTS changed?
 	{
@@ -1208,7 +1211,7 @@ void modem_updatelines(byte lines)
 				break;
 		}
 	}
-	if (((modem.outputline&1)==1) && ((modem.outputlinechanges^modem.outputline)&1)) //DTR set?
+	if (((modem.outputline&1)==1) && ((modem.outputlinechanges^modem.outputline)&1) && (modem.TxDisMark)) //DTR set while TxD is mark?
 	{
 		modem.detectiontimer[0] = (DOUBLE)150000000.0; //Timer 150ms!
 		modem.detectiontimer[1] = (DOUBLE)250000000.0; //Timer 250ms!
