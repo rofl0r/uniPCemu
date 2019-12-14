@@ -38,7 +38,8 @@ struct
 	byte InterruptIdentificationRegister;
 	byte FIFOControlRegister; //FIFO Control register!
 	byte LineControlRegister;
-	byte ModemControlRegister; //Bit0=DTR, 1=RTS, 2=Alternative output 1, 3=Alternative output 2, 4=Loopback mode, 5=Autoflow control (16750 only
+	byte ModemControlRegister; //Bit0=DTR, 1=RTS, 2=Alternative output 1, 3=Alternative output 2, 4=Loopback mode, 5=Autoflow control (16750 only)
+	byte LiveModemControlRegister; //Modem control register to the hardware!
 	byte oldModemControlRegister; //Old modem control bits!
 	byte LineStatusRegister; //Bit0=Data available, 1=Overrun error, 2=Parity error, 3=Framing error, 4=Break signal received, 5=THR is empty, 6=THR is empty and all bits are sent, 7=Errorneous data in FIFO.
 	byte oldLineStatusRegister; //Old line status register to compare!
@@ -70,6 +71,7 @@ struct
 	uint_32 UART_bytetransfertiming; //UART byte received timing!
 	uint_32 UART_DLABclock; //DLAB-based clock being used!
 	uint_32 UART_DLABtimingdivider; //DLAB timing divider!
+	byte output_is_marking; //Is the output marking?
 } UART_port[4]; //All UART ports!
 
 //Value = 5+DataBits
@@ -377,6 +379,14 @@ byte PORT_readUART(word port, byte *result) //Read from the uart!
 	return 1; //Defined port!
 }
 
+void UART_update_modemcontrol(byte COMport)
+{
+	if (UART_port[COMport].setmodemcontrol) //Line handler is connected and not in loopback mode?
+	{
+		UART_port[COMport].setmodemcontrol(UART_port[COMport].LiveModemControlRegister | ((UART_port->output_is_marking & 1) << 4)); //Update the output lines for the peripheral!
+	}
+}
+
 byte PORT_writeUART(word port, byte value)
 {
 	byte COMport;
@@ -457,11 +467,12 @@ byte PORT_writeUART(word port, byte value)
 		case 4:  //Modem Control Register?
 			UART_port[COMport].ModemControlRegister = (value&0x1F); //Set the register!
 			//Handle anything concerning this?
-			if (UART_port[COMport].setmodemcontrol && ((UART_port[COMport].ModemControlRegister&0x10)==0)) //Line handler is connected and not in loopback mode?
+			if ((UART_port[COMport].ModemControlRegister&0x10)==0) //Line handler is connected and not in loopback mode?
 			{
+				UART_port[COMport].LiveModemControlRegister = (UART_port[COMport].ModemControlRegister&0xF); //Save the set modem control register state for the live output and mark logic!
 				if (UART_port[COMport].ModemControlRegister^UART_port[COMport].oldModemControlRegister) //Modem control register changes are posted only(relieve the )?
 				{
-					UART_port[COMport].setmodemcontrol(value & 0xF); //Update the output lines!
+					UART_update_modemcontrol(COMport); //Update the modem control output!
 				}
 			}
 			if ((UART_port[COMport].ModemControlRegister^UART_port[COMport].oldModemControlRegister)&0x10) //Loopback mode enabled or disabled?
@@ -470,8 +481,8 @@ byte PORT_writeUART(word port, byte value)
 				{
 					UART_port[COMport].LineStatusRegister &= ~1; //Receiver buffer is empty!
 					UART_port[COMport].LineStatusRegister |= 0x60; //The Transmitter Holding Register and Shift Register are both empty!
-					if (UART_port[COMport].setmodemcontrol) //Line handler is connected and not in loopback mode?
-						UART_port[COMport].setmodemcontrol(0); //Update the output lines for the peripheral!
+					UART_port[COMport].LiveModemControlRegister &= 0xC; //Cleared the live output(RTS and CTS in particular)!
+					UART_update_modemcontrol(COMport); //Update the modem control output!
 				}
 				UART_handleInputs(); //Update the loopback status as required by updating the status register!
 			}
@@ -621,6 +632,8 @@ void updateUART(DOUBLE timepassed)
 						if (UART_port[UART].ModemControlRegister & 0x10) break; //Can't start to send during loopback!
 						if (unlikely(UART_port[UART].senddata && ((UART_port[UART].LineStatusRegister & 0x20) == 0))) //Something to transfer?
 						{
+							UART_port[UART].output_is_marking = 0; //Not marking anymmore!
+							UART_update_modemcontrol(UART); //Updated the marking state!
 							//Start transferring data...
 							UART_port[UART].LineStatusRegister |= 0x20; //The Transmitter Holding Register is empty!
 							UART_port[UART].TransmitterShiftRegister = UART_port[UART].TransmitterHoldingRegister; //Move to shift register!
@@ -643,6 +656,8 @@ void updateUART(DOUBLE timepassed)
 							UART_port[UART].LineStatusRegister |= 0x40; //The Transmitter Holding Register and Shift Register are both empty!
 						}
 						UART_port[UART].sendPhase = 0; //Start polling again!
+						UART_port[UART].output_is_marking = 1; //We're marking again!
+						UART_update_modemcontrol(UART); //Updated the marking state!
 						break;
 					}
 				}
@@ -663,8 +678,11 @@ void UART_registerdevice(byte portnumber, UART_setmodemcontrol setmodemcontrol, 
 	UART_port[portnumber].receivedata = receivedata;
 	UART_port[portnumber].senddata = senddata;
 	UART_port[portnumber].getmodemstatus = getmodemstatus;
+	UART_update_modemcontrol(portnumber); //Update the port's marking state so that the hardware knows about it!
 	if (getmodemstatus) //Init status!
+	{
 		UART_port[portnumber].activeModemStatus = UART_port[portnumber].getmodemstatus(); //Retrieve the modem status from the peripheral!
+	}
 	//Update the modem status register accordingly!
 	SETBITS(UART_port[portnumber].ModemStatusRegister, 4, 0xF, UART_port[portnumber].activeModemStatus); //Set the high bits of the modem status to our input lines!
 	UART_port[portnumber].oldModemStatusRegister = UART_port[portnumber].ModemStatusRegister; //Set the high bits of the modem status to our input lines!
@@ -686,7 +704,7 @@ void initUART() //Init software debugger!
 
 		//Make sure the DLAB is timed correctly!
 		UART_port[i].UART_DLABtimingdivider = ((uint_32)(UART_port[i].DLAB + 1) << 4); //Calculate the new divider!
-
+		UART_port[i].output_is_marking = 1; //Not sending anything, so output is marking!
 	}
 	UART_clock = 0.0; //Init our clock!
 	#ifdef IS_LONGDOUBLE
