@@ -1139,7 +1139,8 @@ void modem_updatelines(byte lines); //Prototype for modem_setModemControl!
 void modem_setModemControl(byte line) //Set output lines of the Modem!
 {
 	//Handle modem specifics here!
-	//0: Data Terminal Ready(we can are ready to work), 1: Request to Send(UART can receive data)
+	//0: Data Terminal Ready(we can are ready to work), 1: Request to Send(UART can receive data), 4=Set during mark state of the TxD line.
+	line &= 0xF; //Ignore unused lines!
 	modem.canrecvdata = (line&2); //Can we receive data?
 	modem.outputline = line; //The line that's output!
 	if ((modem.linechanges^line)&2) //RTS changed?
