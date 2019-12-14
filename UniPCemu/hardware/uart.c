@@ -383,7 +383,7 @@ void UART_update_modemcontrol(byte COMport)
 {
 	if (UART_port[COMport].setmodemcontrol) //Line handler is connected and not in loopback mode?
 	{
-		UART_port[COMport].setmodemcontrol(UART_port[COMport].LiveModemControlRegister | ((UART_port->output_is_marking & 1) << 4)); //Update the output lines for the peripheral!
+		UART_port[COMport].setmodemcontrol(UART_port[COMport].LiveModemControlRegister | ((UART_port[COMport].output_is_marking & 1) << 4)); //Update the output lines for the peripheral!
 	}
 }
 
