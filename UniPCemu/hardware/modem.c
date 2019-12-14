@@ -1275,7 +1275,7 @@ void modem_updatelines(byte lines)
 byte modem_hasData() //Do we have data for input?
 {
 	byte temp;
-	return ((peekfifobuffer(modem.inputbuffer, &temp) || (peekfifobuffer(modem.inputdatabuffer[0],&temp) && (modem.datamode==1)))&&(modem.canrecvdata||(modem.flowcontrol!=3))); //Do we have data to receive?
+	return ((peekfifobuffer(modem.inputbuffer, &temp) || (peekfifobuffer(modem.inputdatabuffer[0],&temp) && (modem.datamode==1)))&&((modem.canrecvdata&&((modem.flowcontrol==1)||(modem.flowcontrol==3))) || ((modem.flowcontrol!=1) && (modem.flowcontrol!=3)))); //Do we have data to receive and flow control allows it?
 }
 
 byte modem_getstatus()
@@ -2062,15 +2062,18 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 					n0 = 0;
 					goto setAT_K;
 				case '1':
+					goto unsupportedflowcontrol; //Unsupported!
 					n0 = 1;
 					goto setAT_K;
 				case '2':
+					goto unsupportedflowcontrol; //Unsupported!
 					n0 = 2;
 					goto setAT_K;
 				case '3':
 					n0 = 3;
 					goto setAT_K;
 				case '4':
+					goto unsupportedflowcontrol; //Unsupported!
 					n0 = 4;
 					setAT_K:
 					if (n0<5) //Valid?
@@ -2079,6 +2082,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 					}
 					else
 					{
+						unsupportedflowcontrol:
 						modem_responseResult(MODEMRESULT_ERROR); //Error!
 						return; //Abort!
 					}
