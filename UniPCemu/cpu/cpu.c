@@ -1142,7 +1142,7 @@ OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 		CPU_Address_size[activeCPU] = !CPU_Address_size[activeCPU]; //Invert!
 	}
 
-	CPU[activeCPU].address_size = (0xFFFF | (0xFFFF<<(CPU_Address_size[activeCPU]<<4))); //Effective address size for this instruction!
+	CPU[activeCPU].address_size = ((0xFFFFU | (0xFFFFU<<(CPU_Address_size[activeCPU]<<4)))&0xFFFFFFFFULL); //Effective address size for this instruction!
 
 	//Now, check for the ModR/M byte, if present, and read the parameters if needed!
 	currentOpcodeInformation = &CPUOpcodeInformationPrecalcs[CPU_Operand_size[activeCPU]][(*OP<<1)|CPU[activeCPU].is0Fopcode]; //Only 2 modes implemented so far, 32-bit or 16-bit mode, with 0F opcode every odd entry!
