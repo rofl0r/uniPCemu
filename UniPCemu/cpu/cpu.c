@@ -1116,33 +1116,20 @@ OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 				CPU[activeCPU].instructionfetch.CPU_fetchparameterPos = 0; //Init parameter position!
 				memset(&params.instructionfetch,0,sizeof(params.instructionfetch)); //Init instruction fetch status!
 			}
+
+			//Determine the stack&attribute sizes(286+)!
+			//Stack address size is automatically retrieved!
+
+			//32-bits operand&address defaulted? We're a 32-bit Operand&Address size to default to instead!
+			CPU_Operand_size[activeCPU] = CPU_Address_size[activeCPU] = (CODE_SEGMENT_DESCRIPTOR_D_BIT() & 1);
+
+			//Apply operand size/address size prefixes!
+			CPU_Operand_size[activeCPU] ^= CPU_getprefix(0x66); //Invert operand size?
+			CPU_Address_size[activeCPU] ^= CPU_getprefix(0x67); //Invert address size?
+
+			CPU[activeCPU].address_size = ((0xFFFFU | (0xFFFFU << (CPU_Address_size[activeCPU] << 4))) & 0xFFFFFFFFULL); //Effective address size for this instruction!
 		}
 	}
-
-//Determine the stack&attribute sizes(286+)!
-	//Stack address size is automatically retrieved!
-
-	if (CODE_SEGMENT_DESCRIPTOR_D_BIT()) //32-bits operand&address defaulted? We're a 32-bit Operand&Address size to default to instead!
-	{
-		CPU_Operand_size[activeCPU] = 1; //Set!
-		CPU_Address_size[activeCPU] = 1; //Set!
-	}
-	else //16-bit defaults?
-	{
-		CPU_Operand_size[activeCPU] = 0; //Set!
-		CPU_Address_size[activeCPU] = 0; //Set!
-	}
-
-	if (CPU_getprefix(0x66)) //Invert operand size?
-	{
-		CPU_Operand_size[activeCPU] = !CPU_Operand_size[activeCPU]; //Invert!
-	}
-	if (CPU_getprefix(0x67)) //Invert address size?
-	{
-		CPU_Address_size[activeCPU] = !CPU_Address_size[activeCPU]; //Invert!
-	}
-
-	CPU[activeCPU].address_size = ((0xFFFFU | (0xFFFFU<<(CPU_Address_size[activeCPU]<<4)))&0xFFFFFFFFULL); //Effective address size for this instruction!
 
 	//Now, check for the ModR/M byte, if present, and read the parameters if needed!
 	currentOpcodeInformation = &CPUOpcodeInformationPrecalcs[CPU_Operand_size[activeCPU]][(*OP<<1)|CPU[activeCPU].is0Fopcode]; //Only 2 modes implemented so far, 32-bit or 16-bit mode, with 0F opcode every odd entry!
