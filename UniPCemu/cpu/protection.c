@@ -538,17 +538,17 @@ void CPU_calcSegmentPrecalcs(SEGMENT_DESCRIPTOR *descriptor)
 	uint_32 limits[2]; //What limit to apply?
 
 	limits[0] = ((SEGDESCPTR_NONCALLGATE_LIMIT_HIGH(descriptor) << 16) | descriptor->desc.limit_low); //Base limit!
-	limits[1] = ((limits[0] << 12) | 0xFFF); //4KB for a limit of 4GB, fill lower 12 bits with 1!
+	limits[1] = ((limits[0] << 12) | 0xFFFU); //4KB for a limit of 4GB, fill lower 12 bits with 1!
 	descriptor->PRECALCS.limit = (uint_64)limits[SEGDESCPTR_GRANULARITY(descriptor)]; //Use the appropriate granularity to produce the limit!
 	descriptor->PRECALCS.topdown = ((descriptor->desc.AccessRights & 0x1C) == 0x14); //Topdown segment?
 	descriptor->PRECALCS.notpresent = (GENERALSEGMENTPTR_P(descriptor)==0); //Not present descriptor?
 	//Roof: Expand-up: G=0: 1MB, G=1: 4GB. Expand-down: B=0:64K, B=1:4GB.
-	descriptor->PRECALCS.roof = (((uint_64)0xFFFF | ((uint_64)0xFFFF << ((descriptor->PRECALCS.topdown?SEGDESCPTR_NONCALLGATE_D_B(descriptor):SEGDESCPTR_GRANULARITY(descriptor)) << 4)))&0xFFFFFFFF); //The roof of the descriptor!
+	descriptor->PRECALCS.roof = ((uint_64)0xFFFFU | ((uint_64)0xFFFFU << ((descriptor->PRECALCS.topdown?SEGDESCPTR_NONCALLGATE_D_B(descriptor):SEGDESCPTR_GRANULARITY(descriptor)) << 4))); //The roof of the descriptor!
 	if ((descriptor->PRECALCS.topdown==0) && (SEGDESCPTR_GRANULARITY(descriptor)==0)) //Bottom-up segment that's having a 20-bit limit?
 	{
 		descriptor->PRECALCS.roof |= 0xF0000; //Actually a 1MB limit instead of 64K!
 	}
-	descriptor->PRECALCS.base = (((descriptor->desc.base_high << 24) | (descriptor->desc.base_mid << 16) | descriptor->desc.base_low)&0xFFFFFFFF); //Update the base address!
+	descriptor->PRECALCS.base = (((descriptor->desc.base_high << 24) | (descriptor->desc.base_mid << 16) | descriptor->desc.base_low)&0xFFFFFFFFU); //Update the base address!
 	//Apply read/write/execute permissions to the descriptor!
 	memcpy(&descriptor->PRECALCS.rwe_errorout[0], &checkrights_conditions_rwe_errorout[descriptor->desc.AccessRights & 0xE][0],sizeof(descriptor->PRECALCS.rwe_errorout));
 }
@@ -1523,7 +1523,7 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 			//Load the correct base data for our loading!
 			CPU[activeCPU].SEG_DESCRIPTOR[segment].desc.base_low = (word)(((uint_32)value<<4)&0xFFFF); //Low base!
 			CPU[activeCPU].SEG_DESCRIPTOR[segment].desc.base_mid = ((((uint_32)value << 4) & 0xFF0000)>>16); //Mid base!
-			CPU[activeCPU].SEG_DESCRIPTOR[segment].desc.base_high = ((((uint_32)value << 4) & 0xFF000000)>>24); //High base!
+			CPU[activeCPU].SEG_DESCRIPTOR[segment].desc.base_high = ((((uint_32)value << 4) & 0xFF000000U)>>24); //High base!
 			//This also maps the resulting segment in low memory (20-bit address space) in real mode, thus CS is pulled low as well!
 			//Real mode affects only CS like Virtual 8086 mode(reloading all base/limit values). Other segments are unmodified.
 			//Virtual 8086 mode also loads the rights etc.? This is to prevent Virtual 8086 tasks having leftover data in their descriptors, causing faults!
@@ -2054,7 +2054,7 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 
 				//Calculate and check the limit!
 
-				if (verifyLimit(&newdescriptor,((idtentry.offsetlow | (idtentry.offsethigh << 16))&(0xFFFFFFFF>>((is32bit^1)<<4))))==0) //Limit exceeded?
+				if (verifyLimit(&newdescriptor,((idtentry.offsetlow | (idtentry.offsethigh << 16))&(0xFFFFFFFFU>>((is32bit^1)<<4))))==0) //Limit exceeded?
 				{
 					THROWDESCGP(0,0,0); //Throw #GP(0)!
 					return 0;
@@ -2117,7 +2117,7 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 
 				//Calculate and check the limit!
 
-				if (verifyLimit(&newdescriptor,((idtentry.offsetlow | (idtentry.offsethigh << 16))&(0xFFFFFFFF>>((is32bit^1)<<4))))==0) //Limit exceeded?
+				if (verifyLimit(&newdescriptor,((idtentry.offsetlow | (idtentry.offsethigh << 16))&(0xFFFFFFFFU>>((is32bit^1)<<4))))==0) //Limit exceeded?
 				{
 					THROWDESCGP(0,0,0); //Throw #GP(0)!
 					return 0;
@@ -2143,7 +2143,7 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 				if (checkStackAccess(3+((errorcode>=0)?1:0),1|0x100|((EXT&1)<<9),is32bit?1:0)) return 0; //Abort on fault!
 				//Calculate and check the limit!
 
-				if (verifyLimit(&newdescriptor,((idtentry.offsetlow | (idtentry.offsethigh << 16))&(0xFFFFFFFF>>((is32bit^1)<<4))))==0) //Limit exceeded?
+				if (verifyLimit(&newdescriptor,((idtentry.offsetlow | (idtentry.offsethigh << 16))&(0xFFFFFFFFU>>((is32bit^1)<<4))))==0) //Limit exceeded?
 				{
 					THROWDESCGP(0,0,0); //Throw #GP(0)!
 					return 0;
@@ -2182,7 +2182,7 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 
 			setRPL(*CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_CS],getCPL()); //CS.RPL=CPL!
 
-			REG_EIP = ((idtentry.offsetlow | (idtentry.offsethigh << 16))&(0xFFFFFFFF >> ((is32bit ^ 1) << 4))); //The current OPCode: just jump to the address specified by the descriptor OR command!
+			REG_EIP = ((idtentry.offsetlow | (idtentry.offsethigh << 16))&(0xFFFFFFFFU >> ((is32bit ^ 1) << 4))); //The current OPCode: just jump to the address specified by the descriptor OR command!
 
 			FLAGW_TF(0);
 			FLAGW_NT(0);
