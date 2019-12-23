@@ -397,7 +397,7 @@ byte Tseng34K_writeIO(word port, byte val)
 		case 0: //TS register special stuff?
 			if ((val & 2) == 0) //We're stopping to repond to the Segment Select Register when a synchronous reset is started or set!
 			{
-				et34kdata->et4k_segmentselectregisterenabled = 0; //We're stopping to respond to the Segment Select Register until the KEY is set again!
+				//et34kdata->et4k_segmentselectregisterenabled = 0; //We're stopping to respond to the Segment Select Register until the KEY is set again!
 			}
 		default:
 			//LOG(LOG_VGAMISC,LOG_NORMAL)("VGA:SEQ:ET4K:Write to illegal index %2X", reg);
