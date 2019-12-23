@@ -395,7 +395,7 @@ byte Tseng34K_writeIO(word port, byte val)
 		// Unlikely to be used by games (things like ROM enable/disable and emulation of VGA vs EGA)
 		STORE_ET34K(3c4, 07,WHEREUPDATED_SEQUENCER);
 		case 0: //TS register special stuff?
-			if (((val & 2) == 0) && (getActiveVGA()->registers->SequencerRegisters.REGISTERS.RESETREGISTER&2)) //We're stopping to repond to the Segment Select Register when a synchronous reset is started!
+			if ((val & 2) == 0) //We're stopping to repond to the Segment Select Register when a synchronous reset is started or set!
 			{
 				et34kdata->et4k_segmentselectregisterenabled = 0; //We're stopping to respond to the Segment Select Register until the KEY is set again!
 			}
