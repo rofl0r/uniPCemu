@@ -1241,7 +1241,30 @@ void hdd_information(char *filename) //Displays information about a harddisk to 
 
 //Menus itself:
 
+void BIOS_noentries(sword x, sword y, char* message)
+{
+	/*
+	EMU_locktext();
+	EMU_gotoxy(x, y); //Goto 4th row!
+	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
+	GPU_EMU_printscreen(x, y, "No files present"); //Show selection init!
+	EMU_unlocktext();
+	delay(2000000); //Wait 2 seconds!
+	*/
+
+	numlist = 0; //Reset amount of files!
+	clearList(); //Clear the list!
+	addList(message); //Add the message as the only item!
+	int file = ExecuteList(x, y, itemlist[0], 256, NULL); //Show options for the installed CPU!
+	//Ignore the result, nothing to do with it anyways(as nothing is to be selected)!
+}
+
 //Selection menus for disk drives!
+
+void BIOS_disk_nofiles()
+{
+	BIOS_noentries(12, 4, "<No disk images present>");
+}
 
 void BIOS_floppy0_selection() //FLOPPY0 selection menu!
 {
@@ -1257,8 +1280,9 @@ void BIOS_floppy0_selection() //FLOPPY0 selection menu!
 	int file = ExecuteList(12,4,BIOS_Settings.floppy0,256,&hdd_information); //Show menu for the disk image!
 	switch (file) //Which file?
 	{
-	case FILELIST_DEFAULT: //Unmount?
 	case FILELIST_NOFILES: //No files?
+		BIOS_disk_nofiles(); //No files!
+	case FILELIST_DEFAULT: //Unmount?
 		BIOS_Changed = 1; //Changed!
 		safestrcpy(BIOS_Settings.floppy0,sizeof(BIOS_Settings.floppy0),""); //Unmount!
 		BIOS_Settings.floppy0_readonly = 0; //Not readonly!
@@ -1287,8 +1311,9 @@ void BIOS_floppy1_selection() //FLOPPY1 selection menu!
 	int file = ExecuteList(12,4,BIOS_Settings.floppy1,256,&hdd_information); //Show menu for the disk image!
 	switch (file) //Which file?
 	{
-	case FILELIST_DEFAULT: //Unmount?
 	case FILELIST_NOFILES: //No files?
+		BIOS_disk_nofiles(); //No files!
+	case FILELIST_DEFAULT: //Unmount?
 		BIOS_Changed = 1; //Changed!
 		safestrcpy(BIOS_Settings.floppy1,sizeof(BIOS_Settings.floppy1),""); //Unmount!
 		BIOS_Settings.floppy0_readonly = 0; //Different resets readonly flag!
@@ -1318,8 +1343,9 @@ void BIOS_hdd0_selection() //HDD0 selection menu!
 	int file = ExecuteList(12,4,BIOS_Settings.hdd0,256,&hdd_information); //Show menu for the disk image!
 	switch (file) //Which file?
 	{
-	case FILELIST_DEFAULT: //Unmount?
 	case FILELIST_NOFILES: //No files?
+		BIOS_disk_nofiles(); //No files!
+	case FILELIST_DEFAULT: //Unmount?
 		BIOS_Changed = 1; //Changed!
 		reboot_needed |= 1; //We need to reboot to apply the ATA changes!
 		BIOS_Settings.hdd0_readonly = 0; //Different resets readonly flag!
@@ -1351,8 +1377,9 @@ void BIOS_hdd1_selection() //HDD1 selection menu!
 	int file = ExecuteList(12,4,BIOS_Settings.hdd1,256,&hdd_information); //Show menu for the disk image!
 	switch (file) //Which file?
 	{
-	case FILELIST_DEFAULT: //Unmount?
 	case FILELIST_NOFILES: //No files?
+		BIOS_disk_nofiles(); //No files!
+	case FILELIST_DEFAULT: //Unmount?
 		BIOS_Changed = 1; //Changed!
 		reboot_needed |= 1; //We need to reboot to apply the ATA changes!
 		BIOS_Settings.hdd1_readonly = 0; //Different resets readonly flag!
@@ -1384,8 +1411,9 @@ void BIOS_cdrom0_selection() //CDROM0 selection menu!
 		int file = ExecuteList(12,4,BIOS_Settings.cdrom0,256,NULL); //Show menu for the disk image!
 		switch (file) //Which file?
 		{
-		case FILELIST_DEFAULT: //Unmount?
 		case FILELIST_NOFILES: //No files?
+			BIOS_disk_nofiles(); //No files!
+		case FILELIST_DEFAULT: //Unmount?
 			BIOS_Changed = 1; //Changed!
 			safestrcpy(BIOS_Settings.cdrom0,sizeof(BIOS_Settings.cdrom0),""); //Unmount!
 			break;
@@ -1464,8 +1492,9 @@ void BIOS_cdrom1_selection() //CDROM1 selection menu!
 		int file = ExecuteList(12,4,BIOS_Settings.cdrom1,256,NULL); //Show menu for the disk image!
 		switch (file) //Which file?
 		{
-		case FILELIST_DEFAULT: //Unmount?
 		case FILELIST_NOFILES: //No files?
+			BIOS_disk_nofiles(); //No files!
+		case FILELIST_DEFAULT: //Unmount?
 			BIOS_Changed = 1; //Changed!
 			safestrcpy(BIOS_Settings.cdrom1,sizeof(BIOS_Settings.cdrom1),""); //Unmount!
 			break;
@@ -2758,8 +2787,9 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 	int file = ExecuteList(12, 4, "", 256,&hdd_information); //Show menu for the disk image!
 	switch (file) //Which file?
 	{
-	case FILELIST_DEFAULT: //Unmount?
 	case FILELIST_NOFILES: //No files?
+		BIOS_disk_nofiles(); //No files!
+	case FILELIST_DEFAULT: //Unmount?
 	case FILELIST_CANCEL: //Cancelled?
 		//We do nothing with the selected disk!
 		break; //Just calmly return!
@@ -2959,8 +2989,9 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 	int file = ExecuteList(12, 4, "", 256,&hdd_information); //Show menu for the disk image!
 	switch (file) //Which file?
 	{
-	case FILELIST_DEFAULT: //Unmount?
 	case FILELIST_NOFILES: //No files?
+		BIOS_disk_nofiles(); //No files!
+	case FILELIST_DEFAULT: //Unmount?
 	case FILELIST_CANCEL: //Cancelled?
 		//We do nothing with the selected disk!
 		break; //Just calmly return!
@@ -3170,8 +3201,9 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 	int file = ExecuteList(12, 4, "", 256,&hdd_information); //Show menu for the disk image!
 	switch (file) //Which file?
 	{
-	case FILELIST_DEFAULT: //Unmount?
 	case FILELIST_NOFILES: //No files?
+		BIOS_disk_nofiles(); //No files!
+	case FILELIST_DEFAULT: //Unmount?
 	case FILELIST_CANCEL: //Cancelled?
 		break;
 	default: //File?
@@ -4981,8 +5013,9 @@ void BIOS_SoundFont_selection() //SoundFont selection menu!
 	int file = ExecuteList(12, 4, BIOS_Settings.SoundFont, 256,NULL); //Show menu for the disk image!
 	switch (file) //Which file?
 	{
-	case FILELIST_DEFAULT: //Unmount?
 	case FILELIST_NOFILES: //No files?
+		BIOS_noentries(12, 4, "<No soundfonts present>");
+	case FILELIST_DEFAULT: //Unmount?
 		if (strcmp(BIOS_Settings.SoundFont, ""))
 		{
 			BIOS_Changed = 1; //Changed!
@@ -5029,6 +5062,7 @@ int BIOS_Sound_selection() //Music selection menu, custom for this purpose!
 		//We do nothing with the selected disk!
 		break; //Just calmly return!
 	case FILELIST_NOFILES: //No files?
+		BIOS_noentries(12, 4, "<No music files present>");
 		return -1; //Not selected!
 		break;
 	default: //File?
