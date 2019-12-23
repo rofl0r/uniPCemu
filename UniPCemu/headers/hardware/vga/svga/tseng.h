@@ -66,6 +66,7 @@ typedef struct {
 	//Extra data added by superfury(Device specific precalculation storage)
 
 	//Banking support
+	byte et4k_segmentselectregisterenabled; //Segment select register on the ET4000 has been enabled?
 	byte segmentselectregister; //Containing the below values.
 	byte bank_read; //Read bank number!
 	byte bank_write; //Write bank number!

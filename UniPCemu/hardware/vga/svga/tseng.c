@@ -152,6 +152,7 @@ byte Tseng34K_writeIO(word port, byte val)
 				if (val == 0xA0) //Enable extensions?
 				{
 					et34kdata->extensionsEnabled = 1; //Enable the extensions!
+					et34kdata->et4k_segmentselectregisterenabled = 1; //Enable the segment select register from now on!
 					VGA_calcprecalcs(getActiveVGA(), WHEREUPDATED_ALL); //Update all precalcs!
 				}
 			}
@@ -393,6 +394,11 @@ byte Tseng34K_writeIO(word port, byte val)
 		// 3C4h index  7  (R/W): TS Auxiliary Mode
 		// Unlikely to be used by games (things like ROM enable/disable and emulation of VGA vs EGA)
 		STORE_ET34K(3c4, 07,WHEREUPDATED_SEQUENCER);
+		case 0: //TS register special stuff?
+			if (((val & 2) == 0) && (getActiveVGA()->registers->SequencerRegisters.REGISTERS.RESETREGISTER&2)) //We're stopping to repond to the Segment Select Register when a synchronous reset is started!
+			{
+				et34kdata->et4k_segmentselectregisterenabled = 0; //We're stopping to respond to the Segment Select Register until the KEY is set again!
+			}
 		default:
 			//LOG(LOG_VGAMISC,LOG_NORMAL)("VGA:SEQ:ET4K:Write to illegal index %2X", reg);
 			break;
@@ -405,7 +411,7 @@ byte Tseng34K_writeIO(word port, byte val)
 	*/
 	//void write_p3cd_et4k(Bitu port, Bitu val, Bitu iolen) {
 	case 0x3CD: //Segment select?
-		//if((!et34kdata->extensionsEnabled) && (getActiveVGA()->enable_SVGA==1)) return 0; //Not used without extensions! Edit: Required for detecting Tseng card!
+		if ((getActiveVGA()->enable_SVGA == 1) && (!et34kdata->et4k_segmentselectregisterenabled)) return 0; //Not available on the ET4000 until having set the KEY at least once after a power-on reset or synchronous reset(TS indexed register 0h bit 1).
 		et34kdata->segmentselectregister = val; //Save the entire segment select register!
 		if (getActiveVGA()->enable_SVGA == 2) //ET3000?
 		{
@@ -631,6 +637,7 @@ byte Tseng34K_readIO(word port, byte *result)
 		break;
 	case 0x3CD: //Segment select?
 	//Bitu read_p3cd_et4k(Bitu port, Bitu iolen) {
+		if ((getActiveVGA()->enable_SVGA == 1) && (!et34kdata->et4k_segmentselectregisterenabled)) return 0; //Not available on the ET4000 until having set the KEY at least once after a power-on reset or synchronous reset(TS indexed register 0h bit 1).
 		*result = et34kdata->segmentselectregister; //Give the saved segment select register!
 		return 1; //Supported!
 		break;
@@ -785,6 +792,7 @@ void Tseng34k_init()
 
 			et34k(getActiveVGA())->extensionsEnabled = 0; //Disable the extensions by default!
 			et34k(getActiveVGA())->oldextensionsEnabled = 1; //Make sure the extensions are updated in status!
+			et34k(getActiveVGA())->et4k_segmentselectregisterenabled = 0; //Segment select register isn't enabled yet!
 
 			VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_ALL); //Update all precalcs!
 		}
