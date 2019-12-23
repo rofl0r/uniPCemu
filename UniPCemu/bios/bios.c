@@ -979,8 +979,8 @@ void BIOS_LoadData() //Load BIOS settings!
 	BIOS_Settings.input_settings.specialbordercolor = (byte)get_private_profile_uint64("input","keyboard_specialbordercolor",0xFF,BIOS_Settings_file);
 	BIOS_Settings.input_settings.specialactivecolor = (byte)get_private_profile_uint64("input","keyboard_specialactivecolor",0xFF,BIOS_Settings_file);
 	BIOS_Settings.input_settings.DirectInput_remap_RCTRL_to_LWIN = (byte)get_private_profile_uint64("input","DirectInput_remap_RCTRL_to_LWIN",0,BIOS_Settings_file); //Remap RCTRL to LWIN in Direct Input?
-	BIOS_Settings.input_settings.DirectInput_remap_accentgrave_to_tab = (byte)get_private_profile_uint64("input","DirectInput_remap_accentgrave_to_tab",0,BIOS_Settings_file); //Remap Accent Grave to Tab during RCTRL remapping?
-	BIOS_Settings.input_settings.DirectInput_remap_NUM0_to_Delete = (byte)get_private_profile_uint64("input", "DirectInput_remap_NUM0_to_Delete", 0, BIOS_Settings_file); //Remap Accent Grave to Tab during RCTRL remapping?
+	BIOS_Settings.input_settings.DirectInput_remap_accentgrave_to_tab = (byte)get_private_profile_uint64("input","DirectInput_remap_accentgrave_to_tab",0,BIOS_Settings_file); //Remap Accent Grave to Tab during LALT?
+	BIOS_Settings.input_settings.DirectInput_remap_NUM0_to_Delete = (byte)get_private_profile_uint64("input", "DirectInput_remap_NUM0_to_Delete", 0, BIOS_Settings_file); //Remap NUM0 to Delete?
 	BIOS_Settings.input_settings.DirectInput_Disable_RALT = (byte)get_private_profile_uint64("input","DirectInput_disable_RALT",0,BIOS_Settings_file); //Disable RALT?
 	for (c=0;c<6;++c) //Validate colors and set default colors when invalid!
 	{
@@ -1321,8 +1321,8 @@ int BIOS_SaveData() //Save BIOS settings!
 	safestrcat(input_comment,sizeof(input_comment),"keyboard_specialbordercolor: border color for the LEDs.\n");
 	safestrcat(input_comment,sizeof(input_comment),"keyboard_specialactivecolor: active color for the LEDs.\n");
 	safestrcat(input_comment, sizeof(input_comment), "DirectInput_remap_RCTRL_to_LWIN: Remap RCTRL to LWIN during Direct Input.\n");
-	safestrcat(input_comment, sizeof(input_comment), "DirectInput_remap_accentgrave_to_tab: Remap Accent Grave to Tab.\n");
-	safestrcat(input_comment, sizeof(input_comment), "DirectInput_remap_NUM0_to_Delete: Remap NUM0 to Delete.\n");
+	safestrcat(input_comment, sizeof(input_comment), "DirectInput_remap_accentgrave_to_tab: Remap Accent Grave to Tab during LALT.\n");
+	safestrcat(input_comment, sizeof(input_comment), "DirectInput_remap_NUM0_to_Delete: Remap NUM0 to Delete during Direct Input.\n");
 	safestrcat(input_comment, sizeof(input_comment), "DirectInput_disable_RALT: Disable RALT being pressed during Direct Input mode.\n");
 	char *input_commentused=NULL;
 	if (input_comment[0]) input_commentused = &input_comment[0];
