@@ -79,6 +79,7 @@ extern uint_32 VGA_MemoryMapBankRead, VGA_MemoryMapBankWrite; //The memory map b
 
 byte Tseng34K_writeIO(word port, byte val)
 {
+	byte result;
 	SVGA_ET34K_DATA *et34kdata = et34k_data; //The et4k data!
 // Tseng ET4K implementation
 	switch (port) //What port?
@@ -94,28 +95,21 @@ byte Tseng34K_writeIO(word port, byte val)
 		return 1; //OK
 		break;
 	case 0x3BF: //Hercules Compatibility Mode?
-		if ((!et34kdata->extensionsEnabled) && (getActiveVGA()->enable_SVGA==1)) //Extensions still disabled?
+		if (getActiveVGA()->enable_SVGA==1) //Extensions check?
 		{
-			if (val == 3) //First part of the sequence to activate the extensions?
+			if ((val == 3) && (et34kdata->extensionstep==0)) //First part of the sequence to activate the extensions?
 			{
 				et34kdata->extensionstep = 1; //Enable the first step to activation!
+			}
+			else if ((et34kdata->extensionstep==2) && (val==0x01)) //Step two of the disable?
+			{
+				et34kdata->extensionstep = 0; //Disable steps!
+				et34kdata->extensionsEnabled = 0; //Extensions are now disabled!
+				VGA_calcprecalcs(getActiveVGA(), WHEREUPDATED_ALL); //Update all precalcs!
 			}
 			else
 			{
 				et34kdata->extensionstep = 0; //Restart the check!
-			}
-			return 0; //Not used!
-		}
-		else if ((et34kdata->extensionsEnabled) && (getActiveVGA()->enable_SVGA==1)) //Extensions enabled?
-		{
-			if (et34kdata->extensionstep == 1) //Step two?
-			{
-				et34kdata->extensionstep = 0; //Disable steps!
-				if (val == 0x01) //Disable extensions?
-				{
-					et34kdata->extensionsEnabled = 0; //Extensions are now disabled!
-					VGA_calcprecalcs(getActiveVGA(), WHEREUPDATED_ALL); //Update all precalcs!
-				}
 			}
 		}
 		et34kdata->herculescompatibilitymode = val; //Save the value!
@@ -124,6 +118,7 @@ byte Tseng34K_writeIO(word port, byte val)
 		break;
 	case 0x3D8: //CGA mode control?
 		if (!GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,0,1)) goto finishoutput; //Block: we're a mono mode addressing as color!
+		result = 0; //Default result!
 		if (((et4k_reg(et34kdata,3d4,34) & 0xA0) == 0x80) || (getActiveVGA()->enable_SVGA==2)) //Enable emulation and translation disabled?
 		{
 			et34kdata->CGAModeRegister = val; //Save the register to be read!
@@ -131,11 +126,12 @@ byte Tseng34K_writeIO(word port, byte val)
 			{
 				return !execNMI(0); //Execute an NMI from Bus!
 			}
-			return 1; //Handled!
+			result = 1; //Handled!
 		}
 		goto checkEnableDisable;
 	case 0x3B8: //MDA mode control?
 		if (GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,0,1)) goto finishoutput; //Block: we're a color mode addressing as mono!
+		result = 0; //Default result!
 		if (((et4k_reg(et34kdata, 3d4, 34) & 0xA0) == 0x80) || (getActiveVGA()->enable_SVGA==2)) //Enable emulation and translation disabled?
 		{
 			et34kdata->MDAModeRegister = val; //Save the register to be read!
@@ -143,33 +139,28 @@ byte Tseng34K_writeIO(word port, byte val)
 			{
 				return !execNMI(0); //Execute an NMI from Bus!
 			}
-			return 1; //Handled!
+			result = 1; //Handled!
 		}
 		checkEnableDisable: //Check enable/disable(port 3D8 too)
-		if ((!et34kdata->extensionsEnabled) && (getActiveVGA()->enable_SVGA==1)) //Extensions still disabled?
+		if (getActiveVGA()->enable_SVGA==1) //Extensions used?
 		{
-			if (et34kdata->extensionstep == 1) //Step two?
+			if ((et34kdata->extensionstep == 1) && (val==0xA0)) //Step two of enable extensions?
 			{
 				et34kdata->extensionstep = 0; //Disable steps!
-				if (val == 0xA0) //Enable extensions?
-				{
-					et34kdata->extensionsEnabled = 1; //Enable the extensions!
-					et34kdata->et4k_segmentselectregisterenabled = 1; //Enable the segment select register from now on!
-					VGA_calcprecalcs(getActiveVGA(), WHEREUPDATED_ALL); //Update all precalcs!
-				}
+				et34kdata->extensionsEnabled = 1; //Enable the extensions!
+				et34kdata->et4k_segmentselectregisterenabled = 1; //Enable the segment select register from now on!
+				VGA_calcprecalcs(getActiveVGA(), WHEREUPDATED_ALL); //Update all precalcs!
 			}
-		}
-		else if (et34kdata->extensionsEnabled && (getActiveVGA()->enable_SVGA==1)) //Extensions enabled?
-		{
-			if (et34kdata->extensionstep == 0) //Step one?
+			else if ((et34kdata->extensionstep == 0) && (val==0x29)) //Step one of disable extensions?
 			{
-				if (val == 0x29) //Disable extensions step?
-				{
-					et34kdata->extensionstep = 1; //First step!
-				}
+				et34kdata->extensionstep = 2; //First step!
+			}
+			else //Not an extensions trigger?
+			{
+				et34kdata->extensionstep = 0; //Stop checking!
 			}
 		}
-		return 0; //Not handled!
+		return result; //Not handled!
 	case 0x3D9: //CGA color control?
 		if (((et4k_reg(et34kdata,3d4,34) & 0xA0) == 0x80) || (getActiveVGA()->enable_SVGA==2)) //Enable emulation and translation disabled?
 		{
