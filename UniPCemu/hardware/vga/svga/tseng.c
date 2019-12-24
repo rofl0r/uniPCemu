@@ -77,6 +77,23 @@ DOUBLE ET3K_clockFreq[16] = {
 
 extern uint_32 VGA_MemoryMapBankRead, VGA_MemoryMapBankWrite; //The memory map bank to use!
 
+void updateET34Ksegmentselectregister(byte val)
+{
+	SVGA_ET34K_DATA* et34kdata = et34k_data; //The et4k data!
+	if (getActiveVGA()->enable_SVGA == 2) //ET3000?
+	{
+		et34kdata->bank_write = val & 7;
+		et34kdata->bank_read = (val >> 3) & 7;
+		et34kdata->bank_size = (val >> 6) & 3; //Bank size to use!
+	}
+	else //ET4000?
+	{
+		et34kdata->bank_write = val & 0xF;
+		et34kdata->bank_read = (val >> 4) & 0xF;
+		et34kdata->bank_size = 1; //Bank size to use is always the same(64K)!
+	}
+}
+
 byte Tseng34K_writeIO(word port, byte val)
 {
 	byte result;
@@ -153,6 +170,7 @@ byte Tseng34K_writeIO(word port, byte val)
 				et34kdata->extensionstep = 0; //Disable steps!
 				et34kdata->extensionsEnabled = 1; //Enable the extensions!
 				et34kdata->et4k_segmentselectregisterenabled = 1; //Enable the segment select register from now on!
+				updateET34Ksegmentselectregister(et34kdata->segmentselectregister); //Make the segment select register active!
 				VGA_calcprecalcs(getActiveVGA(), WHEREUPDATED_ALL); //Update all precalcs!
 			}
 			else //Not an extensions trigger?
@@ -390,7 +408,9 @@ byte Tseng34K_writeIO(word port, byte val)
 		case 0: //TS register special stuff?
 			if ((val & 2) == 0) //We're stopping to repond to the Segment Select Register when a synchronous reset is started or set!
 			{
-				//et34kdata->et4k_segmentselectregisterenabled = 0; //We're stopping to respond to the Segment Select Register until the KEY is set again!
+				et34kdata->et4k_segmentselectregisterenabled = 0; //We're stopping to respond to the Segment Select Register until the KEY is set again!
+				updateET34Ksegmentselectregister(0); //Make the segment select register inactive!
+				VGA_calcprecalcs(getActiveVGA(), WHEREUPDATED_CRTCONTROLLER | 0x36); //Update from the CRTC controller registers!
 			}
 		default:
 			//LOG(LOG_VGAMISC,LOG_NORMAL)("VGA:SEQ:ET4K:Write to illegal index %2X", reg);
@@ -406,19 +426,9 @@ byte Tseng34K_writeIO(word port, byte val)
 	case 0x3CD: //Segment select?
 		if ((getActiveVGA()->enable_SVGA == 1) && (!et34kdata->et4k_segmentselectregisterenabled)) return 0; //Not available on the ET4000 until having set the KEY at least once after a power-on reset or synchronous reset(TS indexed register 0h bit 1).
 		et34kdata->segmentselectregister = val; //Save the entire segment select register!
-		if (getActiveVGA()->enable_SVGA == 2) //ET3000?
-		{
-			et34kdata->bank_write = val&7;
-			et34kdata->bank_read = (val>>3)&7;
-			et34kdata->bank_size = (val>>6)&3; //Bank size to use!
-		}
-		else //ET4000?
-		{
-			et34kdata->bank_write = val&0xF;
-			et34kdata->bank_read = (val>>4) & 0xF;
-			et34kdata->bank_size = 1; //Bank size to use is always the same(64K)!
-		}
+
 		//Apply correct memory banks!
+		updateET34Ksegmentselectregister(et34kdata->segmentselectregister); //Make the segment select register active!
 		VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CRTCONTROLLER|0x36); //Update from the CRTC controller registers!
 		return 1;
 		break;
