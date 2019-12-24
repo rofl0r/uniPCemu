@@ -123,6 +123,7 @@ byte Tseng34K_writeIO(word port, byte val)
 		return 1; //OK!
 		break;
 	case 0x3D8: //CGA mode control?
+		if (!GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,0,1)) goto finishoutput; //Block: we're a mono mode addressing as color!
 		if (((et4k_reg(et34kdata,3d4,34) & 0xA0) == 0x80) || (getActiveVGA()->enable_SVGA==2)) //Enable emulation and translation disabled?
 		{
 			et34kdata->CGAModeRegister = val; //Save the register to be read!
@@ -134,6 +135,7 @@ byte Tseng34K_writeIO(word port, byte val)
 		}
 		goto checkEnableDisable;
 	case 0x3B8: //MDA mode control?
+		if (GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,0,1)) goto finishoutput; //Block: we're a color mode addressing as mono!
 		if (((et4k_reg(et34kdata, 3d4, 34) & 0xA0) == 0x80) || (getActiveVGA()->enable_SVGA==2)) //Enable emulation and translation disabled?
 		{
 			et34kdata->MDAModeRegister = val; //Save the register to be read!
@@ -444,7 +446,7 @@ byte Tseng34K_writeIO(word port, byte val)
 			// scheme.
 			// Unlikely to be used by any games but double timing may be useful.
 			// TODO: Figure out if this has any practical use
-			STORE_ET34K(3c0, 16,WHEREUPDATED_ATTRIBUTECONTROLLER);
+			STORE_ET34K_3C0(3c0, 16,WHEREUPDATED_ATTRIBUTECONTROLLER);
 			/*
 			3C0h index 17h (R/W):  Miscellaneous 1
 			bit   7  If set protects the internal palette ram and redefines the attribute
@@ -466,7 +468,7 @@ byte Tseng34K_writeIO(word port, byte val)
 			7  Background Red
 			*/
 			// TODO: Figure out if this has any practical use
-			STORE_ET34K(3c0, 17,WHEREUPDATED_ATTRIBUTECONTROLLER);
+			STORE_ET34K_3C0(3c0, 17,WHEREUPDATED_ATTRIBUTECONTROLLER);
 		case 0x11: //Overscan? Handle protection!
 			if (et34kdata->protect3C0_Overscan) //Palette RAM? Handle protection!
 			{
@@ -533,6 +535,7 @@ byte Tseng34K_readIO(word port, byte *result)
 		return 1; //OK!
 		break;
 	case 0x3B8: //MDA mode control?
+		if (GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,0,1)) goto finishinput; //Block: we're a color mode addressing as mono!
 		if (((et4k_reg(et34kdata, 3d4, 34) & 0xA0) == 0x80) || (getActiveVGA()->enable_SVGA==2)) //Enable emulation and translation disabled?
 		{
 			*result = et34kdata->MDAModeRegister; //Save the register to be read!
@@ -544,6 +547,7 @@ byte Tseng34K_readIO(word port, byte *result)
 		}
 		return 0; //Not handled!
 	case 0x3D8: //CGA mode control?
+		if (!GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,0,1)) goto finishinput; //Block: we're a mono mode addressing as color!
 		if ((et4k_reg(et34kdata, 3d4, 34) & 0xA0) == 0x80) //Enable emulation and translation disabled?
 		{
 			*result = et34kdata->CGAModeRegister; //Save the register to be read!

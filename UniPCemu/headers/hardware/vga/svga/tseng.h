@@ -167,6 +167,14 @@ typedef struct {
 		VGA_calcprecalcs(getActiveVGA(),category|0x##index); \
 		return 1;
 
+#define STORE_ET34K_3C0(port, index, category) \
+	case 0x##index: \
+	if ((getActiveVGA()->enable_SVGA<1) || (getActiveVGA()->enable_SVGA>2) || ((getActiveVGA()->enable_SVGA==1) && (!et34kdata->extensionsEnabled))) return 0; \
+		et34k_data->store_##port##_##index = val; \
+		VGA_3C0_FLIPFLOPW(!VGA_3C0_FLIPFLOPR); \
+		VGA_calcprecalcs(getActiveVGA(),category|0x##index); \
+		return 1;
+
 #define STORE_ET34K_UNPROTECTED(port, index, category) \
 	case 0x##index: \
 	if ((getActiveVGA()->enable_SVGA<1) || (getActiveVGA()->enable_SVGA>2)) return 0; \
