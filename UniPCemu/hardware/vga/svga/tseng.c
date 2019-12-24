@@ -101,11 +101,9 @@ byte Tseng34K_writeIO(word port, byte val)
 			{
 				et34kdata->extensionstep = 1; //Enable the first step to activation!
 			}
-			else if ((et34kdata->extensionstep==2) && (val==0x01)) //Step two of the disable?
+			else if (val == 1) //Step one of the disable?
 			{
-				et34kdata->extensionstep = 0; //Disable steps!
-				et34kdata->extensionsEnabled = 0; //Extensions are now disabled!
-				VGA_calcprecalcs(getActiveVGA(), WHEREUPDATED_ALL); //Update all precalcs!
+				et34kdata->extensionstep = 2; //Enable the first step to deactivation!
 			}
 			else
 			{
@@ -144,9 +142,11 @@ byte Tseng34K_writeIO(word port, byte val)
 		checkEnableDisable: //Check enable/disable(port 3D8 too)
 		if (getActiveVGA()->enable_SVGA==1) //Extensions used?
 		{
-			if (val == 0x29) //Step one of disable extensions?
+			if ((et34kdata->extensionstep==2) && (val == 0x29)) //Step two of disable extensions?
 			{
-				et34kdata->extensionstep = 2; //First step!
+				et34kdata->extensionstep = 0; //Disable steps!
+				et34kdata->extensionsEnabled = 0; //Extensions are now disabled!
+				VGA_calcprecalcs(getActiveVGA(), WHEREUPDATED_ALL); //Update all precalcs!
 			}
 			else if ((et34kdata->extensionstep==1) && (val==0xA0)) //Step two of enable extensions?
 			{
