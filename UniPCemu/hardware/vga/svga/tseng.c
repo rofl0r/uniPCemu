@@ -97,7 +97,7 @@ byte Tseng34K_writeIO(word port, byte val)
 	case 0x3BF: //Hercules Compatibility Mode?
 		if (getActiveVGA()->enable_SVGA==1) //Extensions check?
 		{
-			if ((val == 3) && (et34kdata->extensionstep==0)) //First part of the sequence to activate the extensions?
+			if (val == 3) //First part of the sequence to activate the extensions?
 			{
 				et34kdata->extensionstep = 1; //Enable the first step to activation!
 			}
@@ -144,16 +144,16 @@ byte Tseng34K_writeIO(word port, byte val)
 		checkEnableDisable: //Check enable/disable(port 3D8 too)
 		if (getActiveVGA()->enable_SVGA==1) //Extensions used?
 		{
-			if ((et34kdata->extensionstep == 1) && (val==0xA0)) //Step two of enable extensions?
+			if (val == 0x29) //Step one of disable extensions?
+			{
+				et34kdata->extensionstep = 2; //First step!
+			}
+			else if ((et34kdata->extensionstep==1) && (val==0xA0)) //Step two of enable extensions?
 			{
 				et34kdata->extensionstep = 0; //Disable steps!
 				et34kdata->extensionsEnabled = 1; //Enable the extensions!
 				et34kdata->et4k_segmentselectregisterenabled = 1; //Enable the segment select register from now on!
 				VGA_calcprecalcs(getActiveVGA(), WHEREUPDATED_ALL); //Update all precalcs!
-			}
-			else if ((et34kdata->extensionstep == 0) && (val==0x29)) //Step one of disable extensions?
-			{
-				et34kdata->extensionstep = 2; //First step!
 			}
 			else //Not an extensions trigger?
 			{
