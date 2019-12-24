@@ -539,6 +539,7 @@ byte Tseng34K_readIO(word port, byte *result)
 		if (((et4k_reg(et34kdata, 3d4, 34) & 0xA0) == 0x80) || (getActiveVGA()->enable_SVGA==2)) //Enable emulation and translation disabled?
 		{
 			*result = et34kdata->MDAModeRegister; //Save the register to be read!
+			SETBITS(*result, 6, 1, GETBITS(et34kdata->herculescompatibilitymode,1,1));
 			/*if (et34kdata->ExtendedFeatureControl & 0x80) //Enable NMI?
 			{
 				//Execute an NMI!
@@ -551,6 +552,7 @@ byte Tseng34K_readIO(word port, byte *result)
 		if ((et4k_reg(et34kdata, 3d4, 34) & 0xA0) == 0x80) //Enable emulation and translation disabled?
 		{
 			*result = et34kdata->CGAModeRegister; //Save the register to be read!
+			SETBITS(*result, 6, 1, GETBITS(et34kdata->herculescompatibilitymode, 1, 1));
 			/*if (et34kdata->ExtendedFeatureControl & 0x80) //Enable NMI?
 			{
 			//Execute an NMI!
