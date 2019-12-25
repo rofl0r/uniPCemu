@@ -194,13 +194,27 @@ byte Tseng34K_writeIO(word port, byte val)
 
 	//16-bit DAC support(Sierra SC11487)!
 	case 0x3C6: //DAC Mask Register? Pixel Mask/Command Register in the manual.
-		if (et34kdata->hicolorDACcmdmode<=3) return 0; //Execute normally!
-		//16-bit DAC operations!
-		if ((val&0xE0)!=et34kdata->hicolorDACcommand) //Command issued?
+		if (et34kdata->hicolorDACcmdmode<=3)
 		{
-			et34kdata->hicolorDACcommand = (val&0xE0); //Apply the command!
-			VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_DACMASKREGISTER); //We've been updated!
+			et34kdata->hicolorDACcmdmode = 0; //Stop looking?
+			return 0; //Execute normally!
 		}
+		//16-bit DAC operations!
+		et34kdata->hicolorDACcommand = val; //Apply the command!
+		//bits 3-4 redirect to the DAC mask register.
+		//bit 0 is set if bits 5-7 is 1 or 3, cleared otherwise(R/O)
+		//bits 1-2 are stored, but unused.
+		if (((val&0xE0)==0x20)||((val&0xE0)==0x60)) //Set bit 0?
+		{
+			et34kdata->hicolorDACcommand |= 1; //Set!
+		}
+		else //Clear bit 0?
+		{
+			et34kdata->hicolorDACcommand &= ~1; //Clear!
+		}
+		getActiveVGA()->registers->DACMaskRegister = (getActiveVGA()->registers->DACMaskRegister&~0x18)|(et34kdata->hicolorDACcommand&0x18);
+		et34kdata->hicolorDACcommand &= ~0x18; //Ignore the shared bits for the result!
+		VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_DACMASKREGISTER); //We've been updated!
 		return 1; //We're overridden!
 		break;
 	case 0x3C7: //Write: DAC Address Read Mode Register	ADDRESS? Pallette RAM read address register in the manual.
@@ -585,6 +599,7 @@ byte Tseng34K_readIO(word port, byte *result)
 		else
 		{
 			*result = et34kdata->hicolorDACcommand;
+			*result |= (getActiveVGA()->registers->DACMaskRegister&0x18); //Add in the shared bits!
 			return 1; //Handled!
 		}
 		break;
