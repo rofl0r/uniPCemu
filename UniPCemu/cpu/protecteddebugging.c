@@ -121,7 +121,10 @@ void checkProtectedModeDebuggerAfter() //Check after instruction for the protect
 		}
 		else //Successful completion of an instruction?
 		{
-			FLAGW_RF(0); //Successfull completion of an instruction clears the Resume Flag!
+			if (likely(CPU[activeCPU].unaffectedRF==0)) //Allowed to affect RF?
+			{
+				FLAGW_RF(0); //Successfull completion of an instruction clears the Resume Flag!
+			}
 		}
 	}
 }

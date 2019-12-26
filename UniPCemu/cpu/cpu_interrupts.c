@@ -236,6 +236,7 @@ void CPU_IRET()
 			}
 		}
 		#endif
+		CPU[activeCPU].unaffectedRF = 1; //Default: affected!
 		return; //Finished!
 	}
 
@@ -268,6 +269,7 @@ void CPU_IRET()
 				tempEFLAGS = (tempEFLAGS&~(0x23000|F_VIF|F_VIP))|(REG_EFLAGS&(0x23000|F_VIF|F_VIP)); //Don't modfiy changed flags that we're not allowed to!
 				REG_FLAGS = tempEFLAGS; //Restore FLAGS, leave high DWord unmodified(VM, IOPL, VIP and VIF are unmodified, only bits 0-15)!
 			}
+			CPU[activeCPU].unaffectedRF = 1; //Default: affected!
 		}
 		else //PL!=3?
 		{
@@ -297,6 +299,7 @@ void CPU_IRET()
 				{
 					REG_FLAGS = tempEFLAGS; //Restore FLAGS, leave high DWord unmodified(VM, IOPL, VIP and VIF are unmodified, only bits 0-15)!
 				}
+				CPU[activeCPU].unaffectedRF = 1; //Default: affected!
 			}
 			else //Normal handling?
 			{
@@ -373,6 +376,7 @@ void CPU_IRET()
 		if (segmentWritten(CPU_SEGMENT_DS,V86SegRegs[1],0)) return; //Load DS!
 		if (segmentWritten(CPU_SEGMENT_FS, V86SegRegs[2], 0)) return; //Load FS!
 		if (segmentWritten(CPU_SEGMENT_GS,V86SegRegs[3],0)) return; //Load GS!
+		CPU[activeCPU].unaffectedRF = 1; //Default: affected!
 	}
 	else //Normal protected mode return?
 	{
@@ -393,6 +397,7 @@ void CPU_IRET()
 		REG_EFLAGS = tempEFLAGS; //Restore EFLAGS normally.
 		updateCPUmode();
 		if (segmentWritten(CPU_SEGMENT_CS,tempCS,3)) return; //We're loading because of an IRET!
+		CPU[activeCPU].unaffectedRF = 1; //Default: affected!
 		if (CPU_condflushPIQ(-1)) //We're jumping to another address!
 		{
 			return;

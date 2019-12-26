@@ -2663,6 +2663,7 @@ void CPU80386_OP9D_16() {
 	updateCPUmode(); /*POPF*/
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{  CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*POPF timing!*/ }
 	CPU[activeCPU].allowTF = 0; /*Disallow TF to be triggered after the instruction!*/
+	CPU[activeCPU].unaffectedRF = 1; //Default: affected!
 }
 
 void CPU80386_OP9D_32() {
@@ -2696,6 +2697,7 @@ void CPU80386_OP9D_32() {
 	updateCPUmode(); /*POPF*/
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{  CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*POPF timing!*/ }
 	CPU[activeCPU].allowTF = 0; /*Disallow TF to be triggered after the instruction!*/
+	CPU[activeCPU].unaffectedRF = 1; //Default: affected!
 }
 
 //Different addressing modes affect us! Combine operand size and address size into new versions of the instructions, where needed!

@@ -143,8 +143,9 @@ void CPU286_OP9D() {
 	if (getCPL()) { tempflags &= ~0x3000; tempflags |= REG_FLAGS&0x3000; /* Ignore any changes to the IOPL when not at CPL 0! */ }
 	REG_FLAGS = tempflags;
 	updateCPUmode(); /*POPF*/
-	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{  CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*POPF timing!*/ }
+	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{  CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*POPF timing!*/ CPU[activeCPU].unaffectedRF = 1; }
 	CPU[activeCPU].allowTF = 0; /*Disallow TF to be triggered after the instruction!*/
+	CPU[activeCPU].unaffectedRF = 1; //Default: affected!
 }
 
 void CPU286_OPD6() //286+ SALC
