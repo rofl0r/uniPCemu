@@ -532,25 +532,40 @@ void CPU_calcSegmentPrecalcsPrecalcs()
 	}
 }
 
-void CPU_calcSegmentPrecalcs(SEGMENT_DESCRIPTOR *descriptor)
+void CPU_calcSegmentPrecalcs(byte is_CS, SEGMENT_DESCRIPTOR *descriptor)
 {
 	//Calculate the precalculations for execution for this descriptor!
 	uint_32 limits[2]; //What limit to apply?
-
-	limits[0] = ((SEGDESCPTR_NONCALLGATE_LIMIT_HIGH(descriptor) << 16) | descriptor->desc.limit_low); //Base limit!
-	limits[1] = ((limits[0] << 12) | 0xFFFU); //4KB for a limit of 4GB, fill lower 12 bits with 1!
-	descriptor->PRECALCS.limit = (uint_64)limits[SEGDESCPTR_GRANULARITY(descriptor)]; //Use the appropriate granularity to produce the limit!
-	descriptor->PRECALCS.topdown = ((descriptor->desc.AccessRights & 0x1C) == 0x14); //Topdown segment?
-	descriptor->PRECALCS.notpresent = (GENERALSEGMENTPTR_P(descriptor)==0); //Not present descriptor?
-	//Roof: Expand-up: G=0: 1MB, G=1: 4GB. Expand-down: B=0:64K, B=1:4GB.
-	descriptor->PRECALCS.roof = ((uint_64)0xFFFFU | ((uint_64)0xFFFFU << ((descriptor->PRECALCS.topdown?SEGDESCPTR_NONCALLGATE_D_B(descriptor):SEGDESCPTR_GRANULARITY(descriptor)) << 4))); //The roof of the descriptor!
-	if ((descriptor->PRECALCS.topdown==0) && (SEGDESCPTR_GRANULARITY(descriptor)==0)) //Bottom-up segment that's having a 20-bit limit?
+	if ((EMULATED_CPU>=CPU_PENTIUM) && is_CS && (getcpumode()==CPU_MODE_REAL)) //Special CS real mode behaviour?
 	{
+		//Normal base address behaviour. But ignore the limit, access rights and D/B fields!
+		descriptor->PRECALCS.limit = (uint_64)0xFFFFU; //Use the appropriate granularity to produce the limit!
+		descriptor->PRECALCS.topdown = 0; //Topdown segment?
+		descriptor->PRECALCS.notpresent = 0; //Not present descriptor?
+		//Roof: Expand-up: G=0: 1MB, G=1: 4GB. Expand-down: B=0:64K, B=1:4GB.
+		descriptor->PRECALCS.roof = (uint_64)0xFFFFU; //The roof of the descriptor!
 		descriptor->PRECALCS.roof |= 0xF0000; //Actually a 1MB limit instead of 64K!
+		descriptor->PRECALCS.base = (((descriptor->desc.base_high << 24) | (descriptor->desc.base_mid << 16) | descriptor->desc.base_low)&0xFFFFFFFFU); //Update the base address!
+		//Apply read/write/execute permissions to the descriptor!
+		memcpy(&descriptor->PRECALCS.rwe_errorout[0], &checkrights_conditions_rwe_errorout[0x93 & 0xE][0],sizeof(descriptor->PRECALCS.rwe_errorout));
 	}
-	descriptor->PRECALCS.base = (((descriptor->desc.base_high << 24) | (descriptor->desc.base_mid << 16) | descriptor->desc.base_low)&0xFFFFFFFFU); //Update the base address!
-	//Apply read/write/execute permissions to the descriptor!
-	memcpy(&descriptor->PRECALCS.rwe_errorout[0], &checkrights_conditions_rwe_errorout[descriptor->desc.AccessRights & 0xE][0],sizeof(descriptor->PRECALCS.rwe_errorout));
+	else //Normal segment descriptor behaviour?
+	{
+		limits[0] = ((SEGDESCPTR_NONCALLGATE_LIMIT_HIGH(descriptor) << 16) | descriptor->desc.limit_low); //Base limit!
+		limits[1] = ((limits[0] << 12) | 0xFFFU); //4KB for a limit of 4GB, fill lower 12 bits with 1!
+		descriptor->PRECALCS.limit = (uint_64)limits[SEGDESCPTR_GRANULARITY(descriptor)]; //Use the appropriate granularity to produce the limit!
+		descriptor->PRECALCS.topdown = ((descriptor->desc.AccessRights & 0x1C) == 0x14); //Topdown segment?
+		descriptor->PRECALCS.notpresent = (GENERALSEGMENTPTR_P(descriptor)==0); //Not present descriptor?
+		//Roof: Expand-up: G=0: 1MB, G=1: 4GB. Expand-down: B=0:64K, B=1:4GB.
+		descriptor->PRECALCS.roof = ((uint_64)0xFFFFU | ((uint_64)0xFFFFU << ((descriptor->PRECALCS.topdown?SEGDESCPTR_NONCALLGATE_D_B(descriptor):SEGDESCPTR_GRANULARITY(descriptor)) << 4))); //The roof of the descriptor!
+		if ((descriptor->PRECALCS.topdown==0) && (SEGDESCPTR_GRANULARITY(descriptor)==0)) //Bottom-up segment that's having a 20-bit limit?
+		{
+			descriptor->PRECALCS.roof |= 0xF0000; //Actually a 1MB limit instead of 64K!
+		}
+		descriptor->PRECALCS.base = (((descriptor->desc.base_high << 24) | (descriptor->desc.base_mid << 16) | descriptor->desc.base_low)&0xFFFFFFFFU); //Update the base address!
+		//Apply read/write/execute permissions to the descriptor!
+		memcpy(&descriptor->PRECALCS.rwe_errorout[0], &checkrights_conditions_rwe_errorout[descriptor->desc.AccessRights & 0xE][0],sizeof(descriptor->PRECALCS.rwe_errorout));
+	}
 }
 
 word LOADDESCRIPTOR_segmentval;
@@ -627,7 +642,7 @@ sbyte LOADDESCRIPTOR(int segment, word segmentval, SEGMENT_DESCRIPTOR *container
 		}
 	}
 
-	CPU_calcSegmentPrecalcs(container); //Precalculate anything needed!
+	CPU_calcSegmentPrecalcs((segment==CPU_SEGMENT_CS)?1:0,container); //Precalculate anything needed!
 	return 1; //OK!
 }
 
@@ -1443,7 +1458,7 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 							{
 								CPU[activeCPU].SEG_DESCRIPTOR[RETF_whatsegment].desc.AccessRights = 0; //Invalid!
 							}
-							CPU_calcSegmentPrecalcs(&CPU[activeCPU].SEG_DESCRIPTOR[RETF_whatsegment]); //Update the precalcs for said access rights!
+							CPU_calcSegmentPrecalcs(0,&CPU[activeCPU].SEG_DESCRIPTOR[RETF_whatsegment]); //Update the precalcs for said access rights!
 							continue; //Next register!
 						}
 					}
@@ -1527,7 +1542,8 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 			//This also maps the resulting segment in low memory (20-bit address space) in real mode, thus CS is pulled low as well!
 			//Real mode affects only CS like Virtual 8086 mode(reloading all base/limit values). Other segments are unmodified.
 			//Virtual 8086 mode also loads the rights etc.? This is to prevent Virtual 8086 tasks having leftover data in their descriptors, causing faults!
-			if ((segment==CPU_SEGMENT_CS) || (getcpumode()==CPU_MODE_8086)) //Only done for the CS segment in real mode as well as all registers in 8086 mode?
+			//Real mode CS before Pentium too, Pentium and up ignores access rights and limit fields in real mode!
+			if (((segment==CPU_SEGMENT_CS) && (EMULATED_CPU<CPU_PENTIUM)) || (getcpumode()==CPU_MODE_8086)) //Only done for the CS segment in real mode as well as all registers in 8086 mode?
 			{
 				CPU[activeCPU].SEG_DESCRIPTOR[segment].desc.AccessRights = 0x93; //Compatible rights!
 				CPU[activeCPU].SEG_DESCRIPTOR[segment].desc.limit_low = 0xFFFF;
@@ -1536,18 +1552,21 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 		}
 		if (segment==CPU_SEGMENT_CS) //CS segment? Reload access rights in real mode on first write access!
 		{
-			CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].desc.AccessRights = 0x93; //Load default access rights!
-			CPU_calcSegmentPrecalcs(&CPU[activeCPU].SEG_DESCRIPTOR[segment]); //Calculate any precalcs for the segment descriptor(do it here since we don't load descriptors externally)!
+			if ((EMULATED_CPU<CPU_PENTIUM) || (getcpumode()==CPU_MODE_8086)) //Only before Pentium or V86 mode?
+			{
+				CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].desc.AccessRights = 0x93; //Load default access rights!
+			}
+			CPU_calcSegmentPrecalcs(1,&CPU[activeCPU].SEG_DESCRIPTOR[segment]); //Calculate any precalcs for the segment descriptor(do it here since we don't load descriptors externally)!
 			REG_EIP = destEIP; //... The current OPCode: just jump to the address!
 		}
 		else if (segment == CPU_SEGMENT_SS) //SS? We're also updating the CPL!
 		{
 			updateCPL(); //Update the CPL according to the mode!
-			CPU_calcSegmentPrecalcs(&CPU[activeCPU].SEG_DESCRIPTOR[segment]); //Calculate any precalcs for the segment descriptor(do it here since we don't load descriptors externally)!
+			CPU_calcSegmentPrecalcs(0,&CPU[activeCPU].SEG_DESCRIPTOR[segment]); //Calculate any precalcs for the segment descriptor(do it here since we don't load descriptors externally)!
 		}
 		else
 		{
-			CPU_calcSegmentPrecalcs(&CPU[activeCPU].SEG_DESCRIPTOR[segment]); //Calculate any precalcs for the segment descriptor(do it here since we don't load descriptors externally)!
+			CPU_calcSegmentPrecalcs(0,&CPU[activeCPU].SEG_DESCRIPTOR[segment]); //Calculate any precalcs for the segment descriptor(do it here since we don't load descriptors externally)!
 		}
 	}
 	//Real mode doesn't use the descriptors?

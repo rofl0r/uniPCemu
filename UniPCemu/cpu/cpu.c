@@ -879,7 +879,7 @@ OPTINLINE void CPU_initRegisters(byte isInit) //Init the registers!
 
 	for (reg = 0; reg<NUMITEMS(CPU[activeCPU].SEG_DESCRIPTOR); reg++) //Process all segment registers!
 	{
-		CPU_calcSegmentPrecalcs(&CPU[activeCPU].SEG_DESCRIPTOR[reg]); //Calculate the precalcs for the segment descriptor!
+		CPU_calcSegmentPrecalcs((reg==CPU_SEGMENT_CS)?1:0,&CPU[activeCPU].SEG_DESCRIPTOR[reg]); //Calculate the precalcs for the segment descriptor!
 	}
 
 	CPU_flushPIQ(-1); //We're jumping to another address!
@@ -1359,10 +1359,12 @@ void updateCPUmode() //Update the CPU mode!
 		if ((CPUmode == CPU_MODE_REAL) && (mode == CPU_MODE_PROTECTED)) //Switching from real mode to protected mode?
 		{
 			CPU[activeCPU].CPL = GENERALSEGMENT_DPL(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_SS]); //DPL of SS determines CPL from now on!
+			CPU_calcSegmentPrecalcs(1,&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS]); //Calculate the precalcs for the segment descriptor!
 		}
 		else if ((CPUmode != CPU_MODE_REAL) && (mode == CPU_MODE_REAL)) //Switching back to real mode?
 		{
 			CPU[activeCPU].CPL = 0; //Make sure we're CPL 0 in Real mode!
+			CPU_calcSegmentPrecalcs(1,&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS]); //Calculate the precalcs for the segment descriptor!
 		}
 		else if ((CPUmode != CPU_MODE_8086) && (mode == CPU_MODE_8086)) //Switching to Virtual 8086 mode?
 		{

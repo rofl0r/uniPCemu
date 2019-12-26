@@ -770,7 +770,7 @@ void CPU286_LOADALL_LoadDescriptor(DESCRIPTORCACHE286 *source, sword segment)
 	CPU[activeCPU].SEG_DESCRIPTOR[segment].desc.base_high = 0; //Only 24 bits are used for the base!
 	CPU[activeCPU].SEG_DESCRIPTOR[segment].desc.callgate_base_mid = 0; //Not used!
 	CPU[activeCPU].SEG_DESCRIPTOR[segment].desc.AccessRights = (source->basehighaccessrights>>8); //Access rights is completely used. Present being 0 makes the register unfit to read (#GP is fired).
-	CPU_calcSegmentPrecalcs(&CPU[activeCPU].SEG_DESCRIPTOR[segment]); //Calculate the precalcs!
+	CPU_calcSegmentPrecalcs((segment==CPU_SEGMENT_CS)?1:0,&CPU[activeCPU].SEG_DESCRIPTOR[segment]); //Calculate the precalcs!
 }
 
 #include "headers/packed.h" //Packed

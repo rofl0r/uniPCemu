@@ -67,6 +67,6 @@ void CPU_AC(int_64 errorcode); //Alignment check fault!
 byte switchStacks(byte newCPL); //Returns 1 on error, 0 on success!
 void updateCPL(); //Update the CPL to be the currently loaded CPL depending on the mode and descriptors!
 void CPU_calcSegmentPrecalcsPrecalcs(); //Calculatet the segment precalcs precalcs!
-void CPU_calcSegmentPrecalcs(SEGMENT_DESCRIPTOR *descriptor);
+void CPU_calcSegmentPrecalcs(byte is_CS, SEGMENT_DESCRIPTOR *descriptor);
 int getLoadedTYPE(SEGMENT_DESCRIPTOR *loadeddescriptor);
 #endif

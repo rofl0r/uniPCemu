@@ -553,7 +553,7 @@ void CPU386_LOADALL_LoadDescriptor(DESCRIPTORCACHE386 *source, sword segment)
 	CPU[activeCPU].SEG_DESCRIPTOR[segment].desc.base_mid = ((source->BASE>>16)&0xFF); //Mid is High base in the descriptor(286 only)!
 	CPU[activeCPU].SEG_DESCRIPTOR[segment].desc.base_high = (source->BASE>>24); //Full 32-bits are used for the base!
 	CPU[activeCPU].SEG_DESCRIPTOR[segment].desc.AccessRights = source->AR; //Access rights is completely used. Present being 0 makes the register unfit to read (#GP is fired).
-	CPU_calcSegmentPrecalcs(&CPU[activeCPU].SEG_DESCRIPTOR[segment]); //Calculate the precalcs!
+	CPU_calcSegmentPrecalcs((segment==CPU_SEGMENT_CS)?1:0,&CPU[activeCPU].SEG_DESCRIPTOR[segment]); //Calculate the precalcs!
 }
 
 byte LOADALL386_checkMMUaccess(word segment, uint_64 offset, byte readflags, byte CPL, byte is_offset16, byte subbyte) //Difference with normal checks: No segment is used for the access: it's a direct memory access!
