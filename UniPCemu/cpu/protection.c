@@ -1528,22 +1528,24 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 		}
 
 		//if (memprotect(CPU[activeCPU].SEGMENT_REGISTERS[segment],2,"CPU_REGISTERS")) //Valid segment register?
+		*CPU[activeCPU].SEGMENT_REGISTERS[segment] = value; //Just set the segment, don't load descriptor!
+		//Load the correct base data for our loading!
+		CPU[activeCPU].SEG_DESCRIPTOR[segment].desc.base_low = (word)(((uint_32)value<<4)&0xFFFF); //Low base!
+		CPU[activeCPU].SEG_DESCRIPTOR[segment].desc.base_mid = ((((uint_32)value << 4) & 0xFF0000)>>16); //Mid base!
+		CPU[activeCPU].SEG_DESCRIPTOR[segment].desc.base_high = ((((uint_32)value << 4) & 0xFF000000U)>>24); //High base!
+		//This also maps the resulting segment in low memory (20-bit address space) in real mode, thus CS is pulled low as well!
+		//Real mode affects only CS like Virtual 8086 mode(reloading all base/limit values). Other segments are unmodified.
+		//Virtual 8086 mode also loads the rights etc.? This is to prevent Virtual 8086 tasks having leftover data in their descriptors, causing faults!
+		//Real mode CS before Pentium too, Pentium and up ignores access rights and limit fields in real mode!
+		if (((segment==CPU_SEGMENT_CS) && (EMULATED_CPU<CPU_PENTIUM)) || (getcpumode()==CPU_MODE_8086)) //Only done for the CS segment in real mode as well as all registers in 8086 mode?
 		{
-			*CPU[activeCPU].SEGMENT_REGISTERS[segment] = value; //Just set the segment, don't load descriptor!
-			//Load the correct base data for our loading!
-			CPU[activeCPU].SEG_DESCRIPTOR[segment].desc.base_low = (word)(((uint_32)value<<4)&0xFFFF); //Low base!
-			CPU[activeCPU].SEG_DESCRIPTOR[segment].desc.base_mid = ((((uint_32)value << 4) & 0xFF0000)>>16); //Mid base!
-			CPU[activeCPU].SEG_DESCRIPTOR[segment].desc.base_high = ((((uint_32)value << 4) & 0xFF000000U)>>24); //High base!
-			//This also maps the resulting segment in low memory (20-bit address space) in real mode, thus CS is pulled low as well!
-			//Real mode affects only CS like Virtual 8086 mode(reloading all base/limit values). Other segments are unmodified.
-			//Virtual 8086 mode also loads the rights etc.? This is to prevent Virtual 8086 tasks having leftover data in their descriptors, causing faults!
-			//Real mode CS before Pentium too, Pentium and up ignores access rights and limit fields in real mode!
-			if (((segment==CPU_SEGMENT_CS) && (EMULATED_CPU<CPU_PENTIUM)) || (getcpumode()==CPU_MODE_8086)) //Only done for the CS segment in real mode as well as all registers in 8086 mode?
-			{
-				CPU[activeCPU].SEG_DESCRIPTOR[segment].desc.AccessRights = 0x93; //Compatible rights!
-				CPU[activeCPU].SEG_DESCRIPTOR[segment].desc.limit_low = 0xFFFF;
-				CPU[activeCPU].SEG_DESCRIPTOR[segment].desc.noncallgate_info = 0x00; //Not used!
-			}
+			CPU[activeCPU].SEG_DESCRIPTOR[segment].desc.AccessRights = 0x93; //Compatible rights!
+			CPU[activeCPU].SEG_DESCRIPTOR[segment].desc.limit_low = 0xFFFF;
+			CPU[activeCPU].SEG_DESCRIPTOR[segment].desc.noncallgate_info = 0x00; //Clear: D/B-bit, G-bit, Limit High!
+		}
+		if ((segment == CPU_SEGMENT_CS) && (EMULATED_CPU >= CPU_PENTIUM) && (getcpumode() == CPU_MODE_REAL)) //Real mode loading CS on Pentium+?
+		{
+			CPU[activeCPU].SEG_DESCRIPTOR[segment].desc.noncallgate_info &= ~0x40; //Clear the B-bit only, to enforce 16-bit code when loading CS in real mode! Leave the Granularity and Limit fields alone!
 		}
 		if (segment==CPU_SEGMENT_CS) //CS segment? Reload access rights in real mode on first write access!
 		{
