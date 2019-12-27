@@ -1241,6 +1241,7 @@ void hdd_information(char *filename) //Displays information about a harddisk to 
 
 //Menus itself:
 
+int BIOS_dummyfile=0;
 void BIOS_noentries(sword x, sword y, char* message)
 {
 	/*
@@ -1255,7 +1256,7 @@ void BIOS_noentries(sword x, sword y, char* message)
 	numlist = 0; //Reset amount of files!
 	clearList(); //Clear the list!
 	addList(message); //Add the message as the only item!
-	int file = ExecuteList(x, y, itemlist[0], 256, NULL); //Show options for the installed CPU!
+	BIOS_dummyfile = ExecuteList(x, y, itemlist[0], 256, NULL); //Show options for the installed CPU!
 	//Ignore the result, nothing to do with it anyways(as nothing is to be selected)!
 }
 
