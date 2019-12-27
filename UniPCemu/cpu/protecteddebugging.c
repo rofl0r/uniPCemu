@@ -100,7 +100,7 @@ void checkProtectedModeDebuggerAfter() //Check after instruction for the protect
 	byte DR;
 	if (CPU[activeCPU].faultraised==0) //No fault raised yet?
 	{
-		if (CPU[activeCPU].debuggerFaultRaised && ((FLAG_RF==0)||(EMULATED_CPU<CPU_80386))) //Debugger fault raised?
+		if (CPU[activeCPU].debuggerFaultRaised && ((FLAG_RF==0)||(EMULATED_CPU<CPU_80386)) && ((CPU[activeCPU].unaffectedRF&2)==0)) //Debugger fault raised and not changed context(for which it's an invalid case)?
 		{
 			if ((MMU_logging == 1) && advancedlog) //Are we logging?
 			{

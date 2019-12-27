@@ -886,7 +886,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 		}
 	}
 
-	CPU[activeCPU].unaffectedRF = 1; //Default: affected!
+	CPU[activeCPU].unaffectedRF = 3; //Default: affected, but don't trigger an exception right away for the current instruction(changed state)!
 	CPU[activeCPU].executed = 1; //Task switch completed!
 	CPU_flushPIQ(-1); //We're jumping to another address!
 	return 0; //Abort any running instruction operation, finish up!
