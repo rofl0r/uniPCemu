@@ -2735,10 +2735,8 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 											//dolog("ethernetcard","Discarding invalid packet size: %u...",net.pktlen); //Log it!
 										invalidpacket:
 											//Discard the invalid packet!
-											freez((void **)&net.packet, net.pktlen, "MODEM_PACKET"); //Release the packet to receive new packets again!
 											freez((void **)&Packetserver_clients[connectedclient].packet, Packetserver_clients[connectedclient].pktlen, "SERVER_PACKET"); //Release the packet to receive new packets again!
 											//dolog("ethernetcard","Discarding invalid packet size or different cause: %u...",net.pktlen); //Log it!
-											net.packet = NULL; //No packet!
 											Packetserver_clients[connectedclient].packet = NULL; //No packet!
 											Packetserver_clients[connectedclient].packetserver_packetpos = 0; //Reset packet position!
 											Packetserver_clients[connectedclient].packetserver_packetack = 0; //Not acnowledged yet!
