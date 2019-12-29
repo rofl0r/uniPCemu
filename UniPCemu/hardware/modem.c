@@ -1436,6 +1436,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 			case 'P': //Pulse dial?
 			case 'W': //Wait for second dial tone?
 			case '@': //Wait for up to	30 seconds for one or more ringbacks
+				dodial_tone: //Perform a tone dial!
 				safestrcpy((char *)&number[0],sizeof(number),(char *)&modem.ATcommand[pos]); //Set the number to dial!
 				if (safestrlen((char *)&number[0],sizeof(number)) < 2 && number[0]) //Maybe a phone book entry? This is for easy compatiblity for quick dial functionality on unsupported software!
 				{
@@ -1514,7 +1515,8 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 
 			default: //Unsupported?
 				--pos; //Retry analyzing!
-				unsupporteddial: //Unsupported dial function?
+				goto dodial_tone; //Perform a tone dial on this!
+			unsupporteddial: //Unsupported dial function?
 				modem_responseResult(MODEMRESULT_ERROR); //Error!
 				return; //Abort!
 				break;
