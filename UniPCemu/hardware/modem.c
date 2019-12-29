@@ -857,6 +857,8 @@ byte modem_connect(char *phonenumber)
 		if (TCP_DisconnectClientServer(modem.connectionid)) //Try and disconnect, if possible!
 		{
 			modem.connectionid = -1; //Not connected anymore if succeeded!
+			fifobuffer_clear(modem.inputdatabuffer[0]); //Clear the output buffer for the next client!
+			fifobuffer_clear(modem.outputbuffer[0]); //Clear the output buffer for the next client!
 			modem.connected = 0; //Not connected anymore!
 		}
 	}
@@ -946,6 +948,8 @@ void modem_hangup() //Hang up, if possible!
 	{
 		TCP_DisconnectClientServer(modem.connectionid); //Try and disconnect, if possible!
 		modem.connectionid = -1; //Not connected anymore
+		fifobuffer_clear(modem.inputdatabuffer[0]); //Clear the output buffer for the next client!
+		fifobuffer_clear(modem.outputbuffer[0]); //Clear the output buffer for the next client!
 	}
 	modem.connected &= ~1; //Not connected anymore!
 	modem.ringing = 0; //Not ringing anymore!
@@ -1100,6 +1104,8 @@ byte resetModem(byte state)
 		modem_responseResult(MODEMRESULT_NOCARRIER); //Report no carrier!
 		TCP_DisconnectClientServer(modem.connectionid); //Disconnect the client!
 		modem.connectionid = -1; //Not connected anymore!
+		fifobuffer_clear(modem.inputdatabuffer[0]); //Clear the output buffer for the next client!
+		fifobuffer_clear(modem.outputbuffer[0]); //Clear the output buffer for the next client!
 	}
 
 
@@ -1368,6 +1374,19 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 		return;
 	}
 
+	if (!((modem.ATcommand[0] == 'A') && (modem.ATcommand[1] == 'T'))) //Invalid header to the command?
+	{
+		modem_responseResult(MODEMRESULT_ERROR); //Error!
+		return; //Abort!
+	}
+
+	if (modem.ATcommand[2] == 0) //Empty AT command? Just an "AT\r" command!
+	{
+		//Stop dialing and perform autoanswer!
+		modem.registers[0] = 0; //Stop autoanswer!
+		//Dialing doesn't need to stop, as it's instantaneous!
+	}
+
 	modem.detectiontimer[0] = (DOUBLE)0; //Stop timing!
 	modem.detectiontimer[1] = (DOUBLE)0; //Stop timing!
 	memcpy(&modem.previousATCommand,&modem.ATcommand,sizeof(modem.ATcommand)); //Save the command for later use!
@@ -1375,6 +1394,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 	word pos=2,posbackup; //Position to read!
 	byte SETGET = 0;
 	word dialnumbers = 0;
+	word temppos;
 	char *c = &BIOS_Settings.phonebook[0][0]; //Phone book support
 	for (;;) //Parse the command!
 	{
@@ -1426,7 +1446,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				goto actondial;
 			case ';': //Remain in command mode after dialing
 				dialproperties = 2; //Remain in command mode!
-				goto actondial;
+				goto dodial_tone;
 			case ',': //Pause for the time specified in register S8(usually 2 seconds)
 			case '!': //Flash-Switch hook (Hang up for half a second, as in transferring a call)
 				goto unsupporteddial;
@@ -1434,7 +1454,20 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 			case 'P': //Pulse dial?
 			case 'W': //Wait for second dial tone?
 			case '@': //Wait for up to	30 seconds for one or more ringbacks
-				dodial_tone: //Perform a tone dial!
+			dodial_tone: //Perform a tone dial!
+				//Scan for a remain in command mode modifier!
+				for (temppos = 2; temppos < safe_strlen(modem.ATcommand, sizeof(modem.ATcommand)); ++temppos) //Scan the string!
+				{
+					switch (modem.ATcommand[temppos]) //Check for modifiers in the connection string!
+					{
+					case ';': //Remain in command mode after dialing
+						dialproperties = 2; //Remain in command mode!
+						break;
+					case ',': //Pause for the time specified in register S8(usually 2 seconds)
+					case '!': //Flash-Switch hook (Hang up for half a second, as in transferring a call)
+						goto unsupporteddial;
+					}
+				}
 				safestrcpy((char *)&number[0],sizeof(number),(char *)&modem.ATcommand[pos]); //Set the number to dial!
 				if (safestrlen((char *)&number[0],sizeof(number)) < 2 && number[0]) //Maybe a phone book entry? This is for easy compatiblity for quick dial functionality on unsupported software!
 				{
@@ -1833,8 +1866,10 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 			case '0':
 				n0 = 0;
 				doATO:
-				if (modem.connected&1) //Connected?
-					modem.datamode = 2; //Return to data mode!
+				if (modem.connected & 1) //Connected?
+				{
+					modem.datamode = 1; //Return to data mode, no result code!
+				}
 				else
 				{
 					modem_responseResult(MODEMRESULT_ERROR);
@@ -2347,6 +2382,7 @@ void doneModem() //Finish modem!
 	if (TCP_DisconnectClientServer(modem.connectionid)) //Disconnect client, if needed!
 	{
 		modem.connectionid = -1; //Not connected!
+		//The buffers are already released!
 	}
 	stopTCPServer(); //Stop the TCP server!
 }
@@ -2621,6 +2657,8 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 			{
 				TCP_DisconnectClientServer(modem.connectionid);
 				modem.connectionid = -1; //Not connected anymore!
+				fifobuffer_clear(modem.inputdatabuffer[0]); //Clear the output buffer for the next client!
+				fifobuffer_clear(modem.outputbuffer[0]); //Clear the output buffer for the next client!
 			}
 		}
 	}
@@ -3074,6 +3112,8 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 							{
 								TCP_DisconnectClientServer(modem.connectionid); //Disconnect!
 								modem.connectionid = -1;
+								fifobuffer_clear(modem.inputdatabuffer[0]); //Clear the output buffer for the next client!
+								fifobuffer_clear(modem.outputbuffer[0]); //Clear the output buffer for the next client!
 								modem.connected = 0; //Not connected anymore!
 								modem_responseResult(MODEMRESULT_NOCARRIER);
 								modem.datamode = 0; //Drop out of data mode!
@@ -3109,6 +3149,8 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 							{
 								TCP_DisconnectClientServer(modem.connectionid); //Disconnect!
 								modem.connectionid = -1;
+								fifobuffer_clear(modem.inputdatabuffer[0]); //Clear the output buffer for the next client!
+								fifobuffer_clear(modem.outputbuffer[0]); //Clear the output buffer for the next client!
 								modem.connected = 0; //Not connected anymore!
 								modem_responseResult(MODEMRESULT_NOCARRIER);
 								modem.datamode = 0; //Drop out of data mode!
@@ -3142,6 +3184,8 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 								{
 									TCP_DisconnectClientServer(modem.connectionid); //Disconnect!
 									modem.connectionid = -1;
+									fifobuffer_clear(modem.inputdatabuffer[connectedclient]); //Clear the output buffer for the next client!
+									fifobuffer_clear(modem.outputbuffer[connectedclient]); //Clear the output buffer for the next client!
 									modem.connected = 0; //Not connected anymore!
 									modem_responseResult(MODEMRESULT_NOCARRIER);
 									modem.datamode = 0; //Drop out of data mode!
@@ -3183,6 +3227,8 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 								{
 									TCP_DisconnectClientServer(modem.connectionid); //Disconnect!
 									modem.connectionid = -1;
+									fifobuffer_clear(modem.inputdatabuffer[connectedclient]); //Clear the output buffer for the next client!
+									fifobuffer_clear(modem.outputbuffer[connectedclient]); //Clear the output buffer for the next client!
 									modem.connected = 0; //Not connected anymore!
 									modem_responseResult(MODEMRESULT_NOCARRIER);
 									modem.datamode = 0; //Drop out of data mode!
