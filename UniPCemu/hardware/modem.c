@@ -1361,10 +1361,8 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 	//Check for a command to send!
 	//Parse the AT command!
 
-	if (modem.ATcommand[0]==0) //Empty line? Stop dialing and autoanswer!
+	if (modem.ATcommand[0]==0) //Empty line? Stop dialing and perform autoanswer!
 	{
-		modem.registers[0] = 0; //Autoanswer off!
-		modem_updateRegister(0); //Register has been updated!
 		modem.detectiontimer[0] = (DOUBLE)0; //Stop timing!
 		modem.detectiontimer[1] = (DOUBLE)0; //Stop timing!
 		return;
