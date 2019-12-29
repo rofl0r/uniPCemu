@@ -94,6 +94,26 @@ void updateET34Ksegmentselectregister(byte val)
 	}
 }
 
+void et34k_updateDAC(SVGA_ET34K_DATA* et34kdata, byte val)
+{
+	et34kdata->hicolorDACcommand = val; //Apply the command!
+	//bits 3-4 redirect to the DAC mask register.
+	//bit 0 is set if bits 5-7 is 1 or 3, cleared otherwise(R/O)
+	//bits 1-2 are stored, but unused.
+	//All generic handling of the ET3K/ET4K Hi-color DAC!
+	if (((val & 0xE0) == 0x20) || ((val & 0xE0) == 0x60)) //Set bit 0?
+	{
+		et34kdata->hicolorDACcommand |= 1; //Set!
+	}
+	else //Clear bit 0?
+	{
+		et34kdata->hicolorDACcommand &= ~1; //Clear!
+	}
+	et34kdata->hicolorDACcommand |= 6; //Always set bits 1-2?
+	//getActiveVGA()->registers->DACMaskRegister = (getActiveVGA()->registers->DACMaskRegister&~0x18)|(et34kdata->hicolorDACcommand&0x18);
+	et34kdata->hicolorDACcommand &= ~0x18; //Ignore the shared bits for the result!
+}
+
 byte Tseng34K_writeIO(word port, byte val)
 {
 	byte result;
@@ -200,21 +220,7 @@ byte Tseng34K_writeIO(word port, byte val)
 			return 0; //Execute normally!
 		}
 		//16-bit DAC operations!
-		et34kdata->hicolorDACcommand = val; //Apply the command!
-		//bits 3-4 redirect to the DAC mask register.
-		//bit 0 is set if bits 5-7 is 1 or 3, cleared otherwise(R/O)
-		//bits 1-2 are stored, but unused.
-		if (((val&0xE0)==0x20)||((val&0xE0)==0x60)) //Set bit 0?
-		{
-			et34kdata->hicolorDACcommand |= 1; //Set!
-		}
-		else //Clear bit 0?
-		{
-			et34kdata->hicolorDACcommand &= ~1; //Clear!
-		}
-		et34kdata->hicolorDACcommand |= 6; //Always set bits 1-2?
-		//getActiveVGA()->registers->DACMaskRegister = (getActiveVGA()->registers->DACMaskRegister&~0x18)|(et34kdata->hicolorDACcommand&0x18);
-		et34kdata->hicolorDACcommand &= ~0x18; //Ignore the shared bits for the result!
+		et34k_updateDAC(et34kdata,val); //Update the DAC values to be compatible!
 		VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_DACMASKREGISTER); //We've been updated!
 		return 1; //We're overridden!
 		break;
@@ -817,6 +823,7 @@ void Tseng34k_init()
 			et34k(getActiveVGA())->extensionsEnabled = 0; //Disable the extensions by default!
 			et34k(getActiveVGA())->oldextensionsEnabled = 1; //Make sure the extensions are updated in status!
 			et34k(getActiveVGA())->et4k_segmentselectregisterenabled = 0; //Segment select register isn't enabled yet!
+			et34k_updateDAC(et34k(getActiveVGA()), et34k(getActiveVGA())->hicolorDACcommand); //Initialize the DAC command register to compatible values!
 
 			VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_ALL); //Update all precalcs!
 		}
