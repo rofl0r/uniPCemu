@@ -212,6 +212,7 @@ byte Tseng34K_writeIO(word port, byte val)
 		{
 			et34kdata->hicolorDACcommand &= ~1; //Clear!
 		}
+		et34kdata->hicolorDACcommand |= 6; //Always set bits 1-2?
 		//getActiveVGA()->registers->DACMaskRegister = (getActiveVGA()->registers->DACMaskRegister&~0x18)|(et34kdata->hicolorDACcommand&0x18);
 		et34kdata->hicolorDACcommand &= ~0x18; //Ignore the shared bits for the result!
 		VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_DACMASKREGISTER); //We've been updated!
