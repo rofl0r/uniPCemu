@@ -1289,7 +1289,7 @@ byte modem_getstatus()
 	//0: Clear to Send(Can we buffer data to be sent), 1: Data Set Ready(Not hang up, are we ready for use), 2: Ring Indicator, 3: Carrrier detect
 	return ((modem.CTSAlwaysActive==0)? ((modem.effectiveline >> 1) & 1) : ((modem.CTSAlwaysActive==2)?1:((modem.datamode==1)?((modem.connectionid>=0)?(fifobuffer_freesize(modem.outputbuffer[modem.connectionid])?1:0):0):1)))| //CTSAlwaysActive: 0:RTS, 1:ReadyToReceive, 2:Always 1
 			(modem.DSRisConnectionEstablished?((modem.outputline & 1) << 1):2)| //DSRisConnectionEstablished: 0:1, 1:DTR
-			(((modem.ringing&1)&((~modem.ringing)>>1))?4:0)| //Ringing?
+			(((modem.ringing&1)&((modem.ringing)>>1))?4:0)| //Currently Ringing?
 			(((modem.connected==1)||(modem.DCDisCarrier==0))?8:0); //Connected or forced on?
 }
 
