@@ -1456,7 +1456,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 			case '@': //Wait for up to	30 seconds for one or more ringbacks
 			dodial_tone: //Perform a tone dial!
 				//Scan for a remain in command mode modifier!
-				for (temppos = 2; temppos < safe_strlen(modem.ATcommand, sizeof(modem.ATcommand)); ++temppos) //Scan the string!
+				for (temppos = 2; temppos < safe_strlen((char *)&modem.ATcommand[0], sizeof(modem.ATcommand)); ++temppos) //Scan the string!
 				{
 					switch (modem.ATcommand[temppos]) //Check for modifiers in the connection string!
 					{
