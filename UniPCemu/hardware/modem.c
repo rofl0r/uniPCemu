@@ -1345,6 +1345,7 @@ void modem_Answered()
 
 void modem_executeCommand() //Execute the currently loaded AT command, if it's valid!
 {
+	byte tempcommand[256]; //Stripped command with spaces removed!
 	int n0;
 	char number[256];
 	byte dialproperties=0;
@@ -1396,6 +1397,18 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 	word dialnumbers = 0;
 	word temppos;
 	char *c = &BIOS_Settings.phonebook[0][0]; //Phone book support
+
+	memcpy(&tempcommand, &modem.ATcommand, MIN(sizeof(modem.ATcommand),sizeof(tempcommand))); //Make a copy of the current AT command for stripping!
+	memset(&modem.ATcommand, 0, sizeof(modem.ATcommand)); //Clear the command for the stripped version!
+	posbackup = safe_strlen(tempcommand, sizeof(tempcommand)); //Store the length for fast comparison!
+	for (pos = 0; pos < posbackup; ++pos) //We're stripping spaces!
+	{
+		if (tempcommand[pos] != ' ') //Not a space?
+		{
+			safescatnprintf(modem.ATcommand, sizeof(modem.ATcommand), "%c", tempcommand[pos]); //Add the valid character to the command!
+		}
+	}
+	pos = 2; //Reset the position to the end of the AT identifier for the processing of the command!
 	for (;;) //Parse the command!
 	{
 		switch (modem.ATcommand[pos++]) //What command?
@@ -2225,7 +2238,7 @@ void modem_writeCommandData(byte value)
 			modem.ATcommandsize = 0; //Start the new command!
 			modem_executeCommand();
 		}
-		else if ((value != 0x20) && value) //Not space or NULL-terminator? Command byte!
+		else if (value) //Not NULL-terminator? Command byte!
 		{
 			if (modem.echomode) //Echo enabled?
 			{
