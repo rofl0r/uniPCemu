@@ -1403,7 +1403,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 	posbackup = safe_strlen(tempcommand, sizeof(tempcommand)); //Store the length for fast comparison!
 	for (pos = 0; pos < posbackup; ++pos) //We're stripping spaces!
 	{
-		if (tempcommand[pos] != ' ') //Not a space?
+		if ((tempcommand[pos] != ' ') //Not a space(which is ignored)? Linefeed is taken as is and errors out when encountered!
 		{
 			safescatnprintf((char *)&modem.ATcommand[0], sizeof(modem.ATcommand), "%c", tempcommand[pos]); //Add the valid character to the command!
 		}
