@@ -1345,7 +1345,7 @@ void modem_Answered()
 
 void modem_executeCommand() //Execute the currently loaded AT command, if it's valid!
 {
-	byte tempcommand[256]; //Stripped command with spaces removed!
+	char tempcommand[256]; //Stripped command with spaces removed!
 	int n0;
 	char number[256];
 	byte dialproperties=0;
@@ -1405,7 +1405,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 	{
 		if (tempcommand[pos] != ' ') //Not a space?
 		{
-			safescatnprintf(modem.ATcommand, sizeof(modem.ATcommand), "%c", tempcommand[pos]); //Add the valid character to the command!
+			safescatnprintf((char *)&modem.ATcommand[0], sizeof(modem.ATcommand), "%c", tempcommand[pos]); //Add the valid character to the command!
 		}
 	}
 	pos = 2; //Reset the position to the end of the AT identifier for the processing of the command!
