@@ -183,6 +183,8 @@ typedef union PACKED
 #define MODEM_DATATRANSFERFREQUENCY 57600
 //Data transfer frequency of tranferring data, in the numeric result code of the connection numeric result code! Must match the MODEM_DATATRANSFERFREQUENCY
 #define MODEM_DATATRANSFERFREQUENCY_NR 18
+//Command completion timeout after receiving a carriage return during a command!
+#define MODEM_COMMANDCOMPLETIONTIMEOUT (DOUBLE)((1000000000.0/57600.0)*5760.0)
 
 struct
 {
@@ -253,6 +255,7 @@ struct
 	byte effectivelinechanges; //For detecting line changes!
 	sword connectionid; //Normal connection ID for the internal modem!
 	byte wascommandcompletionecho; //Was command completion with echo!
+	DOUBLE wascommandcompletionechoTimeout; //Timeout for execution anyways!
 } modem;
 
 byte readIPnumber(char **x, byte *number); //Prototype!
@@ -2195,6 +2198,18 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 	}
 }
 
+void modem_flushCommandCompletion()
+{
+	//Perform linefeed-related things!
+	modem.wascommandcompletionecho = 0; //Disable the linefeed echo!
+	modem.wascommandcompletionechoTimeout = (DOUBLE)0; //Stop the timeout!
+
+	//Start execution of the currently buffered command!
+	modem.ATcommand[modem.ATcommandsize] = 0; //Terminal character!
+	modem.ATcommandsize = 0; //Start the new command!
+	modem_executeCommand();
+}
+
 void modem_writeCommandData(byte value)
 {
 	if (modem.datamode) //Data mode?
@@ -2241,16 +2256,18 @@ void modem_writeCommandData(byte value)
 			{
 				modem.wascommandcompletionecho = 0; //Disable the linefeed echo!
 			}
-			handlemodemCR: //Handle a carriage return!
-			modem.ATcommand[modem.ATcommandsize] = 0; //Terminal character!
-			modem.ATcommandsize = 0; //Start the new command!
-			modem_executeCommand();
+			handlemodemCR:
+			modem.wascommandcompletionechoTimeout = MODEM_COMMANDCOMPLETIONTIMEOUT; //Start the timeout on command completion!
 		}
 		else if (value) //Not NULL-terminator? Command byte!
 		{
 			if (modem.echomode || (modem.wascommandcompletionecho && (value==modem.linefeedcharacter))) //Echo enabled and command completion with echo?
 			{
 				writefifobuffer(modem.inputbuffer, value); //Echo the value back to the terminal!
+				if ((modem.wascommandcompletionecho && (value == modem.linefeedcharacter))) //Finishing echo and start of command execution?
+				{
+					modem_flushCommandCompletion(); //Start executing the command now!
+				}
 			}
 			modem.wascommandcompletionecho = 0; //Disable the linefeed echo!
 			if (modem.ATcommandsize < (sizeof(modem.ATcommand) - 1)) //Valid to input(leave 1 byte for the terminal character)?
@@ -2282,6 +2299,14 @@ void modem_writeCommandData(byte value)
 				}
 				else if ((modem.ATcommandsize == 2) && (modem.ATcommand[1] == '/')) //Doesn't need an carriage return?
 				{
+					if (modem.echomode) //Echo enabled?
+					{
+						modem.wascommandcompletionecho = 1; //Was command completion with echo!
+					}
+					else
+					{
+						modem.wascommandcompletionecho = 0; //Disable the linefeed echo!
+					}
 					goto handlemodemCR; //Handle the carriage return automatically, because A/ is received!
 				}
 			}
@@ -2587,6 +2612,17 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 					modem_writeCommandData(modem.escapecharacter); //Send the escaped data!
 				}
 			}
+		}
+	}
+
+	if (modem.wascommandcompletionechoTimeout) //Timer running?
+	{
+		modem.wascommandcompletionechoTimeout -= timepassed;
+		if (modem.wascommandcompletionechoTimeout <= (DOUBLE)0.0f) //Expired?
+		{
+			modem.wascommandcompletionecho = 0; //Disable the linefeed echo!
+			modem.wascommandcompletionechoTimeout = (DOUBLE)0; //Stop the timeout!
+			modem_flushCommandCompletion(); //Execute the command immediately!
 		}
 	}
 
