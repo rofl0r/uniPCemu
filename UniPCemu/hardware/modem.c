@@ -2267,6 +2267,7 @@ void modem_writeCommandData(byte value)
 				if ((modem.wascommandcompletionecho && (value == modem.linefeedcharacter))) //Finishing echo and start of command execution?
 				{
 					modem_flushCommandCompletion(); //Start executing the command now!
+					return; //Don't add to the buffer!
 				}
 			}
 			modem.wascommandcompletionecho = 0; //Disable the linefeed echo!
