@@ -2261,7 +2261,7 @@ void modem_writeCommandData(byte value)
 		}
 		else if (value) //Not NULL-terminator? Command byte!
 		{
-			if (modem.echomode || (modem.wascommandcompletionecho && (value==modem.linefeedcharacter))) //Echo enabled and command completion with echo?
+			if (modem.echomode || ((modem.wascommandcompletionecho==1) && (value==modem.linefeedcharacter))) //Echo enabled and command completion with echo?
 			{
 				if (modem.echomode || ((modem.wascommandcompletionecho == 1) && (value == modem.linefeedcharacter))) //To echo back?
 				{
