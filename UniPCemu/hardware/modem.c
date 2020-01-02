@@ -2270,6 +2270,10 @@ void modem_writeCommandData(byte value)
 					return; //Don't add to the buffer!
 				}
 			}
+			if (modem.wascommandcompletionecho) //Finishing echo and start of command execution?
+			{
+				modem_flushCommandCompletion(); //Start executing the command now!
+			}
 			modem.wascommandcompletionecho = 0; //Disable the linefeed echo!
 			if (modem.ATcommandsize < (sizeof(modem.ATcommand) - 1)) //Valid to input(leave 1 byte for the terminal character)?
 			{
