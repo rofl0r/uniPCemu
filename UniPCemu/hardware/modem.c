@@ -2254,7 +2254,7 @@ void modem_writeCommandData(byte value)
 			}
 			else
 			{
-				modem.wascommandcompletionecho = 0; //Disable the linefeed echo!
+				modem.wascommandcompletionecho = 2; //Was command completion without echo!
 			}
 			handlemodemCR:
 			modem.wascommandcompletionechoTimeout = MODEM_COMMANDCOMPLETIONTIMEOUT; //Start the timeout on command completion!
@@ -2263,7 +2263,10 @@ void modem_writeCommandData(byte value)
 		{
 			if (modem.echomode || (modem.wascommandcompletionecho && (value==modem.linefeedcharacter))) //Echo enabled and command completion with echo?
 			{
-				writefifobuffer(modem.inputbuffer, value); //Echo the value back to the terminal!
+				if (modem.echomode || ((modem.wascommandcompletionecho == 1) && (value == modem.linefeedcharacter))) //To echo back?
+				{
+					writefifobuffer(modem.inputbuffer, value); //Echo the value back to the terminal!
+				}
 				if ((modem.wascommandcompletionecho && (value == modem.linefeedcharacter))) //Finishing echo and start of command execution?
 				{
 					modem_flushCommandCompletion(); //Start executing the command now!
@@ -2274,7 +2277,7 @@ void modem_writeCommandData(byte value)
 			{
 				modem_flushCommandCompletion(); //Start executing the command now!
 			}
-			modem.wascommandcompletionecho = 0; //Disable the linefeed echo!
+			modem.wascommandcompletionecho = 0; //Disable the linefeed echo from now on!
 			if (modem.ATcommandsize < (sizeof(modem.ATcommand) - 1)) //Valid to input(leave 1 byte for the terminal character)?
 			{
 				modem.ATcommand[modem.ATcommandsize++] = value; //Add data to the string!
