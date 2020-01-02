@@ -252,6 +252,7 @@ struct
 	byte effectiveline; //Effective line to actually use!
 	byte effectivelinechanges; //For detecting line changes!
 	sword connectionid; //Normal connection ID for the internal modem!
+	byte wascommandcompletionecho; //Was command completion with echo!
 } modem;
 
 byte readIPnumber(char **x, byte *number); //Prototype!
@@ -2198,6 +2199,7 @@ void modem_writeCommandData(byte value)
 {
 	if (modem.datamode) //Data mode?
 	{
+		modem.wascommandcompletionecho = 0; //Disable the linefeed echo!
 		modem_sendData(value); //Send the data!
 	}
 	else //Command mode?
@@ -2205,6 +2207,7 @@ void modem_writeCommandData(byte value)
 		modem.timer = 0.0; //Reset the timer when anything is received!
 		if (value == '~') //Pause stream for half a second?
 		{
+			modem.wascommandcompletionecho = 0; //Disable the linefeed echo!
 			//Ignore this time?
 			if (modem.echomode) //Echo enabled?
 			{
@@ -2213,6 +2216,7 @@ void modem_writeCommandData(byte value)
 		}
 		else if (value == modem.backspacecharacter) //Backspace?
 		{
+			modem.wascommandcompletionecho = 0; //Disable the linefeed echo!
 			if (modem.ATcommandsize) //Valid to backspace?
 			{
 				--modem.ATcommandsize; //Remove last entered value!
@@ -2230,7 +2234,12 @@ void modem_writeCommandData(byte value)
 		{
 			if (modem.echomode) //Echo enabled?
 			{
+				modem.wascommandcompletionecho = 1; //Was command completion with echo!
 				writefifobuffer(modem.inputbuffer, value); //Echo the value back to the terminal!
+			}
+			else
+			{
+				modem.wascommandcompletionecho = 0; //Disable the linefeed echo!
 			}
 			handlemodemCR: //Handle a carriage return!
 			modem.ATcommand[modem.ATcommandsize] = 0; //Terminal character!
@@ -2239,10 +2248,11 @@ void modem_writeCommandData(byte value)
 		}
 		else if (value) //Not NULL-terminator? Command byte!
 		{
-			if (modem.echomode) //Echo enabled?
+			if (modem.echomode || (modem.wascommandcompletionecho && (value==modem.linefeedcharacter))) //Echo enabled and command completion with echo?
 			{
 				writefifobuffer(modem.inputbuffer, value); //Echo the value back to the terminal!
 			}
+			modem.wascommandcompletionecho = 0; //Disable the linefeed echo!
 			if (modem.ATcommandsize < (sizeof(modem.ATcommand) - 1)) //Valid to input(leave 1 byte for the terminal character)?
 			{
 				modem.ATcommand[modem.ATcommandsize++] = value; //Add data to the string!
