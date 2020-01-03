@@ -521,8 +521,8 @@ void UART_handleInputs() //Handle any input to the UART!
 		{
 			//Update the modem status register accordingly!
 			SETBITS(UART_port[i].ModemStatusRegister, 6, 0x3, GETBITS(UART_port[i].ModemControlRegister,2,0x3)); //Set the high bits of the modem status to our input lines!
-			SETBITS(UART_port[i].ModemStatusRegister, 4, 0x1, GETBITS(UART_port[i].ModemControlRegister, 2, 0x1)); //RTS on CTS
-			SETBITS(UART_port[i].ModemStatusRegister, 5, 0x1, GETBITS(UART_port[i].ModemControlRegister, 1, 0x1)); //DTR on DSR
+			SETBITS(UART_port[i].ModemStatusRegister, 4, 0x1, GETBITS(UART_port[i].ModemControlRegister, 1, 0x1)); //RTS on CTS
+			SETBITS(UART_port[i].ModemStatusRegister, 5, 0x1, GETBITS(UART_port[i].ModemControlRegister, 0, 0x1)); //DTR on DSR
 			checknewmodemstatus = ((UART_port[i].ModemStatusRegister ^ (UART_port[i].oldModemStatusRegister)) & 0xF0); //Check the new status!
 		}
 		else //No status or device to report?
