@@ -1683,6 +1683,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				--pos; //Retry analyzing!
 				break;
 			}
+			break;
 		case 'H': //Select communication standard?
 			switch (modem.ATcommand[pos++]) //What type?
 			{
