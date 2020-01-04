@@ -196,7 +196,8 @@ struct
 	byte connected; //Are we connected?
 	word connectionport; //What port to connect to by default?
 	byte previousATCommand[256]; //Copy of the command for use with "A/" command!
-	byte ATcommand[256];
+	byte ATcommand[256]; //AT command in uppercase when started!
+	byte ATcommandoriginalcase[256]; //AT command in original unmodified case!
 	word ATcommandsize; //The amount of data sent!
 	byte escaping; //Are we trying to escape?
 	DOUBLE timer; //A timer for detecting timeout!
@@ -1415,25 +1416,44 @@ void modem_Answered()
 void modem_executeCommand() //Execute the currently loaded AT command, if it's valid!
 {
 	char tempcommand[256]; //Stripped command with spaces removed!
+	char tempcommand2[256]; //Stripped original case command with spaces removed!
 	int n0;
 	char number[256];
 	byte dialproperties=0;
 	memset(&number,0,sizeof(number)); //Init number!
-	byte *temp;
+	byte *temp, *temp2;
 	byte verbosemodepending; //Pending verbose mode!
+
 	temp = &modem.ATcommand[0]; //Parse the entire string!
-	for (;*temp;)
+	temp2 = &modem.ATcommandoriginalcase[0]; //Original case backup!
+	for (; *temp;)
 	{
+		*temp2 = *temp; //Original case backup!
 		*temp = (byte)toupper((int)*temp); //Convert to upper case!
 		++temp; //Next character!
+		++temp2; //Next character!
 	}
+	*temp2 = (char)0; //End of string!
+
 	//Read and execute the AT command, if it's valid!
 	if (strcmp((char *)&modem.ATcommand[0],"A/")==0) //Repeat last command?
 	{
 		memcpy(&modem.ATcommand,modem.previousATCommand,sizeof(modem.ATcommand)); //Last command again!
+		//Re-case the command!
+		temp = &modem.ATcommand[0]; //Parse the entire string!
+		temp2 = &modem.ATcommandoriginalcase[0]; //Original case backup!
+		for (; *temp;)
+		{
+			*temp2 = *temp; //Original case backup!
+			*temp = (byte)toupper((int)*temp); //Convert to upper case!
+			++temp; //Next character!
+			++temp2; //Next character!
+		}
+		*temp2 = 0; //End of string!
 		modem.detectiontimer[0] = (DOUBLE)0; //Stop timing!
 		modem.detectiontimer[1] = (DOUBLE)0; //Stop timing!
 	}
+
 	//Check for a command to send!
 	//Parse the AT command!
 
@@ -1459,7 +1479,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 
 	modem.detectiontimer[0] = (DOUBLE)0; //Stop timing!
 	modem.detectiontimer[1] = (DOUBLE)0; //Stop timing!
-	memcpy(&modem.previousATCommand,&modem.ATcommand,sizeof(modem.ATcommand)); //Save the command for later use!
+	memcpy(&modem.previousATCommand,&modem.ATcommandoriginalcase,sizeof(modem.ATcommandoriginalcase)); //Save the command for later use!
 	verbosemodepending = modem.verbosemode; //Save the old verbose mode, to detect and apply changes after the command is successfully completed!
 	word pos=2,posbackup; //Position to read!
 	byte SETGET = 0;
@@ -1468,13 +1488,19 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 	char *c = &BIOS_Settings.phonebook[0][0]; //Phone book support
 
 	memcpy(&tempcommand, &modem.ATcommand, MIN(sizeof(modem.ATcommand),sizeof(tempcommand))); //Make a copy of the current AT command for stripping!
+	memcpy(&tempcommand2, &modem.ATcommandoriginalcase, MIN(sizeof(modem.ATcommandoriginalcase), sizeof(tempcommand2))); //Make a copy of the current AT command for stripping!
 	memset(&modem.ATcommand, 0, sizeof(modem.ATcommand)); //Clear the command for the stripped version!
+	memset(&modem.ATcommandoriginalcase, 0, sizeof(modem.ATcommandoriginalcase)); //Clear the command for the stripped version!
 	posbackup = safe_strlen(tempcommand, sizeof(tempcommand)); //Store the length for fast comparison!
 	for (pos = 0; pos < posbackup; ++pos) //We're stripping spaces!
 	{
 		if (tempcommand[pos] != ' ') //Not a space(which is ignored)? Linefeed is taken as is and errors out when encountered!
 		{
 			safescatnprintf((char *)&modem.ATcommand[0], sizeof(modem.ATcommand), "%c", tempcommand[pos]); //Add the valid character to the command!
+		}
+		if (tempcommand2[pos] != ' ') //Not a space(which is ignored)? Linefeed is taken as is and errors out when encountered!
+		{
+			safescatnprintf((char*)&modem.ATcommandoriginalcase[0], sizeof(modem.ATcommandoriginalcase), "%c", tempcommand2[pos]); //Add the valid character to the command!
 		}
 	}
 	pos = 2; //Reset the position to the end of the AT identifier for the processing of the command!
@@ -1551,7 +1577,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 						goto unsupporteddial;
 					}
 				}
-				safestrcpy((char *)&number[0],sizeof(number),(char *)&modem.ATcommand[pos]); //Set the number to dial!
+				safestrcpy((char *)&number[0],sizeof(number),(char *)&modem.ATcommandoriginalcase[pos]); //Set the number to dial, in the original case!
 				if (safestrlen((char *)&number[0],sizeof(number)) < 2 && number[0]) //Maybe a phone book entry? This is for easy compatiblity for quick dial functionality on unsupported software!
 				{
 					posbackup = pos; //Save the position!
@@ -1608,7 +1634,8 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 					pos = posbackup; //Reverse to the dial command!
 					--pos; //Return to the dial command!
 					if (n0 > NUMITEMS(BIOS_Settings.phonebook)) goto invalidPhonebookNumberDial;
-					snprintf((char *)&modem.ATcommand[pos], sizeof(modem.ATcommand) - pos, "T%s",(char *)&BIOS_Settings.phonebook[n0]); //Select the phonebook entry based on the number to dial!
+					snprintf((char *)&modem.ATcommand[pos], sizeof(modem.ATcommand) - pos, "%s",(char *)&BIOS_Settings.phonebook[n0]); //Select the phonebook entry based on the number to dial!
+					snprintf((char*)&modem.ATcommandoriginalcase[pos], sizeof(modem.ATcommand) - pos, "%s", (char*)&BIOS_Settings.phonebook[n0]); //Select the phonebook entry based on the number to dial!
 					if (modem.ATcommand[pos] != 'S') //Not another phonebook entry?
 					{
 						goto do_ATD; //Retry with the new command!
@@ -2185,6 +2212,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				goto doATZ; //Execute ATZ!
 			case 'Z': //Z special?
 				n0 = 10; //Default: acnowledge!
+				SETGET = 0; //Default: invalid!
 				switch (modem.ATcommand[pos++]) //What flow control?
 				{
 				case '\0': //EOS?
@@ -2208,8 +2236,6 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 						n0 = 10; //Invalid entry!
 						goto handlePhoneNumberEntry; //Handle it!
 					}
-					c = &BIOS_Settings.phonebook[n0][0]; //The phonebook entry we've selected!
-					SETGET = 0; //Default: invalid!
 					switch (modem.ATcommand[pos++]) //SET/GET detection!
 					{
 					case '?': //GET?
@@ -2237,10 +2263,11 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 						switch (SETGET) //What kind of set/get?
 						{
 						case 1: //GET?
-							modem_responseString((byte *)&BIOS_Settings.phonebook[n0], 2|4); //Give the phonenumber!
+							modem_responseString((byte *)&BIOS_Settings.phonebook[n0], 1|2|4); //Give the phonenumber!
 							break;
 						case 2: //SET?
 							memset(&BIOS_Settings.phonebook[n0], 0, sizeof(BIOS_Settings.phonebook[0])); //Init the phonebook entry!
+							c = &modem.ATcommand[pos]; //What phonebook value to set!
 							safestrcpy(BIOS_Settings.phonebook[n0], sizeof(BIOS_Settings.phonebook[0]), c); //Set the phonebook entry!
 							break;
 						default:
