@@ -2251,7 +2251,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 					else
 					{
 						ignorePhonebookSETGET:
-						modem_responseResult(MODEMRESULT_OK); //Simple OK for your troubles!
+						modem_responseResult(MODEMRESULT_ERROR); //Error: invalid phonebook entry or command!
 						return; //Abort!
 					}
 					break;
