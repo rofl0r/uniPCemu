@@ -2350,6 +2350,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				modem_responseResult(MODEMRESULT_ERROR); //Invalid extension!
 				return;
 			}
+			break;
 		default: //Unknown instruction?
 			modem_responseResult(MODEMRESULT_ERROR); //Just ERROR unknown commands!
 			return; //Abort!
