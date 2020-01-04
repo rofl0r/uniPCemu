@@ -1415,6 +1415,8 @@ void modem_Answered()
 
 void modem_executeCommand() //Execute the currently loaded AT command, if it's valid!
 {
+	char firmwareversion[] = "UniPCemu emulated modem V1.00\0"; //Firmware version!
+	char hardwareinformation[] = "UniPCemu Hayes - compatible modem\0"; //Hardware information!
 	char tempcommand[256]; //Stripped command with spaces removed!
 	char tempcommand2[256]; //Stripped original case command with spaces removed!
 	int n0;
@@ -1570,7 +1572,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 			break;
 		case 'D': //Dial?
 			do_ATD: //Phonebook ATD!
-			switch (modem.ATcommand[pos++]) //What dial command?
+			switch (modem.ATcommandoriginalcase[pos++]) //What dial command?
 			{
 			case 'L':
 				memcpy(&number,&modem.lastnumber,(safestrlen((char *)&modem.lastnumber[0],sizeof(modem.lastnumber))+1)); //Set the new number to roll!
@@ -1616,7 +1618,6 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 							if (n0 < 10) //Valid quick dial?
 							{
 								if (dialnumbers&(1<<n0)) goto badnumber; //Prevent looping!
-								dialnumbers |= (1<<n0); //Handling noninfinite!
 								goto handleQuickDial; //Handle the quick dial number!
 							}
 							else //Not a valid quick dial?
@@ -1664,16 +1665,15 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 					if (n0 > NUMITEMS(BIOS_Settings.phonebook)) goto invalidPhonebookNumberDial;
 					snprintf((char *)&modem.ATcommand[pos], sizeof(modem.ATcommand) - pos, "%s",(char *)&BIOS_Settings.phonebook[n0]); //Select the phonebook entry based on the number to dial!
 					snprintf((char*)&modem.ATcommandoriginalcase[pos], sizeof(modem.ATcommand) - pos, "%s", (char*)&BIOS_Settings.phonebook[n0]); //Select the phonebook entry based on the number to dial!
-					if (modem.ATcommand[pos] != 'S') //Not another phonebook entry?
-					{
-						goto do_ATD; //Retry with the new command!
-					}
-					else //Dial phonebook to phonebook? Forbidden!
-					{
-						invalidPhonebookNumberDial: //Dialing invalid number?
-						modem_responseResult(MODEMRESULT_ERROR);
-						return; //Abort!
-					}
+					if (dialnumbers & (1 << n0)) goto loopingPhonebookNumberDial; //Prevent looping of phonenumbers being quick dialed through the phonebook or through a single-digit phonebook shortcut!
+					dialnumbers |= (1 << n0); //Handling noninfinite! Prevent dialing of this entry when quick dialed throuh any method!
+					goto do_ATD; //Retry with the new command!
+				loopingPhonebookNumberDial: //Loop detected?
+					modem_responseResult(MODEMRESULT_NOCARRIER); //No carrier!
+					return; //Abort!
+				invalidPhonebookNumberDial: //Dialing invalid number?
+					modem_responseResult(MODEMRESULT_ERROR);
+					return; //Abort!
 				}
 				else
 				{
@@ -2024,9 +2024,9 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 					switch (n0) //What request?
 					{
 					case 3: //Firmware version!
-						modem_responseString("UniPCemu emulated modem V1.00", (1 | 2 | 4)); //Full response!
+						modem_responseString((byte *)&firmwareversion[0], (1 | 2 | 4)); //Full response!
 					case 4: //Hardware information!
-						modem_responseString("UniPCemu Hayes-compatible modem", (1 | 2 | 4)); //Full response!
+						modem_responseString((byte *)&hardwareinformation[0], (1 | 2 | 4)); //Full response!
 						break;
 					default: //Unknown!
 						//Just respond with a basic OK!
@@ -2326,7 +2326,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 							break;
 						case 2: //SET?
 							memset(&BIOS_Settings.phonebook[n0], 0, sizeof(BIOS_Settings.phonebook[0])); //Init the phonebook entry!
-							c = &modem.ATcommand[pos]; //What phonebook value to set!
+							c = (char *)&modem.ATcommandoriginalcase[pos]; //What phonebook value to set!
 							safestrcpy(BIOS_Settings.phonebook[n0], sizeof(BIOS_Settings.phonebook[0]), c); //Set the phonebook entry!
 							break;
 						default:
