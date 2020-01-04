@@ -233,6 +233,7 @@ struct
 	3=Blind dial, but busy detection. Connection speed in BPS appended to the CONNECT string.
 	4=Dial tone detection and busy tone detection. Connection speed in BPS appended to the CONNECT string.
 	*/
+	byte communicationsmode; //Communications mode, default=5!
 
 	//Active status emulated for the modem!
 	byte ringing; //Are we ringing?
@@ -1072,7 +1073,7 @@ byte resetModem(byte state)
 	&C1: DCDmodeisCarrier=1
 	&D2: DTRoffRresponse=2
 	&K3: flowcontrol=3
-	&Q5
+	&Q5: communicatinsmode=5
 	&R1: CTSalwaysActive=1
 	&S0: DSRisConnectionEstablished=0
 	\A1
@@ -1095,6 +1096,7 @@ byte resetModem(byte state)
 	modem.DCDisCarrier = 1; //Default: DCD=Set Data Carrier Detect (DCD) signal according to remote modem data carrier signal..
 	modem.DTROffResponse = 2; //Default: Hang-up and Goto AT command mode?!
 	modem.flowcontrol = 3; //Default: Enable RTS/CTS flow control!
+	modem.communicationsmode = 5; //Default: communications mode 5 for V-series system products, &Q0 for Smartmodem products! So use &Q5 here!
 	modem.CTSAlwaysActive = 1; //Default: CTS controlled by flow control!
 	modem.DSRisConnectionEstablished = 0; //Default: DSR always ON!
 	//Finish up the default settings!
@@ -1290,11 +1292,74 @@ byte modem_hasData() //Do we have data for input?
 
 byte modem_getstatus()
 {
+	byte result = 0;
+	result = 0;
 	//0: Clear to Send(Can we buffer data to be sent), 1: Data Set Ready(Not hang up, are we ready for use), 2: Ring Indicator, 3: Carrrier detect
-	return ((modem.CTSAlwaysActive==0)? ((modem.effectiveline >> 1) & 1) : ((modem.CTSAlwaysActive==2)?1:((modem.datamode==1)?((modem.connectionid>=0)?(fifobuffer_freesize(modem.outputbuffer[modem.connectionid])?1:0):0):1)))| //CTSAlwaysActive: 0:RTS, 1:ReadyToReceive, 2:Always 1
-			(modem.DSRisConnectionEstablished?((modem.outputline & 1) << 1):2)| //DSRisConnectionEstablished: 0:1, 1:DTR
-			(((modem.ringing&1)&((modem.ringing)>>1))?4:0)| //Currently Ringing?
+	if (modem.communicationsmode && (modem.communicationsmode < 4)) //Synchronous mode? CTS is affected!
+	{
+		switch (modem.CTSAlwaysActive)
+		{
+		case 0: //Track RTS?
+			result |= ((modem.effectiveline >> 1) & 1); //Track RTS!
+			break;
+		case 1: //Depends on the buffers!
+			result |= ((modem.datamode == 1) ? ((modem.connectionid >= 0) ? (fifobuffer_freesize(modem.outputbuffer[modem.connectionid]) ? 1 : 0) : 1) : 1); //Can we send to the modem?
+			break;
+		case 2: //Always on?
+			result |= 1; //Always on!
+			break;
+		}
+	}
+	else
+	{
+		//Hayes documentation says it doesn't control CTS and RTS functions!
+		result |= ((modem.effectiveline >> 1) & 1); //Always on! &Rn has no effect according to Hayes docs! But do this anyways!
+	}
+	//DSRisConnectionEstablished: 0:1, 1:DTR
+	if ((modem.communicationsmode) && (modem.communicationsmode < 5)) //Special actions taken?
+	{
+		//((modem.outputline & 1) << 1)
+		switch (modem.DSRisConnectionEstablished) //What state?
+		{
+		default:
+		case 0: //S0?
+		case 1: //S1?
+			//0 at command state and idle, handshake(connected) turns on, lowered when hanged up.
+			if ((modem.connected == 1) && (modem.datamode != 2)) //Handshaked?
+			{
+				result |= 2; //Raise the line!
+			}
+			//Otherwise, lower the line!
+			break;
+		case 2: //S2?
+			//0 at command state and idle, prior to handshake turns on, lowered when hanged up.
+			if ((modem.connected == 1) && (modem.datamode)) //Handshaked or pending handshake?
+			{
+				result |= 2; //Raise the line!
+			}
+			//Otherwise, lower the line!
+			break;
+		}
+	}
+	else //Q0/5/6?
+	{
+		switch (modem.DSRisConnectionEstablished) //What state?
+		{
+		default:
+		case 0: //S0?
+			result |= 2; //Always raised!
+			break;
+		case 1: //S1?
+			result |= ((modem.outputline & 1) << 1); //Follow handshake!
+			break;
+		case 2: //S2?
+			result |= ((modem.outputline & 1) << 1); //Follow handshake!
+			break;
+		}
+	}
+	result |= (((modem.ringing&1)&((modem.ringing)>>1))?4:0)| //Currently Ringing?
 			(((modem.connected==1)||(modem.DCDisCarrier==0))?8:0); //Connected or forced on?
+	return result; //Give the resulting line status!
 }
 
 byte modem_readData()
@@ -1931,6 +1996,46 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 			case 0: //EOS?
 				modem_responseResult(MODEMRESULT_ERROR); //Error!
 				return; //Abort command parsing!
+			case 'Q': //Communications mode option?
+				switch (modem.ATcommand[pos++]) //What flow control?
+				{
+				case '\0':
+					--pos; //Handle as a command!
+				case '0':
+					n0 = 0; //
+					goto setAT_EQ;
+				case '1':
+					n0 = 1; //
+					goto setAT_EQ;
+				case '2':
+					n0 = 2; //
+					goto setAT_EQ;
+				case '3':
+					n0 = 3; //
+					goto setAT_EQ;
+				case '4':
+					n0 = 4; //
+					goto setAT_EQ;
+				case '5':
+					n0 = 5; //
+					goto setAT_EQ;
+				case '6':
+					n0 = 6; //
+				setAT_EQ:
+					if (n0 < 7) //Valid?
+					{
+						modem.communicationsmode = n0; //Set communications mode!
+					}
+					else
+					{
+						modem_responseResult(MODEMRESULT_ERROR); //Error!
+						return; //Abort!
+					}
+					break;
+				default:
+					break;
+				}
+				break;
 			case 'R': //Force CTS high option?
 				switch (modem.ATcommand[pos++]) //What flow control?
 				{
@@ -1988,8 +2093,11 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 					goto setAT_S;
 				case '1':
 					n0 = 1; // Data Set Ready to operate according to RS-232 specification(follow DTR)
-					setAT_S:
-					if (n0<2) //Valid?
+					goto setAT_S;
+				case '2':
+					n0 = 2; //
+				setAT_S:
+					if (n0<3) //Valid?
 					{
 						modem.DSRisConnectionEstablished = n0; //Set flow control!
 					}
