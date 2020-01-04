@@ -1495,6 +1495,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 			case 0:
 				--pos; //Assume 0!
 			case '0': //Off?
+				doATE0:
 				n0 = 0;
 				doATE:
 				if (n0<2) //OK?
@@ -1509,6 +1510,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				break;
 			default:
 				--pos; //Retry analyzing!
+				goto doATE0;
 				break;
 			}
 			break;
@@ -1640,6 +1642,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 			case 0: //EOS?
 				--pos; //Assume 0!
 			case '0': //Answer?
+				doATA0:
 				if (modem_connect(NULL)) //Answered?
 				{
 					modem_Answered(); //Answer!
@@ -1652,6 +1655,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				break;
 			default:
 				--pos; //Retry analyzing!
+				goto doATA0;
 				break;
 			}
 			break;
@@ -1661,6 +1665,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 			case 0: //Assume 0!
 				--pos; //Retry analyzing!
 			case '0': //Answer? All on!
+				doATQ0:
 				n0 = 0;
 				goto doATQ;
 			case '1': //All off!
@@ -1681,6 +1686,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				break;
 			default:
 				--pos; //Retry analyzing!
+				goto doATQ0;
 				break;
 			}
 			break;
@@ -1693,6 +1699,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 			case 0:
 				--pos; //Assume 0!
 			case '0': //Off hook?
+				doATH0:
 				n0 = 0;
 				doATH:
 				if (n0<2) //OK?
@@ -1720,6 +1727,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				break;
 			default:
 				--pos; //Retry analyzing!
+				goto doATH0;
 				break;
 			}
 			break;
@@ -1732,6 +1740,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 			case 0:
 				--pos; //Assume 0!
 			case '0':
+				doATB0:
 				n0 = 0;
 				doATB:
 				if (n0<2) //OK?
@@ -1746,6 +1755,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				break;
 			default:
 				--pos; //Retry analyzing!
+				goto doATB0;
 				break;
 			}
 			break;
@@ -1764,6 +1774,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 			case 0:
 				--pos; //Assume 0!
 			case '0':
+				doATL0:
 				n0 = 0;
 				doATL:
 				if (n0<4) //OK?
@@ -1778,6 +1789,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				break;
 			default:
 				--pos; //Retry analyzing!
+				goto doATL0;
 				break;
 			}
 			break;
@@ -1796,6 +1808,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 			case 0:
 				--pos; //Assume 0!
 			case '0':
+				doATM0:
 				n0 = 0;
 				doATM:
 				if (n0<4) //OK?
@@ -1809,6 +1822,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				}
 			default:
 				--pos; //Retry analyzing!
+				goto doATM0;
 				break;
 			}
 			break;
@@ -1821,6 +1835,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 			case 0:
 				--pos; //Assume 0!
 			case '0':
+				doATV0:
 				n0 = 0;
 				doATV:
 				if (n0<2) //OK?
@@ -1835,6 +1850,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				break;
 			default:
 				--pos; //Retry analyzing!
+				goto doATV0;
 				break;
 			}
 			break;
@@ -1856,6 +1872,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 			case 0:
 				--pos; //Assume 0!
 			case '0':
+				doATX0:
 				n0 = 0;
 				doATX:
 				modem.datamode = 0; //Mode not data!
@@ -1871,6 +1888,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				break;
 			default:
 				--pos; //Retry analyzing!
+				goto doATX0;
 				break;
 			}
 			break;
@@ -1883,6 +1901,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 			case 0: //EOS?
 				--pos; //Assume 0!
 			case '0':
+				doATZ0:
 				n0 = 0;
 				doATZ:
 				if (n0<2) //OK and supported by our emulation?
@@ -1905,6 +1924,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				break;
 			default:
 				--pos; //Retry analyzing!
+				goto doATZ0;
 				break;
 			}
 			break;
@@ -1917,6 +1937,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 			case 0:
 				--pos; //Assume 0!
 			case '0':
+				doATI0:
 				n0 = 0;
 				doATI:
 				/*
@@ -1934,6 +1955,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				break;
 			default:
 				--pos; //Retry analyzing!
+				goto doATI0;
 				break;
 			}
 			break;
@@ -1946,6 +1968,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 			case 0:
 				--pos; //Assume 0!
 			case '0':
+				doATO0:
 				n0 = 0;
 				doATO:
 				if (modem.connected & 1) //Connected?
@@ -1960,6 +1983,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				break;
 			default: //Unknown?
 				--pos; //Retry analyzing!
+				goto doATO0;
 				break;
 			}
 			break;
@@ -2003,6 +2027,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				case '\0':
 					--pos; //Handle as a command!
 				case '0':
+					doAT_A_Q0:
 					n0 = 0; //
 					goto setAT_EQ;
 				case '1':
@@ -2034,6 +2059,8 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 					}
 					break;
 				default:
+					--pos; //Retry analyzing!
+					goto doAT_A_Q0;
 					break;
 				}
 				break;
@@ -2041,6 +2068,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				switch (modem.ATcommand[pos++]) //What flow control?
 				{
 				case '0':
+					doAT_A_R0:
 					n0 = 0; //Modem turns on the Clear To Send signal when it detects the Request To Send (RTS) signal from host.
 					goto setAT_R;
 				case '1':
@@ -2060,6 +2088,8 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 					}
 					break;
 				default:
+					--pos; //Retry analyzing!
+					goto doAT_A_R0;
 					break;
 				}
 				break;
@@ -2067,6 +2097,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				switch (modem.ATcommand[pos++]) //What flow control?
 				{
 				case '0':
+					doAT_A_C0:
 					n0 = 0; // Keep Data Carrier Detect (DCD) signal always ON.
 					goto setAT_C;
 				case '1':
@@ -2083,6 +2114,8 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 					}
 					break;
 				default:
+					--pos; //Retry analyzing!
+					goto doAT_A_C0;
 					break;
 				}
 				break;
@@ -2090,6 +2123,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				switch (modem.ATcommand[pos++]) //What flow control?
 				{
 				case '0':
+					doAT_A_S0:
 					n0 = 0; // * Data Set Ready is forced on
 					goto setAT_S;
 				case '1':
@@ -2109,6 +2143,8 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 					}
 					break;
 				default:
+					--pos; //Retry analyzing!
+					goto doAT_A_S0;
 					break;
 				}
 				break;
@@ -2116,6 +2152,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				switch (modem.ATcommand[pos++]) //What flow control?
 				{
 				case '0':
+					doAT_A_D0:
 					n0 = 0; //Ignore DTR line from computer
 					goto setAT_D;
 				case '1':
@@ -2138,6 +2175,8 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 					}
 					break;
 				default:
+					--pos; //Retry analyzing!
+					goto doAT_A_D0;
 					break;
 				}
 				break;
@@ -2163,6 +2202,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				case '8':
 				case '9': //Might be phonebook?
 					n0 = (modem.ATcommand[pos - 1])-(byte)'0'; //Find the number that's to use!
+					doAT_A_Z0:
 					if (n0 >= NUMITEMS(BIOS_Settings.phonebook))
 					{
 						n0 = 10; //Invalid entry!
@@ -2187,7 +2227,10 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 					}
 					break;
 				default:
-					n0 = 10; //Invalid phonebook entry!
+					--pos; //Retry analyzing!
+					n0 = 0; //Zeroth entry!
+					goto doAT_A_Z0;
+
 					handlePhoneNumberEntry: //Handle a phone number dictionary entry!
 					if (n0<NUMITEMS(BIOS_Settings.phonebook)) //Valid?
 					{
@@ -2219,6 +2262,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				switch (modem.ATcommand[pos++]) //What flow control?
 				{
 				case '0':
+					doAT_A_K0:
 					n0 = 0;
 					goto setAT_K;
 				case '1':
@@ -2249,11 +2293,14 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 					break;
 				default:
 					--pos; //Retry analyzing!
+					goto doAT_A_K0;
 					break;
 				}
 				break;
-			default:
+			default: //Invalid extension?
 				--pos; //Retry analyzing!
+				modem_responseResult(MODEMRESULT_ERROR); //Invalid extension!
+				return;
 				break;
 			}
 			break;
@@ -2267,6 +2314,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				switch (modem.ATcommand[pos++]) //What flow control?
 				{
 				case '0':
+					doAT_B_N0:
 					n0 = 0;
 					goto setAT_N;
 				case '1':
@@ -2292,14 +2340,17 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 					}
 					break;
 				default:
+					--pos; //Retry analyzing!
+					goto doAT_B_N0;
 					break;
 				}
 				break;
-			default:
+			default: //Invalid extension?
 				--pos; //Retry analyzing!
-				break;							
+				modem_responseResult(MODEMRESULT_ERROR); //Invalid extension!
+				return;
 			}
-		default: //Unknown?
+		default: //Unknown instruction?
 			modem_responseResult(MODEMRESULT_ERROR); //Just ERROR unknown commands!
 			return; //Abort!
 			break;
