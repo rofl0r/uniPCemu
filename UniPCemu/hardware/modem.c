@@ -1540,6 +1540,34 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				break;
 			}
 			break;
+		case 'N': //Automode negotiation?
+			switch (modem.ATcommand[pos++]) //What type?
+			{
+			case '1':
+				n0 = 1;
+				goto doATN;
+			case 0:
+				--pos; //Assume 0!
+			case '0': //Off?
+			doATN0:
+				n0 = 0;
+			doATN:
+				if (n0 < 2) //OK?
+				{
+					//Not handled!
+				}
+				else
+				{
+					modem_responseResult(MODEMRESULT_ERROR); //Error!
+					return; //Abort!
+				}
+				break;
+			default:
+				--pos; //Retry analyzing!
+				goto doATN0;
+				break;
+			}
+			break;
 		case 'D': //Dial?
 			do_ATD: //Phonebook ATD!
 			switch (modem.ATcommand[pos++]) //What dial command?
@@ -1955,11 +1983,35 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				break;
 			}
 			break;
+		case 'T': //Tone dial?
+		case 'P': //Pulse dial?
+			break; //Ignore!
 		case 'I': //Inquiry, Information, or Interrogation?
 			switch (modem.ATcommand[pos++]) //What type?
 			{
 			case '1':
 				n0 = 1;
+				goto doATI;
+			case '2':
+				n0 = 2;
+				goto doATI;
+			case '3':
+				n0 = 3;
+				goto doATI;
+			case '4':
+				n0 = 4;
+				goto doATI;
+			case '5':
+				n0 = 5;
+				goto doATI;
+			case '6':
+				n0 = 6;
+				goto doATI;
+			case '7':
+				n0 = 7;
+				goto doATI;
+			case '8':
+				n0 = 8;
 				goto doATI;
 			case 0:
 				--pos; //Assume 0!
@@ -1967,18 +2019,25 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				doATI0:
 				n0 = 0;
 				doATI:
-				/*
-				if (n0<2) //OK?
+				if (n0<5) //OK?
 				{
-					modem.communicationstandard = n0; //Set the communication standard!
-					modem_responseResult(MODEMRESULT_OK); //Accept!
+					switch (n0) //What request?
+					{
+					case 3: //Firmware version!
+						modem_responseString("UniPCemu emulated modem V1.00", (1 | 2 | 4)); //Full response!
+					case 4: //Hardware information!
+						modem_responseString("UniPCemu Hayes-compatible modem", (1 | 2 | 4)); //Full response!
+						break;
+					default: //Unknown!
+						//Just respond with a basic OK!
+						break;
+					}
 				}
 				else
 				{
-				*/
 					modem_responseResult(MODEMRESULT_ERROR); //Error: line not defined!
 					return; //Abort!
-				//}
+				}
 				break;
 			default:
 				--pos; //Retry analyzing!
