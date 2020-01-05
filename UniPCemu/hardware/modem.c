@@ -1709,7 +1709,6 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 			case 0: //Assume 0!
 				--pos; //Next command!
 			case '0': //Answer? All on!
-				doATQ0:
 				n0 = 0;
 				goto doATQ;
 			case '1': //All off!
@@ -1807,7 +1806,6 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 			case 0:
 				--pos; //Next command!
 			case '0':
-				doATL0:
 				n0 = 0;
 				doATL:
 				if (n0<4) //OK?
@@ -1920,7 +1918,6 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 			case 0: //EOS?
 				--pos; //Next command!
 			case '0':
-				doATZ0:
 				n0 = 0;
 				doATZ:
 				if (n0<2) //OK and supported by our emulation?
@@ -2011,7 +2008,6 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 			case 0:
 				--pos; //Next command!
 			case '0':
-				doATO0:
 				n0 = 0;
 				doATO:
 				if (modem.connected & 1) //Connected?
@@ -2131,7 +2127,6 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				default: //Unknown values are next commands and assume 0!
 					--pos;
 				case '0':
-					doAT_A_C0:
 					n0 = 0; // Keep Data Carrier Detect (DCD) signal always ON.
 					goto setAT_C;
 				case '1':
@@ -2155,7 +2150,6 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				default: //Unknown values are next commands and assume 0!
 					--pos;
 				case '0':
-					doAT_A_S0:
 					n0 = 0; // * Data Set Ready is forced on
 					goto setAT_S;
 				case '1':
@@ -2182,7 +2176,6 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 				default: //Unknown values are next commands and assume 0!
 					--pos;
 				case '0':
-					doAT_A_D0:
 					n0 = 0; //Ignore DTR line from computer
 					goto setAT_D;
 				case '1':
