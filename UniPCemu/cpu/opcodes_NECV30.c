@@ -193,8 +193,15 @@ OPTINLINE void CPU186_internal_AAS()
 }
 
 //Newer versions of the BCD instructions!
-void CPU186_OP37() {modrm_generateInstructionTEXT("AAA",0,0,PARAM_NONE);/*AAA?*/ CPU186_internal_AAA();/*AAA?*/ }
-void CPU186_OP3F() {modrm_generateInstructionTEXT("AAS",0,0,PARAM_NONE);/*AAS?*/ CPU186_internal_AAS();/*AAS?*/ }
+void CPU186_OP37() {
+	modrm_generateInstructionTEXT("AAA",0,0,PARAM_NONE);/*AAA?*/
+	CPU186_internal_AAA();/*AAA?*/
+}
+void CPU186_OP3F()
+{
+	modrm_generateInstructionTEXT("AAS",0,0,PARAM_NONE);/*AAS?*/
+	CPU186_internal_AAS();/*AAS?*/
+}
 
 /*
 
@@ -580,7 +587,27 @@ void CPU186_OP6F()
 }
 
 word temp8Edata;
-void CPU186_OP8E() { modrm_debugger16(&params, MODRM_src0, MODRM_src1); modrm_generateInstructionTEXT("MOV", 16, 0, PARAM_MODRM_01); if (params.info[MODRM_src0].reg16 == CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_CS]) /* CS is forbidden from this processor onwards! */ { unkOP_186(); return; } if (unlikely(CPU[activeCPU].modrmstep == 0)) { if (modrm_check16(&params, MODRM_src1, 1|0x40)) return; if (modrm_check16(&params, MODRM_src1, 1|0xA0)) return; } if (CPU8086_instructionstepreadmodrmw(0, &temp8Edata, MODRM_src1)) return; CPU186_internal_MOV16(modrm_addr16(&params, MODRM_src0, 0), temp8Edata); if ((params.info[MODRM_src0].reg16 == &REG_SS) && (params.info[MODRM_src0].isreg == 1)) { CPU[activeCPU].allowInterrupts = 0; /* Inhabit all interrupts up to the next instruction */ } }
+void CPU186_OP8E()
+{
+	modrm_debugger16(&params, MODRM_src0, MODRM_src1);
+	modrm_generateInstructionTEXT("MOV", 16, 0, PARAM_MODRM_01);
+	if (params.info[MODRM_src0].reg16 == CPU[activeCPU].SEGMENT_REGISTERS[CPU_SEGMENT_CS]) /* CS is forbidden from this processor onwards! */
+	{
+		unkOP_186();
+		return;
+	}
+	if (unlikely(CPU[activeCPU].modrmstep == 0))
+	{
+		if (modrm_check16(&params, MODRM_src1, 1|0x40)) return;
+		if (modrm_check16(&params, MODRM_src1, 1|0xA0)) return;
+	}
+	if (CPU8086_instructionstepreadmodrmw(0, &temp8Edata, MODRM_src1)) return;
+	CPU186_internal_MOV16(modrm_addr16(&params, MODRM_src0, 0), temp8Edata);
+	if ((params.info[MODRM_src0].reg16 == &REG_SS) && (params.info[MODRM_src0].isreg == 1))
+	{
+		CPU[activeCPU].allowInterrupts = 0; /* Inhabit all interrupts up to the next instruction */
+	}
+}
 
 void CPU186_OPC0()
 {
