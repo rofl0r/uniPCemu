@@ -729,38 +729,780 @@ extern byte didJump; //Did we jump?
 
 //New: 16-bit and 32-bit variants of OP70-7F as a 0F opcode!
 //16-bits variant
-void CPU80386_OP0F80_16() { INLINEREGISTER sword rel16;/*JO rel16: (OF=1)*/ rel16 = imm16(); modrm_generateInstructionTEXT("JO", 0, ((REG_EIP + rel16)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */ if (FLAG_OF) { CPU_JMPrel((int_32)rel16,0); /* JUMP to destination? */ CPU_flushPIQ(-1); /*We're jumping to another address*/ didJump = 1; if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 16; CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/ } /* Branch taken */ } else { if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 4; /* Branch not taken */ } } }
-void CPU80386_OP0F81_16() { INLINEREGISTER sword rel16;/*JNO rel16 : (OF=0)*/ rel16 = imm16(); modrm_generateInstructionTEXT("JNO", 0, ((REG_EIP + rel16)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */ if (!FLAG_OF) { CPU_JMPrel((int_32)rel16,0); /* JUMP to destination? */ CPU_flushPIQ(-1); /*We're jumping to another address*/ didJump = 1; if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 16; CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/ } /* Branch taken */ } else { if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 4; /* Branch not taken */ } } }
-void CPU80386_OP0F82_16() { INLINEREGISTER sword rel16;/*JC rel16: (CF=1)*/ rel16 = imm16(); modrm_generateInstructionTEXT("JC", 0, ((REG_EIP + rel16)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */ if (FLAG_CF) { CPU_JMPrel((int_32)rel16,0); /* JUMP to destination? */ CPU_flushPIQ(-1); /*We're jumping to another address*/ didJump = 1; if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 16; CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/ } /* Branch taken */ } else { if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 4; /* Branch not taken */ } } }
-void CPU80386_OP0F83_16() { INLINEREGISTER sword rel16;/*JNC rel16 : (CF=0)*/ rel16 = imm16(); modrm_generateInstructionTEXT("JNC", 0, ((REG_EIP + rel16)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */ if (!FLAG_CF) { CPU_JMPrel((int_32)rel16,0); /* JUMP to destination? */ CPU_flushPIQ(-1); /*We're jumping to another address*/ didJump = 1; if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 16; CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/ } /* Branch taken */ } else { if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 4; /* Branch not taken */ } } }
-void CPU80386_OP0F84_16() { INLINEREGISTER sword rel16;/*JZ rel16: (ZF=1)*/ rel16 = imm16(); modrm_generateInstructionTEXT("JZ", 0, ((REG_EIP + rel16)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */ if (FLAG_ZF) { CPU_JMPrel((int_32)rel16,0); /* JUMP to destination? */ CPU_flushPIQ(-1); /*We're jumping to another address*/  didJump = 1; if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 16; CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/ } /* Branch taken */ } else { if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 4; /* Branch not taken */ } } }
-void CPU80386_OP0F85_16() { INLINEREGISTER sword rel16;/*JNZ rel16 : (ZF=0)*/ rel16 = imm16(); modrm_generateInstructionTEXT("JNZ", 0, ((REG_EIP + rel16)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */ if (!FLAG_ZF) { CPU_JMPrel((int_32)rel16,0); /* JUMP to destination? */ CPU_flushPIQ(-1); /*We're jumping to another address*/  didJump = 1; if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 16; CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/ } /* Branch taken */ } else { if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 4; /* Branch not taken */ } } }
-void CPU80386_OP0F86_16() { INLINEREGISTER sword rel16;/*JNA rel16 : (CF=1|ZF=1)*/ rel16 = imm16(); modrm_generateInstructionTEXT("JBE", 0, ((REG_EIP + rel16)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */ if (FLAG_CF || FLAG_ZF) { CPU_JMPrel((int_32)rel16,0); /* JUMP to destination? */ CPU_flushPIQ(-1); /*We're jumping to another address*/  didJump = 1; if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 16; CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/ } /* Branch taken */ } else { if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 4; /* Branch not taken */ } } }
-void CPU80386_OP0F87_16() { INLINEREGISTER sword rel16;/*JA rel16: (CF=0&ZF=0)*/ rel16 = imm16(); modrm_generateInstructionTEXT("JNBE", 0, ((REG_EIP + rel16)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */ if (!(FLAG_CF | FLAG_ZF)) { CPU_JMPrel((int_32)rel16,0); /* JUMP to destination? */ CPU_flushPIQ(-1); /*We're jumping to another address*/  didJump = 1; if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 16; CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/ } /* Branch taken */ } else { if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 4; /* Branch not taken */ } } }
-void CPU80386_OP0F88_16() { INLINEREGISTER sword rel16;/*JS rel16: (SF=1)*/ rel16 = imm16(); modrm_generateInstructionTEXT("JS", 0, ((REG_EIP + rel16)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */ if (FLAG_SF) { CPU_JMPrel((int_32)rel16,0); /* JUMP to destination? */ CPU_flushPIQ(-1); /*We're jumping to another address*/  didJump = 1; if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 16; CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/ } /* Branch taken */ } else { if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 4; /* Branch not taken */ } } }
-void CPU80386_OP0F89_16() { INLINEREGISTER sword rel16;/*JNS rel16 : (SF=0)*/ rel16 = imm16(); modrm_generateInstructionTEXT("JNS", 0, ((REG_EIP + rel16)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */ if (!FLAG_SF) { CPU_JMPrel((int_32)rel16,0); /* JUMP to destination? */ CPU_flushPIQ(-1); /*We're jumping to another address*/ didJump = 1; if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 16; CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/ } /* Branch taken */ } else { if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 4; /* Branch not taken */ } } }
-void CPU80386_OP0F8A_16() { INLINEREGISTER sword rel16;/*JP rel16 : (PF=1)*/ rel16 = imm16(); modrm_generateInstructionTEXT("JP", 0, ((REG_EIP + rel16)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */ if (FLAG_PF) { CPU_JMPrel((int_32)rel16,0); /* JUMP to destination? */ CPU_flushPIQ(-1); /*We're jumping to another address*/  didJump = 1; if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 16; CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/ } /* Branch taken */ } else { if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 4; /* Branch not taken */ } } }
-void CPU80386_OP0F8B_16() { INLINEREGISTER sword rel16;/*JNP rel16 : (PF=0)*/ rel16 = imm16(); modrm_generateInstructionTEXT("JNP", 0, ((REG_EIP + rel16)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */ if (!FLAG_PF) { CPU_JMPrel((int_32)rel16,0); /* JUMP to destination? */ CPU_flushPIQ(-1); /*We're jumping to another address*/  didJump = 1; if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 16; CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/ } /* Branch taken */ } else { if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 4; /* Branch not taken */ } } }
-void CPU80386_OP0F8C_16() { INLINEREGISTER sword rel16;/*JL rel16: (SF!=OF)*/ rel16 = imm16(); modrm_generateInstructionTEXT("JL", 0, ((REG_EIP + rel16)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */ if (FLAG_SF != FLAG_OF) { CPU_JMPrel((int_32)rel16,0); /* JUMP to destination? */ CPU_flushPIQ(-1); /*We're jumping to another address*/  didJump = 1; if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 16; CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/ } /* Branch taken */ } else { if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 4; /* Branch not taken */ } } }
-void CPU80386_OP0F8D_16() { INLINEREGISTER sword rel16;/*JGE rel16 : (SF=OF)*/ rel16 = imm16(); modrm_generateInstructionTEXT("JGE", 0, ((REG_EIP + rel16)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */ if (FLAG_SF == FLAG_OF) { CPU_JMPrel((int_32)rel16,0); /* JUMP to destination? */ CPU_flushPIQ(-1); /*We're jumping to another address*/  didJump = 1; if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 16; CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/ } /* Branch taken */ } else { if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 4; /* Branch not taken */ } } }
-void CPU80386_OP0F8E_16() { INLINEREGISTER sword rel16;/*JLE rel16 : (ZF|(SF!=OF))*/ rel16 = imm16(); modrm_generateInstructionTEXT("JLE", 0, ((REG_EIP + rel16)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */ if ((FLAG_SF != FLAG_OF) || FLAG_ZF) { CPU_JMPrel((int_32)rel16,0); /* JUMP to destination? */ CPU_flushPIQ(-1); /*We're jumping to another address*/  didJump = 1; if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 16; CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/ } /* Branch taken */ } else { if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 4; /* Branch not taken */ } } }
-void CPU80386_OP0F8F_16() { INLINEREGISTER sword rel16;/*JG rel16: ((ZF=0)&&(SF=OF))*/ rel16 = imm16(); modrm_generateInstructionTEXT("JG", 0, ((REG_EIP + rel16)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */ if ((!FLAG_ZF) && (FLAG_SF == FLAG_OF)) { CPU_JMPrel((int_32)rel16,0); /* JUMP to destination? */ CPU_flushPIQ(-1); /*We're jumping to another address*/  didJump = 1; if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 16; CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/ } /* Branch taken */ } else { if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 4; /* Branch not taken */ } } }
+void CPU80386_OP0F80_16()
+{
+	INLINEREGISTER sword rel16;/*JO rel16: (OF=1)*/
+	rel16 = imm16();
+	modrm_generateInstructionTEXT("JO", 0, ((REG_EIP + rel16)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */
+	if (FLAG_OF)
+	{
+		CPU_JMPrel((int_32)rel16,0); /* JUMP to destination? */
+		CPU_flushPIQ(-1); /*We're jumping to another address*/
+		didJump = 1;
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 16;
+			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
+		} /* Branch taken */
+	}
+	else
+	{
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 4; /* Branch not taken */
+		}
+	}
+}
+void CPU80386_OP0F81_16()
+{
+	INLINEREGISTER sword rel16;/*JNO rel16 : (OF=0)*/
+	rel16 = imm16();
+	modrm_generateInstructionTEXT("JNO", 0, ((REG_EIP + rel16)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */
+	if (!FLAG_OF)
+	{
+		CPU_JMPrel((int_32)rel16,0); /* JUMP to destination? */
+		CPU_flushPIQ(-1); /*We're jumping to another address*/
+		didJump = 1;
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 16;
+			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
+		}
+		/* Branch taken */
+	}
+	else
+	{
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 4; /* Branch not taken */
+		}
+	}
+}
+void CPU80386_OP0F82_16()
+{
+	INLINEREGISTER sword rel16;/*JC rel16: (CF=1)*/
+	rel16 = imm16();
+	modrm_generateInstructionTEXT("JC", 0, ((REG_EIP + rel16)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */
+	if (FLAG_CF)
+	{
+		CPU_JMPrel((int_32)rel16,0); /* JUMP to destination? */
+		CPU_flushPIQ(-1); /*We're jumping to another address*/
+		didJump = 1;
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 16;
+			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
+		}
+		/* Branch taken */
+	}
+	else
+	{
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 4; /* Branch not taken */
+		}
+	}
+}
+void CPU80386_OP0F83_16()
+{
+	INLINEREGISTER sword rel16;/*JNC rel16 : (CF=0)*/
+	rel16 = imm16();
+	modrm_generateInstructionTEXT("JNC", 0, ((REG_EIP + rel16)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */
+	if (!FLAG_CF)
+	{
+		CPU_JMPrel((int_32)rel16,0); /* JUMP to destination? */
+		CPU_flushPIQ(-1); /*We're jumping to another address*/
+		didJump = 1;
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 16;
+			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
+		}
+		/* Branch taken */
+	}
+	else
+	{
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 4; /* Branch not taken */
+		}
+	}
+}
+void CPU80386_OP0F84_16()
+{
+	INLINEREGISTER sword rel16;/*JZ rel16: (ZF=1)*/
+	rel16 = imm16();
+	modrm_generateInstructionTEXT("JZ", 0, ((REG_EIP + rel16)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */
+	if (FLAG_ZF)
+	{
+		CPU_JMPrel((int_32)rel16,0); /* JUMP to destination? */
+		CPU_flushPIQ(-1); /*We're jumping to another address*/
+		didJump = 1;
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 16;
+			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
+		}
+		/* Branch taken */
+	}
+	else
+	{
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 4; /* Branch not taken */
+		}
+	}
+}
+void CPU80386_OP0F85_16()
+{
+	INLINEREGISTER sword rel16;/*JNZ rel16 : (ZF=0)*/
+	rel16 = imm16();
+	modrm_generateInstructionTEXT("JNZ", 0, ((REG_EIP + rel16)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */
+	if (!FLAG_ZF)
+	{
+		CPU_JMPrel((int_32)rel16,0); /* JUMP to destination? */
+		CPU_flushPIQ(-1); /*We're jumping to another address*/
+		didJump = 1;
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 16;
+			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
+		}
+		/* Branch taken */
+	}
+	else
+	{
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 4; /* Branch not taken */
+		}
+	}
+}
+void CPU80386_OP0F86_16()
+{
+	INLINEREGISTER sword rel16;/*JNA rel16 : (CF=1|ZF=1)*/
+	rel16 = imm16();
+	modrm_generateInstructionTEXT("JBE", 0, ((REG_EIP + rel16)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */
+	if (FLAG_CF || FLAG_ZF)
+	{
+		CPU_JMPrel((int_32)rel16,0); /* JUMP to destination? */
+		CPU_flushPIQ(-1); /*We're jumping to another address*/
+		didJump = 1;
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 16;
+			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
+		}
+		/* Branch taken */
+	}
+	else
+	{
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 4; /* Branch not taken */
+		}
+	}
+}
+void CPU80386_OP0F87_16()
+{
+	INLINEREGISTER sword rel16;/*JA rel16: (CF=0&ZF=0)*/
+	rel16 = imm16();
+	modrm_generateInstructionTEXT("JNBE", 0, ((REG_EIP + rel16)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */
+	if (!(FLAG_CF | FLAG_ZF))
+	{
+		CPU_JMPrel((int_32)rel16,0); /* JUMP to destination? */
+		CPU_flushPIQ(-1); /*We're jumping to another address*/
+		didJump = 1;
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 16;
+			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
+		}
+		/* Branch taken */
+	}
+	else
+	{
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 4; /* Branch not taken */
+		}
+	}
+}
+void CPU80386_OP0F88_16()
+{
+	INLINEREGISTER sword rel16;/*JS rel16: (SF=1)*/
+	rel16 = imm16();
+	modrm_generateInstructionTEXT("JS", 0, ((REG_EIP + rel16)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */
+	if (FLAG_SF)
+	{
+		CPU_JMPrel((int_32)rel16,0); /* JUMP to destination? */
+		CPU_flushPIQ(-1); /*We're jumping to another address*/
+		didJump = 1;
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 16;
+			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
+		}
+		/* Branch taken */
+	}
+	else
+	{
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 4; /* Branch not taken */
+		}
+	}
+}
+void CPU80386_OP0F89_16()
+{
+	INLINEREGISTER sword rel16;/*JNS rel16 : (SF=0)*/
+	rel16 = imm16();
+	modrm_generateInstructionTEXT("JNS", 0, ((REG_EIP + rel16)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */
+	if (!FLAG_SF)
+	{
+		CPU_JMPrel((int_32)rel16,0); /* JUMP to destination? */
+		CPU_flushPIQ(-1); /*We're jumping to another address*/
+		didJump = 1;
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 16;
+			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
+		}
+		/* Branch taken */
+	}
+	else
+	{
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 4; /* Branch not taken */
+		}
+	}
+}
+void CPU80386_OP0F8A_16()
+{
+	INLINEREGISTER sword rel16;/*JP rel16 : (PF=1)*/
+	rel16 = imm16();
+	modrm_generateInstructionTEXT("JP", 0, ((REG_EIP + rel16)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */
+	if (FLAG_PF)
+	{
+		CPU_JMPrel((int_32)rel16,0); /* JUMP to destination? */
+		CPU_flushPIQ(-1); /*We're jumping to another address*/
+		didJump = 1;
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 16;
+			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
+		}
+		/* Branch taken */
+	}
+	else
+	{
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 4; /* Branch not taken */
+		}
+	}
+}
+void CPU80386_OP0F8B_16()
+{
+	INLINEREGISTER sword rel16;/*JNP rel16 : (PF=0)*/
+	rel16 = imm16();
+	modrm_generateInstructionTEXT("JNP", 0, ((REG_EIP + rel16)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */
+	if (!FLAG_PF)
+	{
+		CPU_JMPrel((int_32)rel16,0); /* JUMP to destination? */
+		CPU_flushPIQ(-1); /*We're jumping to another address*/
+		didJump = 1;
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 16;
+			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
+		}
+		/* Branch taken */
+	}
+	else
+	{
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 4; /* Branch not taken */
+		}
+	}
+}
+void CPU80386_OP0F8C_16()
+{
+	INLINEREGISTER sword rel16;/*JL rel16: (SF!=OF)*/
+	rel16 = imm16();
+	modrm_generateInstructionTEXT("JL", 0, ((REG_EIP + rel16)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */
+	if (FLAG_SF != FLAG_OF)
+	{
+		CPU_JMPrel((int_32)rel16,0); /* JUMP to destination? */
+		CPU_flushPIQ(-1); /*We're jumping to another address*/
+		didJump = 1;
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{ CPU[activeCPU].cycles_OP += 16;
+		CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
+		}
+		/* Branch taken */
+	}
+	else
+	{
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 4; /* Branch not taken */
+		}
+	}
+}
+void CPU80386_OP0F8D_16()
+{
+	INLINEREGISTER sword rel16;/*JGE rel16 : (SF=OF)*/
+	rel16 = imm16();
+	modrm_generateInstructionTEXT("JGE", 0, ((REG_EIP + rel16)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */
+	if (FLAG_SF == FLAG_OF)
+	{
+		CPU_JMPrel((int_32)rel16,0); /* JUMP to destination? */
+		CPU_flushPIQ(-1); /*We're jumping to another address*/
+		didJump = 1;
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 16;
+			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
+		}
+		/* Branch taken */
+	}
+	else
+	{
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 4; /* Branch not taken */
+		}
+	}
+}
+void CPU80386_OP0F8E_16()
+{
+	INLINEREGISTER sword rel16;/*JLE rel16 : (ZF|(SF!=OF))*/
+	rel16 = imm16();
+	modrm_generateInstructionTEXT("JLE", 0, ((REG_EIP + rel16)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */
+	if ((FLAG_SF != FLAG_OF) || FLAG_ZF)
+	{
+		CPU_JMPrel((int_32)rel16,0); /* JUMP to destination? */
+		CPU_flushPIQ(-1); /*We're jumping to another address*/
+		didJump = 1;
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 16;
+			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
+		}
+		/* Branch taken */
+	}
+	else
+	{
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 4; /* Branch not taken */
+		}
+	}
+}
+void CPU80386_OP0F8F_16()
+{
+	INLINEREGISTER sword rel16;/*JG rel16: ((ZF=0)&&(SF=OF))*/
+	rel16 = imm16();
+	modrm_generateInstructionTEXT("JG", 0, ((REG_EIP + rel16)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */
+	if ((!FLAG_ZF) && (FLAG_SF == FLAG_OF))
+	{
+		CPU_JMPrel((int_32)rel16,0); /* JUMP to destination? */
+		CPU_flushPIQ(-1); /*We're jumping to another address*/
+		didJump = 1;
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 16;
+			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
+		} /* Branch taken */
+	}
+	else
+	{
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 4; /* Branch not taken */
+		}
+	}
+}
 //32-bits variant
-void CPU80386_OP0F80_32() { INLINEREGISTER int_32 rel32;/*JO rel32: (OF=1)*/ rel32 = imm32s(); modrm_generateInstructionTEXT("JO", 0, ((REG_EIP + rel32)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */ if (FLAG_OF) { CPU_JMPrel((int_32)rel32,0); /* JUMP to destination? */ CPU_flushPIQ(-1); /*We're jumping to another address*/ didJump = 1; if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 16; CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/ } /* Branch taken */ } else { if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 4; /* Branch not taken */ } } }
-void CPU80386_OP0F81_32() { INLINEREGISTER int_32 rel32;/*JNO rel32 : (OF=0)*/ rel32 = imm32s(); modrm_generateInstructionTEXT("JNO", 0, ((REG_EIP + rel32)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */ if (!FLAG_OF) { CPU_JMPrel((int_32)rel32,0); /* JUMP to destination? */ CPU_flushPIQ(-1); /*We're jumping to another address*/ didJump = 1; if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 16; CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/ } /* Branch taken */ } else { if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 4; /* Branch not taken */ } } }
-void CPU80386_OP0F82_32() { INLINEREGISTER int_32 rel32;/*JC rel32: (CF=1)*/ rel32 = imm32s(); modrm_generateInstructionTEXT("JC", 0, ((REG_EIP + rel32)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */ if (FLAG_CF) { CPU_JMPrel((int_32)rel32,0); /* JUMP to destination? */ CPU_flushPIQ(-1); /*We're jumping to another address*/ didJump = 1; if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 16; CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/ } /* Branch taken */ } else { if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 4; /* Branch not taken */ } } }
-void CPU80386_OP0F83_32() { INLINEREGISTER int_32 rel32;/*JNC rel32 : (CF=0)*/ rel32 = imm32s(); modrm_generateInstructionTEXT("JNC", 0, ((REG_EIP + rel32)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */ if (!FLAG_CF) { CPU_JMPrel((int_32)rel32,0); /* JUMP to destination? */ CPU_flushPIQ(-1); /*We're jumping to another address*/ didJump = 1; if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 16; CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/ } /* Branch taken */ } else { if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 4; /* Branch not taken */ } } }
-void CPU80386_OP0F84_32() { INLINEREGISTER int_32 rel32;/*JZ rel32: (ZF=1)*/ rel32 = imm32s(); modrm_generateInstructionTEXT("JZ", 0, ((REG_EIP + rel32)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */ if (FLAG_ZF) { CPU_JMPrel((int_32)rel32,0); /* JUMP to destination? */ CPU_flushPIQ(-1); /*We're jumping to another address*/  didJump = 1; if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 16; CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/ } /* Branch taken */ } else { if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 4; /* Branch not taken */ } } }
-void CPU80386_OP0F85_32() { INLINEREGISTER int_32 rel32;/*JNZ rel32 : (ZF=0)*/ rel32 = imm32s(); modrm_generateInstructionTEXT("JNZ", 0, ((REG_EIP + rel32)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */ if (!FLAG_ZF) { CPU_JMPrel((int_32)rel32,0); /* JUMP to destination? */ CPU_flushPIQ(-1); /*We're jumping to another address*/  didJump = 1; if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 16; CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/ } /* Branch taken */ } else { if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 4; /* Branch not taken */ } } }
-void CPU80386_OP0F86_32() { INLINEREGISTER int_32 rel32;/*JNA rel32 : (CF=1|ZF=1)*/ rel32 = imm32s(); modrm_generateInstructionTEXT("JBE", 0, ((REG_EIP + rel32)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */ if (FLAG_CF || FLAG_ZF) { CPU_JMPrel((int_32)rel32,0); /* JUMP to destination? */ CPU_flushPIQ(-1); /*We're jumping to another address*/  didJump = 1; if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 16; CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/ } /* Branch taken */ } else { if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 4; /* Branch not taken */ } } }
-void CPU80386_OP0F87_32() { INLINEREGISTER int_32 rel32;/*JA rel32: (CF=0&ZF=0)*/ rel32 = imm32s(); modrm_generateInstructionTEXT("JNBE", 0, ((REG_EIP + rel32)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */ if (!(FLAG_CF | FLAG_ZF)) { CPU_JMPrel((int_32)rel32,0); /* JUMP to destination? */ CPU_flushPIQ(-1); /*We're jumping to another address*/  didJump = 1; if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 16; CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/ } /* Branch taken */ } else { if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 4; /* Branch not taken */ } } }
-void CPU80386_OP0F88_32() { INLINEREGISTER int_32 rel32;/*JS rel32: (SF=1)*/ rel32 = imm32s(); modrm_generateInstructionTEXT("JS", 0, ((REG_EIP + rel32)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */ if (FLAG_SF) { CPU_JMPrel((int_32)rel32,0); /* JUMP to destination? */ CPU_flushPIQ(-1); /*We're jumping to another address*/  didJump = 1; if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 16; CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/ } /* Branch taken */ } else { if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 4; /* Branch not taken */ } } }
-void CPU80386_OP0F89_32() { INLINEREGISTER int_32 rel32;/*JNS rel32 : (SF=0)*/ rel32 = imm32s(); modrm_generateInstructionTEXT("JNS", 0, ((REG_EIP + rel32)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */ if (!FLAG_SF) { CPU_JMPrel((int_32)rel32,0); /* JUMP to destination? */ CPU_flushPIQ(-1); /*We're jumping to another address*/ didJump = 1; if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 16; CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/ } /* Branch taken */ } else { if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 4; /* Branch not taken */ } } }
-void CPU80386_OP0F8A_32() { INLINEREGISTER int_32 rel32;/*JP rel32 : (PF=1)*/ rel32 = imm32s(); modrm_generateInstructionTEXT("JP", 0, ((REG_EIP + rel32)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */ if (FLAG_PF) { CPU_JMPrel((int_32)rel32,0); /* JUMP to destination? */ CPU_flushPIQ(-1); /*We're jumping to another address*/  didJump = 1; if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 16; CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/ } /* Branch taken */ } else { if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 4; /* Branch not taken */ } } }
-void CPU80386_OP0F8B_32() { INLINEREGISTER int_32 rel32;/*JNP rel32 : (PF=0)*/ rel32 = imm32s(); modrm_generateInstructionTEXT("JNP", 0, ((REG_EIP + rel32)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */ if (!FLAG_PF) { CPU_JMPrel((int_32)rel32,0); /* JUMP to destination? */ CPU_flushPIQ(-1); /*We're jumping to another address*/  didJump = 1; if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 16; CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/ } /* Branch taken */ } else { if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 4; /* Branch not taken */ } } }
-void CPU80386_OP0F8C_32() { INLINEREGISTER int_32 rel32;/*JL rel32: (SF!=OF)*/ rel32 = imm32s(); modrm_generateInstructionTEXT("JL", 0, ((REG_EIP + rel32)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */ if (FLAG_SF != FLAG_OF) { CPU_JMPrel((int_32)rel32,0); /* JUMP to destination? */ CPU_flushPIQ(-1); /*We're jumping to another address*/  didJump = 1; if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 16; CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/ } /* Branch taken */ } else { if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 4; /* Branch not taken */ } } }
-void CPU80386_OP0F8D_32() { INLINEREGISTER int_32 rel32;/*JGE rel32 : (SF=OF)*/ rel32 = imm32s(); modrm_generateInstructionTEXT("JGE", 0, ((REG_EIP + rel32)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */ if (FLAG_SF == FLAG_OF) { CPU_JMPrel((int_32)rel32,0); /* JUMP to destination? */ CPU_flushPIQ(-1); /*We're jumping to another address*/  didJump = 1; if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 16; CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/ } /* Branch taken */ } else { if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 4; /* Branch not taken */ } } }
-void CPU80386_OP0F8E_32() { INLINEREGISTER int_32 rel32;/*JLE rel32 : (ZF|(SF!=OF))*/ rel32 = imm32s(); modrm_generateInstructionTEXT("JLE", 0, ((REG_EIP + rel32)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */ if ((FLAG_SF != FLAG_OF) || FLAG_ZF) { CPU_JMPrel((int_32)rel32,0); /* JUMP to destination? */ CPU_flushPIQ(-1); /*We're jumping to another address*/  didJump = 1; if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 16; CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/ } /* Branch taken */ } else { if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 4; /* Branch not taken */ } } }
+void CPU80386_OP0F80_32()
+{
+	INLINEREGISTER int_32 rel32;/*JO rel32: (OF=1)*/
+	rel32 = imm32s();
+	modrm_generateInstructionTEXT("JO", 0, ((REG_EIP + rel32)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */
+	if (FLAG_OF)
+	{
+		CPU_JMPrel((int_32)rel32,0); /* JUMP to destination? */
+		CPU_flushPIQ(-1);
+		/*We're jumping to another address*/
+		didJump = 1;
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 16;
+			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
+		}
+		/* Branch taken */
+	}
+	else
+	{
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 4; /* Branch not taken */
+		}
+	}
+}
+void CPU80386_OP0F81_32()
+{
+	INLINEREGISTER int_32 rel32;/*JNO rel32 : (OF=0)*/
+	rel32 = imm32s();
+	modrm_generateInstructionTEXT("JNO", 0, ((REG_EIP + rel32)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */
+	if (!FLAG_OF)
+	{
+		CPU_JMPrel((int_32)rel32,0); /* JUMP to destination? */
+		CPU_flushPIQ(-1); /*We're jumping to another address*/
+		didJump = 1;
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 16;
+			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
+		}
+		/* Branch taken */
+	}
+	else
+	{
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 4; /* Branch not taken */
+		}
+	}
+}
+void CPU80386_OP0F82_32()
+{
+	INLINEREGISTER int_32 rel32;/*JC rel32: (CF=1)*/
+	rel32 = imm32s();
+	modrm_generateInstructionTEXT("JC", 0, ((REG_EIP + rel32)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */
+	if (FLAG_CF)
+	{
+		CPU_JMPrel((int_32)rel32,0); /* JUMP to destination? */
+		CPU_flushPIQ(-1); /*We're jumping to another address*/
+		didJump = 1;
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 16;
+			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
+		}
+		/* Branch taken */
+	}
+	else
+	{
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 4; /* Branch not taken */
+		}
+	}
+}
+void CPU80386_OP0F83_32()
+{
+	INLINEREGISTER int_32 rel32;/*JNC rel32 : (CF=0)*/
+	rel32 = imm32s();
+	modrm_generateInstructionTEXT("JNC", 0, ((REG_EIP + rel32)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */
+	if (!FLAG_CF)
+	{
+		CPU_JMPrel((int_32)rel32,0); /* JUMP to destination? */
+		CPU_flushPIQ(-1); /*We're jumping to another address*/
+		didJump = 1;
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 16;
+			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
+		}
+		/* Branch taken */
+	}
+	else
+	{
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 4; /* Branch not taken */
+		}
+	}
+}
+void CPU80386_OP0F84_32()
+{
+	INLINEREGISTER int_32 rel32;/*JZ rel32: (ZF=1)*/
+	rel32 = imm32s();
+	modrm_generateInstructionTEXT("JZ", 0, ((REG_EIP + rel32)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */
+	if (FLAG_ZF)
+	{
+		CPU_JMPrel((int_32)rel32,0); /* JUMP to destination? */
+		CPU_flushPIQ(-1); /*We're jumping to another address*/
+		didJump = 1;
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 16;
+			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
+		}
+		/* Branch taken */
+	}
+	else
+	{
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 4; /* Branch not taken */
+		}
+	}
+}
+void CPU80386_OP0F85_32()
+{
+	INLINEREGISTER int_32 rel32;/*JNZ rel32 : (ZF=0)*/
+	rel32 = imm32s();
+	modrm_generateInstructionTEXT("JNZ", 0, ((REG_EIP + rel32)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */
+	if (!FLAG_ZF)
+	{
+		CPU_JMPrel((int_32)rel32,0); /* JUMP to destination? */
+		CPU_flushPIQ(-1); /*We're jumping to another address*/
+		didJump = 1;
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 16;
+			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
+		}
+		/* Branch taken */
+	}
+	else
+	{
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 4; /* Branch not taken */
+		}
+	}
+}
+void CPU80386_OP0F86_32()
+{
+	INLINEREGISTER int_32 rel32;/*JNA rel32 : (CF=1|ZF=1)*/
+	rel32 = imm32s();
+	modrm_generateInstructionTEXT("JBE", 0, ((REG_EIP + rel32)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */
+	if (FLAG_CF || FLAG_ZF)
+	{
+		CPU_JMPrel((int_32)rel32,0); /* JUMP to destination? */
+		CPU_flushPIQ(-1); /*We're jumping to another address*/
+		didJump = 1;
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 16;
+			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
+		}
+		/* Branch taken */
+	}
+	else
+	{
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 4; /* Branch not taken */
+		}
+	}
+}
+void CPU80386_OP0F87_32()
+{
+	INLINEREGISTER int_32 rel32;/*JA rel32: (CF=0&ZF=0)*/
+	rel32 = imm32s();
+	modrm_generateInstructionTEXT("JNBE", 0, ((REG_EIP + rel32)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */
+	if (!(FLAG_CF | FLAG_ZF))
+	{
+		CPU_JMPrel((int_32)rel32,0); /* JUMP to destination? */
+		CPU_flushPIQ(-1); /*We're jumping to another address*/
+		didJump = 1;
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 16;
+			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
+		}
+		/* Branch taken */
+	}
+	else
+	{
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 4; /* Branch not taken */
+		}
+	}
+}
+void CPU80386_OP0F88_32()
+{
+	INLINEREGISTER int_32 rel32;/*JS rel32: (SF=1)*/
+	rel32 = imm32s();
+	modrm_generateInstructionTEXT("JS", 0, ((REG_EIP + rel32)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */
+	if (FLAG_SF)
+	{
+		CPU_JMPrel((int_32)rel32,0); /* JUMP to destination? */
+		CPU_flushPIQ(-1); /*We're jumping to another address*/
+		didJump = 1;
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 16;
+			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
+		}
+		/* Branch taken */
+	}
+	else
+	{
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 4; /* Branch not taken */
+		}
+	}
+}
+void CPU80386_OP0F89_32()
+{
+	INLINEREGISTER int_32 rel32;/*JNS rel32 : (SF=0)*/
+	rel32 = imm32s();
+	modrm_generateInstructionTEXT("JNS", 0, ((REG_EIP + rel32)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */
+	if (!FLAG_SF)
+	{
+		CPU_JMPrel((int_32)rel32,0); /* JUMP to destination? */
+		CPU_flushPIQ(-1); /*We're jumping to another address*/
+		didJump = 1;
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 16;
+			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
+		}
+		/* Branch taken */
+	}
+	else
+	{
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 4; /* Branch not taken */
+		}
+	}
+}
+void CPU80386_OP0F8A_32()
+{
+	INLINEREGISTER int_32 rel32;/*JP rel32 : (PF=1)*/
+	rel32 = imm32s();
+	modrm_generateInstructionTEXT("JP", 0, ((REG_EIP + rel32)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */
+	if (FLAG_PF)
+	{
+		CPU_JMPrel((int_32)rel32,0); /* JUMP to destination? */
+		CPU_flushPIQ(-1); /*We're jumping to another address*/
+		didJump = 1;
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 16;
+			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
+		}
+		/* Branch taken */
+	}
+	else
+	{
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 4; /* Branch not taken */
+		}
+	}
+}
+void CPU80386_OP0F8B_32()
+{
+	INLINEREGISTER int_32 rel32;/*JNP rel32 : (PF=0)*/
+	rel32 = imm32s();
+	modrm_generateInstructionTEXT("JNP", 0, ((REG_EIP + rel32)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */
+	if (!FLAG_PF)
+	{
+		CPU_JMPrel((int_32)rel32,0); /* JUMP to destination? */
+		CPU_flushPIQ(-1); /*We're jumping to another address*/
+		didJump = 1;
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 16;
+			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
+		}
+		/* Branch taken */
+	}
+	else
+	{
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 4; /* Branch not taken */
+		}
+	}
+}
+void CPU80386_OP0F8C_32()
+{
+	INLINEREGISTER int_32 rel32;/*JL rel32: (SF!=OF)*/
+	rel32 = imm32s();
+	modrm_generateInstructionTEXT("JL", 0, ((REG_EIP + rel32)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */
+	if (FLAG_SF != FLAG_OF)
+	{
+		CPU_JMPrel((int_32)rel32,0); /* JUMP to destination? */
+		CPU_flushPIQ(-1); /*We're jumping to another address*/
+		didJump = 1;
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 16;
+			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
+		}
+		/* Branch taken */
+	}
+	else
+	{
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 4; /* Branch not taken */
+		}
+	}
+}
+void CPU80386_OP0F8D_32()
+{
+	INLINEREGISTER int_32 rel32;/*JGE rel32 : (SF=OF)*/
+	rel32 = imm32s();
+	modrm_generateInstructionTEXT("JGE", 0, ((REG_EIP + rel32)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */
+	if (FLAG_SF == FLAG_OF)
+	{
+		CPU_JMPrel((int_32)rel32,0); /* JUMP to destination? */
+		CPU_flushPIQ(-1); /*We're jumping to another address*/
+		didJump = 1;
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 16;
+			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
+		}
+		/* Branch taken */
+	}
+	else
+	{
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 4; /* Branch not taken */
+		}
+	}
+}
+void CPU80386_OP0F8E_32()
+{
+	INLINEREGISTER int_32 rel32;/*JLE rel32 : (ZF|(SF!=OF))*/
+	rel32 = imm32s();
+	modrm_generateInstructionTEXT("JLE", 0, ((REG_EIP + rel32)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */
+	if ((FLAG_SF != FLAG_OF) || FLAG_ZF)
+	{
+		CPU_JMPrel((int_32)rel32,0); /* JUMP to destination? */
+		CPU_flushPIQ(-1); /*We're jumping to another address*/
+		didJump = 1;
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 16;
+			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
+		}
+		/* Branch taken */
+	}
+	else
+	{
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 4; /* Branch not taken */
+		}
+	}
+}
 void CPU80386_OP0F8F_32() { INLINEREGISTER int_32 rel32;/*JG rel32: ((ZF=0)&&(SF=OF))*/ rel32 = imm32s(); modrm_generateInstructionTEXT("JG", 0, ((REG_EIP + rel32)&CPU_EIPmask(0)), CPU_EIPSize(0)); /* JUMP to destination? */ if ((!FLAG_ZF) && (FLAG_SF == FLAG_OF)) { CPU_JMPrel((int_32)rel32,0); /* JUMP to destination? */ CPU_flushPIQ(-1); /*We're jumping to another address*/  didJump = 1; if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 16; CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/ } /* Branch taken */ } else { if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 4; /* Branch not taken */ } } }
 
 //MOV [C/D]Rn instructions
@@ -770,9 +1512,45 @@ OPTINLINE byte allowCRDRaccess()
 	return ((getCPL()==0) || (getcpumode()==CPU_MODE_REAL)); //Do we allow access?
 }
 
-void CPU80386_OP0F_MOVCRn_modrmmodrm() {modrm_generateInstructionTEXT("MOV",32,0,PARAM_MODRM_01); if (unlikely(allowCRDRaccess()==0)) {THROWDESCGP(0,0,0); return;} uint_32 val=modrm_read32(&params,MODRM_src1); if (((val&(CR0_PE|CR0_PG))==CR0_PG) && (MODRM_src0==0) && (modrm_addr32(&params,MODRM_src0,0)==&CPU[activeCPU].registers->CR0)) {THROWDESCGP(0,0,0); return;/* Enabling Paging whilst disabling protection is forbidden! */} modrm_write32(&params,MODRM_src0,val); CPU_apply286cycles(); /* Apply cycles */ } //MOV /r CRn/r32,r32/CRn
-void CPU80386_OP0F_MOVDRn_modrmmodrm() {modrm_generateInstructionTEXT("MOV",32,0,PARAM_MODRM_01); if (unlikely(allowCRDRaccess()==0)) {THROWDESCGP(0,0,0); return;} modrm_write32(&params,MODRM_src0,modrm_read32(&params,MODRM_src1)); CPU_apply286cycles(); /* Apply cycles */ } //MOV /r DRn/r32,r32/DRn
-void CPU80386_OP0F_MOVTRn_modrmmodrm() {modrm_generateInstructionTEXT("MOV",32,0,PARAM_MODRM_01); if (unlikely(allowCRDRaccess()==0)) {THROWDESCGP(0,0,0); return;} modrm_write32(&params,MODRM_src0,modrm_read32(&params,MODRM_src1)); CPU_apply286cycles(); /* Apply cycles */ } //MOV /r TRn/r32,r32/TRn
+void CPU80386_OP0F_MOVCRn_modrmmodrm()
+{
+	modrm_generateInstructionTEXT("MOV",32,0,PARAM_MODRM_01);
+	if (unlikely(allowCRDRaccess()==0))
+	{
+		THROWDESCGP(0,0,0);
+		return;
+	}
+	uint_32 val=modrm_read32(&params,MODRM_src1);
+	if (((val&(CR0_PE|CR0_PG))==CR0_PG) && (MODRM_src0==0) && (modrm_addr32(&params,MODRM_src0,0)==&CPU[activeCPU].registers->CR0))
+	{
+		THROWDESCGP(0,0,0);
+		return;/* Enabling Paging whilst disabling protection is forbidden! */
+	}
+	modrm_write32(&params,MODRM_src0,val);
+	CPU_apply286cycles(); /* Apply cycles */
+} //MOV /r CRn/r32,r32/CRn
+void CPU80386_OP0F_MOVDRn_modrmmodrm()
+{
+	modrm_generateInstructionTEXT("MOV",32,0,PARAM_MODRM_01);
+	if (unlikely(allowCRDRaccess()==0))
+	{
+		THROWDESCGP(0,0,0);
+		return;
+	}
+	modrm_write32(&params,MODRM_src0,modrm_read32(&params,MODRM_src1));
+	CPU_apply286cycles(); /* Apply cycles */
+} //MOV /r DRn/r32,r32/DRn
+void CPU80386_OP0F_MOVTRn_modrmmodrm()
+{
+	modrm_generateInstructionTEXT("MOV",32,0,PARAM_MODRM_01);
+	if (unlikely(allowCRDRaccess()==0))
+	{
+		THROWDESCGP(0,0,0);
+		return;
+	}
+	modrm_write32(&params,MODRM_src0,modrm_read32(&params,MODRM_src1));
+	CPU_apply286cycles(); /* Apply cycles */
+} //MOV /r TRn/r32,r32/TRn
 
 //SETCC instructions
 
@@ -798,44 +1576,204 @@ G: (!FLAG_ZF && (FLAG_SF==FLAG_OF))
 
 */
 
-void CPU80386_OP0F90() {modrm_generateInstructionTEXT("SETO",8,0,PARAM_MODRM_0); if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return; if (CPU8086_instructionstepwritemodrmb(0,FLAG_OF,MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETO r/m8
-void CPU80386_OP0F91() {modrm_generateInstructionTEXT("SETNO",8,0,PARAM_MODRM_0); if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return; if (CPU8086_instructionstepwritemodrmb(0,(FLAG_OF^1),MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETNO r/m8
-void CPU80386_OP0F92() {modrm_generateInstructionTEXT("SETC",8,0,PARAM_MODRM_0); if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return; if (CPU8086_instructionstepwritemodrmb(0,FLAG_CF,MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETC r/m8
-void CPU80386_OP0F93() {modrm_generateInstructionTEXT("SETNC",8,0,PARAM_MODRM_0); if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return; if (CPU8086_instructionstepwritemodrmb(0,(FLAG_CF^1),MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETAE r/m8
-void CPU80386_OP0F94() {modrm_generateInstructionTEXT("SETZ",8,0,PARAM_MODRM_0); if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return; if (CPU8086_instructionstepwritemodrmb(0,FLAG_ZF,MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETE r/m8
-void CPU80386_OP0F95() {modrm_generateInstructionTEXT("SETNZ",8,0,PARAM_MODRM_0); if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return; if (CPU8086_instructionstepwritemodrmb(0,(FLAG_ZF^1),MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETNE r/m8
-void CPU80386_OP0F96() {modrm_generateInstructionTEXT("SETBE",8,0,PARAM_MODRM_0); if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return; if (CPU8086_instructionstepwritemodrmb(0,(FLAG_CF|FLAG_ZF),MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETNA r/m8
-void CPU80386_OP0F97() {modrm_generateInstructionTEXT("SETNBE",8,0,PARAM_MODRM_0); if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return; if (CPU8086_instructionstepwritemodrmb(0,((FLAG_CF|FLAG_ZF)^1),MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETA r/m8
-void CPU80386_OP0F98() {modrm_generateInstructionTEXT("SETS",8,0,PARAM_MODRM_0); if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return; if (CPU8086_instructionstepwritemodrmb(0,FLAG_SF,MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETS r/m8
-void CPU80386_OP0F99() {modrm_generateInstructionTEXT("SETNS",8,0,PARAM_MODRM_0); if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return; if (CPU8086_instructionstepwritemodrmb(0,(FLAG_SF^1),MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETNS r/m8
-void CPU80386_OP0F9A() {modrm_generateInstructionTEXT("SETP",8,0,PARAM_MODRM_0); if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return; if (CPU8086_instructionstepwritemodrmb(0,FLAG_PF,MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETP r/m8
-void CPU80386_OP0F9B() {modrm_generateInstructionTEXT("SETNP",8,0,PARAM_MODRM_0); if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return; if (CPU8086_instructionstepwritemodrmb(0,(FLAG_PF^1),MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETNP r/m8
-void CPU80386_OP0F9C() {modrm_generateInstructionTEXT("SETL",8,0,PARAM_MODRM_0); if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return; if (CPU8086_instructionstepwritemodrmb(0,(FLAG_SF^FLAG_OF),MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETL r/m8
-void CPU80386_OP0F9D() {modrm_generateInstructionTEXT("SETGE",8,0,PARAM_MODRM_0); if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return; if (CPU8086_instructionstepwritemodrmb(0,((FLAG_SF^FLAG_OF)^1),MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETGE r/m8
-void CPU80386_OP0F9E() {modrm_generateInstructionTEXT("SETLE",8,0,PARAM_MODRM_0); if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return; if (CPU8086_instructionstepwritemodrmb(0,((FLAG_SF^FLAG_OF)|FLAG_ZF),MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETLE r/m8
-void CPU80386_OP0F9F() {modrm_generateInstructionTEXT("SETG",8,0,PARAM_MODRM_0); if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return; if (CPU8086_instructionstepwritemodrmb(0,(((FLAG_SF^FLAG_OF)^1)&(FLAG_ZF^1)),MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //SETG r/m8
+void CPU80386_OP0F90()
+{
+	modrm_generateInstructionTEXT("SETO",8,0,PARAM_MODRM_0);
+	if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return;
+	if (CPU8086_instructionstepwritemodrmb(0,FLAG_OF,MODRM_src0)) return;
+	CPU_apply286cycles(); /* Apply cycles */
+} //SETO r/m8
+void CPU80386_OP0F91()
+{
+	modrm_generateInstructionTEXT("SETNO",8,0,PARAM_MODRM_0);
+	if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return;
+	if (CPU8086_instructionstepwritemodrmb(0,(FLAG_OF^1),MODRM_src0)) return;
+	CPU_apply286cycles(); /* Apply cycles */
+} //SETNO r/m8
+void CPU80386_OP0F92()
+{
+	modrm_generateInstructionTEXT("SETC",8,0,PARAM_MODRM_0);
+	if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return;
+	if (CPU8086_instructionstepwritemodrmb(0,FLAG_CF,MODRM_src0)) return;
+	CPU_apply286cycles(); /* Apply cycles */
+} //SETC r/m8
+void CPU80386_OP0F93()
+{
+	modrm_generateInstructionTEXT("SETNC",8,0,PARAM_MODRM_0);
+	if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return;
+	if (CPU8086_instructionstepwritemodrmb(0,(FLAG_CF^1),MODRM_src0)) return;
+	CPU_apply286cycles(); /* Apply cycles */
+} //SETAE r/m8
+void CPU80386_OP0F94()
+{
+	modrm_generateInstructionTEXT("SETZ",8,0,PARAM_MODRM_0);
+	if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return;
+	if (CPU8086_instructionstepwritemodrmb(0,FLAG_ZF,MODRM_src0)) return;
+	CPU_apply286cycles(); /* Apply cycles */
+} //SETE r/m8
+void CPU80386_OP0F95()
+{
+	modrm_generateInstructionTEXT("SETNZ",8,0,PARAM_MODRM_0);
+	if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return;
+	if (CPU8086_instructionstepwritemodrmb(0,(FLAG_ZF^1),MODRM_src0)) return;
+	CPU_apply286cycles(); /* Apply cycles */
+} //SETNE r/m8
+void CPU80386_OP0F96()
+{
+	modrm_generateInstructionTEXT("SETBE",8,0,PARAM_MODRM_0);
+	if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return;
+	if (CPU8086_instructionstepwritemodrmb(0,(FLAG_CF|FLAG_ZF),MODRM_src0)) return;
+	CPU_apply286cycles(); /* Apply cycles */
+} //SETNA r/m8
+void CPU80386_OP0F97()
+{
+	modrm_generateInstructionTEXT("SETNBE",8,0,PARAM_MODRM_0);
+	if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return;
+	if (CPU8086_instructionstepwritemodrmb(0,((FLAG_CF|FLAG_ZF)^1),MODRM_src0)) return;
+	CPU_apply286cycles(); /* Apply cycles */
+} //SETA r/m8
+void CPU80386_OP0F98()
+{
+	modrm_generateInstructionTEXT("SETS",8,0,PARAM_MODRM_0);
+	if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return;
+	if (CPU8086_instructionstepwritemodrmb(0,FLAG_SF,MODRM_src0)) return;
+	CPU_apply286cycles(); /* Apply cycles */
+} //SETS r/m8
+void CPU80386_OP0F99()
+{
+	modrm_generateInstructionTEXT("SETNS",8,0,PARAM_MODRM_0);
+	if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return;
+	if (CPU8086_instructionstepwritemodrmb(0,(FLAG_SF^1),MODRM_src0)) return;
+	CPU_apply286cycles(); /* Apply cycles */
+} //SETNS r/m8
+void CPU80386_OP0F9A()
+{
+	modrm_generateInstructionTEXT("SETP",8,0,PARAM_MODRM_0);
+	if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return;
+	if (CPU8086_instructionstepwritemodrmb(0,FLAG_PF,MODRM_src0)) return;
+	CPU_apply286cycles(); /* Apply cycles */
+} //SETP r/m8
+void CPU80386_OP0F9B()
+{
+	modrm_generateInstructionTEXT("SETNP",8,0,PARAM_MODRM_0);
+	if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return;
+	if (CPU8086_instructionstepwritemodrmb(0,(FLAG_PF^1),MODRM_src0)) return;
+	CPU_apply286cycles(); /* Apply cycles */
+} //SETNP r/m8
+void CPU80386_OP0F9C()
+{
+	modrm_generateInstructionTEXT("SETL",8,0,PARAM_MODRM_0);
+	if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return;
+	if (CPU8086_instructionstepwritemodrmb(0,(FLAG_SF^FLAG_OF),MODRM_src0)) return;
+	CPU_apply286cycles(); /* Apply cycles */
+} //SETL r/m8
+void CPU80386_OP0F9D()
+{
+	modrm_generateInstructionTEXT("SETGE",8,0,PARAM_MODRM_0);
+	if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return;
+	if (CPU8086_instructionstepwritemodrmb(0,((FLAG_SF^FLAG_OF)^1),MODRM_src0)) return;
+	CPU_apply286cycles(); /* Apply cycles */
+} //SETGE r/m8
+void CPU80386_OP0F9E()
+{
+	modrm_generateInstructionTEXT("SETLE",8,0,PARAM_MODRM_0);
+	if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return;
+	if (CPU8086_instructionstepwritemodrmb(0,((FLAG_SF^FLAG_OF)|FLAG_ZF),MODRM_src0)) return;
+	CPU_apply286cycles(); /* Apply cycles */
+} //SETLE r/m8
+void CPU80386_OP0F9F() {
+	modrm_generateInstructionTEXT("SETG",8,0,PARAM_MODRM_0);
+	if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src0,0)) return;
+	if (CPU8086_instructionstepwritemodrmb(0,(((FLAG_SF^FLAG_OF)^1)&(FLAG_ZF^1)),MODRM_src0)) return;
+	CPU_apply286cycles(); /* Apply cycles */
+} //SETG r/m8
 
 extern byte instructionbufferb, instructionbufferb2; //For 8-bit read storage!
 extern word instructionbufferw, instructionbufferw2; //For 16-bit read storage!
 extern uint_32 instructionbufferd, instructionbufferd2; //For 32-bit read storage!
 
 //Push/pop FS/GS instructions.
-void CPU80386_OP0FA0() {modrm_generateInstructionTEXT("PUSH FS",0,0,PARAM_NONE);/*PUSH FS*/ if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(1,1,CPU_Operand_size[activeCPU]|2)) return; ++CPU[activeCPU].stackchecked; } if (CPU8086_PUSHw(0,&REG_FS,CPU_Operand_size[activeCPU]|2)) return;/*PUSH FS*/CPU_apply286cycles(); /* Apply cycles */ } //PUSH FS
-void CPU80386_OP0FA1() {modrm_generateInstructionTEXT("POP FS",0,0,PARAM_NONE);/*POP FS*/ if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(1,0,CPU_Operand_size[activeCPU]|2)) return; ++CPU[activeCPU].stackchecked; } if (CPU8086_POPw(0,&instructionbufferw,CPU_Operand_size[activeCPU]|2)) return; if (segmentWritten(CPU_SEGMENT_FS,instructionbufferw,0)) return; CPU_apply286cycles(); /* Apply cycles */ } //POP FS
+void CPU80386_OP0FA0() {
+	modrm_generateInstructionTEXT("PUSH FS",0,0,PARAM_NONE);/*PUSH FS*/
+	if (unlikely(CPU[activeCPU].stackchecked==0))
+	{
+		if (checkStackAccess(1,1,CPU_Operand_size[activeCPU]|2)) return;
+		++CPU[activeCPU].stackchecked;
+	}
+	if (CPU8086_PUSHw(0,&REG_FS,CPU_Operand_size[activeCPU]|2)) return;/*PUSH FS*/
+	CPU_apply286cycles(); /* Apply cycles */
+} //PUSH FS
+void CPU80386_OP0FA1()
+{
+	modrm_generateInstructionTEXT("POP FS",0,0,PARAM_NONE);/*POP FS*/
+	if (unlikely(CPU[activeCPU].stackchecked==0))
+	{
+		if (checkStackAccess(1,0,CPU_Operand_size[activeCPU]|2)) return;
+		++CPU[activeCPU].stackchecked;
+	}
+	if (CPU8086_POPw(0,&instructionbufferw,CPU_Operand_size[activeCPU]|2)) return;
+	if (segmentWritten(CPU_SEGMENT_FS,instructionbufferw,0)) return;
+	CPU_apply286cycles(); /* Apply cycles */
+} //POP FS
 
-void CPU80386_OP0FA8() {modrm_generateInstructionTEXT("PUSH GS",0,0,PARAM_NONE);/*PUSH GS*/ if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(1,1,CPU_Operand_size[activeCPU]|2)) return; ++CPU[activeCPU].stackchecked; } if (CPU8086_PUSHw(0,&REG_GS,CPU_Operand_size[activeCPU]|2)) return;/*PUSH FS*/ CPU_apply286cycles(); /* Apply cycles */ } //PUSH GS
-void CPU80386_OP0FA9() {modrm_generateInstructionTEXT("POP GS",0,0,PARAM_NONE);/*POP GS*/ if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(1,0,CPU_Operand_size[activeCPU]|2)) return; ++CPU[activeCPU].stackchecked; } if (CPU8086_POPw(0,&instructionbufferw,CPU_Operand_size[activeCPU]|2)) return ; if (segmentWritten(CPU_SEGMENT_GS,instructionbufferw,0)) return; CPU_apply286cycles(); /* Apply cycles */ } //POP GS
+void CPU80386_OP0FA8()
+{
+	modrm_generateInstructionTEXT("PUSH GS",0,0,PARAM_NONE);/*PUSH GS*/
+	if (unlikely(CPU[activeCPU].stackchecked==0))
+	{
+		if (checkStackAccess(1,1,CPU_Operand_size[activeCPU]|2)) return;
+		++CPU[activeCPU].stackchecked;
+	}
+	if (CPU8086_PUSHw(0,&REG_GS,CPU_Operand_size[activeCPU]|2)) return;/*PUSH FS*/
+	CPU_apply286cycles(); /* Apply cycles */
+} //PUSH GS
+void CPU80386_OP0FA9()
+{
+	modrm_generateInstructionTEXT("POP GS",0,0,PARAM_NONE);/*POP GS*/
+	if (unlikely(CPU[activeCPU].stackchecked==0))
+	{
+		if (checkStackAccess(1,0,CPU_Operand_size[activeCPU]|2)) return;
+		++CPU[activeCPU].stackchecked;
+	}
+	if (CPU8086_POPw(0,&instructionbufferw,CPU_Operand_size[activeCPU]|2)) return;
+	if (segmentWritten(CPU_SEGMENT_GS,instructionbufferw,0)) return;
+	CPU_apply286cycles(); /* Apply cycles */
+} //POP GS
 
 //L*S instructions
 
-void CPU80386_OP0FB2_16() /*LSS modr/m*/ {modrm_generateInstructionTEXT("LSS",16,0,PARAM_MODRM_01); CPU8086_internal_LXS(CPU_SEGMENT_SS); /*Load new SS!*/ } //LSS /r r16,m16:16
-void CPU80386_OP0FB2_32() /*LSS modr/m*/ {modrm_generateInstructionTEXT("LSS",32,0,PARAM_MODRM_01); CPU80386_internal_LXS(CPU_SEGMENT_SS); /*Load new SS!*/ } //LSS /r r32,m16:32
+void CPU80386_OP0FB2_16() /*LSS modr/m*/
+{
+	modrm_generateInstructionTEXT("LSS",16,0,PARAM_MODRM_01);
+	CPU8086_internal_LXS(CPU_SEGMENT_SS); /*Load new SS!*/
+} //LSS /r r16,m16:16
+void CPU80386_OP0FB2_32() /*LSS modr/m*/
+{
+	modrm_generateInstructionTEXT("LSS",32,0,PARAM_MODRM_01);
+	CPU80386_internal_LXS(CPU_SEGMENT_SS); /*Load new SS!*/
+} //LSS /r r32,m16:32
 
-void CPU80386_OP0FB4_16() /*LFS modr/m*/ {modrm_generateInstructionTEXT("LFS",16,0,PARAM_MODRM_01); CPU8086_internal_LXS(CPU_SEGMENT_FS); /*Load new FS!*/ } //LFS /r r16,m16:16
-void CPU80386_OP0FB4_32() /*LFS modr/m*/ {modrm_generateInstructionTEXT("LFS",32,0,PARAM_MODRM_01); CPU80386_internal_LXS(CPU_SEGMENT_FS); /*Load new FS!*/ } //LFS /r r32,m16:32
+void CPU80386_OP0FB4_16() /*LFS modr/m*/
+{
+	modrm_generateInstructionTEXT("LFS",16,0,PARAM_MODRM_01);
+	CPU8086_internal_LXS(CPU_SEGMENT_FS); /*Load new FS!*/
+} //LFS /r r16,m16:16
+void CPU80386_OP0FB4_32() /*LFS modr/m*/
+{
+	modrm_generateInstructionTEXT("LFS",32,0,PARAM_MODRM_01);
+	CPU80386_internal_LXS(CPU_SEGMENT_FS); /*Load new FS!*/
+} //LFS /r r32,m16:32
 
-void CPU80386_OP0FB5_16() /*LGS modr/m*/ {modrm_generateInstructionTEXT("LGS",16,0,PARAM_MODRM_01); CPU8086_internal_LXS(CPU_SEGMENT_GS); /*Load new GS!*/ } //LGS /r r16,m16:16
-void CPU80386_OP0FB5_32() /*LGS modr/m*/ {modrm_generateInstructionTEXT("LGS",32,0,PARAM_MODRM_01); CPU80386_internal_LXS(CPU_SEGMENT_GS); /*Load new GS!*/ } //LGS /r r32,m16:32
+void CPU80386_OP0FB5_16() /*LGS modr/m*/
+{
+	modrm_generateInstructionTEXT("LGS",16,0,PARAM_MODRM_01);
+	CPU8086_internal_LXS(CPU_SEGMENT_GS); /*Load new GS!*/
+} //LGS /r r16,m16:16
+void CPU80386_OP0FB5_32() /*LGS modr/m*/
+{
+	modrm_generateInstructionTEXT("LGS",32,0,PARAM_MODRM_01);
+	CPU80386_internal_LXS(CPU_SEGMENT_GS); /*Load new GS!*/
+} //LGS /r r32,m16:32
 
 //Special debugger support for the following MOV[S/Z]X instructions.
 
@@ -899,17 +1837,121 @@ OPTINLINE void modrm_debugger32_16(char *instruction)
 
 //MOVS/ZX instructions.
 
-void CPU80386_OP0FB6_16() {modrm_debugger16_8("MOVZX"); if (unlikely(CPU[activeCPU].modrmstep==0)) { if (modrm_check8(&params,MODRM_src1,1|0x40)) return; if (modrm_check16(&params,MODRM_src0,0|0x40)) return; if (modrm_check8(&params,MODRM_src1,1|0xA0)) return; if (modrm_check16(&params,MODRM_src0,0|0xA0)) return; } if (CPU8086_instructionstepreadmodrmb(0,&instructionbufferb,MODRM_src1)) return; if (CPU8086_instructionstepwritemodrmw(2,(word)instructionbufferb,MODRM_src0,0)) return; CPU_apply286cycles(); /* Apply cycles */ } //MOVZX /r r16,r/m8
-void CPU80386_OP0FB6_32() {modrm_debugger32_8("MOVZX"); if (unlikely(CPU[activeCPU].modrmstep==0)) { if (modrm_check8(&params,MODRM_src1,1|0x40)) return; if (modrm_check32(&params,MODRM_src0,0|0x40)) return; if (modrm_check8(&params,MODRM_src1,1|0xA0)) return; if (modrm_check32(&params,MODRM_src0,0|0xA0)) return; } if (CPU8086_instructionstepreadmodrmb(0,&instructionbufferb,MODRM_src1)) return; if (CPU80386_instructionstepwritemodrmdw(2,(uint_32)instructionbufferb,MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //MOVZX /r r32,r/m8
+void CPU80386_OP0FB6_16()
+{
+	modrm_debugger16_8("MOVZX");
+	if (unlikely(CPU[activeCPU].modrmstep==0))
+	{
+		if (modrm_check8(&params,MODRM_src1,1|0x40)) return;
+		if (modrm_check16(&params,MODRM_src0,0|0x40)) return;
+		if (modrm_check8(&params,MODRM_src1,1|0xA0)) return;
+		if (modrm_check16(&params,MODRM_src0,0|0xA0)) return;
+	}
+	if (CPU8086_instructionstepreadmodrmb(0,&instructionbufferb,MODRM_src1)) return;
+	if (CPU8086_instructionstepwritemodrmw(2,(word)instructionbufferb,MODRM_src0,0)) return;
+	CPU_apply286cycles(); /* Apply cycles */
+} //MOVZX /r r16,r/m8
+void CPU80386_OP0FB6_32()
+{
+	modrm_debugger32_8("MOVZX");
+	if (unlikely(CPU[activeCPU].modrmstep==0))
+	{
+		if (modrm_check8(&params,MODRM_src1,1|0x40)) return;
+		if (modrm_check32(&params,MODRM_src0,0|0x40)) return;
+		if (modrm_check8(&params,MODRM_src1,1|0xA0)) return;
+		if (modrm_check32(&params,MODRM_src0,0|0xA0)) return;
+	}
+	if (CPU8086_instructionstepreadmodrmb(0,&instructionbufferb,MODRM_src1)) return;
+	if (CPU80386_instructionstepwritemodrmdw(2,(uint_32)instructionbufferb,MODRM_src0)) return;
+	CPU_apply286cycles(); /* Apply cycles */
+} //MOVZX /r r32,r/m8
 
-void CPU80386_OP0FB7_16() {modrm_debugger16_16("MOVZX"); if (unlikely(CPU[activeCPU].modrmstep==0)) { if (modrm_check16(&params,MODRM_src1,1|0x40)) return; if (modrm_check16(&params,MODRM_src0,0|0x40)) return; if (modrm_check16(&params,MODRM_src1,1|0xA0)) return; if (modrm_check16(&params,MODRM_src0,0|0xA0)) return; } if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return; if (CPU8086_instructionstepwritemodrmw(2,(word)instructionbufferw,MODRM_src0,0)) return; CPU_apply286cycles(); /* Apply cycles */ } //MOVZX /r r16,r/m16
-void CPU80386_OP0FB7_32() {modrm_debugger32_16("MOVZX"); if (unlikely(CPU[activeCPU].modrmstep==0)) { if (modrm_check16(&params,MODRM_src1,1|0x40)) return; if (modrm_check32(&params,MODRM_src0,0|0x40)) return; if (modrm_check16(&params,MODRM_src1,1|0xA0)) return; if (modrm_check32(&params,MODRM_src0,0|0xA0)) return; } if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return; if (CPU80386_instructionstepwritemodrmdw(2,(uint_32)instructionbufferw,MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //MOVZX /r r32,r/m16
+void CPU80386_OP0FB7_16()
+{
+	modrm_debugger16_16("MOVZX");
+	if (unlikely(CPU[activeCPU].modrmstep==0))
+	{
+		if (modrm_check16(&params,MODRM_src1,1|0x40)) return;
+		if (modrm_check16(&params,MODRM_src0,0|0x40)) return;
+		if (modrm_check16(&params,MODRM_src1,1|0xA0)) return;
+		if (modrm_check16(&params,MODRM_src0,0|0xA0)) return;
+	}
+	if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return;
+	if (CPU8086_instructionstepwritemodrmw(2,(word)instructionbufferw,MODRM_src0,0)) return;
+	CPU_apply286cycles(); /* Apply cycles */
+} //MOVZX /r r16,r/m16
+void CPU80386_OP0FB7_32()
+{
+	modrm_debugger32_16("MOVZX");
+	if (unlikely(CPU[activeCPU].modrmstep==0))
+	{
+		if (modrm_check16(&params,MODRM_src1,1|0x40)) return;
+		if (modrm_check32(&params,MODRM_src0,0|0x40)) return;
+		if (modrm_check16(&params,MODRM_src1,1|0xA0)) return;
+		if (modrm_check32(&params,MODRM_src0,0|0xA0)) return;
+	}
+	if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return;
+	if (CPU80386_instructionstepwritemodrmdw(2,(uint_32)instructionbufferw,MODRM_src0)) return;
+	CPU_apply286cycles(); /* Apply cycles */
+} //MOVZX /r r32,r/m16
 
-void CPU80386_OP0FBE_16() {modrm_debugger16_8("MOVSX"); if (unlikely(CPU[activeCPU].modrmstep==0)) { if (modrm_check8(&params,MODRM_src1,1|0x40)) return; if (modrm_check16(&params,MODRM_src0,0|0x40)) return; if (modrm_check8(&params,MODRM_src1,1|0xA0)) return; if (modrm_check16(&params,MODRM_src0,0|0xA0)) return; } if (CPU8086_instructionstepreadmodrmb(0,&instructionbufferb,MODRM_src1)) return; if (CPU8086_instructionstepwritemodrmw(2,signed2unsigned16((sword)unsigned2signed8(instructionbufferb)),MODRM_src0,0)) return; CPU_apply286cycles(); /* Apply cycles */ } //MOVSX /r r16,r/m8
-void CPU80386_OP0FBE_32() {modrm_debugger32_8("MOVSX"); if (unlikely(CPU[activeCPU].modrmstep==0)) { if (modrm_check8(&params,MODRM_src1,1|0x40)) return; if (modrm_check32(&params,MODRM_src0,0|0x40)) return; if (modrm_check8(&params,MODRM_src1,1|0xA0)) return; if (modrm_check32(&params,MODRM_src0,0|0xA0)) return; } if (CPU8086_instructionstepreadmodrmb(0,&instructionbufferb,MODRM_src1)) return; if (CPU80386_instructionstepwritemodrmdw(2,signed2unsigned32((int_32)unsigned2signed8(instructionbufferb)),MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //MOVSX /r r32,r/m8
+void CPU80386_OP0FBE_16()
+{
+	modrm_debugger16_8("MOVSX");
+	if (unlikely(CPU[activeCPU].modrmstep==0))
+	{
+		if (modrm_check8(&params,MODRM_src1,1|0x40)) return;
+		if (modrm_check16(&params,MODRM_src0,0|0x40)) return;
+		if (modrm_check8(&params,MODRM_src1,1|0xA0)) return;
+		if (modrm_check16(&params,MODRM_src0,0|0xA0)) return;
+	}
+	if (CPU8086_instructionstepreadmodrmb(0,&instructionbufferb,MODRM_src1)) return;
+	if (CPU8086_instructionstepwritemodrmw(2,signed2unsigned16((sword)unsigned2signed8(instructionbufferb)),MODRM_src0,0)) return;
+	CPU_apply286cycles(); /* Apply cycles */
+} //MOVSX /r r16,r/m8
+void CPU80386_OP0FBE_32()
+{
+	modrm_debugger32_8("MOVSX");
+	if (unlikely(CPU[activeCPU].modrmstep==0))
+	{
+		if (modrm_check8(&params,MODRM_src1,1|0x40)) return;
+		if (modrm_check32(&params,MODRM_src0,0|0x40)) return;
+		if (modrm_check8(&params,MODRM_src1,1|0xA0)) return;
+		if (modrm_check32(&params,MODRM_src0,0|0xA0)) return;
+	}
+	if (CPU8086_instructionstepreadmodrmb(0,&instructionbufferb,MODRM_src1)) return;
+	if (CPU80386_instructionstepwritemodrmdw(2,signed2unsigned32((int_32)unsigned2signed8(instructionbufferb)),MODRM_src0)) return;
+	CPU_apply286cycles(); /* Apply cycles */
+} //MOVSX /r r32,r/m8
 
-void CPU80386_OP0FBF_16() {modrm_debugger16_16("MOVSX"); if (unlikely(CPU[activeCPU].modrmstep==0)) { if (modrm_check16(&params,MODRM_src1,1|0x40)) return; if (modrm_check16(&params,MODRM_src0,0|0x40)) return; if (modrm_check16(&params,MODRM_src1,1|0xA0)) return; if (modrm_check16(&params,MODRM_src0,0|0xA0)) return; } if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return; if (CPU8086_instructionstepwritemodrmw(2,signed2unsigned16((sword)unsigned2signed16(instructionbufferw)),MODRM_src0,0)) return; CPU_apply286cycles(); /* Apply cycles */ } //MOVSX /r r16,r/m16
-void CPU80386_OP0FBF_32() {modrm_debugger32_16("MOVSX"); if (unlikely(CPU[activeCPU].modrmstep==0)) { if (modrm_check16(&params,MODRM_src1,1|0x40)) return; if (modrm_check32(&params,MODRM_src0,0|0x40)) return; if (modrm_check16(&params,MODRM_src1,1|0xA0)) return; if (modrm_check32(&params,MODRM_src0,0|0xA0)) return; } if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return; if (CPU80386_instructionstepwritemodrmdw(2,signed2unsigned32((int_32)unsigned2signed16(instructionbufferw)),MODRM_src0)) return; CPU_apply286cycles(); /* Apply cycles */ } //MOVSX /r r32,r/m16
+void CPU80386_OP0FBF_16()
+{
+	modrm_debugger16_16("MOVSX");
+	if (unlikely(CPU[activeCPU].modrmstep==0))
+	{
+		if (modrm_check16(&params,MODRM_src1,1|0x40)) return;
+		if (modrm_check16(&params,MODRM_src0,0|0x40)) return;
+		if (modrm_check16(&params,MODRM_src1,1|0xA0)) return;
+		if (modrm_check16(&params,MODRM_src0,0|0xA0)) return;
+	}
+	if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return;
+	if (CPU8086_instructionstepwritemodrmw(2,signed2unsigned16((sword)unsigned2signed16(instructionbufferw)),MODRM_src0,0)) return;
+	CPU_apply286cycles(); /* Apply cycles */
+} //MOVSX /r r16,r/m16
+void CPU80386_OP0FBF_32()
+{
+	modrm_debugger32_16("MOVSX");
+	if (unlikely(CPU[activeCPU].modrmstep==0))
+	{
+		if (modrm_check16(&params,MODRM_src1,1|0x40)) return;
+		if (modrm_check32(&params,MODRM_src0,0|0x40)) return;
+		if (modrm_check16(&params,MODRM_src1,1|0xA0)) return;
+		if (modrm_check32(&params,MODRM_src0,0|0xA0)) return;
+	}
+	if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return;
+	if (CPU80386_instructionstepwritemodrmdw(2,signed2unsigned32((int_32)unsigned2signed16(instructionbufferw)),MODRM_src0)) return;
+	CPU_apply286cycles(); /* Apply cycles */
+} //MOVSX /r r32,r/m16
 
 extern byte BST_cnt; //How many of bit scan/test (forward) times are taken?
 
@@ -1077,15 +2119,111 @@ void CPU80386_SHRD_32(uint_32 *dest, uint_32 src, byte cnt)
 	}
 }
 
-void CPU80386_OP0FA4_16() {modrm_generateInstructionTEXT("SHLD",16,immb,PARAM_MODRM_01_IMM8); if (unlikely(CPU[activeCPU].modrmstep==0)) { if (modrm_check16(&params,MODRM_src1,1|0x40)) return; if (modrm_check16(&params,MODRM_src0,0|0x40)) return; if (modrm_check16(&params,MODRM_src1,1|0xA0)) return; if (modrm_check16(&params,MODRM_src0,0|0xA0)) return; } if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return; CPU80386_SHLD_16(modrm_addr16(&params,MODRM_src0,0),instructionbufferw,immb);} //SHLD /r r/m16,r16,imm8
-void CPU80386_OP0FA4_32() {modrm_generateInstructionTEXT("SHLD",32,immb,PARAM_MODRM_01_IMM8); if (unlikely(CPU[activeCPU].modrmstep==0)) { if (modrm_check32(&params,MODRM_src1,1|0x40)) return; if (modrm_check32(&params,MODRM_src0,0|0x40)) return; if (modrm_check32(&params,MODRM_src1,1|0xA0)) return; if (modrm_check32(&params,MODRM_src0,0|0xA0)) return; } if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; CPU80386_SHLD_32(modrm_addr32(&params,MODRM_src0,0),instructionbufferd,immb);} //SHLD /r r/m32,r32,imm8
-void CPU80386_OP0FA5_16() {modrm_generateInstructionTEXT("SHLD",16,0,PARAM_MODRM_01_CL); if (unlikely(CPU[activeCPU].modrmstep==0)) { if (modrm_check16(&params,MODRM_src1,1|0x40)) return; if (modrm_check16(&params,MODRM_src0,0|0x40)) return; if (modrm_check16(&params,MODRM_src1,1|0xA0)) return; if (modrm_check16(&params,MODRM_src0,0|0xA0)) return; } if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return; CPU80386_SHLD_16(modrm_addr16(&params,MODRM_src0,0),instructionbufferw,REG_CL);} //SHLD /r r/m16,r16,CL
-void CPU80386_OP0FA5_32() {modrm_generateInstructionTEXT("SHLD",32,0,PARAM_MODRM_01_CL); if (unlikely(CPU[activeCPU].modrmstep==0)) { if (modrm_check32(&params,MODRM_src1,1|0x40)) return; if (modrm_check32(&params,MODRM_src0,0|0x40)) return; if (modrm_check32(&params,MODRM_src1,1|0xA0)) return; if (modrm_check32(&params,MODRM_src0,0|0xA0)) return; } if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; CPU80386_SHLD_32(modrm_addr32(&params,MODRM_src0,0),instructionbufferd,REG_CL);} //SHLD /r r/m32,r32,CL
+void CPU80386_OP0FA4_16()
+{
+	modrm_generateInstructionTEXT("SHLD",16,immb,PARAM_MODRM_01_IMM8);
+	if (unlikely(CPU[activeCPU].modrmstep==0))
+	{
+		if (modrm_check16(&params,MODRM_src1,1|0x40)) return;
+		if (modrm_check16(&params,MODRM_src0,0|0x40)) return;
+		if (modrm_check16(&params,MODRM_src1,1|0xA0)) return;
+		if (modrm_check16(&params,MODRM_src0,0|0xA0)) return;
+	}
+	if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return;
+	CPU80386_SHLD_16(modrm_addr16(&params,MODRM_src0,0),instructionbufferw,immb);
+} //SHLD /r r/m16,r16,imm8
+void CPU80386_OP0FA4_32()
+{
+	modrm_generateInstructionTEXT("SHLD",32,immb,PARAM_MODRM_01_IMM8);
+	if (unlikely(CPU[activeCPU].modrmstep==0))
+	{
+		if (modrm_check32(&params,MODRM_src1,1|0x40)) return;
+		if (modrm_check32(&params,MODRM_src0,0|0x40)) return;
+		if (modrm_check32(&params,MODRM_src1,1|0xA0)) return;
+		if (modrm_check32(&params,MODRM_src0,0|0xA0)) return;
+	}
+	if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return;
+	CPU80386_SHLD_32(modrm_addr32(&params,MODRM_src0,0),instructionbufferd,immb);
+} //SHLD /r r/m32,r32,imm8
+void CPU80386_OP0FA5_16()
+{
+	modrm_generateInstructionTEXT("SHLD",16,0,PARAM_MODRM_01_CL);
+	if (unlikely(CPU[activeCPU].modrmstep==0))
+	{
+		if (modrm_check16(&params,MODRM_src1,1|0x40)) return;
+		if (modrm_check16(&params,MODRM_src0,0|0x40)) return;
+		if (modrm_check16(&params,MODRM_src1,1|0xA0)) return;
+		if (modrm_check16(&params,MODRM_src0,0|0xA0)) return;
+	}
+	if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return;
+	CPU80386_SHLD_16(modrm_addr16(&params,MODRM_src0,0),instructionbufferw,REG_CL);
+} //SHLD /r r/m16,r16,CL
+void CPU80386_OP0FA5_32()
+{
+	modrm_generateInstructionTEXT("SHLD",32,0,PARAM_MODRM_01_CL);
+	if (unlikely(CPU[activeCPU].modrmstep==0))
+	{
+		if (modrm_check32(&params,MODRM_src1,1|0x40)) return;
+		if (modrm_check32(&params,MODRM_src0,0|0x40)) return;
+		if (modrm_check32(&params,MODRM_src1,1|0xA0)) return;
+		if (modrm_check32(&params,MODRM_src0,0|0xA0)) return;
+	}
+	if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return;
+	CPU80386_SHLD_32(modrm_addr32(&params,MODRM_src0,0),instructionbufferd,REG_CL);
+} //SHLD /r r/m32,r32,CL
 
-void CPU80386_OP0FAC_16() {modrm_generateInstructionTEXT("SHRD",16,immb,PARAM_MODRM_01_IMM8); if (unlikely(CPU[activeCPU].modrmstep==0)) { if (modrm_check16(&params,MODRM_src1,1|0x40)) return; if (modrm_check16(&params,MODRM_src0,0|0x40)) return; if (modrm_check16(&params,MODRM_src1,1|0xA0)) return; if (modrm_check16(&params,MODRM_src0,0|0xA0)) return; } if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return; CPU80386_SHRD_16(modrm_addr16(&params,MODRM_src0,0),instructionbufferw,immb);} //SHRD /r r/m16,r16,imm8
-void CPU80386_OP0FAC_32() {modrm_generateInstructionTEXT("SHRD",32,immb,PARAM_MODRM_01_IMM8); if (unlikely(CPU[activeCPU].modrmstep==0)) { if (modrm_check32(&params,MODRM_src1,1|0x40)) return; if (modrm_check32(&params,MODRM_src0,0|0x40)) return; if (modrm_check32(&params,MODRM_src1,1|0xA0)) return; if (modrm_check32(&params,MODRM_src0,0|0xA0)) return; } if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; CPU80386_SHRD_32(modrm_addr32(&params,MODRM_src0,0),instructionbufferd,immb);} //SHRD /r r/m32,r32,imm8
-void CPU80386_OP0FAD_16() {modrm_generateInstructionTEXT("SHRD",16,0,PARAM_MODRM_01_CL); if (unlikely(CPU[activeCPU].modrmstep==0)) { if (modrm_check16(&params,MODRM_src1,1|0x40)) return; if (modrm_check16(&params,MODRM_src0,0|0x40)) return; if (modrm_check16(&params,MODRM_src1,1|0xA0)) return; if (modrm_check16(&params,MODRM_src0,0|0xA0)) return; } if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return; CPU80386_SHRD_16(modrm_addr16(&params,MODRM_src0,0),instructionbufferw,REG_CL);} //SHRD /r r/m16,r16,CL
-void CPU80386_OP0FAD_32() {modrm_generateInstructionTEXT("SHRD",32,0,PARAM_MODRM_01_CL); if (unlikely(CPU[activeCPU].modrmstep==0)) { if (modrm_check32(&params,MODRM_src1,1|0x40)) return; if (modrm_check32(&params,MODRM_src0,0|0x40)) return; if (modrm_check32(&params,MODRM_src1,1|0xA0)) return; if (modrm_check32(&params,MODRM_src0,0|0xA0)) return; } if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; CPU80386_SHRD_32(modrm_addr32(&params,MODRM_src0,0),instructionbufferd,REG_CL);} //SHRD /r r/m32,r32,CL
+void CPU80386_OP0FAC_16()
+{
+	modrm_generateInstructionTEXT("SHRD",16,immb,PARAM_MODRM_01_IMM8);
+	if (unlikely(CPU[activeCPU].modrmstep==0))
+	{
+		if (modrm_check16(&params,MODRM_src1,1|0x40)) return;
+		if (modrm_check16(&params,MODRM_src0,0|0x40)) return;
+		if (modrm_check16(&params,MODRM_src1,1|0xA0)) return;
+		if (modrm_check16(&params,MODRM_src0,0|0xA0)) return;
+	}
+	if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return;
+	CPU80386_SHRD_16(modrm_addr16(&params,MODRM_src0,0),instructionbufferw,immb);
+} //SHRD /r r/m16,r16,imm8
+void CPU80386_OP0FAC_32()
+{
+	modrm_generateInstructionTEXT("SHRD",32,immb,PARAM_MODRM_01_IMM8);
+	if (unlikely(CPU[activeCPU].modrmstep==0))
+	{
+		if (modrm_check32(&params,MODRM_src1,1|0x40)) return;
+		if (modrm_check32(&params,MODRM_src0,0|0x40)) return;
+		if (modrm_check32(&params,MODRM_src1,1|0xA0)) return;
+		if (modrm_check32(&params,MODRM_src0,0|0xA0)) return;
+	}
+	if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return;
+	CPU80386_SHRD_32(modrm_addr32(&params,MODRM_src0,0),instructionbufferd,immb);
+} //SHRD /r r/m32,r32,imm8
+void CPU80386_OP0FAD_16()
+{
+	modrm_generateInstructionTEXT("SHRD",16,0,PARAM_MODRM_01_CL);
+	if (unlikely(CPU[activeCPU].modrmstep==0))
+	{
+		if (modrm_check16(&params,MODRM_src1,1|0x40)) return;
+		if (modrm_check16(&params,MODRM_src0,0|0x40)) return;
+		if (modrm_check16(&params,MODRM_src1,1|0xA0)) return;
+		if (modrm_check16(&params,MODRM_src0,0|0xA0)) return;
+	}
+	if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return;
+	CPU80386_SHRD_16(modrm_addr16(&params,MODRM_src0,0),instructionbufferw,REG_CL);
+} //SHRD /r r/m16,r16,CL
+void CPU80386_OP0FAD_32()
+{
+	modrm_generateInstructionTEXT("SHRD",32,0,PARAM_MODRM_01_CL);
+	if (unlikely(CPU[activeCPU].modrmstep==0))
+	{
+		if (modrm_check32(&params,MODRM_src1,1|0x40)) return;
+		if (modrm_check32(&params,MODRM_src0,0|0x40)) return;
+		if (modrm_check32(&params,MODRM_src1,1|0xA0)) return;
+		if (modrm_check32(&params,MODRM_src0,0|0xA0)) return;
+	}
+	if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return;
+	CPU80386_SHRD_32(modrm_addr32(&params,MODRM_src0,0),instructionbufferd,REG_CL);
+} //SHRD /r r/m32,r32,CL
 
 //IMUL instruction
 
@@ -1211,14 +2349,126 @@ void CPU80386_BTC32(uint_32 *val, uint_32 bit)
 	*val ^= (1<<(bit&0x1F)); //Complement!
 }
 
-void CPU80386_OP0FA3_16() { modrm_generateInstructionTEXT("BT", 16, 0, PARAM_MODRM_01); if (CPU8086_instructionstepreadmodrmw(0, &instructionbufferw, MODRM_src1)) return; modrm_addoffset = (int_32)((unsigned2signed16(instructionbufferw) >> 4) << 1); if (unlikely(CPU[activeCPU].modrmstep == 2)) { if (modrm_check16(&params, MODRM_src0, 1|0x40)) return; if (modrm_check16(&params, MODRM_src0, 1|0xA0)) return; } if (CPU8086_instructionstepreadmodrmw(2, &instructionbufferw2, MODRM_src0)) return; CPU80386_BT16(instructionbufferw2, instructionbufferw); } //BT /r r/m16,r16
-void CPU80386_OP0FA3_32() { modrm_generateInstructionTEXT("BT", 32, 0, PARAM_MODRM_01); if (CPU80386_instructionstepreadmodrmdw(0, &instructionbufferd, MODRM_src1)) return; modrm_addoffset = (int_32)((unsigned2signed32(instructionbufferd) >> 5) << 2); if (unlikely(CPU[activeCPU].modrmstep == 2)) { if (modrm_check32(&params, MODRM_src0, 1|0x40)) return; if (modrm_check32(&params, MODRM_src0, 1|0xA0)) return; } if (CPU80386_instructionstepreadmodrmdw(2, &instructionbufferd2, MODRM_src0)) return; CPU80386_BT32(instructionbufferd2, instructionbufferd); } //BT /r r/m32,r32
+void CPU80386_OP0FA3_16()
+{
+	modrm_generateInstructionTEXT("BT", 16, 0, PARAM_MODRM_01);
+	if (CPU8086_instructionstepreadmodrmw(0, &instructionbufferw, MODRM_src1)) return;
+	modrm_addoffset = (int_32)((unsigned2signed16(instructionbufferw) >> 4) << 1);
+	if (unlikely(CPU[activeCPU].modrmstep == 2))
+	{
+		if (modrm_check16(&params, MODRM_src0, 1|0x40)) return;
+		if (modrm_check16(&params, MODRM_src0, 1|0xA0)) return;
+	}
+	if (CPU8086_instructionstepreadmodrmw(2, &instructionbufferw2, MODRM_src0)) return;
+	CPU80386_BT16(instructionbufferw2, instructionbufferw);
+} //BT /r r/m16,r16
+void CPU80386_OP0FA3_32()
+{
+	modrm_generateInstructionTEXT("BT", 32, 0, PARAM_MODRM_01);
+	if (CPU80386_instructionstepreadmodrmdw(0, &instructionbufferd, MODRM_src1)) return;
+	modrm_addoffset = (int_32)((unsigned2signed32(instructionbufferd) >> 5) << 2);
+	if (unlikely(CPU[activeCPU].modrmstep == 2))
+	{
+		if (modrm_check32(&params, MODRM_src0, 1|0x40)) return;
+		if (modrm_check32(&params, MODRM_src0, 1|0xA0)) return;
+	}
+	if (CPU80386_instructionstepreadmodrmdw(2, &instructionbufferd2, MODRM_src0)) return;
+	CPU80386_BT32(instructionbufferd2, instructionbufferd);
+} //BT /r r/m32,r32
 
-void CPU80386_OP0FAB_16() {modrm_generateInstructionTEXT("BTS",16,0,PARAM_MODRM_01); if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return; modrm_addoffset = (int_32)((unsigned2signed16(instructionbufferw)>>4)<<1); if (unlikely(CPU[activeCPU].modrmstep==2)) { if (modrm_check16(&params,MODRM_src0,0|0x40)) return; if (modrm_check16(&params,MODRM_src0,0|0xA0)) return; } if (CPU8086_instructionstepreadmodrmw(2,&instructionbufferw2,MODRM_src0)) return; if (CPU[activeCPU].instructionstep==0) { CPU80386_BTS16(&instructionbufferw2,instructionbufferw); ++CPU[activeCPU].instructionstep; if (modrm_ismemory(params)) {CPU[activeCPU].executed = 0; return; } } if (CPU8086_instructionstepwritemodrmw(4,instructionbufferw2,MODRM_src0,0)) return; } //BTS /r r/m16,r16
-void CPU80386_OP0FAB_32() {modrm_generateInstructionTEXT("BTS",32,0,PARAM_MODRM_01); if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; modrm_addoffset = (int_32)((unsigned2signed32(instructionbufferd)>>5)<<2); if (unlikely(CPU[activeCPU].modrmstep==2)) { if (modrm_check32(&params,MODRM_src0,0|0x40)) return; if (modrm_check32(&params,MODRM_src0,0|0xA0)) return; } if (CPU80386_instructionstepreadmodrmdw(2,&instructionbufferd2,MODRM_src0)) return; if (CPU[activeCPU].instructionstep==0) { CPU80386_BTS32(&instructionbufferd2,instructionbufferd); ++CPU[activeCPU].instructionstep; if (modrm_ismemory(params)) {CPU[activeCPU].executed = 0; return; } } if (CPU80386_instructionstepwritemodrmdw(4,instructionbufferd2,MODRM_src0)) return; } //BTS /r r/m32,r32
+void CPU80386_OP0FAB_16()
+{
+	modrm_generateInstructionTEXT("BTS",16,0,PARAM_MODRM_01);
+	if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return;
+	modrm_addoffset = (int_32)((unsigned2signed16(instructionbufferw)>>4)<<1);
+	if (unlikely(CPU[activeCPU].modrmstep==2))
+	{
+		if (modrm_check16(&params,MODRM_src0,0|0x40)) return;
+		if (modrm_check16(&params,MODRM_src0,0|0xA0)) return;
+	}
+	if (CPU8086_instructionstepreadmodrmw(2,&instructionbufferw2,MODRM_src0)) return;
+	if (CPU[activeCPU].instructionstep==0)
+	{
+		CPU80386_BTS16(&instructionbufferw2,instructionbufferw);
+		++CPU[activeCPU].instructionstep;
+		if (modrm_ismemory(params))
+		{
+			CPU[activeCPU].executed = 0;
+			return;
+		}
+	}
+	if (CPU8086_instructionstepwritemodrmw(4,instructionbufferw2,MODRM_src0,0)) return;
+} //BTS /r r/m16,r16
+void CPU80386_OP0FAB_32()
+{
+	modrm_generateInstructionTEXT("BTS",32,0,PARAM_MODRM_01);
+	if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return;
+	modrm_addoffset = (int_32)((unsigned2signed32(instructionbufferd)>>5)<<2);
+	if (unlikely(CPU[activeCPU].modrmstep==2))
+	{
+		if (modrm_check32(&params,MODRM_src0,0|0x40)) return;
+		if (modrm_check32(&params,MODRM_src0,0|0xA0)) return;
+	}
+	if (CPU80386_instructionstepreadmodrmdw(2,&instructionbufferd2,MODRM_src0)) return;
+	if (CPU[activeCPU].instructionstep==0)
+	{
+		CPU80386_BTS32(&instructionbufferd2,instructionbufferd);
+		++CPU[activeCPU].instructionstep;
+		if (modrm_ismemory(params))
+		{
+			CPU[activeCPU].executed = 0;
+			return;
+		}
+	}
+	if (CPU80386_instructionstepwritemodrmdw(4,instructionbufferd2,MODRM_src0)) return;
+} //BTS /r r/m32,r32
 
-void CPU80386_OP0FB3_16() {modrm_generateInstructionTEXT("BTR",16,0,PARAM_MODRM_01); if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return; modrm_addoffset = (int_32)((unsigned2signed16(instructionbufferw)>>4)<<1); if (unlikely(CPU[activeCPU].modrmstep==2)) { if (modrm_check16(&params,MODRM_src0,0|0x40)) return; if (modrm_check16(&params,MODRM_src0,0|0xA0)) return; } if (CPU8086_instructionstepreadmodrmw(2,&instructionbufferw2,MODRM_src0)) return; if (CPU[activeCPU].instructionstep==0) { CPU80386_BTR16(&instructionbufferw2,instructionbufferw); ++CPU[activeCPU].instructionstep; if (modrm_ismemory(params)) {CPU[activeCPU].executed = 0; return; } } if (CPU8086_instructionstepwritemodrmw(4,instructionbufferw2,MODRM_src0,0)) return;} //BTR /r r/m16,r16
-void CPU80386_OP0FB3_32() {modrm_generateInstructionTEXT("BTR",32,0,PARAM_MODRM_01); if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; modrm_addoffset = (int_32)((unsigned2signed32(instructionbufferd)>>5)<<2); if (unlikely(CPU[activeCPU].modrmstep==2)) { if (modrm_check32(&params,MODRM_src0,0|0x40)) return; if (modrm_check32(&params,MODRM_src0,0|0xA0)) return; } if (CPU80386_instructionstepreadmodrmdw(2,&instructionbufferd2,MODRM_src0)) return; if (CPU[activeCPU].instructionstep==0) { CPU80386_BTR32(&instructionbufferd2,instructionbufferd); ++CPU[activeCPU].instructionstep; if (modrm_ismemory(params)) {CPU[activeCPU].executed = 0; return; } } if (CPU80386_instructionstepwritemodrmdw(4,instructionbufferd2,MODRM_src0)) return; } //BTR /r r/m32,r32
+void CPU80386_OP0FB3_16()
+{
+	modrm_generateInstructionTEXT("BTR",16,0,PARAM_MODRM_01);
+	if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return;
+	modrm_addoffset = (int_32)((unsigned2signed16(instructionbufferw)>>4)<<1);
+	if (unlikely(CPU[activeCPU].modrmstep==2))
+	{
+		if (modrm_check16(&params,MODRM_src0,0|0x40)) return;
+		if (modrm_check16(&params,MODRM_src0,0|0xA0)) return;
+	}
+	if (CPU8086_instructionstepreadmodrmw(2,&instructionbufferw2,MODRM_src0)) return;
+	if (CPU[activeCPU].instructionstep==0)
+	{
+		CPU80386_BTR16(&instructionbufferw2,instructionbufferw);
+		++CPU[activeCPU].instructionstep;
+		if (modrm_ismemory(params))
+		{
+			CPU[activeCPU].executed = 0;
+			return;
+		}
+	}
+	if (CPU8086_instructionstepwritemodrmw(4,instructionbufferw2,MODRM_src0,0)) return;
+} //BTR /r r/m16,r16
+void CPU80386_OP0FB3_32()
+{
+	modrm_generateInstructionTEXT("BTR",32,0,PARAM_MODRM_01);
+	if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return;
+	modrm_addoffset = (int_32)((unsigned2signed32(instructionbufferd)>>5)<<2);
+	if (unlikely(CPU[activeCPU].modrmstep==2))
+	{
+		if (modrm_check32(&params,MODRM_src0,0|0x40)) return;
+		if (modrm_check32(&params,MODRM_src0,0|0xA0)) return;
+	}
+	if (CPU80386_instructionstepreadmodrmdw(2,&instructionbufferd2,MODRM_src0)) return;
+	if (CPU[activeCPU].instructionstep==0)
+	{
+		CPU80386_BTR32(&instructionbufferd2,instructionbufferd);
+		++CPU[activeCPU].instructionstep;
+		if (modrm_ismemory(params))
+		{
+			CPU[activeCPU].executed = 0;
+			return;
+		}
+	}
+	if (CPU80386_instructionstepwritemodrmdw(4,instructionbufferd2,MODRM_src0)) return;
+} //BTR /r r/m32,r32
 
 void CPU80386_OP0FBA_16() {
 	//memcpy(&info,&params.info[MODRM_src0],sizeof(info)); //Store the address for debugging!
@@ -1408,8 +2658,52 @@ void CPU80386_OP0FBA_32() {
 	}
 }
 
-void CPU80386_OP0FBB_16() {modrm_generateInstructionTEXT("BTC",16,0,PARAM_MODRM12); if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return; modrm_addoffset = (int_32)((unsigned2signed16(instructionbufferw)>>4)<<1); if (unlikely(CPU[activeCPU].modrmstep==2)) { if (modrm_check16(&params,MODRM_src0,0|0x40)) return; if (modrm_check16(&params,MODRM_src0,0|0xA0)) return; } if (CPU8086_instructionstepreadmodrmw(2,&instructionbufferw2,MODRM_src0)) return; if (CPU[activeCPU].instructionstep==0) { CPU80386_BTC16(&instructionbufferw2,instructionbufferw); ++CPU[activeCPU].instructionstep; if (modrm_ismemory(params)) {CPU[activeCPU].executed = 0; return; } } if (CPU8086_instructionstepwritemodrmw(4,instructionbufferw2,MODRM_src0,0)) return; } //BTC /r r/m16,r16
-void CPU80386_OP0FBB_32() {modrm_generateInstructionTEXT("BTC",32,0,PARAM_MODRM12); if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return; modrm_addoffset = (int_32)((unsigned2signed32(instructionbufferd)>>5)<<2); if (unlikely(CPU[activeCPU].modrmstep==2)) { if (modrm_check32(&params,MODRM_src0,0|0x40)) return; if (modrm_check32(&params,MODRM_src0,0|0xA0)) return; } if (CPU80386_instructionstepreadmodrmdw(2,&instructionbufferd2,MODRM_src0)) return; if (CPU[activeCPU].instructionstep==0) { CPU80386_BTC32(&instructionbufferd2,instructionbufferd); ++CPU[activeCPU].instructionstep; if (modrm_ismemory(params)) {CPU[activeCPU].executed = 0; return; } } if (CPU80386_instructionstepwritemodrmdw(4,instructionbufferd2,MODRM_src0)) return; } //BTC /r r/m32,r32
+void CPU80386_OP0FBB_16()
+{
+	modrm_generateInstructionTEXT("BTC",16,0,PARAM_MODRM12);
+	if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src1)) return;
+	modrm_addoffset = (int_32)((unsigned2signed16(instructionbufferw)>>4)<<1);
+	if (unlikely(CPU[activeCPU].modrmstep==2))
+	{
+		if (modrm_check16(&params,MODRM_src0,0|0x40)) return;
+		if (modrm_check16(&params,MODRM_src0,0|0xA0)) return;
+	}
+	if (CPU8086_instructionstepreadmodrmw(2,&instructionbufferw2,MODRM_src0)) return;
+	if (CPU[activeCPU].instructionstep==0)
+	{
+		CPU80386_BTC16(&instructionbufferw2,instructionbufferw);
+		++CPU[activeCPU].instructionstep;
+		if (modrm_ismemory(params))
+		{
+			CPU[activeCPU].executed = 0;
+			return;
+		}
+	}
+	if (CPU8086_instructionstepwritemodrmw(4,instructionbufferw2,MODRM_src0,0)) return;
+} //BTC /r r/m16,r16
+void CPU80386_OP0FBB_32()
+{
+	modrm_generateInstructionTEXT("BTC",32,0,PARAM_MODRM12);
+	if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src1)) return;
+	modrm_addoffset = (int_32)((unsigned2signed32(instructionbufferd)>>5)<<2);
+	if (unlikely(CPU[activeCPU].modrmstep==2))
+	{
+		if (modrm_check32(&params,MODRM_src0,0|0x40)) return;
+		if (modrm_check32(&params,MODRM_src0,0|0xA0)) return;
+	}
+	if (CPU80386_instructionstepreadmodrmdw(2,&instructionbufferd2,MODRM_src0)) return;
+	if (CPU[activeCPU].instructionstep==0)
+	{
+		CPU80386_BTC32(&instructionbufferd2,instructionbufferd);
+		++CPU[activeCPU].instructionstep;
+		if (modrm_ismemory(params))
+		{
+			CPU[activeCPU].executed = 0;
+			return;
+		}
+	}
+	if (CPU80386_instructionstepwritemodrmdw(4,instructionbufferd2,MODRM_src0)) return;
+} //BTC /r r/m32,r32
 
 //Bit scan instructions
 
