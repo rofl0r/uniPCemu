@@ -1836,7 +1836,6 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 			case 0:
 				--pos; //Next command!
 			case '0':
-				doATM0:
 				n0 = 0;
 				doATM:
 				if (n0<4) //OK?
