@@ -169,9 +169,61 @@ void CPU486_OP0F09() //WBINVD?
 	}
 }
 
-void CPU486_OP0FB0() {byte temp; if (modrm_check8(&params,MODRM_src0,1)) return; temp = modrm_read8(&params,MODRM_src0); if (REG_AL==temp) { if (modrm_check8(&params,MODRM_src0,0)) return; FLAGW_ZF(1); modrm_write8(&params,MODRM_src0,modrm_read8(&params,MODRM_src1)); /* r/m8=r8 */ } else { FLAGW_ZF(0); REG_AL = temp; /* AL=r/m8 */ }} //CMPXCHG r/m8,AL,r8
-void CPU486_OP0FB1_16() {word temp; if (modrm_check16(&params,MODRM_src0,1|0x40)) return; if (modrm_check16(&params,MODRM_src0,1|0xA0)) return; temp = modrm_read16(&params,MODRM_src0); if (REG_AX==temp) { if (modrm_check16(&params,MODRM_src0,0|0x40)) return; if (modrm_check16(&params,MODRM_src0,0|0xA0)) return; FLAGW_ZF(1); modrm_write16(&params,MODRM_src0,modrm_read16(&params,MODRM_src1),0); /* r/m16=r16 */ } else { FLAGW_ZF(0); REG_AX = temp; /* AX=r/m16 */ }} //CMPXCHG r/m16,AX,r16
-void CPU486_OP0FB1_32() {uint_32 temp; if (modrm_check32(&params,MODRM_src0,1|0x40)) return; if (modrm_check32(&params,MODRM_src0,1|0xA0)) return; temp = modrm_read32(&params,MODRM_src0); if (REG_EAX==temp) { if (modrm_check32(&params,MODRM_src0,0|0x40)) return; if (modrm_check32(&params,MODRM_src0,0|0xA0)) return; FLAGW_ZF(1); modrm_write32(&params,MODRM_src0,modrm_read32(&params,MODRM_src1)); /* r/m32=r32 */ } else { FLAGW_ZF(0); REG_EAX = temp; /* EAX=r/m32 */ }} //CMPXCHG r/m32,EAX,r32
+void CPU486_OP0FB0()
+{
+	byte temp;
+	if (modrm_check8(&params,MODRM_src0,1)) return;
+	temp = modrm_read8(&params,MODRM_src0);
+	if (REG_AL==temp)
+	{
+		if (modrm_check8(&params,MODRM_src0,0)) return;
+		FLAGW_ZF(1);
+		modrm_write8(&params,MODRM_src0,modrm_read8(&params,MODRM_src1)); /* r/m8=r8 */
+	}
+	else
+	{
+		FLAGW_ZF(0);
+		REG_AL = temp; /* AL=r/m8 */
+	}
+} //CMPXCHG r/m8,AL,r8
+void CPU486_OP0FB1_16()
+{
+	word temp;
+	if (modrm_check16(&params,MODRM_src0,1|0x40)) return;
+	if (modrm_check16(&params,MODRM_src0,1|0xA0)) return;
+	temp = modrm_read16(&params,MODRM_src0);
+	if (REG_AX==temp)
+	{
+		if (modrm_check16(&params,MODRM_src0,0|0x40)) return;
+		if (modrm_check16(&params,MODRM_src0,0|0xA0)) return;
+		FLAGW_ZF(1);
+		modrm_write16(&params,MODRM_src0,modrm_read16(&params,MODRM_src1),0); /* r/m16=r16 */
+	}
+	else
+	{
+		FLAGW_ZF(0);
+		REG_AX = temp; /* AX=r/m16 */
+	}
+} //CMPXCHG r/m16,AX,r16
+void CPU486_OP0FB1_32()
+{
+	uint_32 temp;
+	if (modrm_check32(&params,MODRM_src0,1|0x40)) return;
+	if (modrm_check32(&params,MODRM_src0,1|0xA0)) return;
+	temp = modrm_read32(&params,MODRM_src0);
+	if (REG_EAX==temp)
+	{
+		if (modrm_check32(&params,MODRM_src0,0|0x40)) return;
+		if (modrm_check32(&params,MODRM_src0,0|0xA0)) return;
+		FLAGW_ZF(1);
+		modrm_write32(&params,MODRM_src0,modrm_read32(&params,MODRM_src1)); /* r/m32=r32 */
+	}
+	else
+	{
+		FLAGW_ZF(0);
+		REG_EAX = temp; /* EAX=r/m32 */
+	}
+} //CMPXCHG r/m32,EAX,r32
 
 OPTINLINE void op_add8_486() {
 	res8 = oper1b + oper2b;
@@ -188,9 +240,38 @@ OPTINLINE void op_add32_486() {
 	flag_add32 (oper1d, oper2d);
 }
 
-void CPU486_OP0FC0() {modrm_generateInstructionTEXT("XADD",8,0,PARAM_MODRM21); if (modrm_check8(&params,MODRM_src0,0)) return; oper1b = modrm_read8(&params,MODRM_src1); oper2b = modrm_read8(&params,MODRM_src0); op_add8_486(); modrm_write8(&params,MODRM_src1,oper2b); modrm_write8(&params,MODRM_src0,res8);} //XADD r/m8,r8
-void CPU486_OP0FC1_16() {modrm_generateInstructionTEXT("XADD",16,0,PARAM_MODRM21); if (modrm_check16(&params,MODRM_src0,0|0x40)) return; if (modrm_check16(&params,MODRM_src0,0|0xA0)) return; oper1 = modrm_read16(&params,MODRM_src1); oper2 = modrm_read16(&params,MODRM_src0); op_add16_486(); modrm_write16(&params,MODRM_src1,oper2,0); modrm_write16(&params,MODRM_src0,res16,0);} //XADD r/m16,r16
-void CPU486_OP0FC1_32() {modrm_generateInstructionTEXT("XADD",32,0,PARAM_MODRM21); if (modrm_check32(&params,MODRM_src0,0|0x40)) return; if (modrm_check32(&params,MODRM_src0,0|0xA0)) return; oper1d = modrm_read32(&params,MODRM_src1); oper2d = modrm_read32(&params,MODRM_src0); op_add32_486(); modrm_write32(&params,MODRM_src1,oper2d); modrm_write32(&params,MODRM_src0,res32);} //XADD r/m32,r32
+void CPU486_OP0FC0()
+{
+	modrm_generateInstructionTEXT("XADD",8,0,PARAM_MODRM21);
+	if (modrm_check8(&params,MODRM_src0,0)) return;
+	oper1b = modrm_read8(&params,MODRM_src1);
+	oper2b = modrm_read8(&params,MODRM_src0);
+	op_add8_486();
+	modrm_write8(&params,MODRM_src1,oper2b);
+	modrm_write8(&params,MODRM_src0,res8);
+} //XADD r/m8,r8
+void CPU486_OP0FC1_16()
+{
+	modrm_generateInstructionTEXT("XADD",16,0,PARAM_MODRM21);
+	if (modrm_check16(&params,MODRM_src0,0|0x40)) return;
+	if (modrm_check16(&params,MODRM_src0,0|0xA0)) return;
+	oper1 = modrm_read16(&params,MODRM_src1);
+	oper2 = modrm_read16(&params,MODRM_src0);
+	op_add16_486();
+	modrm_write16(&params,MODRM_src1,oper2,0);
+	modrm_write16(&params,MODRM_src0,res16,0);
+} //XADD r/m16,r16
+void CPU486_OP0FC1_32()
+{
+	modrm_generateInstructionTEXT("XADD",32,0,PARAM_MODRM21);
+	if (modrm_check32(&params,MODRM_src0,0|0x40)) return;
+	if (modrm_check32(&params,MODRM_src0,0|0xA0)) return;
+	oper1d = modrm_read32(&params,MODRM_src1);
+	oper2d = modrm_read32(&params,MODRM_src0);
+	op_add32_486();
+	modrm_write32(&params,MODRM_src1,oper2d);
+	modrm_write32(&params,MODRM_src0,res32);
+} //XADD r/m32,r32
 
 //BSWAP on 16-bit registers is undefined!
 void CPU486_BSWAP16(word *reg)
@@ -214,19 +295,83 @@ void CPU486_BSWAP32(uint_32 *reg)
 	*reg = buf; //Save the result!
 }
 
-void CPU486_OP0FC8_16() {debugger_setcommand("BSWAP AX"); CPU486_BSWAP16(&REG_AX);} //BSWAP AX
-void CPU486_OP0FC8_32() {debugger_setcommand("BSWAP EAX"); CPU486_BSWAP32(&REG_EAX);} //BSWAP EAX
-void CPU486_OP0FC9_16() {debugger_setcommand("BSWAP CX"); CPU486_BSWAP16(&REG_CX);} //BSWAP CX
-void CPU486_OP0FC9_32() {debugger_setcommand("BSWAP ECX"); CPU486_BSWAP32(&REG_ECX);} //BSWAP ECX
-void CPU486_OP0FCA_16() {debugger_setcommand("BSWAP DX"); CPU486_BSWAP16(&REG_DX);} //BSWAP DX
-void CPU486_OP0FCA_32() {debugger_setcommand("BSWAP EDX"); CPU486_BSWAP32(&REG_EDX);} //BSWAP EDX
-void CPU486_OP0FCB_16() {debugger_setcommand("BSWAP BX"); CPU486_BSWAP16(&REG_BX);} //BSWAP BX
-void CPU486_OP0FCB_32() {debugger_setcommand("BSWAP EBX"); CPU486_BSWAP32(&REG_EBX);} //BSWAP EBX
-void CPU486_OP0FCC_16() {debugger_setcommand("BSWAP SP"); CPU486_BSWAP16(&REG_SP);} //BSWAP SP
-void CPU486_OP0FCC_32() {debugger_setcommand("BSWAP ESP"); CPU486_BSWAP32(&REG_ESP);} //BSWAP ESP
-void CPU486_OP0FCD_16() {debugger_setcommand("BSWAP BP"); CPU486_BSWAP16(&REG_BP);} //BSWAP BP
-void CPU486_OP0FCD_32() {debugger_setcommand("BSWAP EBP"); CPU486_BSWAP32(&REG_EBP);} //BSWAP EBP
-void CPU486_OP0FCE_16() {debugger_setcommand("BSWAP SI"); CPU486_BSWAP16(&REG_SI);} //BSWAP SI
-void CPU486_OP0FCE_32() {debugger_setcommand("BSWAP ESI"); CPU486_BSWAP32(&REG_ESI);} //BSWAP ESI
-void CPU486_OP0FCF_16() {debugger_setcommand("BSWAP DI"); CPU486_BSWAP16(&REG_DI);} //BSWAP DI
-void CPU486_OP0FCF_32() {debugger_setcommand("BSWAP EDI"); CPU486_BSWAP32(&REG_EDI);} //BSWAP EDI
+void CPU486_OP0FC8_16()
+{
+	debugger_setcommand("BSWAP AX");
+	CPU486_BSWAP16(&REG_AX);
+} //BSWAP AX
+void CPU486_OP0FC8_32()
+{
+	debugger_setcommand("BSWAP EAX");
+	CPU486_BSWAP32(&REG_EAX);
+} //BSWAP EAX
+void CPU486_OP0FC9_16()
+{
+	debugger_setcommand("BSWAP CX");
+	CPU486_BSWAP16(&REG_CX);
+} //BSWAP CX
+void CPU486_OP0FC9_32()
+{
+	debugger_setcommand("BSWAP ECX");
+	CPU486_BSWAP32(&REG_ECX);
+} //BSWAP ECX
+void CPU486_OP0FCA_16()
+{
+	debugger_setcommand("BSWAP DX");
+	CPU486_BSWAP16(&REG_DX);
+} //BSWAP DX
+void CPU486_OP0FCA_32()
+{
+	debugger_setcommand("BSWAP EDX");
+	CPU486_BSWAP32(&REG_EDX);
+} //BSWAP EDX
+void CPU486_OP0FCB_16()
+{
+	debugger_setcommand("BSWAP BX");
+	CPU486_BSWAP16(&REG_BX);
+} //BSWAP BX
+void CPU486_OP0FCB_32()
+{
+	debugger_setcommand("BSWAP EBX");
+	CPU486_BSWAP32(&REG_EBX);
+} //BSWAP EBX
+void CPU486_OP0FCC_16()
+{
+	debugger_setcommand("BSWAP SP");
+	CPU486_BSWAP16(&REG_SP);
+} //BSWAP SP
+void CPU486_OP0FCC_32()
+{
+	debugger_setcommand("BSWAP ESP");
+	CPU486_BSWAP32(&REG_ESP);
+} //BSWAP ESP
+void CPU486_OP0FCD_16()
+{
+	debugger_setcommand("BSWAP BP");
+	CPU486_BSWAP16(&REG_BP);
+} //BSWAP BP
+void CPU486_OP0FCD_32()
+{
+	debugger_setcommand("BSWAP EBP");
+	CPU486_BSWAP32(&REG_EBP);
+} //BSWAP EBP
+void CPU486_OP0FCE_16()
+{
+	debugger_setcommand("BSWAP SI");
+	CPU486_BSWAP16(&REG_SI);
+} //BSWAP SI
+void CPU486_OP0FCE_32()
+{
+	debugger_setcommand("BSWAP ESI");
+	CPU486_BSWAP32(&REG_ESI);
+} //BSWAP ESI
+void CPU486_OP0FCF_16()
+{
+	debugger_setcommand("BSWAP DI");
+	CPU486_BSWAP16(&REG_DI);
+} //BSWAP DI
+void CPU486_OP0FCF_32()
+{
+	debugger_setcommand("BSWAP EDI");
+	CPU486_BSWAP32(&REG_EDI);
+} //BSWAP EDI
