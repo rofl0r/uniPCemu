@@ -942,17 +942,65 @@ void FPU80287_FPU_UD(byte isESC) { //Generic x86 FPU #UD opcode decoder!
 	}
 }
 
-void FPU80287_OPDBE3(){debugger_setcommand("<FPU #UD: FNINIT>");}
-void FPU80287_OPDFE0() { debugger_setcommand("<FPU #UD: FSTSW AX>"); }
-void FPU80287_OPDDslash7() { debugger_setcommand("<FPU #UD: FNSTSW>"); }
-void FPU80287_OPD9slash7() { debugger_setcommand("<FPU #UD: FNSTCW>"); }
+void FPU80287_OPDBE3()
+{
+	debugger_setcommand("<FPU #UD: FNINIT>");
+}
+void FPU80287_OPDFE0()
+{
+	debugger_setcommand("<FPU #UD: FSTSW AX>");
+}
+void FPU80287_OPDDslash7()
+{
+	debugger_setcommand("<FPU #UD: FNSTSW>");
+}
+void FPU80287_OPD9slash7()
+{
+	debugger_setcommand("<FPU #UD: FNSTCW>");
+}
 
-void FPU80287_OP9B() {modrm_generateInstructionTEXT("<FPU #UD: FWAIT>",0,0,PARAM_NONE); FPU80287_FPU_UD(0); /* Handle emulation etc. */ /*9B: WAIT : wait for TEST pin activity. (Edit: continue on interrupts or 8087+!!!)*/ }
-void FPU80287_OPDB(){FPU80287_FPU_UD(1); /* Handle emulation etc. */ if (params.modrm==0xE3){FPU80287_OPDBE3(); /* Special naming! */} }
-void FPU80287_OPDF(){FPU80287_FPU_UD(1); /* Handle emulation etc. */ if (params.modrm==0xE0){FPU80287_OPDFE0(); /* Special naming! */} }
-void FPU80287_OPDD(){FPU80287_FPU_UD(1); /* Handle emulation etc. */ if (thereg==7){FPU80287_OPDDslash7(); /* Special naming! */} }
-void FPU80287_OPD9(){FPU80287_FPU_UD(1); /* Handle emulation etc. */ if (thereg==7){FPU80287_OPD9slash7(); /* Special naming! */} }
+void FPU80287_OP9B()
+{
+	modrm_generateInstructionTEXT("<FPU #UD: FWAIT>",0,0,PARAM_NONE);
+	FPU80287_FPU_UD(0); /* Handle emulation etc. */
+	/*9B: WAIT : wait for TEST pin activity. (Edit: continue on interrupts or 8087+!!!)*/
+}
+void FPU80287_OPDB()
+{
+	FPU80287_FPU_UD(1); /* Handle emulation etc. */
+	if (params.modrm==0xE3)
+	{
+		FPU80287_OPDBE3();
+		/* Special naming! */
+	}
+}
+void FPU80287_OPDF()
+{
+	FPU80287_FPU_UD(1); /* Handle emulation etc. */
+	if (params.modrm==0xE0)
+	{
+		FPU80287_OPDFE0(); /* Special naming! */
+	}
+}
+void FPU80287_OPDD()
+{
+	FPU80287_FPU_UD(1); /* Handle emulation etc. */
+	if (thereg==7)
+	{
+		FPU80287_OPDDslash7(); /* Special naming! */
+	}
+}
+void FPU80287_OPD9()
+{
+	FPU80287_FPU_UD(1); /* Handle emulation etc. */
+	if (thereg==7)
+	{
+		FPU80287_OPD9slash7(); /* Special naming! */
+	}
+}
 
-void FPU80287_noCOOP() { //Generic x86 FPU opcode decoder!
-		FPU80287_FPU_UD(1); //Generic #UD for FPU!
+void FPU80287_noCOOP()
+{
+	//Generic x86 FPU opcode decoder!
+	FPU80287_FPU_UD(1); //Generic #UD for FPU!
 }
