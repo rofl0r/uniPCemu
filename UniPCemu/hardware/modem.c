@@ -2414,8 +2414,11 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 					goto setAT_N;
 				case '4':
 					n0 = 4;
+					goto setAT_N;
+				case '5':
+					n0 = 5;
 					setAT_N:
-					if (n0<5) //Valid?
+					if (n0<6) //Valid?
 					{
 						//Unused!
 					}
