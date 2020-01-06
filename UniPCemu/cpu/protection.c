@@ -1555,6 +1555,11 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 			}
 			CPU_calcSegmentPrecalcs(1,&CPU[activeCPU].SEG_DESCRIPTOR[segment]); //Calculate any precalcs for the segment descriptor(do it here since we don't load descriptors externally)!
 			REG_EIP = destEIP; //... The current OPCode: just jump to the address!
+			if (CPU_MMU_checkrights(CPU_SEGMENT_CS, REG_CS, REG_EIP, 3, &CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS], 2, CPU_Operand_size[activeCPU])) //Limit broken or protection fault?
+			{
+				THROWDESCGP(0, 0, 0); //#GP(0) when out of limit range!
+				return 1; //Abort on fault!
+			}
 		}
 		else if (segment == CPU_SEGMENT_SS) //SS? We're also updating the CPL!
 		{

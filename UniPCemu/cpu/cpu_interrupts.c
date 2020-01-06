@@ -369,7 +369,6 @@ void CPU_IRET()
 		REG_EFLAGS = tempEFLAGS; //Set EFLAGS to the tempEFLAGS
 		updateCPUmode(); //Update the CPU mode to return to Virtual 8086 mode!
 		//Load POPped registers into the segment registers, CS:EIP and SS:ESP in V86 mode(raises no faults) to restore the task.
-		destEIP &= 0xFFFF; //Ignore the high bits of EIP when loading it for V86 mode!
 		if (segmentWritten(CPU_SEGMENT_CS,tempCS,3)) return; //We're loading because of an IRET!
 		if (segmentWritten(CPU_SEGMENT_SS,tempSS,0)) return; //Load SS!
 		REG_ESP = tempesp; //Set the new ESP of the V86 task!
