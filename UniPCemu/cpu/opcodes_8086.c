@@ -6335,7 +6335,11 @@ void CPU8086_OP83() //GRP1 Ev,Ib
 		{
 			debugger_setcommand("CMP %s,%04X",&modrm_param1,imm); //CMP Eb, Ib
 		}
-		if (unlikely(CPU[activeCPU].modrmstep == 0)) { if (modrm_check16(&params, MODRM_src0, 1|0x40)) return; if (modrm_check16(&params, MODRM_src0, 1|0xA0)) return; } //Abort when needed!
+		if (unlikely(CPU[activeCPU].modrmstep == 0))
+		{
+			if (modrm_check16(&params, MODRM_src0, 1|0x40)) return;
+			if (modrm_check16(&params, MODRM_src0, 1|0xA0)) return;
+		} //Abort when needed!
 		if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src0)) return;
 		CMP_w(instructionbufferw,imm,3); //CMP Eb, Ib
 		break;
@@ -6354,7 +6358,8 @@ void CPU8086_OP8F() //Undocumented GRP opcode 8F r/m16
 		{
 			modrm_generateInstructionTEXT("POP",16,0,PARAM_MODRM_0); //POP Ew
 		}
-		if (unlikely(CPU[activeCPU].stackchecked==0)) {
+		if (unlikely(CPU[activeCPU].stackchecked==0))
+		{
 			if (checkStackAccess(1,0,0)) return;
 			stack_pop(0); //Popped a word!
 			modrm_recalc(&params); //Recalc if using (e)sp as the destination offset!
@@ -7563,7 +7568,11 @@ void op_grp5() {
 		CPU8086_internal_DEC16(modrm_addr16(&params,MODRM_src0,0));
 		break;
 	case 2: //CALL Ev
-		if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(1,1,0)) return; ++CPU[activeCPU].stackchecked; }
+		if (unlikely(CPU[activeCPU].stackchecked==0))
+		{
+			if (checkStackAccess(1,1,0)) return;
+			++CPU[activeCPU].stackchecked;
+		}
 		if (CPU8086_PUSHw(0,&REG_IP,0)) return;
 		CPU_JMPabs((uint_32)oper1,0);
 		if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
@@ -7653,7 +7662,11 @@ void op_grp5() {
 		CPUPROT2
 		break;
 	case 6: //PUSH Ev
-		if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(1,1,0)) return; ++CPU[activeCPU].stackchecked; }
+		if (unlikely(CPU[activeCPU].stackchecked==0))
+		{
+			if (checkStackAccess(1,1,0)) return;
+			++CPU[activeCPU].stackchecked;
+		}
 		if (modrm_addr16(&params,MODRM_src0,0)==&REG_SP) //SP?
 		{
 			if (CPU8086_PUSHw(0,&REG_SP,0)) return;

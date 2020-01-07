@@ -3930,7 +3930,8 @@ void CPU80386_OP8F() //Undocumented GRP opcode 8F r/m32
 		{
 			modrm_generateInstructionTEXT("POP",32,0,PARAM_MODRM_0); //POPW Ew
 		}
-		if (unlikely(CPU[activeCPU].stackchecked==0)) {
+		if (unlikely(CPU[activeCPU].stackchecked==0))
+		{
 			if (checkStackAccess(1,0,1)) return;
 			stack_pop(1); //Popped a dword!
 			modrm_recalc(&params); //Recalc if using (e)sp as the destination offset!
@@ -4604,7 +4605,11 @@ void op_grp5_32() {
 		CPU80386_internal_DEC32(modrm_addr32(&params,MODRM_src0,0));
 		break;
 	case 2: //CALL Ev
-		if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(1,1,1)) return; ++CPU[activeCPU].stackchecked; } //Abort when needed!
+		if (unlikely(CPU[activeCPU].stackchecked==0))
+		{
+			if (checkStackAccess(1,1,1)) return;
+			++CPU[activeCPU].stackchecked;
+		} //Abort when needed!
 		if (CPU80386_PUSHdw(0,&REG_EIP)) return;
 		CPU_JMPabs(oper1d,0);
 		if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
@@ -4694,7 +4699,11 @@ void op_grp5_32() {
 		CPUPROT2
 		break;
 	case 6: //PUSH Ev
-		if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(1,1,1)) return; ++CPU[activeCPU].stackchecked; }
+		if (unlikely(CPU[activeCPU].stackchecked==0))
+		{
+			if (checkStackAccess(1,1,1)) return;
+			++CPU[activeCPU].stackchecked;
+		}
 		if (modrm_addr32(&params,MODRM_src0,0)==&REG_ESP) //ESP?
 		{
 			if (CPU80386_PUSHdw(0,&REG_ESP)) return;
