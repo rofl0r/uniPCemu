@@ -4756,8 +4756,8 @@ void CPU8086_OP5B()
 		++CPU[activeCPU].stackchecked;
 	}
 	if (CPU8086_instructionstepPOPtimeout(0)) return; /*POP timeout*/
-	if (CPU8086_POPw(2,&REG_BX,0)) return;
-	/*POP BX*/ if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
+	if (CPU8086_POPw(2,&REG_BX,0)) return; /*POP BX*/
+	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
 		CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*Pop Reg!*/
 	}
