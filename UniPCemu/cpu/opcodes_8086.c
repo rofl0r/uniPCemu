@@ -4260,7 +4260,8 @@ void CPU8086_execute_ADC_modrmmodrm16()
 }
 void CPU8086_OP14()
 {
-	INLINEREGISTER byte theimm = immb; modrm_generateInstructionTEXT("ADC AL,",0,theimm,PARAM_IMM8_PARAM);
+	INLINEREGISTER byte theimm = immb;
+	modrm_generateInstructionTEXT("ADC AL,",0,theimm,PARAM_IMM8_PARAM);
 	CPU8086_internal_ADC8(&REG_AL,theimm,1);
 }
 void CPU8086_OP15()
