@@ -640,7 +640,7 @@ byte packetserver_authenticate(sword client)
 	char *p;
 #endif
 #endif
-	if ((strcmp(Packetserver_clients[client].packetserver_protocol, "slip") == 0) || (strcmp(Packetserver_clients[client].packetserver_protocol, "ethernetslip") == 0)) //Valid protocol?
+	if ((strcmp(Packetserver_clients[client].packetserver_protocol, "slip") == 0) || (strcmp(Packetserver_clients[client].packetserver_protocol, "ethernetslip") == 0) || (strcmp(Packetserver_clients[client].packetserver_protocol, "ipxslip") == 0)) //Valid protocol?
 	{
 #ifdef PACKETSERVER_ENABLED
 #ifndef NOPCAP
@@ -2772,6 +2772,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 	sword connectionid;
 	byte datatotransmit;
 	ETHERNETHEADER ethernetheader;
+	word headertype; //What header type are we?
 	modem.timer += timepassed; //Add time to the timer!
 	if (modem.escaping) //Escapes buffered and escaping?
 	{
@@ -2975,7 +2976,15 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 										if (Packetserver_clients[connectedclient].pktlen > (sizeof(ethernetheader.data) + 20)) //Length OK(at least one byte of data and complete IP header)?
 										{
 											memcpy(&ethernetheader.data, Packetserver_clients[connectedclient].packet, sizeof(ethernetheader.data)); //Copy for inspection!
-											if (ethernetheader.type != SDL_SwapBE16(0x0800)) //Invalid type?
+											if (Packetserver_clients[connectedclient].packetserver_slipprotocol==2) //IPX protocol used?
+											{
+												headertype = SDL_SwapBE16(0x8137); //We're an IPX packet!
+											}
+											else //IPv4?
+											{
+												headertype = SDL_SwapBE16(0x0800); //We're an IP packet!
+											}
+											if (ethernetheader.type != headertype) //Invalid type?
 											{
 												//dolog("ethernetcard","Discarding type: %04X",SDL_SwapBE16(ethernetheader.type)); //Showing why we discard!
 												goto invalidpacket; //Invalid packet!
@@ -2985,7 +2994,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 												//dolog("ethernetcard","Discarding destination."); //Showing why we discard!
 												goto invalidpacket; //Invalid packet!
 											}
-											if (Packetserver_clients[connectedclient].packetserver_useStaticIP) //IP filter?
+											if (Packetserver_clients[connectedclient].packetserver_useStaticIP && (headertype==SDL_SwapBE16(0x0800))) //IP filter to apply?
 											{
 												if ((memcmp(&Packetserver_clients[connectedclient].packet[sizeof(ethernetheader.data) + 16], Packetserver_clients[connectedclient].packetserver_staticIP, 4) != 0) && (memcmp(&Packetserver_clients[connectedclient].packet[sizeof(ethernetheader.data) + 16], packetserver_broadcastIP, 4) != 0)) //Static IP mismatch?
 												{
@@ -3085,7 +3094,14 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 									ethernetheader.dst[b] = packetserver_gatewayMAC[b]; //Gateway MAC is the destination!
 									ethernetheader.src[b] = packetserver_sourceMAC[b]; //Packet server MAC is the source!
 								}
-								ethernetheader.type = SDL_SwapBE16(0x0800); //We're an IP packet!
+								if (Packetserver_clients[connectedclient].packetserver_slipprotocol==2) //IPX?
+								{
+									ethernetheader.type = SDL_SwapBE16(0x8137); //We're an IPX packet!
+								}
+								else //IPv4?
+								{
+									ethernetheader.type = SDL_SwapBE16(0x0800); //We're an IP packet!
+								}
 								for (b = 0; b < 14; ++b) //Use the provided ethernet packet header!
 								{
 									if (!packetServerAddWriteQueue(connectedclient,ethernetheader.data[b])) //Failed to add?
@@ -3258,7 +3274,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 								if (Packetserver_clients[connectedclient].packetserver_credentials_invalid) goto packetserver_autherror; //Authentication error!
 								if (packetserver_authenticate(connectedclient)) //Authenticated?
 								{
-									Packetserver_clients[connectedclient].packetserver_slipprotocol = (strcmp(Packetserver_clients[connectedclient].packetserver_protocol, "slip") == 0) ? 1 : 0; //Are we using the slip protocol?
+									Packetserver_clients[connectedclient].packetserver_slipprotocol = (strcmp(Packetserver_clients[connectedclient].packetserver_protocol, "ipxslip") == 0)?2:((strcmp(Packetserver_clients[connectedclient].packetserver_protocol, "slip") == 0) ? 1 : 0); //Are we using the slip protocol?
 									Packetserver_clients[connectedclient].packetserver_stage = PACKETSTAGE_INFORMATION; //We're logged in!
 								}
 								else goto packetserver_autherror; //Authentication error!
