@@ -126,7 +126,11 @@ void CPU386_OP0F00() //Various extended 286+ instructions GRP opcode.
 			return;
 		}
 		debugger_setcommand("SLDT %s", info.text);
-		if (unlikely(CPU[activeCPU].modrmstep == 0)) { if (modrm_check32(&params, MODRM_src0, 0|0x40)) return; if (modrm_check32(&params, MODRM_src0, 0|0xA0)) return; } //Abort on fault!
+		if (unlikely(CPU[activeCPU].modrmstep == 0))
+		{
+			if (modrm_check32(&params, MODRM_src0, 0|0x40)) return;
+			if (modrm_check32(&params, MODRM_src0, 0|0xA0)) return;
+		} //Abort on fault!
 		if (CPU80386_instructionstepwritemodrmdw(0,(uint_32)REG_LDTR,MODRM_src0)) return; //Try and write it to the address specified!
 		CPU_apply286cycles(); //Apply the 80286+ cycles!
 		break;
@@ -142,7 +146,11 @@ void CPU386_OP0F00() //Various extended 286+ instructions GRP opcode.
 			return;
 		}
 		debugger_setcommand("STR %s", info.text);
-		if (unlikely(CPU[activeCPU].modrmstep == 0)) { if (modrm_check32(&params, MODRM_src0, 0|0x40)) return; if (modrm_check32(&params, MODRM_src0, 0|0xA0)) return; } //Abort on fault!
+		if (unlikely(CPU[activeCPU].modrmstep == 0))
+		{
+			if (modrm_check32(&params, MODRM_src0, 0|0x40)) return;
+			if (modrm_check32(&params, MODRM_src0, 0|0xA0)) return;
+		} //Abort on fault!
 		if (CPU80386_instructionstepwritemodrmdw(0,(uint_32)REG_TR,MODRM_src0)) return; //Try and write it to the address specified!
 		CPU_apply286cycles(); //Apply the 80286+ cycles!
 		break;
@@ -319,7 +327,11 @@ void CPU386_OP0F01() //Various extended 286+ instruction GRP opcode.
 			return;
 		}
 		debugger_setcommand("SMSW %s", info.text);
-		if (unlikely(CPU[activeCPU].modrmstep == 0)) { if (modrm_check32(&params, MODRM_src0, 0|0x40)) return; if (modrm_check32(&params, MODRM_src0, 0|0xA0)) return; } //Abort on fault!
+		if (unlikely(CPU[activeCPU].modrmstep == 0))
+		{
+			if (modrm_check32(&params, MODRM_src0, 0|0x40)) return;
+			if (modrm_check32(&params, MODRM_src0, 0|0xA0)) return;
+		} //Abort on fault!
 		if (CPU80386_instructionstepwritemodrmdw(0,CPU[activeCPU].registers->CR0,MODRM_src0)) return; //Store the MSW into the specified location!
 		CPU_apply286cycles(); //Apply the 80286+ cycles!
 		break;
@@ -346,7 +358,11 @@ void CPU386_OP0F02() //LAR /r
 		return;
 	}
 	modrm_generateInstructionTEXT("LAR", 32, 0, PARAM_MODRM_01); //Our instruction text!
-	if (unlikely(CPU[activeCPU].modrmstep == 0)) { if (modrm_check32(&params, MODRM_src1, 1|0x40)) return; if (modrm_check32(&params, MODRM_src1, 1|0xA0)) return; } //Abort on fault!
+	if (unlikely(CPU[activeCPU].modrmstep == 0))
+	{
+		if (modrm_check32(&params, MODRM_src1, 1|0x40)) return;
+		if (modrm_check32(&params, MODRM_src1, 1|0xA0)) return;
+	} //Abort on fault!
 	if (CPU80386_instructionstepreadmodrmdw(0,&oper1d,MODRM_src1)) return; //Read the segment to check!
 	CPUPROT1
 		if ((loadresult = LOADDESCRIPTOR(-1, oper1d, &verdescriptor,0))==1) //Load the descriptor!
@@ -438,7 +454,11 @@ void CPU386_OP0F03() //LSL /r
 		return;
 	}
 	modrm_generateInstructionTEXT("LSL", 32, 0, PARAM_MODRM_01); //Our instruction text!
-	if (unlikely(CPU[activeCPU].modrmstep == 0)) { if (modrm_check32(&params, MODRM_src1, 1|0x40)) return; if (modrm_check32(&params, MODRM_src1, 1|0xA0)) return; } //Abort on fault!
+	if (unlikely(CPU[activeCPU].modrmstep == 0))
+	{
+		if (modrm_check32(&params, MODRM_src1, 1|0x40)) return;
+		if (modrm_check32(&params, MODRM_src1, 1|0xA0)) return;
+	} //Abort on fault!
 	if (CPU80386_instructionstepreadmodrmdw(0,&oper1d,MODRM_src1)) return; //Read the segment to check!
 	CPUPROT1
 		if ((loadresult = LOADDESCRIPTOR(-1, oper1d, &verdescriptor,0))==1) //Load the descriptor!
@@ -493,7 +513,11 @@ void CPU386_OP0F03() //LSL /r
 
 				if ((MAX(getCPL(), getRPL(oper1d)) <= GENERALSEGMENT_DPL(verdescriptor)) || isconforming) //Valid privilege?
 				{
-					if (unlikely(CPU[activeCPU].modrmstep == 2)) { if (modrm_check32(&params, MODRM_src0, 0|0x40)) return; if (modrm_check32(&params, MODRM_src0, 0|0xA0)) return; } //Abort on fault!
+					if (unlikely(CPU[activeCPU].modrmstep == 2))
+					{
+						if (modrm_check32(&params, MODRM_src0, 0|0x40)) return;
+						if (modrm_check32(&params, MODRM_src0, 0|0xA0)) return;
+					} //Abort on fault!
 					if (CPU80386_instructionstepwritemodrmdw(2,(uint_32)(limit&0xFFFFFFFF),MODRM_src0)) return; //Write our result!
 					CPUPROT1
 						FLAGW_ZF(1); //We're valid!
