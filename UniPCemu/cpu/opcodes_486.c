@@ -225,17 +225,20 @@ void CPU486_OP0FB1_32()
 	}
 } //CMPXCHG r/m32,EAX,r32
 
-OPTINLINE void op_add8_486() {
+OPTINLINE void op_add8_486()
+{
 	res8 = oper1b + oper2b;
 	flag_add8 (oper1b, oper2b);
 }
 
-OPTINLINE void op_add16_486() {
+OPTINLINE void op_add16_486()
+{
 	res16 = oper1 + oper2;
 	flag_add16 (oper1, oper2);
 }
 
-OPTINLINE void op_add32_486() {
+OPTINLINE void op_add32_486()
+{
 	res32 = oper1d + oper2d;
 	flag_add32 (oper1d, oper2d);
 }

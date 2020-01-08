@@ -133,7 +133,8 @@ void CPU286_OP63() //ARPL r/m16,r16
 //See opcodes_8086.c:
 #define EU_CYCLES_SUBSTRACT_ACCESSREAD 4
 
-void CPU286_OP9D() {
+void CPU286_OP9D()
+{
 	modrm_generateInstructionTEXT("POPF", 0, 0, PARAM_NONE);/*POPF*/
 	static word tempflags;
 	if (unlikely(CPU[activeCPU].stackchecked==0))
@@ -143,8 +144,16 @@ void CPU286_OP9D() {
 	}
 	if (CPU80286_instructionstepPOPtimeout(0)) return; /*POP timeout*/
 	if (CPU8086_POPw(2,&tempflags,0)) return;
-	if (disallowPOPFI()) { tempflags &= ~0x200; tempflags |= REG_FLAGS&0x200; /* Ignore any changes to the Interrupt flag! */ }
-	if (getCPL()) { tempflags &= ~0x3000; tempflags |= REG_FLAGS&0x3000; /* Ignore any changes to the IOPL when not at CPL 0! */ }
+	if (disallowPOPFI())
+	{
+		tempflags &= ~0x200;
+		tempflags |= REG_FLAGS&0x200; /* Ignore any changes to the Interrupt flag! */
+	}
+	if (getCPL())
+	{
+		tempflags &= ~0x3000;
+		tempflags |= REG_FLAGS&0x3000; /* Ignore any changes to the IOPL when not at CPL 0! */
+	}
 	REG_FLAGS = tempflags;
 	updateCPUmode(); /*POPF*/
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
@@ -659,7 +668,11 @@ void CPU286_OP0F02() //LAR /r
 				}
 				if ((MAX(getCPL(), getRPL(oper1)) <= GENERALSEGMENT_DPL(verdescriptor)) || isconforming) //Valid privilege?
 				{
-					if (unlikely(CPU[activeCPU].modrmstep == 2)) { if (modrm_check16(&params, MODRM_src0, 0|0x40)) return; if (modrm_check16(&params, MODRM_src0, 0|0xA0)) return; } //Abort on fault!
+					if (unlikely(CPU[activeCPU].modrmstep == 2))
+					{
+						if (modrm_check16(&params, MODRM_src0, 0|0x40)) return;
+						if (modrm_check16(&params, MODRM_src0, 0|0xA0)) return;
+					} //Abort on fault!
 					if (CPU8086_instructionstepwritemodrmw(2,(word)(verdescriptor.desc.AccessRights<<8),MODRM_src0,0)) return; //Write our result!
 					CPUPROT1
 						FLAGW_ZF(1); //We're valid!
@@ -975,7 +988,8 @@ void CPU286_OPF1() //Undefined opcode, Don't throw any exception!
 
 //FPU non-existant Coprocessor support!
 
-void FPU80287_FPU_UD(byte isESC) { //Generic x86 FPU #UD opcode decoder!
+void FPU80287_FPU_UD(byte isESC)
+{ //Generic x86 FPU #UD opcode decoder!
 	//MP needs to be set for TS to have effect during WAIT(throw emulation). It's always in effect with ESC instructions(ignoring MP). EM only has effect on ESC instructions(throw emulation if set).
 	if (((CPU[activeCPU].registers->CR0&CR0_EM)&&(isESC)) || (((CPU[activeCPU].registers->CR0&CR0_MP)||isESC) && (CPU[activeCPU].registers->CR0&CR0_TS))) //To be emulated or task switched?
 	{

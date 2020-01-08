@@ -193,7 +193,8 @@ OPTINLINE void CPU186_internal_AAS()
 }
 
 //Newer versions of the BCD instructions!
-void CPU186_OP37() {
+void CPU186_OP37()
+{
 	modrm_generateInstructionTEXT("AAA",0,0,PARAM_NONE);/*AAA?*/
 	CPU186_internal_AAA();/*AAA?*/
 }

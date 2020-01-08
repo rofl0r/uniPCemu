@@ -182,37 +182,44 @@ WE START WITH ALL HELP FUNCTIONS
 
 //CMP: Substract and set flags according (Z,S,O,C); Help functions
 
-OPTINLINE void op_adc32() {
+OPTINLINE void op_adc32()
+{
 	res32 = oper1d + oper2d + FLAG_CF;
 	flag_adc32 (oper1d, oper2d, FLAG_CF);
 }
 
-void op_add32() {
+void op_add32()
+{
 	res32 = oper1d + oper2d;
 	flag_add32 (oper1d, oper2d);
 }
 
-OPTINLINE void op_and32() {
+OPTINLINE void op_and32()
+{
 	res32 = oper1d & oper2d;
 	flag_log32 (res32);
 }
 
-OPTINLINE void op_or32() {
+OPTINLINE void op_or32()
+{
 	res32 = oper1d | oper2d;
 	flag_log32 (res32);
 }
 
-OPTINLINE void op_xor32() {
+OPTINLINE void op_xor32()
+{
 	res32 = oper1d ^ oper2d;
 	flag_log32 (res32);
 }
 
-OPTINLINE void op_sub32() {
+OPTINLINE void op_sub32()
+{
 	res32 = oper1d - oper2d;
 	flag_sub32 (oper1d, oper2d);
 }
 
-OPTINLINE void op_sbb32() {
+OPTINLINE void op_sbb32()
+{
 	res32 = oper1d - (oper2d + FLAG_CF);
 	flag_sbb32 (oper1d, oper2d, FLAG_CF);
 }
@@ -919,7 +926,11 @@ OPTINLINE byte CPU80386_internal_ADD32(uint_32 *dest, uint_32 addition, byte fla
 		op_add32();
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 		timing_AND_OR_XOR_ADD_SUB32(dest, flags);
-		if (dest==NULL) { CPU[activeCPU].executed = 0; return 1; } //Wait for execution phase to finish!
+		if (dest==NULL)
+		{
+			CPU[activeCPU].executed = 0;
+			return 1;
+		} //Wait for execution phase to finish!
 	}
 	if (dest) //Register?
 	{
@@ -963,7 +974,11 @@ OPTINLINE byte CPU80386_internal_ADC32(uint_32 *dest, uint_32 addition, byte fla
 		op_adc32();
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 		timing_AND_OR_XOR_ADD_SUB32(dest, flags);
-		if (dest==NULL) { CPU[activeCPU].executed = 0; return 1; } //Wait for execution phase to finish!
+		if (dest==NULL)
+		{
+			CPU[activeCPU].executed = 0;
+			return 1;
+		} //Wait for execution phase to finish!
 	}
 	if (dest) //Register?
 	{
@@ -1008,7 +1023,11 @@ OPTINLINE byte CPU80386_internal_OR32(uint_32 *dest, uint_32 src, byte flags)
 		op_or32();
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 		timing_AND_OR_XOR_ADD_SUB32(dest, flags);
-		if (dest==NULL) { CPU[activeCPU].executed = 0; return 1; } //Wait for execution phase to finish!
+		if (dest==NULL)
+		{
+			CPU[activeCPU].executed = 0;
+			return 1;
+		} //Wait for execution phase to finish!
 	}
 	if (dest) //Register?
 	{
@@ -1051,7 +1070,11 @@ OPTINLINE byte CPU80386_internal_AND32(uint_32 *dest, uint_32 src, byte flags)
 		op_and32();
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 		timing_AND_OR_XOR_ADD_SUB32(dest, flags);
-		if (dest==NULL) { CPU[activeCPU].executed = 0; return 1; } //Wait for execution phase to finish!
+		if (dest==NULL)
+		{
+			CPU[activeCPU].executed = 0;
+			return 1;
+		} //Wait for execution phase to finish!
 	}
 	if (dest) //Register?
 	{
@@ -1096,7 +1119,11 @@ OPTINLINE byte CPU80386_internal_SUB32(uint_32 *dest, uint_32 addition, byte fla
 		op_sub32();
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 		timing_AND_OR_XOR_ADD_SUB32(dest, flags);
-		if (dest==NULL) { CPU[activeCPU].executed = 0; return 1; } //Wait for execution phase to finish!
+		if (dest==NULL)
+		{
+			CPU[activeCPU].executed = 0;
+			return 1;
+		} //Wait for execution phase to finish!
 	}
 	if (dest) //Register?
 	{
@@ -1140,7 +1167,11 @@ OPTINLINE byte CPU80386_internal_SBB32(uint_32 *dest, uint_32 addition, byte fla
 		op_sbb32();
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 		timing_AND_OR_XOR_ADD_SUB32(dest, flags);
-		if (dest==NULL) { CPU[activeCPU].executed = 0; return 1; } //Wait for execution phase to finish!
+		if (dest==NULL)
+		{
+			CPU[activeCPU].executed = 0;
+			return 1;
+		} //Wait for execution phase to finish!
 	}
 	if (dest) //Register?
 	{
@@ -1185,7 +1216,11 @@ OPTINLINE byte CPU80386_internal_XOR32(uint_32 *dest, uint_32 src, byte flags)
 		op_xor32();
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 		timing_AND_OR_XOR_ADD_SUB32(dest, flags);
-		if (dest==NULL) { CPU[activeCPU].executed = 0; return 1; } //Wait for execution phase to finish!
+		if (dest==NULL)
+		{
+			CPU[activeCPU].executed = 0;
+			return 1;
+		} //Wait for execution phase to finish!
 	}
 	if (dest) //Register?
 	{
@@ -2284,7 +2319,11 @@ OPTINLINE byte CPU80386_internal_POPtimeout(word base)
 uint_32 RETD_val;
 OPTINLINE byte CPU80386_internal_RET(word popbytes, byte isimm)
 {
-	if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(1,0,1)) return 1; ++CPU[activeCPU].stackchecked; }
+	if (unlikely(CPU[activeCPU].stackchecked==0))
+	{
+		if (checkStackAccess(1,0,1)) return 1;
+		++CPU[activeCPU].stackchecked;
+	}
 	if (CPU80386_internal_POPtimeout(0)) return 1; //POP timeout!
 	if (CPU80386_internal_POPdw(2,&RETD_val)) return 1;
     //Near return
@@ -2321,7 +2360,11 @@ extern word RETF_popbytes; //How many to pop?
 
 OPTINLINE byte CPU80386_internal_RETF(word popbytes, byte isimm)
 {
-	if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(2,0,1)) return 1; ++CPU[activeCPU].stackchecked; }
+	if (unlikely(CPU[activeCPU].stackchecked==0))
+	{
+		if (checkStackAccess(2,0,1)) return 1;
+		++CPU[activeCPU].stackchecked;
+	}
 	if (CPU80386_internal_POPtimeout(0)) return 1; //POP timeout!
 	if (CPU80386_internal_POPdw(2,&RETFD_val)) return 1;
 	if (CPU8086_internal_POPw(4,&RETF_destCS,1)) return 1;
@@ -2480,7 +2523,11 @@ OPTINLINE byte CPU80386_internal_XCHG32(uint_32 *data1, uint_32 *data2, byte fla
 				break;
 			}
 		}
-		if ((data1==NULL) || (data2==NULL)) { CPU[activeCPU].executed = 0; return 1; } //Wait for execution phase to finish!
+		if ((data1==NULL) || (data2==NULL))
+		{
+			CPU[activeCPU].executed = 0;
+			return 1;
+		} //Wait for execution phase to finish!
 	}
 
 	if (data1) //Register?
@@ -3185,31 +3232,68 @@ void CPU80386_OP9C()
 	}
 }
 
-void CPU80386_OP9D_16() {
+void CPU80386_OP9D_16()
+{
 	modrm_generateInstructionTEXT("POPF", 0, 0, PARAM_NONE);/*POPF*/
-	if (unlikely((getcpumode()==CPU_MODE_8086) && (FLAG_PL!=3))) { THROWDESCGP(0,0,0); return; } //#GP fault!
+	if (unlikely((getcpumode()==CPU_MODE_8086) && (FLAG_PL!=3)))
+	{
+		THROWDESCGP(0,0,0);
+		return;
+	} //#GP fault!
 	static word tempflags;
-	if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(1,0,0)) return; ++CPU[activeCPU].stackchecked; }
+	if (unlikely(CPU[activeCPU].stackchecked==0))
+	{
+		if (checkStackAccess(1,0,0)) return;
+		++CPU[activeCPU].stackchecked;
+	}
 	if (CPU80386_instructionstepPOPtimeout(0)) return; /*POP timeout*/
 	if (CPU8086_POPw(2,&tempflags,0)) return;
-	if (disallowPOPFI()) { tempflags &= ~0x200; tempflags |= REG_FLAGS&0x200; /* Ignore any changes to the Interrupt flag! */ }
-	if (getCPL()) { tempflags &= ~0x3000; tempflags |= REG_FLAGS&0x3000; /* Ignore any changes to the IOPL when not at CPL 0! */ }
+	if (disallowPOPFI())
+	{
+		tempflags &= ~0x200;
+		tempflags |= REG_FLAGS&0x200; /* Ignore any changes to the Interrupt flag! */
+	}
+	if (getCPL())
+	{
+		tempflags &= ~0x3000;
+		tempflags |= REG_FLAGS&0x3000; /* Ignore any changes to the IOPL when not at CPL 0! */
+	}
 	REG_FLAGS = tempflags;
 	updateCPUmode(); /*POPF*/
-	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{  CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*POPF timing!*/ }
+	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
+	{
+		CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*POPF timing!*/
+	}
 	CPU[activeCPU].allowTF = 0; /*Disallow TF to be triggered after the instruction!*/
 	/*CPU[activeCPU].unaffectedRF = 1;*/ //Default: affected!
 }
 
-void CPU80386_OP9D_32() {
+void CPU80386_OP9D_32()
+{
 	modrm_generateInstructionTEXT("POPFD", 0, 0, PARAM_NONE);/*POPF*/
-	if (unlikely((getcpumode()==CPU_MODE_8086) && (FLAG_PL!=3))) { THROWDESCGP(0,0,0); return; }//#GP fault!
+	if (unlikely((getcpumode()==CPU_MODE_8086) && (FLAG_PL!=3)))
+	{
+		THROWDESCGP(0,0,0);
+		return;
+	}//#GP fault!
 	static uint_32 tempflags;
-	if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(1,0,1)) return; ++CPU[activeCPU].stackchecked; }
+	if (unlikely(CPU[activeCPU].stackchecked==0))
+	{
+		if (checkStackAccess(1,0,1)) return;
+		++CPU[activeCPU].stackchecked;
+	}
 	if (CPU80386_instructionstepPOPtimeout(0)) return; /*POP timeout*/
 	if (CPU80386_POPdw(2,&tempflags)) return;
-	if (disallowPOPFI()) { tempflags &= ~0x200; tempflags |= REG_FLAGS&0x200; /* Ignore any changes to the Interrupt flag! */ }
-	if (getCPL()) { tempflags &= ~0x3000; tempflags |= REG_FLAGS&0x3000; /* Ignore any changes to the IOPL when not at CPL 0! */ }
+	if (disallowPOPFI())
+	{
+		tempflags &= ~0x200;
+		tempflags |= REG_FLAGS&0x200; /* Ignore any changes to the Interrupt flag! */
+	}
+	if (getCPL())
+	{
+		tempflags &= ~0x3000;
+		tempflags |= REG_FLAGS&0x3000; /* Ignore any changes to the IOPL when not at CPL 0! */
+	}
 	if (getcpumode()==CPU_MODE_8086) //Virtual 8086 mode?
 	{
 		if (FLAG_PL==3) //IOPL 3?
@@ -3230,7 +3314,10 @@ void CPU80386_OP9D_32() {
 	}
 	REG_EFLAGS = tempflags;
 	updateCPUmode(); /*POPF*/
-	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */{  CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*POPF timing!*/ }
+	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
+	{
+		CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*POPF timing!*/
+	}
 	CPU[activeCPU].allowTF = 0; /*Disallow TF to be triggered after the instruction!*/
 	/*CPU[activeCPU].unaffectedRF = 1;*/ //Default: affected!
 }
@@ -3503,7 +3590,8 @@ void CPU80386_OPCB()
 	modrm_generateInstructionTEXT("RETFD",0,0,PARAM_NONE); /*RETF (Far return to calling proc)*/
 	CPU80386_internal_RETF(0,0);
 }
-void CPU80386_OPCC() {
+void CPU80386_OPCC()
+{
 	modrm_generateInstructionTEXT("INT 3",0,0,PARAM_NONE); /*INT 3*/ 
 	if ((MMU_logging == 1) && advancedlog) //Are we logging?
 	{
@@ -3837,7 +3925,11 @@ void CPU80386_OP81() //GRP1 Ev,Iv
 		{
 			debugger_setcommand("CMP %s,%08X",&modrm_param1,imm); //CMP Ed, Id
 		}
-		if (unlikely(CPU[activeCPU].modrmstep == 0)) { if (modrm_check32(&params, MODRM_src0, 1|0x40)) return; if (modrm_check32(&params, MODRM_src0, 1|0xA0)) return; } //Abort when needed!
+		if (unlikely(CPU[activeCPU].modrmstep == 0))
+		{
+			if (modrm_check32(&params, MODRM_src0, 1|0x40)) return;
+			if (modrm_check32(&params, MODRM_src0, 1|0xA0)) return;
+		} //Abort when needed!
 		if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src0)) return;
 		CMP_dw(instructionbufferd,imm,3); //CMP Eb, Id
 		break;
@@ -3911,7 +4003,11 @@ void CPU80386_OP83() //GRP1 Ev,Ib
 		{
 			debugger_setcommand("CMP %s,%02X",&modrm_param1,immb); //CMP Ev, Ib
 		}
-		if (unlikely(CPU[activeCPU].modrmstep == 0)) { if (modrm_check32(&params, MODRM_src0, 1|0x40)) return; if (modrm_check32(&params, MODRM_src0, 1|0xA0)) return; } //Abort when needed!
+		if (unlikely(CPU[activeCPU].modrmstep == 0))
+		{
+			if (modrm_check32(&params, MODRM_src0, 1|0x40)) return;
+			if (modrm_check32(&params, MODRM_src0, 1|0xA0)) return;
+		} //Abort when needed!
 		if (CPU80386_instructionstepreadmodrmdw(0,&instructionbufferd,MODRM_src0)) return;
 		CMP_dw(instructionbufferd,imm,3); //CMP Eb, Id
 		break;
@@ -4181,12 +4277,20 @@ void CPU80386_OPFF() //GRP5 Ev
 		{
 			if (getcpumode() != CPU_MODE_PROTECTED) //Real mode or V86 mode?
 			{
-				if (unlikely(CPU[activeCPU].stackchecked == 0)) { if (checkStackAccess(2, 1, 1)) return; /*We're trying to push on the stack!*/ ++CPU[activeCPU].stackchecked; }
+				if (unlikely(CPU[activeCPU].stackchecked == 0))
+				{
+					if (checkStackAccess(2, 1, 1)) return; /*We're trying to push on the stack!*/
+					++CPU[activeCPU].stackchecked;
+				}
 			}
 		}
 		else if ((thereg == 2) || (thereg == 6)) //pushing something on the stack normally?
 		{
-			if (unlikely(CPU[activeCPU].stackchecked == 0)) { if (checkStackAccess(1, 1, 1)) return; ++CPU[activeCPU].stackchecked; }
+			if (unlikely(CPU[activeCPU].stackchecked == 0))
+			{
+				if (checkStackAccess(1, 1, 1)) return;
+				++CPU[activeCPU].stackchecked;
+			}
 		}
 		if (modrm_check32(&params,MODRM_src0,1|0xA0)) return; //Abort when needed!
 		if ((thereg==3) || (thereg==5)) //extra segment?
@@ -4268,7 +4372,8 @@ OPTINLINE void op_grp2_cycles32(byte cnt, byte varshift)
 	}
 }
 
-uint_32 op_grp2_32(byte cnt, byte varshift) {
+uint_32 op_grp2_32(byte cnt, byte varshift)
+{
 	//word d,
 	INLINEREGISTER uint_64 s, shift, tempCF, msb;
 	INLINEREGISTER byte numcnt,maskcnt,overflow;
@@ -4276,13 +4381,15 @@ uint_32 op_grp2_32(byte cnt, byte varshift) {
 	//if (cnt>0x8) return (oper1b); //NEC V20/V30+ limits shift count
 	numcnt = maskcnt = cnt; //Save count!
 	s = oper1d;
-	switch (thereg) {
+	switch (thereg)
+	{
 	case 0: //ROL r/m32
 		if (EMULATED_CPU >= CPU_NECV30) maskcnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
 		numcnt = maskcnt;
 		if (EMULATED_CPU>=CPU_80386) numcnt &= 0x1F; //Operand size wrap!
 		overflow = numcnt?0:FLAG_OF; //Default: no overflow!
-		for (shift = 1; shift <= numcnt; shift++) {
+		for (shift = 1; shift <= numcnt; shift++)
+		{
 			FLAGW_CF(s>>31); //Save MSB!
 			s = (s << 1)|FLAG_CF;
 			overflow = (((s >> 31) & 1)^FLAG_CF);
@@ -4296,7 +4403,8 @@ uint_32 op_grp2_32(byte cnt, byte varshift) {
 		numcnt = maskcnt;
 		if (EMULATED_CPU>=CPU_80386) numcnt &= 0x1F; //Operand size wrap!
 		overflow = numcnt?0:FLAG_OF; //Default: no overflow!
-		for (shift = 1; shift <= numcnt; shift++) {
+		for (shift = 1; shift <= numcnt; shift++)
+		{
 			FLAGW_CF(s); //Save LSB!
 			s = ((s >> 1)&0x7FFFFFFFULL) | ((uint_64)FLAG_CF << 31);
 			overflow = ((s >> 31) ^ ((s >> 30) & 1));
@@ -4310,7 +4418,8 @@ uint_32 op_grp2_32(byte cnt, byte varshift) {
 		numcnt = maskcnt;
 		//if (EMULATED_CPU >= CPU_NECV30) numcnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
 		overflow = numcnt?0:FLAG_OF; //Default: no overflow!
-		for (shift = 1; shift <= numcnt; shift++) {
+		for (shift = 1; shift <= numcnt; shift++)
+		{
 			tempCF = FLAG_CF;
 			FLAGW_CF(s>>31); //Save MSB!
 			s = (s << 1)|tempCF; //Shift and set CF!
@@ -4325,7 +4434,8 @@ uint_32 op_grp2_32(byte cnt, byte varshift) {
 		numcnt = maskcnt;
 		//if (EMULATED_CPU >= CPU_NECV30) numcnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
 		overflow = numcnt?0:FLAG_OF; //Default: no overflow!
-		for (shift = 1; shift <= numcnt; shift++) {
+		for (shift = 1; shift <= numcnt; shift++)
+		{
 			overflow = (((s >> 31)&1)^FLAG_CF);
 			tempCF = FLAG_CF;
 			FLAGW_CF(s); //Save LSB!
@@ -4340,7 +4450,8 @@ uint_32 op_grp2_32(byte cnt, byte varshift) {
 		numcnt = maskcnt;
 		//FLAGW_AF(0);
 		overflow = numcnt?0:FLAG_OF;
-		for (shift = 1; shift <= numcnt; shift++) {
+		for (shift = 1; shift <= numcnt; shift++)
+		{
 			FLAGW_CF(s>>31);
 			//if (s & 0x8) FLAGW_AF(1); //Auxiliary carry?
 			s = (s << 1) & 0xFFFFFFFFU;
@@ -4357,7 +4468,8 @@ uint_32 op_grp2_32(byte cnt, byte varshift) {
 		numcnt = maskcnt;
 		//FLAGW_AF(0);
 		overflow = numcnt?0:FLAG_OF;
-		for (shift = 1; shift <= numcnt; shift++) {
+		for (shift = 1; shift <= numcnt; shift++)
+		{
 			overflow = (s>>31);
 			FLAGW_CF(s);
 			//backup = s; //Save backup!
@@ -4375,7 +4487,8 @@ uint_32 op_grp2_32(byte cnt, byte varshift) {
 		numcnt = maskcnt;
 		msb = s & 0x80000000U;
 		//FLAGW_AF(0);
-		for (shift = 1; shift <= numcnt; shift++) {
+		for (shift = 1; shift <= numcnt; shift++)
+		{
 			FLAGW_CF(s);
 			//backup = s; //Save backup!
 			s = (s >> 1) | msb;
@@ -4417,7 +4530,8 @@ extern byte tempAL;
 uint_32 tempEAX;
 uint_64 tempEDXEAX;
 
-OPTINLINE void op_div32(uint_64 valdiv, uint_32 divisor) {
+OPTINLINE void op_div32(uint_64 valdiv, uint_32 divisor)
+{
 	//word v1, v2;
 	if ((!divisor) && (CPU[activeCPU].internalinstructionstep==0)) //First step?
 	{
@@ -4449,7 +4563,8 @@ OPTINLINE void op_div32(uint_64 valdiv, uint_32 divisor) {
 	}
 }
 
-OPTINLINE void op_idiv32(uint_64 valdiv, uint_32 divisor) {
+OPTINLINE void op_idiv32(uint_64 valdiv, uint_32 divisor)
+{
 	//uint32_t v1, v2,
 	if ((!divisor) && (CPU[activeCPU].internalinstructionstep==0)) //First step?
 	{
@@ -4482,12 +4597,14 @@ OPTINLINE void op_idiv32(uint_64 valdiv, uint_32 divisor) {
 	}
 }
 
-void op_grp3_32() {
+void op_grp3_32()
+{
 	//uint32_t d1, d2, s1, s2, sign;
 	//word d, s;
 	//oper1d = signext(oper1b); oper2d = signext(oper2b);
 	//snprintf(msg,sizeof(msg), "  oper1d: %04X    oper2d: %04X\n", oper1d, oper2d); print(msg);
-	switch (thereg) {
+	switch (thereg)
+	{
 	case 0: case 1: //TEST
 		CPU80386_internal_TEST32(oper1d, imm32, 3);
 		break;
@@ -4528,8 +4645,14 @@ void op_grp3_32() {
 		REG_EAX = temp1.val32;
 		REG_EDX = temp1.val32high;
 		flag_log32(temp1.val32); //Flags!
-		if (REG_EDX) { FLAGW_OF(1); }
-		else { FLAGW_OF(0); }
+		if (REG_EDX)
+		{
+			FLAGW_OF(1);
+		}
+		else
+		{
+			FLAGW_OF(0);
+		}
 		FLAGW_CF(FLAG_OF);
 
 		if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
@@ -4584,10 +4707,12 @@ void op_grp3_32() {
 	}
 }
 
-void op_grp5_32() {
+void op_grp5_32()
+{
 	MODRM_PTR info; //To contain the info!
 	static word destCS;
-	switch (thereg) {
+	switch (thereg)
+	{
 	case 0: //INC Ev
 		if (unlikely(CPU[activeCPU].internalinstructionstep==0)) 
 		{

@@ -168,7 +168,8 @@ void CPU586_OP0FC7() //CMPXCHG8B r/m32
 	}
 }
 
-void CPU80586_OPCD() {
+void CPU80586_OPCD()
+{
 	byte VMElookup;
 	INLINEREGISTER byte theimm = immb;
 	INTdebugger80386();
@@ -199,7 +200,8 @@ void CPU80586_OPCD() {
 	CPU_executionphase_startinterrupt(theimm, 0, -2);/*INT imm8*/
 }
 
-void CPU80586_OPFA() {
+void CPU80586_OPFA()
+{
 	modrm_generateInstructionTEXT("CLI", 0, 0, PARAM_NONE);
 	if ((FLAG_PL != 3) && (CPU[activeCPU].registers->CR4&1) && (getcpumode()==CPU_MODE_8086)) //Virtual 8086 mode in VME?
 	{
@@ -233,9 +235,13 @@ void CPU80586_OPFA() {
 			FLAGW_VIF(0); //Clear the Virtual Interrupt Flag!
 		}
 	}
-	if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 1; } /*Special timing!*/
+	if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+	{
+		CPU[activeCPU].cycles_OP += 1;
+	} /*Special timing!*/
 }
-void CPU80586_OPFB() {
+void CPU80586_OPFB()
+{
 	modrm_generateInstructionTEXT("STI", 0, 0, PARAM_NONE);
 	if ((FLAG_PL != 3) && (CPU[activeCPU].registers->CR4 & 1) && (getcpumode() == CPU_MODE_8086)) //Virtual 8086 mode in VME?
 	{
@@ -283,10 +289,14 @@ void CPU80586_OPFB() {
 			}
 		}
 	}
-	if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 1; } /*Special timing!*/
+	if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+	{
+		CPU[activeCPU].cycles_OP += 1;
+	} /*Special timing!*/
 }
 
-void CPU80586_OP9C_16() {
+void CPU80586_OP9C_16()
+{
 	word theflags;
 	theflags = REG_FLAGS; //Default flags that we push!
 	modrm_generateInstructionTEXT("PUSHF", 0, 0, PARAM_NONE);/*PUSHF*/
@@ -313,7 +323,8 @@ void CPU80586_OP9C_16() {
 		CPU[activeCPU].cycles_OP += 10 - EU_CYCLES_SUBSTRACT_ACCESSWRITE; /*PUSHF timing!*/
 	}
 }
-void CPU80586_OP9D_16() {
+void CPU80586_OP9D_16()
+{
 	modrm_generateInstructionTEXT("POPF", 0, 0, PARAM_NONE);/*POPF*/
 	if (unlikely((getcpumode() == CPU_MODE_8086) && (FLAG_PL != 3)))
 	{
@@ -367,7 +378,8 @@ void CPU80586_OP9D_16() {
 	/*CPU[activeCPU].unaffectedRF = 1;*/ //Default: affected!
 }
 
-void CPU80586_OP9D_32() {
+void CPU80586_OP9D_32()
+{
 	modrm_generateInstructionTEXT("POPFD", 0, 0, PARAM_NONE);/*POPF*/
 	if (unlikely((getcpumode() == CPU_MODE_8086) && (FLAG_PL != 3)))
 	{

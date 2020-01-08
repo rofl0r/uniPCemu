@@ -167,72 +167,86 @@ WE START WITH ALL HELP FUNCTIONS
 
 //CMP: Substract and set flags according (Z,S,O,C); Help functions
 
-OPTINLINE void op_adc8() {
+OPTINLINE void op_adc8()
+{
 	res8 = oper1b + oper2b + FLAG_CF;
 	flag_adc8 (oper1b, oper2b, FLAG_CF);
 }
 
-OPTINLINE void op_adc16() {
+OPTINLINE void op_adc16()
+{
 	res16 = oper1 + oper2 + FLAG_CF;
 	flag_adc16 (oper1, oper2, FLAG_CF);
 }
 
-OPTINLINE void op_add8() {
+OPTINLINE void op_add8()
+{
 	res8 = oper1b + oper2b;
 	flag_add8 (oper1b, oper2b);
 }
 
-OPTINLINE void op_add16() {
+OPTINLINE void op_add16()
+{
 	res16 = oper1 + oper2;
 	flag_add16 (oper1, oper2);
 }
 
-OPTINLINE void op_and8() {
+OPTINLINE void op_and8()
+{
 	res8 = oper1b & oper2b;
 	flag_log8 (res8);
 }
 
-OPTINLINE void op_and16() {
+OPTINLINE void op_and16()
+{
 	res16 = oper1 & oper2;
 	flag_log16 (res16);
 }
 
-OPTINLINE void op_or8() {
+OPTINLINE void op_or8()
+{
 	res8 = oper1b | oper2b;
 	flag_log8 (res8);
 }
 
-OPTINLINE void op_or16() {
+OPTINLINE void op_or16()
+{
 	res16 = oper1 | oper2;
 	flag_log16 (res16);
 }
 
-OPTINLINE void op_xor8() {
+OPTINLINE void op_xor8()
+{
 	res8 = oper1b ^ oper2b;
 	flag_log8 (res8);
 }
 
-OPTINLINE void op_xor16() {
+OPTINLINE void op_xor16()
+{
 	res16 = oper1 ^ oper2;
 	flag_log16 (res16);
 }
 
-OPTINLINE void op_sub8() {
+OPTINLINE void op_sub8()
+{
 	res8 = oper1b - oper2b;
 	flag_sub8 (oper1b, oper2b);
 }
 
-OPTINLINE void op_sub16() {
+OPTINLINE void op_sub16()
+{
 	res16 = oper1 - oper2;
 	flag_sub16 (oper1, oper2);
 }
 
-OPTINLINE void op_sbb8() {
+OPTINLINE void op_sbb8()
+{
 	res8 = oper1b - (oper2b + FLAG_CF);
 	flag_sbb8 (oper1b, oper2b, FLAG_CF);
 }
 
-OPTINLINE void op_sbb16() {
+OPTINLINE void op_sbb16()
+{
 	res16 = oper1 - (oper2 + FLAG_CF);
 	flag_sbb16 (oper1, oper2, FLAG_CF);
 }
@@ -1499,7 +1513,11 @@ OPTINLINE byte CPU8086_internal_ADD8(byte *dest, byte addition, byte flags)
 		op_add8();
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 		timing_AND_OR_XOR_ADD_SUB8(dest, flags);
-		if (dest==NULL) { CPU[activeCPU].executed = 0; return 1; } //Wait for execution phase to finish!
+		if (dest==NULL)
+		{
+			CPU[activeCPU].executed = 0;
+			return 1;
+		} //Wait for execution phase to finish!
 	}
 	if (dest) //Register?
 	{
@@ -1541,7 +1559,11 @@ OPTINLINE byte CPU8086_internal_ADD16(word *dest, word addition, byte flags)
 		op_add16();
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 		timing_AND_OR_XOR_ADD_SUB16(dest, flags);
-		if (dest==NULL) { CPU[activeCPU].executed = 0; return 1; } //Wait for execution phase to finish!
+		if (dest==NULL)
+		{
+			CPU[activeCPU].executed = 0;
+			return 1;
+		} //Wait for execution phase to finish!
 	}
 	if (dest) //Register?
 	{
@@ -1585,7 +1607,11 @@ OPTINLINE byte CPU8086_internal_ADC8(byte *dest, byte addition, byte flags)
 		op_adc8();
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 		timing_AND_OR_XOR_ADD_SUB8(dest, flags);
-		if (dest==NULL) { CPU[activeCPU].executed = 0; return 1; } //Wait for execution phase to finish!
+		if (dest==NULL)
+		{
+			CPU[activeCPU].executed = 0;
+			return 1;
+		} //Wait for execution phase to finish!
 	}
 	if (dest) //Register?
 	{
@@ -1627,7 +1653,11 @@ OPTINLINE byte CPU8086_internal_ADC16(word *dest, word addition, byte flags)
 		op_adc16();
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 		timing_AND_OR_XOR_ADD_SUB16(dest, flags);
-		if (dest==NULL) { CPU[activeCPU].executed = 0; return 1; } //Wait for execution phase to finish!
+		if (dest==NULL)
+		{
+			CPU[activeCPU].executed = 0;
+			return 1;
+		} //Wait for execution phase to finish!
 	}
 	if (dest) //Register?
 	{
@@ -1672,7 +1702,11 @@ OPTINLINE byte CPU8086_internal_OR8(byte *dest, byte src, byte flags)
 		op_or8();
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 		timing_AND_OR_XOR_ADD_SUB8(dest, flags);
-		if (dest==NULL) { CPU[activeCPU].executed = 0; return 1; } //Wait for execution phase to finish!
+		if (dest==NULL)
+		{
+			CPU[activeCPU].executed = 0;
+			return 1;
+		} //Wait for execution phase to finish!
 	}
 	if (dest) //Register?
 	{
@@ -1714,7 +1748,11 @@ OPTINLINE byte CPU8086_internal_OR16(word *dest, word src, byte flags)
 		op_or16();
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 		timing_AND_OR_XOR_ADD_SUB16(dest, flags);
-		if (dest==NULL) { CPU[activeCPU].executed = 0; return 1; } //Wait for execution phase to finish!
+		if (dest==NULL)
+		{
+			CPU[activeCPU].executed = 0;
+			return 1;
+		} //Wait for execution phase to finish!
 	}
 	if (dest) //Register?
 	{
@@ -1758,7 +1796,11 @@ OPTINLINE byte CPU8086_internal_AND8(byte *dest, byte src, byte flags)
 		op_and8();
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 		timing_AND_OR_XOR_ADD_SUB8(dest, flags);
-		if (dest==NULL) { CPU[activeCPU].executed = 0; return 1; } //Wait for execution phase to finish!
+		if (dest==NULL)
+		{
+			CPU[activeCPU].executed = 0;
+			return 1;
+		} //Wait for execution phase to finish!
 	}
 	if (dest) //Register?
 	{
@@ -1800,7 +1842,11 @@ OPTINLINE byte CPU8086_internal_AND16(word *dest, word src, byte flags)
 		op_and16();
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 		timing_AND_OR_XOR_ADD_SUB16(dest, flags);
-		if (dest==NULL) { CPU[activeCPU].executed = 0; return 1; } //Wait for execution phase to finish!
+		if (dest==NULL)
+		{
+			CPU[activeCPU].executed = 0;
+			return 1;
+		} //Wait for execution phase to finish!
 	}
 	if (dest) //Register?
 	{
@@ -1845,7 +1891,11 @@ OPTINLINE byte CPU8086_internal_SUB8(byte *dest, byte addition, byte flags)
 		op_sub8();
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 		timing_AND_OR_XOR_ADD_SUB8(dest, flags);
-		if (dest==NULL) { CPU[activeCPU].executed = 0; return 1; } //Wait for execution phase to finish!
+		if (dest==NULL)
+		{
+			CPU[activeCPU].executed = 0;
+			return 1;
+		} //Wait for execution phase to finish!
 	}
 	if (dest) //Register?
 	{
@@ -1887,7 +1937,11 @@ OPTINLINE byte CPU8086_internal_SUB16(word *dest, word addition, byte flags)
 		op_sub16();
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 		timing_AND_OR_XOR_ADD_SUB16(dest, flags);
-		if (dest==NULL) { CPU[activeCPU].executed = 0; return 1; } //Wait for execution phase to finish!
+		if (dest==NULL)
+		{
+			CPU[activeCPU].executed = 0;
+			return 1;
+		} //Wait for execution phase to finish!
 	}
 	if (dest) //Register?
 	{
@@ -1931,7 +1985,11 @@ OPTINLINE byte CPU8086_internal_SBB8(byte *dest, byte addition, byte flags)
 		op_sbb8();
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 		timing_AND_OR_XOR_ADD_SUB8(dest, flags);
-		if (dest==NULL) { CPU[activeCPU].executed = 0; return 1; } //Wait for execution phase to finish!
+		if (dest==NULL)
+		{
+			CPU[activeCPU].executed = 0;
+			return 1;
+		} //Wait for execution phase to finish!
 	}
 	if (dest) //Register?
 	{
@@ -1973,7 +2031,11 @@ OPTINLINE byte CPU8086_internal_SBB16(word *dest, word addition, byte flags)
 		op_sbb16();
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 		timing_AND_OR_XOR_ADD_SUB16(dest, flags);
-		if (dest==NULL) { CPU[activeCPU].executed = 0; return 1; } //Wait for execution phase to finish!
+		if (dest==NULL)
+		{
+			CPU[activeCPU].executed = 0;
+			return 1;
+		} //Wait for execution phase to finish!
 	}
 	if (dest) //Register?
 	{
@@ -2018,7 +2080,11 @@ OPTINLINE byte CPU8086_internal_XOR8(byte *dest, byte src, byte flags)
 		op_xor8();
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 		timing_AND_OR_XOR_ADD_SUB8(dest, flags);
-		if (dest==NULL) { CPU[activeCPU].executed = 0; return 1; } //Wait for execution phase to finish!
+		if (dest==NULL)
+		{
+			CPU[activeCPU].executed = 0;
+			return 1;
+		} //Wait for execution phase to finish!
 	}
 	if (dest) //Register?
 	{
@@ -2060,7 +2126,11 @@ OPTINLINE byte CPU8086_internal_XOR16(word *dest, word src, byte flags)
 		op_xor16();
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 		timing_AND_OR_XOR_ADD_SUB16(dest, flags);
-		if (dest==NULL) { CPU[activeCPU].executed = 0; return 1; } //Wait for execution phase to finish!
+		if (dest==NULL)
+		{
+			CPU[activeCPU].executed = 0;
+			return 1;
+		} //Wait for execution phase to finish!
 	}
 	if (dest) //Register?
 	{
@@ -3732,7 +3802,11 @@ OPTINLINE byte CPU8086_internal_POPtimeout(word base)
 word RET_val;
 OPTINLINE byte CPU8086_internal_RET(word popbytes, byte isimm)
 {
-	if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(1,0,0)) return 1; ++CPU[activeCPU].stackchecked; }
+	if (unlikely(CPU[activeCPU].stackchecked==0))
+	{
+		if (checkStackAccess(1,0,0)) return 1;
+		++CPU[activeCPU].stackchecked;
+	}
 	if (CPU8086_internal_POPtimeout(0)) return 1; //POP timeout!
 	if (CPU8086_internal_POPw(2,&RET_val,0)) return 1;
     //Near return
@@ -3767,7 +3841,11 @@ word RETF_popbytes; //How many to pop?
 
 OPTINLINE byte CPU8086_internal_RETF(word popbytes, byte isimm)
 {
-	if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(2,0,0)) return 1; ++CPU[activeCPU].stackchecked; }
+	if (unlikely(CPU[activeCPU].stackchecked==0))
+	{
+		if (checkStackAccess(2,0,0)) return 1;
+		++CPU[activeCPU].stackchecked;
+	}
 	if (CPU8086_internal_POPtimeout(0)) return 1; //POP timeout!
 	if (CPU8086_internal_POPw(2,&RETF_val,0)) return 1;
 	if (CPU8086_internal_POPw(4,&RETF_destCS,0)) return 1;
@@ -3865,7 +3943,10 @@ OPTINLINE byte CPU8086_internal_XLAT()
 	return 0;
 }
 
-void CPU8086_external_XLAT() {CPU8086_internal_XLAT();} //External variant!
+void CPU8086_external_XLAT()
+{
+	CPU8086_internal_XLAT();
+} //External variant!
 
 byte secondparambase=0, writebackbase=0;
 OPTINLINE byte CPU8086_internal_XCHG8(byte *data1, byte *data2, byte flags)
@@ -3934,7 +4015,11 @@ OPTINLINE byte CPU8086_internal_XCHG8(byte *data1, byte *data2, byte flags)
 				break;
 			}
 		}
-		if ((data1==NULL) || (data2==NULL)) { CPU[activeCPU].executed = 0; return 1; } //Wait for execution phase to finish!
+		if ((data1==NULL) || (data2==NULL))
+		{
+			CPU[activeCPU].executed = 0;
+			return 1;
+		} //Wait for execution phase to finish!
 	}
 	if (data1) //Register?
 	{
@@ -4023,7 +4108,11 @@ OPTINLINE byte CPU8086_internal_XCHG16(word *data1, word *data2, byte flags)
 				break;
 			}
 		}
-		if ((data1==NULL) || (data2==NULL)) { CPU[activeCPU].executed = 0; return 1; } //Wait for execution phase to finish!
+		if ((data1==NULL) || (data2==NULL))
+		{
+			CPU[activeCPU].executed = 0;
+			return 1;
+		} //Wait for execution phase to finish!
 	}
 
 	if (data1) //Register?
@@ -6256,7 +6345,11 @@ void CPU8086_OP81() //GRP1 Ev,Iv
 		{
 			debugger_setcommand("CMP %s,%04X",&modrm_param1,imm); //CMP Eb, Ib
 		}
-		if (unlikely(CPU[activeCPU].modrmstep == 0)) { if (modrm_check16(&params, MODRM_src0, 1|0x40)) return; if (modrm_check16(&params, MODRM_src0, 1|0xA0)) return; } //Abort when needed!
+		if (unlikely(CPU[activeCPU].modrmstep == 0))
+		{
+			if (modrm_check16(&params, MODRM_src0, 1|0x40)) return;
+			if (modrm_check16(&params, MODRM_src0, 1|0xA0)) return;
+		} //Abort when needed!
 		if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src0)) return;
 		CMP_w(instructionbufferw,imm,3); //CMP Eb, Ib
 		break;
@@ -6801,12 +6894,20 @@ void CPU8086_OPFF() //GRP5 Ev
 		{
 			if (getcpumode() != CPU_MODE_PROTECTED) //Real mode or V86 mode?
 			{
-				if (unlikely(CPU[activeCPU].stackchecked == 0)) { if (checkStackAccess(2, 1, 0)) return; /*We're trying to push on the stack!*/ ++CPU[activeCPU].stackchecked; }
+				if (unlikely(CPU[activeCPU].stackchecked == 0))
+				{
+					if (checkStackAccess(2, 1, 0)) return; /*We're trying to push on the stack!*/
+					++CPU[activeCPU].stackchecked;
+				}
 			}
 		}
 		else if ((thereg == 2) || (thereg == 6)) //pushing something on the stack normally?
 		{
-			if (unlikely(CPU[activeCPU].stackchecked == 0)) { if (checkStackAccess(1, 1, 0)) return; ++CPU[activeCPU].stackchecked; }
+			if (unlikely(CPU[activeCPU].stackchecked == 0))
+			{
+				if (checkStackAccess(1, 1, 0)) return;
+				++CPU[activeCPU].stackchecked;
+			}
 		}
 		if (modrm_check16(&params,MODRM_src0,1|0xA0)) return; //Abort when needed!
 		if ((thereg==3) || (thereg==5)) //extra segment?
@@ -6891,7 +6992,8 @@ OPTINLINE void op_grp2_cycles(byte cnt, byte varshift)
 	}
 }
 
-byte op_grp2_8(byte cnt, byte varshift) {
+byte op_grp2_8(byte cnt, byte varshift)
+{
 	//word d,
 	INLINEREGISTER word s, shift, tempCF, msb;
 	INLINEREGISTER byte numcnt, maskcnt, overflow;
@@ -6899,13 +7001,15 @@ byte op_grp2_8(byte cnt, byte varshift) {
 	//if (cnt>0x8) return (oper1b); //NEC V20/V30+ limits shift count
 	numcnt = maskcnt = cnt; //Save count!
 	s = oper1b;
-	switch (thereg) {
+	switch (thereg)
+	{
 	case 0: //ROL r/m8
 		if (EMULATED_CPU >= CPU_NECV30) maskcnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
 		numcnt = maskcnt;
 		if (EMULATED_CPU>=CPU_80386) numcnt &= 7; //Operand size wrap!
 		overflow = numcnt?0:FLAG_OF;
-		for (shift = 1; shift <= numcnt; shift++) {
+		for (shift = 1; shift <= numcnt; shift++)
+		{
 			FLAGW_CF(s>>7); //Save MSB!
 			s = (s << 1)|FLAG_CF;
 			overflow = (((s >> 7) & 1)^FLAG_CF); //Only when not using CL?
@@ -6919,7 +7023,8 @@ byte op_grp2_8(byte cnt, byte varshift) {
 		numcnt = maskcnt;
 		if (EMULATED_CPU>=CPU_80386) numcnt &= 7; //Operand size wrap!
 		overflow = numcnt?0:FLAG_OF;
-		for (shift = 1; shift <= numcnt; shift++) {
+		for (shift = 1; shift <= numcnt; shift++)
+		{
 			FLAGW_CF(s); //Save LSB!
 			s = ((s >> 1)&0x7FU) | (FLAG_CF << 7);
 			overflow = ((s >> 7) ^ ((s >> 6) & 1)); //Only when not using CL?
@@ -6933,7 +7038,8 @@ byte op_grp2_8(byte cnt, byte varshift) {
 		numcnt = maskcnt;
 		if ((EMULATED_CPU>=CPU_80386) && (maskcnt>9)) numcnt %= 9; //Operand size wrap!
 		overflow = numcnt?0:FLAG_OF;
-		for (shift = 1; shift <= numcnt; shift++) {
+		for (shift = 1; shift <= numcnt; shift++)
+		{
 			tempCF = FLAG_CF;
 			FLAGW_CF(s>>7); //Save MSB!
 			s = (s << 1)|tempCF; //Shift and set CF!
@@ -6948,7 +7054,8 @@ byte op_grp2_8(byte cnt, byte varshift) {
 		numcnt = maskcnt;
 		if ((EMULATED_CPU>=CPU_80386) && (maskcnt>9)) numcnt %= 9; //Operand size wrap!
 		overflow = numcnt?0:FLAG_OF;
-		for (shift = 1; shift <= numcnt; shift++) {
+		for (shift = 1; shift <= numcnt; shift++)
+		{
 			overflow = (((s >> 7)&1)^FLAG_CF);
 			tempCF = FLAG_CF;
 			FLAGW_CF(s); //Save LSB!
@@ -6971,7 +7078,8 @@ byte op_grp2_8(byte cnt, byte varshift) {
 		}
 		//FLAGW_AF(0);
 		overflow = numcnt?0:FLAG_OF;
-		for (shift = 1; shift <= numcnt; shift++) {
+		for (shift = 1; shift <= numcnt; shift++)
+		{
 			FLAGW_CF(s>>7);
 			//if (s & 0x8) FLAGW_AF(1); //Auxiliary carry?
 			s = (s << 1) & 0xFFU;
@@ -6992,7 +7100,8 @@ byte op_grp2_8(byte cnt, byte varshift) {
 			//Adjusted according to IBMulator!
 			FLAGW_CF(s>>7); //Always sets CF, according to various sources?
 		}
-		for (shift = 1; shift <= numcnt; shift++) {
+		for (shift = 1; shift <= numcnt; shift++)
+		{
 			overflow = (s>>7);
 			if (numcnt&7) FLAGW_CF(s);
 			//backup = s; //Save backup!
@@ -7010,7 +7119,8 @@ byte op_grp2_8(byte cnt, byte varshift) {
 		//if (EMULATED_CPU>=CPU_80386) numcnt &= 7; //Limit count! Not to be limited!
 		msb = s & 0x80U;
 		//FLAGW_AF(0);
-		for (shift = 1; shift <= numcnt; shift++) {
+		for (shift = 1; shift <= numcnt; shift++)
+		{
 			FLAGW_CF(s);
 			//backup = s; //Save backup!
 			s = (s >> 1) | msb;
@@ -7044,7 +7154,8 @@ byte op_grp2_8(byte cnt, byte varshift) {
 	return (s & 0xFFU);
 }
 
-word op_grp2_16(byte cnt, byte varshift) {
+word op_grp2_16(byte cnt, byte varshift)
+{
 	//word d,
 	INLINEREGISTER uint_32 s, shift, tempCF, msb;
 	INLINEREGISTER byte numcnt, maskcnt, overflow;
@@ -7052,13 +7163,15 @@ word op_grp2_16(byte cnt, byte varshift) {
 	//if (cnt>0x8) return (oper1b); //NEC V20/V30+ limits shift count
 	numcnt = maskcnt = cnt; //Save count!
 	s = oper1;
-	switch (thereg) {
+	switch (thereg)
+	{
 	case 0: //ROL r/m16
 		if (EMULATED_CPU >= CPU_NECV30) maskcnt &= 0x1F; //Clear the upper 3 bits to become a NEC V20/V30+!
 		numcnt = maskcnt;
 		if (EMULATED_CPU>=CPU_80386) numcnt &= 0xF; //Operand size wrap!
 		overflow = numcnt?0:FLAG_OF;
-		for (shift = 1; shift <= numcnt; shift++) {
+		for (shift = 1; shift <= numcnt; shift++)
+		{
 			FLAGW_CF(s>>15); //Save MSB!
 			s = (s << 1)|FLAG_CF;
 			overflow = (((s >> 15) & 1)^FLAG_CF); //Only when not using CL?
@@ -7072,7 +7185,8 @@ word op_grp2_16(byte cnt, byte varshift) {
 		numcnt = maskcnt;
 		if (EMULATED_CPU>=CPU_80386) numcnt &= 0xF; //Operand size wrap!
 		overflow = numcnt?0:FLAG_OF;
-		for (shift = 1; shift <= numcnt; shift++) {
+		for (shift = 1; shift <= numcnt; shift++)
+		{
 			FLAGW_CF(s); //Save LSB!
 			s = ((s >> 1)&0x7FFFU) | (FLAG_CF << 15);
 			overflow = ((s >> 15) ^ ((s >> 14) & 1)); //Only when not using CL?
@@ -7086,7 +7200,8 @@ word op_grp2_16(byte cnt, byte varshift) {
 		numcnt = maskcnt;
 		if ((EMULATED_CPU>=CPU_80386) && (maskcnt>17)) numcnt %= 17; //Operand size wrap!
 		overflow = numcnt?0:FLAG_OF;
-		for (shift = 1; shift <= numcnt; shift++) {
+		for (shift = 1; shift <= numcnt; shift++)
+		{
 			tempCF = FLAG_CF;
 			FLAGW_CF(s>>15); //Save MSB!
 			s = (s << 1)|tempCF; //Shift and set CF!
@@ -7101,7 +7216,8 @@ word op_grp2_16(byte cnt, byte varshift) {
 		numcnt = maskcnt;
 		if ((EMULATED_CPU>=CPU_80386) && (maskcnt>17)) numcnt %= 17; //Operand size wrap!
 		overflow = numcnt?0:FLAG_OF; //Default: no overflow!
-		for (shift = 1; shift <= numcnt; shift++) {
+		for (shift = 1; shift <= numcnt; shift++)
+		{
 			overflow = ((s >> 15)^FLAG_CF);
 			tempCF = FLAG_CF;
 			FLAGW_CF(s); //Save LSB!
@@ -7116,7 +7232,8 @@ word op_grp2_16(byte cnt, byte varshift) {
 		numcnt = maskcnt;
 		//FLAGW_AF(0);
 		overflow = numcnt?0:FLAG_OF; //Default: no overflow!
-		for (shift = 1; shift <= numcnt; shift++) {
+		for (shift = 1; shift <= numcnt; shift++)
+		{
 			FLAGW_CF(s>>15);
 			//if (s & 0x8) FLAGW_AF(1); //Auxiliary carry?
 			s = (s << 1) & 0xFFFFU;
@@ -7133,7 +7250,8 @@ word op_grp2_16(byte cnt, byte varshift) {
 		numcnt = maskcnt;
 		//FLAGW_AF(0);
 		overflow = numcnt?0:FLAG_OF; //Default: no overflow!
-		for (shift = 1; shift <= numcnt; shift++) {
+		for (shift = 1; shift <= numcnt; shift++)
+		{
 			overflow = (s>>15);
 			FLAGW_CF(s);
 			//backup = s; //Save backup!
@@ -7151,7 +7269,8 @@ word op_grp2_16(byte cnt, byte varshift) {
 		numcnt = maskcnt;
 		msb = s & 0x8000U;
 		//FLAGW_AF(0);
-		for (shift = 1; shift <= numcnt; shift++) {
+		for (shift = 1; shift <= numcnt; shift++)
+		{
 			FLAGW_CF(s);
 			//backup = s; //Save backup!
 			s = (s >> 1) | msb;
@@ -7185,7 +7304,8 @@ word op_grp2_16(byte cnt, byte varshift) {
 	return (s & 0xFFFFU);
 }
 
-OPTINLINE void op_div8(word valdiv, byte divisor) {
+OPTINLINE void op_div8(word valdiv, byte divisor)
+{
 	word quotient, remainder; //Result and modulo!
 	byte error, applycycles; //Error/apply cycles!
 	applycycles = 1; //Default: apply cycles!
@@ -7211,7 +7331,8 @@ OPTINLINE void op_div8(word valdiv, byte divisor) {
 	*/
 }
 
-OPTINLINE void op_idiv8(word valdiv, byte divisor) {
+OPTINLINE void op_idiv8(word valdiv, byte divisor)
+{
 	//word v1, v2,
 	word quotient, remainder; //Result and modulo!
 	byte error, applycycles; //Error/apply cycles!
@@ -7251,12 +7372,14 @@ byte tempAL;
 word tempAX;
 uint_32 tempDXAX;
 
-void op_grp3_8() {
+void op_grp3_8()
+{
 	byte applycycles;
 	//uint32_t d1, d2, s1, s2, sign;
 	//word d, s;
 	oper1 = signext(oper1b); oper2 = signext(oper2b);
-	switch (thereg) {
+	switch (thereg)
+	{
 	case 0: case 1: //TEST
 		CPU8086_internal_TEST8(oper1b,immb,3);
 		break;
@@ -7378,7 +7501,8 @@ void op_grp3_8() {
 	}
 }
 
-OPTINLINE void op_div16(uint32_t valdiv, word divisor) {
+OPTINLINE void op_div16(uint32_t valdiv, word divisor)
+{
 	//word v1, v2;
 	word quotient, remainder; //Result and modulo!
 	byte error, applycycles; //Error/apply cycles!
@@ -7405,7 +7529,8 @@ OPTINLINE void op_div16(uint32_t valdiv, word divisor) {
 	*/
 }
 
-OPTINLINE void op_idiv16(uint32_t valdiv, word divisor) {
+OPTINLINE void op_idiv16(uint32_t valdiv, word divisor)
+{
 	//uint32_t v1, v2,
 	word quotient, remainder; //Result and modulo!
 	byte error, applycycles; //Error/apply cycles!
@@ -7431,13 +7556,15 @@ OPTINLINE void op_idiv16(uint32_t valdiv, word divisor) {
 	*/
 }
 
-void op_grp3_16() {
+void op_grp3_16()
+{
 	byte applycycles;
 	//uint32_t d1, d2, s1, s2, sign;
 	//word d, s;
 	//oper1 = signext(oper1b); oper2 = signext(oper2b);
 	//snprintf(msg,sizeof(msg), "  Oper1: %04X    Oper2: %04X\n", oper1, oper2); print(msg);
-	switch (thereg) {
+	switch (thereg)
+	{
 	case 0: case 1: //TEST
 		CPU8086_internal_TEST16(oper1, immw, 3);
 		break;
@@ -7547,10 +7674,12 @@ void op_grp3_16() {
 	}
 }
 
-void op_grp5() {
+void op_grp5()
+{
 	MODRM_PTR info; //To contain the info!
 	static word destCS;
-	switch (thereg) {
+	switch (thereg)
+	{
 	case 0: //INC Ev
 		if (unlikely(CPU[activeCPU].internalinstructionstep==0)) 
 		{
