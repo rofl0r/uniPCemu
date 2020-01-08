@@ -158,7 +158,7 @@ void CPU486_OP0F08() //INVD?
 
 void CPU486_OP0F09() //WBINVD?
 {
-	modrm_generateInstructionTEXT("INVD",0,0,PARAM_NONE);
+	modrm_generateInstructionTEXT("WBINVD",0,0,PARAM_NONE);
 	if (getcpumode()!=CPU_MODE_REAL) //Protected mode?
 	{
 		if (getCPL())
