@@ -212,7 +212,11 @@ New opcodes for 80186+!
 void CPU186_OP60()
 {
 	debugger_setcommand("PUSHA");
-	if (unlikely(CPU[activeCPU].stackchecked == 0)) { if (checkStackAccess(8, 1, 0)) return; /*Abort on fault!*/ ++CPU[activeCPU].stackchecked; }
+	if (unlikely(CPU[activeCPU].stackchecked == 0))
+	{
+		if (checkStackAccess(8, 1, 0)) return; /*Abort on fault!*/
+		++CPU[activeCPU].stackchecked;
+	}
 	static word oldSP;
 	oldSP = (word)CPU[activeCPU].oldESP;    //PUSHA
 	if (CPU8086_PUSHw(0,&REG_AX,0)) return;
@@ -244,7 +248,11 @@ void CPU186_OP61()
 {
 	word dummy;
 	debugger_setcommand("POPA");
-	if (unlikely(CPU[activeCPU].stackchecked == 0)) { if (checkStackAccess(8, 0, 0)) return; /*Abort on fault!*/ ++CPU[activeCPU].stackchecked; }
+	if (unlikely(CPU[activeCPU].stackchecked == 0))
+	{
+		if (checkStackAccess(8, 0, 0)) return; /*Abort on fault!*/
+		++CPU[activeCPU].stackchecked;
+	}
 	if (CPU8086_POPw(0,&REG_DI,0)) return;
 	CPUPROT1
 	if (CPU8086_POPw(2,&REG_SI,0)) return;
@@ -321,7 +329,11 @@ void CPU186_OP68()
 {
 	word val = immw;    //PUSH Iz
 	debugger_setcommand("PUSH %04X",val);
-	if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(1,1,0)) return; ++CPU[activeCPU].stackchecked; } //Abort on fault!
+	if (unlikely(CPU[activeCPU].stackchecked==0))
+	{
+		if (checkStackAccess(1,1,0)) return;
+		++CPU[activeCPU].stackchecked;
+	} //Abort on fault!
 	if (CPU8086_PUSHw(0,&val,0)) return; //PUSH!
 	CPU_apply286cycles(); //Apply the 80286+ cycles!
 }
@@ -378,7 +390,11 @@ void CPU186_OP6A()
 	word val = (word)immb; //Read the value!
 	if (val&0x80) val |= 0xFF00; //Sign-extend!
 	debugger_setcommand("PUSH %02X",(val&0xFF)); //PUSH this!
-	if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(1,1,0)) return; ++CPU[activeCPU].stackchecked; } //Abort on fault!
+	if (unlikely(CPU[activeCPU].stackchecked==0))
+	{
+		if (checkStackAccess(1,1,0)) return;
+		++CPU[activeCPU].stackchecked;
+	} //Abort on fault!
 	if (CPU8086_PUSHw(0,&val,0)) return;    //PUSH Ib
 	CPU_apply286cycles(); //Apply the 80286+ cycles!
 }
@@ -798,7 +814,11 @@ void CPU186_OPC9()
 		REG_SP = REG_BP; //LEAVE starting!
 		++CPU[activeCPU].instructionstep; //Next step!
 	}
-	if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(1,0,0)) return; ++CPU[activeCPU].stackchecked; } //Abort on fault!
+	if (unlikely(CPU[activeCPU].stackchecked==0))
+	{
+		if (checkStackAccess(1,0,0)) return;
+		++CPU[activeCPU].stackchecked;
+	} //Abort on fault!
 	if (CPU8086_POPw(1,&REG_BP,0)) //Not done yet?
 	{
 		return; //Abort!

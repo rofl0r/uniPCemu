@@ -4741,7 +4741,11 @@ void op_grp5_32() {
 void CPU386_OP60()
 {
 	debugger_setcommand("PUSHAD");
-	if (unlikely(CPU[activeCPU].stackchecked == 0)) { if (checkStackAccess(8, 1, 1)) return; /*Abort on fault!*/ ++CPU[activeCPU].stackchecked; }
+	if (unlikely(CPU[activeCPU].stackchecked == 0))
+	{
+		if (checkStackAccess(8, 1, 1)) return; /*Abort on fault!*/
+		++CPU[activeCPU].stackchecked;
+	}
 	static uint_32 oldESP;
 	oldESP = CPU[activeCPU].oldESP;    //PUSHA
 	if (CPU80386_PUSHdw(0,&REG_EAX)) return;
@@ -4773,7 +4777,11 @@ void CPU386_OP61()
 {
 	uint_32 dummy;
 	debugger_setcommand("POPAD");
-	if (unlikely(CPU[activeCPU].stackchecked == 0)) { if (checkStackAccess(8, 0, 1)) return; /*Abort on fault!*/ ++CPU[activeCPU].stackchecked; }
+	if (unlikely(CPU[activeCPU].stackchecked == 0))
+	{
+		if (checkStackAccess(8, 0, 1)) return; /*Abort on fault!*/
+		++CPU[activeCPU].stackchecked;
+	}
 	if (CPU80386_POPdw(0,&REG_EDI)) return;
 	CPUPROT1
 	if (CPU80386_POPdw(2,&REG_ESI)) return;
@@ -4850,7 +4858,11 @@ void CPU386_OP68()
 {
 	uint_32 val = imm32;    //PUSH Iz
 	debugger_setcommand("PUSH %08X",val);
-	if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(1,1,1)) return; ++CPU[activeCPU].stackchecked; } //Abort on fault!
+	if (unlikely(CPU[activeCPU].stackchecked==0))
+	{
+		if (checkStackAccess(1,1,1)) return;
+		++CPU[activeCPU].stackchecked;
+	} //Abort on fault!
 	if (CPU80386_PUSHdw(0,&val)) return; //PUSH!
 	CPU_apply286cycles(); //Apply the 80286+ cycles!
 }
@@ -4909,7 +4921,11 @@ void CPU386_OP6A()
 	uint_32 val = (uint_32)immb; //Read the value!
 	if (immb&0x80) val |= 0xFFFFFF00; //Sign-extend to 32-bit!
 	debugger_setcommand("PUSH %02X",(val&0xFF)); //PUSH this!
-	if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(1,1,1)) return; ++CPU[activeCPU].stackchecked; } //Abort on fault!
+	if (unlikely(CPU[activeCPU].stackchecked==0))
+	{
+		if (checkStackAccess(1,1,1)) return;
+		++CPU[activeCPU].stackchecked;
+	} //Abort on fault!
 	if (CPU80386_PUSHdw(0,&val)) return;    //PUSH Ib
 	CPU_apply286cycles(); //Apply the 80286+ cycles!
 }
@@ -5300,7 +5316,11 @@ void CPU386_OPC9_32()
 		}
 		++CPU[activeCPU].instructionstep; //Next step!
 	}
-	if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(1,0,1)) return; ++CPU[activeCPU].stackchecked; } //Abort on fault!
+	if (unlikely(CPU[activeCPU].stackchecked==0))
+	{
+		if (checkStackAccess(1,0,1)) return;
+		++CPU[activeCPU].stackchecked;
+	} //Abort on fault!
 	if (CPU80386_POPdw(1,&REG_EBP)) //Not done yet?
 	{
 		return; //Abort!
@@ -5323,7 +5343,11 @@ void CPU386_OPC9_16()
 		}
 		++CPU[activeCPU].instructionstep; //Next step!
 	}
-	if (unlikely(CPU[activeCPU].stackchecked==0)) { if (checkStackAccess(1,0,0)) return; ++CPU[activeCPU].stackchecked; } //Abort on fault!
+	if (unlikely(CPU[activeCPU].stackchecked==0))
+	{
+		if (checkStackAccess(1,0,0)) return;
+		++CPU[activeCPU].stackchecked;
+	} //Abort on fault!
 	if (CPU8086_POPw(1,&REG_BP,0)) //Not done yet?
 	{
 		return; //Abort!
