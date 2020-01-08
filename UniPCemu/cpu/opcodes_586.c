@@ -191,7 +191,11 @@ void CPU80586_OPCD() {
 		}
 	}
 
-	if (isV86() && (FLAG_PL != 3)) { THROWDESCGP(0, 0, 0); return; }
+	if (isV86() && (FLAG_PL != 3))
+	{
+		THROWDESCGP(0, 0, 0);
+		return;
+	}
 	CPU_executionphase_startinterrupt(theimm, 0, -2);/*INT imm8*/
 }
 
@@ -219,7 +223,10 @@ void CPU80586_OPFA() {
 				)
 			)
 		{
-			if (checkSTICLI()) { FLAGW_IF(0); }
+			if (checkSTICLI())
+			{
+				FLAGW_IF(0);
+			}
 		}
 		else //PVI=1, CPL=3 and IOPL<3 in protected mode?
 		{
@@ -257,7 +264,11 @@ void CPU80586_OPFB() {
 				)
 			)
 		{
-			if (checkSTICLI()) { FLAGW_IF(1); CPU[activeCPU].allowInterrupts = 0; /* Inhabit all interrupts up to the next instruction */ }
+			if (checkSTICLI())
+			{
+				FLAGW_IF(1);
+				CPU[activeCPU].allowInterrupts = 0; /* Inhabit all interrupts up to the next instruction */
+			}
 		}
 		else //PVI=1, CPL=3 and IOPL<3 in protected mode?
 		{
@@ -291,9 +302,16 @@ void CPU80586_OP9C_16() {
 			THROWDESCGP(0, 0, 0); return; /*#GP fault!*/
 		}
 	}
-	if (unlikely(CPU[activeCPU].stackchecked == 0)) { if (checkStackAccess(1, 1, 0)) return; ++CPU[activeCPU].stackchecked; }
+	if (unlikely(CPU[activeCPU].stackchecked == 0))
+	{
+		if (checkStackAccess(1, 1, 0)) return;
+		++CPU[activeCPU].stackchecked;
+	}
 	if (CPU8086_PUSHw(0, &theflags, 0)) return;
-	if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 10 - EU_CYCLES_SUBSTRACT_ACCESSWRITE; /*PUSHF timing!*/ }
+	if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+	{
+		CPU[activeCPU].cycles_OP += 10 - EU_CYCLES_SUBSTRACT_ACCESSWRITE; /*PUSHF timing!*/
+	}
 }
 void CPU80586_OP9D_16() {
 	modrm_generateInstructionTEXT("POPF", 0, 0, PARAM_NONE);/*POPF*/
@@ -305,43 +323,75 @@ void CPU80586_OP9D_16() {
 		}
 	}
 	static word tempflags;
-	if (unlikely(CPU[activeCPU].stackchecked == 0)) { if (checkStackAccess(1, 0, 0)) return; ++CPU[activeCPU].stackchecked; }
+	if (unlikely(CPU[activeCPU].stackchecked == 0))
+	{
+		if (checkStackAccess(1, 0, 0)) return;
+		++CPU[activeCPU].stackchecked;
+	}
 	if (CPU80586_instructionstepPOPtimeout(0)) return; /*POP timeout*/
 	if (CPU8086_POPw(2, &tempflags, 0)) return;
 	if ((getcpumode()==CPU_MODE_8086) && (CPU[activeCPU].registers->CR4 & 1) && (FLAG_PL!=3)) //VME?
 	{
 		if (tempflags&F_TF) //If stack image TF=1, Then #GP(0)!
 		{
-			THROWDESCGP(0, 0, 0); return; //#GP fault!
+			THROWDESCGP(0, 0, 0); //#GP fault!
 			return;
 		}
 		if (FLAG_VIP && (tempflags&F_IF)) //Virtual interrupt flag set during POPF?
 		{
-			THROWDESCGP(0, 0, 0); return; //#GP fault!
+			THROWDESCGP(0, 0, 0); //#GP fault!
+			return;
 		}
 		else //POP Interrupt flag to VIF!
 		{
 			FLAGW_VIF((tempflags&F_IF)?1:0); //VIF from stack IF!
 		}
 	}
-	if (disallowPOPFI()) { tempflags &= ~0x200; tempflags |= REG_FLAGS & 0x200; /* Ignore any changes to the Interrupt flag! */ }
-	if (getCPL()) { tempflags &= ~0x3000; tempflags |= REG_FLAGS & 0x3000; /* Ignore any changes to the IOPL when not at CPL 0! */ }
+	if (disallowPOPFI())
+	{
+		tempflags &= ~0x200;
+		tempflags |= REG_FLAGS & 0x200; /* Ignore any changes to the Interrupt flag! */
+	}
+	if (getCPL())
+	{
+		tempflags &= ~0x3000;
+		tempflags |= REG_FLAGS & 0x3000; /* Ignore any changes to the IOPL when not at CPL 0! */
+	}
 	REG_FLAGS = tempflags;
 	updateCPUmode(); /*POPF*/
-	if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 8 - EU_CYCLES_SUBSTRACT_ACCESSREAD; /*POPF timing!*/ }
+	if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+	{
+		CPU[activeCPU].cycles_OP += 8 - EU_CYCLES_SUBSTRACT_ACCESSREAD; /*POPF timing!*/
+	}
 	CPU[activeCPU].allowTF = 0; /*Disallow TF to be triggered after the instruction!*/
 	/*CPU[activeCPU].unaffectedRF = 1;*/ //Default: affected!
 }
 
 void CPU80586_OP9D_32() {
 	modrm_generateInstructionTEXT("POPFD", 0, 0, PARAM_NONE);/*POPF*/
-	if (unlikely((getcpumode() == CPU_MODE_8086) && (FLAG_PL != 3))) { THROWDESCGP(0, 0, 0); return; }//#GP fault!
+	if (unlikely((getcpumode() == CPU_MODE_8086) && (FLAG_PL != 3)))
+	{
+		THROWDESCGP(0, 0, 0);
+		return;
+	}//#GP fault!
 	static uint_32 tempflags;
-	if (unlikely(CPU[activeCPU].stackchecked == 0)) { if (checkStackAccess(1, 0, 1)) return; ++CPU[activeCPU].stackchecked; }
+	if (unlikely(CPU[activeCPU].stackchecked == 0))
+	{
+		if (checkStackAccess(1, 0, 1)) return;
+		++CPU[activeCPU].stackchecked;
+	}
 	if (CPU80586_instructionstepPOPtimeout(0)) return; /*POP timeout*/
 	if (CPU80386_POPdw(2, &tempflags)) return;
-	if (disallowPOPFI()) { tempflags &= ~0x200; tempflags |= REG_FLAGS & 0x200; /* Ignore any changes to the Interrupt flag! */ }
-	if (getCPL()) { tempflags &= ~0x3000; tempflags |= REG_FLAGS & 0x3000; /* Ignore any changes to the IOPL when not at CPL 0! */ }
+	if (disallowPOPFI())
+	{
+		tempflags &= ~0x200;
+		tempflags |= REG_FLAGS & 0x200; /* Ignore any changes to the Interrupt flag! */
+	}
+	if (getCPL())
+	{
+		tempflags &= ~0x3000;
+		tempflags |= REG_FLAGS & 0x3000; /* Ignore any changes to the IOPL when not at CPL 0! */
+	}
 	if (getcpumode() == CPU_MODE_8086) //Virtual 8086 mode?
 	{
 		if (FLAG_PL == 3) //IOPL 3?
@@ -362,7 +412,10 @@ void CPU80586_OP9D_32() {
 	}
 	REG_EFLAGS = tempflags;
 	updateCPUmode(); /*POPF*/
-	if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */ { CPU[activeCPU].cycles_OP += 8 - EU_CYCLES_SUBSTRACT_ACCESSREAD; /*POPF timing!*/ }
+	if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+	{
+		CPU[activeCPU].cycles_OP += 8 - EU_CYCLES_SUBSTRACT_ACCESSREAD; /*POPF timing!*/
+	}
 	CPU[activeCPU].allowTF = 0; /*Disallow TF to be triggered after the instruction!*/
 	/*CPU[activeCPU].unaffectedRF = 1;*/ //Default: affected!
 }
