@@ -152,6 +152,15 @@ word Packetserver_totalClients = 0; //How many clients are available?
 //ESC is being send(send after ESC)
 #define SLIP_ESC_ESC 0xDD
 
+//PPP reserved values
+//End of frame byte
+#define PPP_END 0x7E
+//Escape
+#define PPP_ESC 0x7D
+//Escaped value encoding and decoding
+#define PPP_ENCODEESC(val) (val^0x20)
+#define PPP_DECODEESC(val) (val^0x20)
+
 #ifdef PACKETSERVER_ENABLED
 struct netstruct { //Supported, thus use!
 #else
@@ -640,7 +649,7 @@ byte packetserver_authenticate(sword client)
 	char *p;
 #endif
 #endif
-	if ((strcmp(Packetserver_clients[client].packetserver_protocol, "slip") == 0) || (strcmp(Packetserver_clients[client].packetserver_protocol, "ethernetslip") == 0) || (strcmp(Packetserver_clients[client].packetserver_protocol, "ipxslip") == 0)) //Valid protocol?
+	if ((strcmp(Packetserver_clients[client].packetserver_protocol, "slip") == 0) || (strcmp(Packetserver_clients[client].packetserver_protocol, "ethernetslip") == 0) || (strcmp(Packetserver_clients[client].packetserver_protocol, "ipxslip") == 0)  || (strcmp(Packetserver_clients[client].packetserver_protocol, "ppp") == 0)) //Valid protocol?
 	{
 #ifdef PACKETSERVER_ENABLED
 #ifndef NOPCAP
@@ -3035,28 +3044,59 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 											//Start transmitting data into the buffer, according to the protocol!
 											--Packetserver_clients[connectedclient].packetserver_bytesleft;
 											datatotransmit = Packetserver_clients[connectedclient].packet[Packetserver_clients[connectedclient].packetserver_packetpos++]; //Read the data to construct!
-											if (datatotransmit == SLIP_END) //End byte?
+											if (Packetserver_clients[connectedclient].packetserver_slipprotocol==3) //PPP?
 											{
-												//dolog("ethernetcard","transmitting escaped SLIP END to client");
-												writefifobuffer(Packetserver_clients[connectedclient].packetserver_receivebuffer, SLIP_ESC); //Escaped ...
-												writefifobuffer(Packetserver_clients[connectedclient].packetserver_receivebuffer, SLIP_ESC_END); //END raw data!
+												if (datatotransmit == PPP_END) //End byte?
+												{
+													//dolog("ethernetcard","transmitting escaped SLIP END to client");
+													writefifobuffer(Packetserver_clients[connectedclient].packetserver_receivebuffer, PPP_ESC); //Escaped ...
+													writefifobuffer(Packetserver_clients[connectedclient].packetserver_receivebuffer, PPP_ENCODEESC(PPP_ESC)); //END raw data!
+												}
+												else if (datatotransmit == PPP_ESC) //ESC byte?
+												{
+													//dolog("ethernetcard","transmitting escaped SLIP ESC to client");
+													writefifobuffer(Packetserver_clients[connectedclient].packetserver_receivebuffer, PPP_ESC); //Escaped ...
+													writefifobuffer(Packetserver_clients[connectedclient].packetserver_receivebuffer, PPP_ENCODEESC(PPP_ESC)); //ESC raw data!
+												}
+												else //Normal data?
+												{
+													//dolog("ethernetcard","transmitting raw to client: %02X",datatotransmit);
+													writefifobuffer(Packetserver_clients[connectedclient].packetserver_receivebuffer, datatotransmit); //Unescaped!
+												}
 											}
-											else if (datatotransmit == SLIP_ESC) //ESC byte?
+											else //SLIP?
 											{
-												//dolog("ethernetcard","transmitting escaped SLIP ESC to client");
-												writefifobuffer(Packetserver_clients[connectedclient].packetserver_receivebuffer, SLIP_ESC); //Escaped ...
-												writefifobuffer(Packetserver_clients[connectedclient].packetserver_receivebuffer, SLIP_ESC_ESC); //ESC raw data!
-											}
-											else //Normal data?
-											{
-												//dolog("ethernetcard","transmitting raw to client: %02X",datatotransmit);
-												writefifobuffer(Packetserver_clients[connectedclient].packetserver_receivebuffer, datatotransmit); //Unescaped!
+												if (datatotransmit == SLIP_END) //End byte?
+												{
+													//dolog("ethernetcard","transmitting escaped SLIP END to client");
+													writefifobuffer(Packetserver_clients[connectedclient].packetserver_receivebuffer, SLIP_ESC); //Escaped ...
+													writefifobuffer(Packetserver_clients[connectedclient].packetserver_receivebuffer, SLIP_ESC_END); //END raw data!
+												}
+												else if (datatotransmit == SLIP_ESC) //ESC byte?
+												{
+													//dolog("ethernetcard","transmitting escaped SLIP ESC to client");
+													writefifobuffer(Packetserver_clients[connectedclient].packetserver_receivebuffer, SLIP_ESC); //Escaped ...
+													writefifobuffer(Packetserver_clients[connectedclient].packetserver_receivebuffer, SLIP_ESC_ESC); //ESC raw data!
+												}
+												else //Normal data?
+												{
+													//dolog("ethernetcard","transmitting raw to client: %02X",datatotransmit);
+													writefifobuffer(Packetserver_clients[connectedclient].packetserver_receivebuffer, datatotransmit); //Unescaped!
+												}
 											}
 										}
 										else //Finished transferring a frame?
 										{
-											//dolog("ethernetcard","transmitting SLIP END to client and finishing packet buffer(size: %u)",net.pktlen);
-											writefifobuffer(Packetserver_clients[connectedclient].packetserver_receivebuffer, SLIP_END); //END of frame!
+											if (Packetserver_clients[connectedclient].packetserver_slipprotocol==3) //PPP?
+											{
+												//dolog("ethernetcard","transmitting PPP END to client and finishing packet buffer(size: %u)",net.pktlen);
+												writefifobuffer(Packetserver_clients[connectedclient].packetserver_receivebuffer, PPP_END); //END of frame!
+											}
+											else //SLIP?
+											{
+												//dolog("ethernetcard","transmitting SLIP END to client and finishing packet buffer(size: %u)",net.pktlen);
+												writefifobuffer(Packetserver_clients[connectedclient].packetserver_receivebuffer, SLIP_END); //END of frame!
+											}
 											//logpacket(0,Packetserver_clients[connectedclient].packet,Packetserver_clients[connectedclient].pktlen); //Log it!
 											freez((void **)&Packetserver_clients[connectedclient].packet, Packetserver_clients[connectedclient].pktlen, "SERVER_PACKET"); //Release the packet to receive new packets again!
 											Packetserver_clients[connectedclient].packet = NULL; //Discard the packet anyway, no matter what!
@@ -3094,7 +3134,12 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 									ethernetheader.dst[b] = packetserver_gatewayMAC[b]; //Gateway MAC is the destination!
 									ethernetheader.src[b] = packetserver_sourceMAC[b]; //Packet server MAC is the source!
 								}
-								if (Packetserver_clients[connectedclient].packetserver_slipprotocol==2) //IPX?
+								if (Packetserver_clients[connectedclient].packetserver_slipprotocol==3) //PPP?
+								{
+									//Unknown how to handle this atm!
+									goto noPPPtransmit; //Ignore the transmitter for now!
+								}
+								else if (Packetserver_clients[connectedclient].packetserver_slipprotocol==2) //IPX?
 								{
 									ethernetheader.type = SDL_SwapBE16(0x8137); //We're an IPX packet!
 								}
@@ -3112,6 +3157,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 								if (Packetserver_clients[connectedclient].packetserver_transmitlength != 14) //Failed to generate header?
 								{
 									dolog("ethernetcard", "Error: Transmit initialization failed. Resetting transmitter!");
+									noPPPtransmit:
 									Packetserver_clients[connectedclient].packetserver_transmitlength = 0; //Abort the packet generation!
 								}
 								else
@@ -3119,14 +3165,19 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 									//dolog("ethernetcard","Header for transmitting to the server has been setup!");
 								}
 							}
-							if (datatotransmit == SLIP_END) //End-of-frame? Send the frame!
+							if (((datatotransmit == SLIP_END) && (Packetserver_clients[connectedclient].packetserver_slipprotocol!=3))
+									|| ((datatotransmit==PPP_END) && (Packetserver_clients[connectedclient].packetserver_slipprotocol==3)) //End-of-frame? Send the frame!
 							{
-								if (Packetserver_clients[connectedclient].packetserver_transmitstate) //Were we already escaping?
+								if (Packetserver_clients[connectedclient].packetserver_transmitstate && (Packetserver_clients[connectedclient].packetserver_slipprotocol!=3)) //Were we already escaping?
 								{
 									if (packetServerAddWriteQueue(connectedclient, SLIP_ESC)) //Ignore the escaped sequence: it's invalid, thus parsed raw!
 									{
 										Packetserver_clients[connectedclient].packetserver_transmitstate = 0; //We're not escaping something anymore!
 									}
+								}
+								else if (Packetserver_clients[connectedclient].packetserver_transmitstate) //Escaped with  PPP?
+								{
+									Packetserver_clients[connectedclient].packetserver_transmitstate = 0; //Stopmescaping!
 								}
 								if (Packetserver_clients[connectedclient].packetserver_transmitstate == 0) //Ready to send the packet(not waiting for the buffer to free)?
 								{
@@ -3160,7 +3211,29 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 									Packetserver_clients[connectedclient].packetserver_transmitstate = 0; //Not escaped anymore!
 								}
 							}
-							else if (datatotransmit == SLIP_ESC) //Escaped something?
+							else if ((Packetserver_clients[connectedclient].packetserver_transmitstate) && (Packetserver_clients[connectedclient].packetserver_slipprotocol==3)) //PPP ESCaped value?
+							{
+								if (Packetserver_clients[connectedclient].packetserver_transmitlength) //Gotten a valid packet?
+								{
+										if (packetServerAddWriteQueue(connectedclient, PPP_DECODEESC(datatotransmit))) //Added to the queue?
+										{
+											readfifobuffer(modem.inputdatabuffer[connectedclient], &datatotransmit); //Ignore the data, just discard the packet byte!
+											Packetserver_clients[connectedclient].packetserver_transmitstate = 0; //We're not escaping something anymore!
+										}
+									}
+								}
+								else //Unable to parse into the buffer? Discard!
+								{
+									readfifobuffer(modem.inputdatabuffer[connectedclient], &datatotransmit); //Ignore the data, just discard the packet byte!
+									Packetserver_clients[connectedclient].packetserver_transmitstate = 0; //We're not escaping something anymore!
+								}
+							}
+							else if ((datatotransmit==PPP_ESC) && (Packetserver_clients[connectedclient].packetserver_slipprotocol==3)) //PPP ESC?
+							{
+								readfifobuffer(modem.inputdatabuffer[connectedclient], &datatotransmit); //Discard, as it's processed!
+								Packetserver_clients[connectedclient].packetserver_transmitstate = 1; //We're escaping something! Multiple escapes are ignored and not sent!
+							}
+							else if ((datatotransmit == SLIP_ESC) && (Packetserver_clients[connectedclient].packetserver_slipprotocol!=3)) //Escaped something?
 							{
 								if (Packetserver_clients[connectedclient].packetserver_transmitstate) //Were we already escaping?
 								{
@@ -3175,7 +3248,14 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 									Packetserver_clients[connectedclient].packetserver_transmitstate = 1; //We're escaping something! Multiple escapes are ignored and not sent!
 								}
 							}
-							else //Active data?
+							else if (Packetserver_clients[connectedclient].packetserver_slipprotocol==3) //Active PPP data?
+							{
+								if (Packetserver_clients[connectedclient].packetserver_transmitlength) //Gotten a valid packet?
+								{
+									goto addUnescapedValue; //Process an unescaped PPP value!
+								}
+							}
+							else if (Packetserver_clients[connectedclient].packetserver_slipprotocol!=3) //Active SLIP data?
 							{
 								if (Packetserver_clients[connectedclient].packetserver_transmitlength) //Gotten a valid packet?
 								{
@@ -3204,6 +3284,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 												Packetserver_clients[connectedclient].packetserver_transmitstate = 0; //We're not escaping something anymore!
 											}
 										}
+										addUnescapedValue:
 										if (Packetserver_clients[connectedclient].packetserver_transmitstate==0) //Can we parse the raw data?
 										{
 											if (packetServerAddWriteQueue(connectedclient, datatotransmit)) //Added to the queue?
@@ -3274,7 +3355,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 								if (Packetserver_clients[connectedclient].packetserver_credentials_invalid) goto packetserver_autherror; //Authentication error!
 								if (packetserver_authenticate(connectedclient)) //Authenticated?
 								{
-									Packetserver_clients[connectedclient].packetserver_slipprotocol = (strcmp(Packetserver_clients[connectedclient].packetserver_protocol, "ipxslip") == 0)?2:((strcmp(Packetserver_clients[connectedclient].packetserver_protocol, "slip") == 0) ? 1 : 0); //Are we using the slip protocol?
+									Packetserver_clients[connectedclient].packetserver_slipprotocol = (strcmp(Packetserver_clients[connectedclient].packetserver_protocol, "ppp") == 0)?3:((strcmp(Packetserver_clients[connectedclient].packetserver_protocol, "ipxslip") == 0)?2:((strcmp(Packetserver_clients[connectedclient].packetserver_protocol, "slip") == 0) ? 1 : 0)); //Are we using the slip protocol?
 									Packetserver_clients[connectedclient].packetserver_stage = PACKETSTAGE_INFORMATION; //We're logged in!
 								}
 								else goto packetserver_autherror; //Authentication error!
