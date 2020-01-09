@@ -3166,7 +3166,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 								}
 							}
 							if (((datatotransmit == SLIP_END) && (Packetserver_clients[connectedclient].packetserver_slipprotocol!=3))
-									|| ((datatotransmit==PPP_END) && (Packetserver_clients[connectedclient].packetserver_slipprotocol==3)) //End-of-frame? Send the frame!
+									|| ((datatotransmit==PPP_END) && (Packetserver_clients[connectedclient].packetserver_slipprotocol==3))) //End-of-frame? Send the frame!
 							{
 								if (Packetserver_clients[connectedclient].packetserver_transmitstate && (Packetserver_clients[connectedclient].packetserver_slipprotocol!=3)) //Were we already escaping?
 								{
@@ -3215,11 +3215,10 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 							{
 								if (Packetserver_clients[connectedclient].packetserver_transmitlength) //Gotten a valid packet?
 								{
-										if (packetServerAddWriteQueue(connectedclient, PPP_DECODEESC(datatotransmit))) //Added to the queue?
-										{
-											readfifobuffer(modem.inputdatabuffer[connectedclient], &datatotransmit); //Ignore the data, just discard the packet byte!
-											Packetserver_clients[connectedclient].packetserver_transmitstate = 0; //We're not escaping something anymore!
-										}
+									if (packetServerAddWriteQueue(connectedclient, PPP_DECODEESC(datatotransmit))) //Added to the queue?
+									{
+										readfifobuffer(modem.inputdatabuffer[connectedclient], &datatotransmit); //Ignore the data, just discard the packet byte!
+										Packetserver_clients[connectedclient].packetserver_transmitstate = 0; //We're not escaping something anymore!
 									}
 								}
 								else //Unable to parse into the buffer? Discard!
