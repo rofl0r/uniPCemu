@@ -73,6 +73,13 @@ byte packetserver_broadcastIP[4] = { 0xFF,0xFF,0xFF,0xFF }; //Broadcast IP to us
 byte packetserver_usedefaultStaticIP = 0; //Use static IP?
 char packetserver_defaultstaticIPstr[256] = ""; //Static IP, string format
 
+typedef struct
+{
+	byte* buffer;
+	uint_32 size;
+	uint_32 length;
+} PPPOE_PAD_PACKETBUFFER; //Packet buffer for PAD packets!
+
 //Authentication data and user-specific data!
 typedef struct
 {
@@ -102,6 +109,12 @@ typedef struct
 	byte packetserver_packetack;
 	sword connectionid; //The used connection!
 	byte used; //Used client record?
+	//Connection for PPP connections!
+	PPPOE_PAD_PACKETBUFFER pppoe_discovery_PADI; //PADI(Sent)!
+	PPPOE_PAD_PACKETBUFFER pppoe_discovery_PADO; //PADO(Received)!
+	PPPOE_PAD_PACKETBUFFER pppoe_discovery_PADR; //PADR(Sent)!
+	PPPOE_PAD_PACKETBUFFER pppoe_discovery_PADS; //PADS(Received)!
+	//Disconnect clears all of the above packets(frees them if set) when receiving/sending a PADT packet!
 } PacketServer_client;
 
 PacketServer_client Packetserver_clients[0x100]; //Up to 100 clients!
@@ -2652,6 +2665,36 @@ byte packetServerAddWriteQueue(sword client, byte data) //Try to add something t
 	return 0; //Failed!
 }
 
+byte packetServerAddPPPDiscoveryQueue(PPPOE_PAD_PACKETBUFFER *buffer, byte data) //Try to add something to the discovery queue!
+{
+	byte* newbuffer;
+	if (buffer->length >= buffer->size) //We need to expand the buffer?
+	{
+		newbuffer = zalloc(buffer->size + 1024, "MODEM_SENDPACKET", NULL); //Try to allocate a larger buffer!
+		if (newbuffer) //Allocated larger buffer?
+		{
+			memcpy(newbuffer, buffer->buffer, buffer->size); //Copy the new data over to the larger buffer!
+			freez(buffer, buffer->size, "MODEM_SENDPACKET"); //Release the old buffer!
+			buffer->buffer = newbuffer; //The new buffer is the enlarged buffer, ready to have been written more data!
+			buffer->size += 1024; //We've been increased to this larger buffer!
+			buffer->buffer[buffer->length++] = data; //Add the data to the buffer!
+			return 1; //Success!
+		}
+	}
+	else //Normal buffer usage?
+	{
+		buffer->buffer[buffer->length++] = data; //Add the data to the buffer!
+		return 1; //Success!
+	}
+	return 0; //Failed!
+}
+
+void packetServerFreePPPDiscoveryQueue(PPPOE_PAD_PACKETBUFFER *buffer)
+{
+	freez((void **)&buffer->buffer, buffer->size, "MODEM_SENDPACKET"); //Free it!
+	buffer->size = buffer->length = 0; //No length anymore!
+}
+
 char logpacket_outbuffer[0x20001]; //Buffer for storin the data!
 char logpacket_filename[256]; //For storing the raw packet that's sent!
 void logpacket(byte send, byte *buffer, uint_32 size)
@@ -2773,6 +2816,16 @@ byte authstage_enterfield(DOUBLE timepassed, sword connectedclient, char* field,
 		}
 	}
 	return 0; //Still busy!
+}
+
+void PPPOE_requestdiscovery(sword connectedclient)
+{
+	//Create a discovery PADI packet using the client's PADI fields and send it to the Ethernet!
+}
+
+void PPPOE_handlePADreceived(sword connectedclient, byte* buffer)
+{
+	//Handle a packet that's currently received!
 }
 
 void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
@@ -3407,6 +3460,10 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 							Packetserver_clients[connectedclient].packetserver_delay -= timepassed; //Delaying!
 							if ((Packetserver_clients[connectedclient].packetserver_delay <= 0.0) || (!Packetserver_clients[connectedclient].packetserver_delay)) //Finished?
 							{
+								if (Packetserver_clients[connectedclient].packetserver_slipprotocol == 3) //Requires PAD connection!
+								{
+									if ((Packetserver_clients[connectedclient].pppoe_discovery_PADS.length && Packetserver_clients[connectedclient].pppoe_discovery_PADS.buffer) == 0) goto sendoutputbuffer; //Don't finish connecting yet! We're requiring an active PADS packet to have been received(PPPOE connection setup)!
+								}
 								Packetserver_clients[connectedclient].packetserver_delay = (DOUBLE)0; //Finish the delay!
 								if (writefifobuffer(modem.outputbuffer[connectedclient], Packetserver_clients[connectedclient].packetserver_stage_str[Packetserver_clients[connectedclient].packetserver_stage_byte])) //Transmitted?
 								{
