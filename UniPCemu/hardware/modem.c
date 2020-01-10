@@ -2674,7 +2674,7 @@ byte packetServerAddPPPDiscoveryQueue(PPPOE_PAD_PACKETBUFFER *buffer, byte data)
 		if (newbuffer) //Allocated larger buffer?
 		{
 			memcpy(newbuffer, buffer->buffer, buffer->size); //Copy the new data over to the larger buffer!
-			freez(buffer, buffer->size, "MODEM_SENDPACKET"); //Release the old buffer!
+			freez((void **)&buffer->buffer, buffer->size, "MODEM_SENDPACKET"); //Release the old buffer!
 			buffer->buffer = newbuffer; //The new buffer is the enlarged buffer, ready to have been written more data!
 			buffer->size += 1024; //We've been increased to this larger buffer!
 			buffer->buffer[buffer->length++] = data; //Add the data to the buffer!
@@ -2818,14 +2818,171 @@ byte authstage_enterfield(DOUBLE timepassed, sword connectedclient, char* field,
 	return 0; //Still busy!
 }
 
+union
+{
+	word wval;
+	byte bval[2]; //Byte of the word values!
+} NETWORKVALSPLITTER;
+
 void PPPOE_requestdiscovery(sword connectedclient)
 {
-	//Create a discovery PADI packet using the client's PADI fields and send it to the Ethernet!
+	byte broadcastmac[6] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF}; //Broadcast address!
+	uint_32 pos; //Our packet buffer location!
+	ETHERNETHEADER ethernetheader, packetheader;
+	//Now, the PADI packet!
+	memcpy(&packetheader.dst, broadcastmac, sizeof(packetheader.dst)); //Broadcast it!
+	memcpy(&packetheader.src, maclocal, sizeof(packetheader.src)); //Our own MAC address as the source!
+	packetheader.type = SDL_SwapBE16(0x8863); //Type!
+	packetServerFreePPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADI); //Clear the packet!
+	for (pos = 0; pos < sizeof(packetheader.data); ++pos)
+	{
+		packetServerAddPPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADI, packetheader.data[pos]); //Send the header!
+	}
+	packetServerAddPPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADI, 0x11); //V/T!
+	packetServerAddPPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADI, 0x09); //PADT!
+	//Now, the contents of th packet!
+	NETWORKVALSPLITTER.wval = SDL_SwapBE16(0); //Session ID!
+	packetServerAddPPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADI, NETWORKVALSPLITTER.bval[0]); //First byte!
+	packetServerAddPPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADI, NETWORKVALSPLITTER.bval[1]); //Second byte!
+	NETWORKVALSPLITTER.wval = SDL_SwapBE16(0x4); //Length!
+	packetServerAddPPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADI, NETWORKVALSPLITTER.bval[0]); //First byte!
+	packetServerAddPPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADI, NETWORKVALSPLITTER.bval[1]); //Second byte!
+	NETWORKVALSPLITTER.wval = SDL_SwapBE16(0x0101); //Tag type: Service-Name!
+	packetServerAddPPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADI, NETWORKVALSPLITTER.bval[0]); //First byte!
+	packetServerAddPPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADI, NETWORKVALSPLITTER.bval[1]); //Second byte!
+	NETWORKVALSPLITTER.wval = SDL_SwapBE16(0); //Tag length!
+	packetServerAddPPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADI, NETWORKVALSPLITTER.bval[0]); //First byte!
+	packetServerAddPPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADI, NETWORKVALSPLITTER.bval[1]); //Second byte!
+
+	//Now, the packet is fully ready!
+	if (Packetserver_clients[connectedclient].pppoe_discovery_PADI.length != 0x18) //Packet length mismatch?
+	{
+		packetServerFreePPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADI); //PADR not ready to be sent yet!
+	}
+	else //Send the PADR packet!
+	{
+		//Send the PADR packet that's buffered!
+		sendpkt_pcap(Packetserver_clients[connectedclient].pppoe_discovery_PADI.buffer, Packetserver_clients[connectedclient].pppoe_discovery_PADI.length); //Send the packet to the network!
+	}
 }
 
-void PPPOE_handlePADreceived(sword connectedclient, byte* buffer)
+void PPPOE_handlePADreceived(sword connectedclient)
 {
+	uint_32 pos; //Our packet buffer location!
+	word length,sessionid,requiredsessionid;
+	byte code;
 	//Handle a packet that's currently received!
+	ETHERNETHEADER ethernetheader, packetheader;
+	memcpy(&ethernetheader.data, &Packetserver_clients[connectedclient].packet[0], sizeof(ethernetheader.data)); //Make a copy of the ethernet header to use!
+	//Handle the CheckSum after the payload here?
+	code = Packetserver_clients[connectedclient].packet[sizeof(ethernetheader.data) + 1]; //The code field!
+	if (Packetserver_clients[connectedclient].packet[sizeof(ethernetheader.data)] != 0x11) return; //Invalid V/T fields!
+	memcpy(&length, &Packetserver_clients[connectedclient].packet[sizeof(ethernetheader.data) + 4],sizeof(length)); //Length field!
+	memcpy(&sessionid, &Packetserver_clients[connectedclient].packet[sizeof(ethernetheader.data) + 2], sizeof(sessionid)); //Session_ID field!
+	if (Packetserver_clients[connectedclient].pppoe_discovery_PADI.buffer) //PADI sent?
+	{
+		if(Packetserver_clients[connectedclient].pppoe_discovery_PADO.buffer) //PADO received?
+		{
+			if (Packetserver_clients[connectedclient].pppoe_discovery_PADR.buffer) //PADR sent?
+			{
+				if (Packetserver_clients[connectedclient].pppoe_discovery_PADS.buffer==NULL) //Waiting for PADS to arrive?
+				{
+					if (sessionid) return; //No session ID yet!
+					if (code != 0x65) return; //No PADS yet!
+					//We've received our PADO!
+					//Ignore it's contents for now(unused) and accept always!
+					for (pos = 0; pos < Packetserver_clients[connectedclient].pktlen; ++pos) //Add!
+					{
+						packetServerAddPPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADO, Packetserver_clients[connectedclient].packet[pos]); //Add to the buffer!
+					}
+				}
+				else //When PADS is received, we're ready for action for normal communication! Handle PADT packets!
+				{
+					memcpy(&requiredsessionid, &Packetserver_clients[connectedclient].pppoe_discovery_PADS.buffer[sizeof(ethernetheader.data) + 2], sizeof(sessionid)); //Session_ID field!
+					if (code != 0xA7) return; //Not a PADT packet?
+					if (sessionid != requiredsessionid) return; //Not our session ID?
+					//Our session has been terminated. Clear all buffers!
+					packetServerFreePPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADI); //No PADI anymore!
+					packetServerFreePPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADO); //No PADO anymore!
+					packetServerFreePPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADR); //No PADR anymore!
+					packetServerFreePPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADS); //No PADS anymore!
+				}
+			}
+			else //Need PADR to be sent?
+			{
+				//Send PADR packet now?
+				//Ignore the received packet, we can't handle any!
+				//Now, the PADR packet again!
+				packetServerFreePPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADR); //Clear the packet!
+				//First, the Ethernet header!
+				memcpy(&ethernetheader, &Packetserver_clients[connectedclient].pppoe_discovery_PADO.buffer,sizeof(ethernetheader.data)); //The ethernet header that was used to send the PADO packet!
+				memcpy(&packetheader.dst, &ethernetheader.src, sizeof(packetheader.dst)); //Make a copy of the ethernet destination to use!
+				memcpy(&packetheader.src, &ethernetheader.dst, sizeof(packetheader.src)); //Make a copy of the ethernet source to use!
+				memcpy(&packetheader.type, &ethernetheader.type, sizeof(packetheader.type)); //Make a copy of the ethernet type to use!
+				for (pos = 0; pos < sizeof(packetheader.data); ++pos)
+				{
+					packetServerAddPPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADR, packetheader.data[pos]); //Send the header!
+				}
+				packetServerAddPPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADR, 0x11); //V/T!
+				packetServerAddPPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADR, 0x19); //PADR!
+				for (pos = sizeof(ethernetheader.data) + 2; pos < Packetserver_clients[connectedclient].pppoe_discovery_PADO.length; ++pos) //Remainder of the PADO packet copied!
+				{
+					packetServerAddPPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADR, Packetserver_clients[connectedclient].pppoe_discovery_PADO.buffer[pos]); //Send the remainder of the PADO packet!
+				}
+				//Now, the packet is fully ready!
+				if (Packetserver_clients[connectedclient].pppoe_discovery_PADR.length != Packetserver_clients[connectedclient].pppoe_discovery_PADO.length) //Packet length mismatch?
+				{
+					packetServerFreePPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADR); //PADR not ready to be sent yet!
+				}
+				else //Send the PADR packet!
+				{
+					//Send the PADR packet that's buffered!
+					sendpkt_pcap(Packetserver_clients[connectedclient].pppoe_discovery_PADR.buffer, Packetserver_clients[connectedclient].pppoe_discovery_PADR.length); //Send the packet to the network!
+				}
+			}
+		}
+		else //Waiting for PADO packet response? Parse any PADO responses!
+		{
+			if (sessionid) return; //No session ID yet!
+			if (code != 7) return; //No PADO yet!
+			//We've received our PADO!
+			//Ignore it's contents for now(unused) and accept always!
+			for (pos = 0; pos < Packetserver_clients[connectedclient].pktlen; ++pos) //Add!
+			{
+				packetServerAddPPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADO, Packetserver_clients[connectedclient].packet[pos]); //Add to the buffer!
+			}
+			//Send the PADR packet now!
+			memcpy(&packetheader.dst, &ethernetheader.src, sizeof(packetheader.dst)); //Make a copy of the ethernet destination to use!
+			memcpy(&packetheader.src, &ethernetheader.dst, sizeof(packetheader.src)); //Make a copy of the ethernet source to use!
+			memcpy(&packetheader.type, &ethernetheader.type, sizeof(packetheader.type)); //Make a copy of the ethernet type to use!
+
+			//First, the ethernet header!
+			for (pos = 0; pos < sizeof(packetheader.data); ++pos)
+			{
+				packetServerAddPPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADR, packetheader.data[pos]); //Send the header!
+			}
+
+			//Now, the PADR packet!
+			packetServerFreePPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADR); //Clear the packet!
+			packetServerAddPPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADR, 0x11); //V/T!
+			packetServerAddPPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADR, 0x19); //PADR!
+			for (pos = sizeof(ethernetheader.data)+2; pos < Packetserver_clients[connectedclient].pktlen; ++pos) //Remainder of the PADO packet copied!
+			{
+				packetServerAddPPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADR, Packetserver_clients[connectedclient].packet[pos]); //Send the remainder of the PADO packet!
+			}
+			//Now, the packet is fully ready!
+			if (Packetserver_clients[connectedclient].pppoe_discovery_PADR.length != Packetserver_clients[connectedclient].pktlen) //Packet length mismatch?
+			{
+				packetServerFreePPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADR); //PADR not ready to be sent yet!
+			}
+			else //Send the PADR packet!
+			{
+				//Send the PADR packet that's buffered!
+				sendpkt_pcap(Packetserver_clients[connectedclient].pppoe_discovery_PADR.buffer,Packetserver_clients[connectedclient].pppoe_discovery_PADR.length); //Send the packet to the network!
+			}
+		}
+	}
+	//No PADI sent? Can't handle anything!
 }
 
 void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
@@ -2833,7 +2990,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 	sword connectedclient;
 	sword connectionid;
 	byte datatotransmit;
-	ETHERNETHEADER ethernetheader;
+	ETHERNETHEADER ethernetheader, ppptransmitheader;
 	word headertype; //What header type are we?
 	modem.timer += timepassed; //Add time to the timer!
 	if (modem.escaping) //Escapes buffered and escaping?
@@ -3016,7 +3173,6 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 					for (connectedclient = 0; connectedclient < Packetserver_totalClients; ++connectedclient) //Check all connected clients!
 					{
 						if (Packetserver_clients[connectedclient].used == 0) continue; //Skip unused clients!
-						if (Packetserver_clients[connectedclient].packetserver_stage != PACKETSTAGE_SLIP) goto skipSLIP; //Don't handle SLIP!
 						//Handle packet server packet data transfers into the inputdatabuffer/outputbuffer to the network!
 						if (Packetserver_clients[connectedclient].packetserver_receivebuffer) //Properly allocated?
 						{
@@ -3038,7 +3194,21 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 										if (Packetserver_clients[connectedclient].pktlen > (sizeof(ethernetheader.data) + 20)) //Length OK(at least one byte of data and complete IP header)?
 										{
 											memcpy(&ethernetheader.data, Packetserver_clients[connectedclient].packet, sizeof(ethernetheader.data)); //Copy for inspection!
-											if (Packetserver_clients[connectedclient].packetserver_slipprotocol==2) //IPX protocol used?
+											if ((memcmp(&ethernetheader.dst, &packetserver_sourceMAC, sizeof(ethernetheader.dst)) != 0) && (memcmp(&ethernetheader.dst, &packetserver_broadcastMAC, sizeof(ethernetheader.dst)) != 0)) //Invalid destination(and not broadcasting)?
+											{
+												//dolog("ethernetcard","Discarding destination."); //Showing why we discard!
+												goto invalidpacket; //Invalid packet!
+											}
+											if (Packetserver_clients[connectedclient].packetserver_slipprotocol == 3) //PPP protocol used?
+											{
+												if (ethernetheader.type == SDL_SwapBE16(0x8863)) //Are we a discovery packet?
+												{
+													PPPOE_handlePADreceived(connectedclient); //Handle the received PAD packet!
+												}
+												headertype = SDL_SwapBE16(0x8864); //Receiving uses normal PPP packets to transfer/receive on the receiver line only!
+												if (Packetserver_clients[connectedclient].packetserver_stage != PACKETSTAGE_SLIP) goto invalidpacket; //Don't handle SLIP!
+											}
+											else if (Packetserver_clients[connectedclient].packetserver_slipprotocol==2) //IPX protocol used?
 											{
 												headertype = SDL_SwapBE16(0x8137); //We're an IPX packet!
 											}
@@ -3051,11 +3221,6 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 												//dolog("ethernetcard","Discarding type: %04X",SDL_SwapBE16(ethernetheader.type)); //Showing why we discard!
 												goto invalidpacket; //Invalid packet!
 											}
-											if ((memcmp(&ethernetheader.dst, &packetserver_sourceMAC, sizeof(ethernetheader.dst)) != 0) && (memcmp(&ethernetheader.dst, &packetserver_broadcastMAC, sizeof(ethernetheader.dst)) != 0)) //Invalid destination(and not broadcasting)?
-											{
-												//dolog("ethernetcard","Discarding destination."); //Showing why we discard!
-												goto invalidpacket; //Invalid packet!
-											}
 											if (Packetserver_clients[connectedclient].packetserver_useStaticIP && (headertype==SDL_SwapBE16(0x0800))) //IP filter to apply?
 											{
 												if ((memcmp(&Packetserver_clients[connectedclient].packet[sizeof(ethernetheader.data) + 16], Packetserver_clients[connectedclient].packetserver_staticIP, 4) != 0) && (memcmp(&Packetserver_clients[connectedclient].packet[sizeof(ethernetheader.data) + 16], packetserver_broadcastIP, 4) != 0)) //Static IP mismatch?
@@ -3064,10 +3229,47 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 												}
 											}
 											//Valid packet! Receive it!
-											if (Packetserver_clients[connectedclient].packetserver_slipprotocol) //Using slip protocol?
+											if (Packetserver_clients[connectedclient].packetserver_slipprotocol) //Using slip or PPP protocol?
 											{
-												Packetserver_clients[connectedclient].packetserver_packetpos = sizeof(ethernetheader.data); //Skip the ethernet header and give the raw IP data!
-												Packetserver_clients[connectedclient].packetserver_bytesleft = MIN(Packetserver_clients[connectedclient].pktlen - Packetserver_clients[connectedclient].packetserver_packetpos, SDL_SwapBE16(*((word *)&Packetserver_clients[connectedclient].packet[sizeof(ethernetheader.data) + 2]))); //How much is left to send?
+												if (Packetserver_clients[connectedclient].packetserver_slipprotocol == 3) //PPP?
+												{
+													if (Packetserver_clients[connectedclient].pppoe_discovery_PADS.length == 0) //No PADS received yet? Invalid packet!
+													{
+														goto invalidpacket; //Invalid packet: not ready yet!
+													}
+													if (Packetserver_clients[connectedclient].packet[sizeof(ethernetheader.data) + 0] != 0x11) //Invalid VER/type?
+													{
+														goto invalidpacket; //Invalid packet!
+													}
+													if (Packetserver_clients[connectedclient].packet[sizeof(ethernetheader.data) + 1] != 0) //Invalid Type?
+													{
+														goto invalidpacket; //Invalid packet!
+													}
+													word length,sessionid,requiredsessionid,pppoe_protocol;
+													memcpy(&length, &Packetserver_clients[connectedclient].packet[sizeof(ethernetheader.data) + 4], sizeof(length)); //The length field!
+													memcpy(&sessionid, &Packetserver_clients[connectedclient].packet[sizeof(ethernetheader.data) + 2], sizeof(sessionid)); //The length field!
+													memcpy(&pppoe_protocol, &Packetserver_clients[connectedclient].packet[sizeof(ethernetheader.data) + 6], sizeof(sessionid)); //The length field!
+													memcpy(&requiredsessionid, &Packetserver_clients[connectedclient].pppoe_discovery_PADS.buffer[sizeof(ethernetheader.data) + 4], sizeof(requiredsessionid)); //The required session id field!
+													if (SDL_SwapBE16(length) < 4) //Invalid Length?
+													{
+														goto invalidpacket; //Invalid packet!
+													}
+													if (sessionid != requiredsessionid) //Invalid required session id(other client)?
+													{
+														goto invalidpacket; //Invalid packet!
+													}
+													if (SDL_SwapBE16(pppoe_protocol) != 0xC021) //Invalid packet type?
+													{
+														goto invalidpacket; //Invalid packet!
+													}
+													Packetserver_clients[connectedclient].packetserver_packetpos = sizeof(ethernetheader.data)+0x8; //Skip the ethernet header and give the raw IP data!
+													Packetserver_clients[connectedclient].packetserver_bytesleft = Packetserver_clients[connectedclient].pktlen - Packetserver_clients[connectedclient].packetserver_packetpos; //How much is left to send?
+												}
+												else //SLIP?
+												{
+													Packetserver_clients[connectedclient].packetserver_packetpos = sizeof(ethernetheader.data); //Skip the ethernet header and give the raw IP data!
+													Packetserver_clients[connectedclient].packetserver_bytesleft = MIN(Packetserver_clients[connectedclient].pktlen - Packetserver_clients[connectedclient].packetserver_packetpos, SDL_SwapBE16(*((word*)&Packetserver_clients[connectedclient].packet[sizeof(ethernetheader.data) + 2]))); //How much is left to send?
+												}
 											}
 											else //We're using the ethernet header protocol?
 											{
@@ -3089,6 +3291,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 											Packetserver_clients[connectedclient].packetserver_packetack = 0; //Not acnowledged yet!
 										}
 									}
+									if (Packetserver_clients[connectedclient].packetserver_stage != PACKETSTAGE_SLIP) goto invalidpacket; //Don't handle SLIP/PPP because we're not ready yet!
 									if (Packetserver_clients[connectedclient].packet) //Still a valid packet to send?
 									{
 										//Convert the buffer into transmittable bytes using the proper encoding!
@@ -3182,15 +3385,30 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 								//Build an ethernet header, platform dependent!
 								//Use the data provided by the settings!
 								byte b;
+								if ((Packetserver_clients[connectedclient].packetserver_slipprotocol == 3) && Packetserver_clients[connectedclient].pppoe_discovery_PADS.buffer && Packetserver_clients[connectedclient].pppoe_discovery_PADS.length) //PPP?
+								{
+									memcpy(&ppptransmitheader.data, &Packetserver_clients[connectedclient].pppoe_discovery_PADS.buffer,sizeof(ppptransmitheader.data)); //Make a local copy for usage!
+								}
 								for (b = 0; b < 6; ++b) //Process MAC addresses!
 								{
-									ethernetheader.dst[b] = packetserver_gatewayMAC[b]; //Gateway MAC is the destination!
-									ethernetheader.src[b] = packetserver_sourceMAC[b]; //Packet server MAC is the source!
+									if ((Packetserver_clients[connectedclient].packetserver_slipprotocol == 3) && Packetserver_clients[connectedclient].pppoe_discovery_PADS.buffer && Packetserver_clients[connectedclient].pppoe_discovery_PADS.length) //PPP?
+									{
+										ethernetheader.dst[b] = ppptransmitheader.src[b]; //The used server MAC is the destination!
+										ethernetheader.src[b] = ppptransmitheader.dst[b]; //The Packet server MAC is the source!
+									}
+									else //SLIP
+									{
+										ethernetheader.dst[b] = packetserver_gatewayMAC[b]; //Gateway MAC is the destination!
+										ethernetheader.src[b] = packetserver_sourceMAC[b]; //Packet server MAC is the source!
+									}
 								}
 								if (Packetserver_clients[connectedclient].packetserver_slipprotocol==3) //PPP?
 								{
-									//Unknown how to handle this atm!
-									goto noPPPtransmit; //Ignore the transmitter for now!
+									if (Packetserver_clients[connectedclient].pppoe_discovery_PADS.buffer && Packetserver_clients[connectedclient].pppoe_discovery_PADS.length) //Valid to send?
+									{
+										ethernetheader.type = SDL_SwapBE16(0x8864); //Our packet type!
+									}
+									else goto noPPPtransmit; //Ignore the transmitter for now!
 								}
 								else if (Packetserver_clients[connectedclient].packetserver_slipprotocol==2) //IPX?
 								{
@@ -3207,7 +3425,49 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 										break; //Stop adding!
 									}
 								}
-								if (Packetserver_clients[connectedclient].packetserver_transmitlength != 14) //Failed to generate header?
+								if ((Packetserver_clients[connectedclient].packetserver_slipprotocol == 3) && Packetserver_clients[connectedclient].pppoe_discovery_PADS.buffer && Packetserver_clients[connectedclient].pppoe_discovery_PADS.length) //PPP?
+								{
+									if (!packetServerAddWriteQueue(connectedclient, 0x11)) //V/T?
+									{
+										goto noPPPtransmit; //Stop adding!
+									}
+									if (!packetServerAddWriteQueue(connectedclient, 0x00)) //Code?
+									{
+										goto noPPPtransmit; //Stop adding!
+									}
+									NETWORKVALSPLITTER.bval[0] = Packetserver_clients[connectedclient].pppoe_discovery_PADS.buffer[0x10]; //Session_ID!
+									NETWORKVALSPLITTER.bval[1] = Packetserver_clients[connectedclient].pppoe_discovery_PADS.buffer[0x11]; //Session_ID!
+									if (!packetServerAddWriteQueue(connectedclient, NETWORKVALSPLITTER.bval[0])) //First byte?
+									{
+										goto noPPPtransmit; //Stop adding!
+									}
+									if (!packetServerAddWriteQueue(connectedclient, NETWORKVALSPLITTER.bval[1])) //Second byte?
+									{
+										goto noPPPtransmit; //Stop adding!
+									}
+									NETWORKVALSPLITTER.wval = SDL_SwapBE16(0); //Length: to be filled in later!
+									if (!packetServerAddWriteQueue(connectedclient, NETWORKVALSPLITTER.bval[0])) //First byte?
+									{
+										goto noPPPtransmit; //Stop adding!
+									}
+									if (!packetServerAddWriteQueue(connectedclient, NETWORKVALSPLITTER.bval[1])) //Second byte?
+									{
+										goto noPPPtransmit; //Stop adding!
+									}
+									NETWORKVALSPLITTER.wval = SDL_SwapBE16(0xC021); //Protocol!
+									if (!packetServerAddWriteQueue(connectedclient, NETWORKVALSPLITTER.bval[0])) //First byte?
+									{
+										goto noPPPtransmit; //Stop adding!
+									}
+									if (!packetServerAddWriteQueue(connectedclient, NETWORKVALSPLITTER.bval[1])) //Second byte?
+									{
+										goto noPPPtransmit; //Stop adding!
+									}
+								}
+								if (
+									((Packetserver_clients[connectedclient].packetserver_transmitlength != 14) && (Packetserver_clients[connectedclient].packetserver_slipprotocol!=3)) || 
+									((Packetserver_clients[connectedclient].packetserver_transmitlength != 22) && (Packetserver_clients[connectedclient].packetserver_slipprotocol == 3))
+									) //Failed to generate header?
 								{
 									dolog("ethernetcard", "Error: Transmit initialization failed. Resetting transmitter!");
 									noPPPtransmit:
@@ -3236,14 +3496,22 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 								{
 									readfifobuffer(modem.inputdatabuffer[connectedclient], &datatotransmit); //Ignore the data, just discard the packet END!
 									//Clean up the packet container!
-									if (Packetserver_clients[connectedclient].packetserver_transmitlength > sizeof(ethernetheader.data)) //Anything buffered(the header is required)?
+									if (
+										((Packetserver_clients[connectedclient].packetserver_transmitlength > sizeof(ethernetheader.data)) && (Packetserver_clients[connectedclient].packetserver_slipprotocol!=3)) || //Anything buffered(the header is required)?
+										((Packetserver_clients[connectedclient].packetserver_transmitlength > 0x22) && (Packetserver_clients[connectedclient].packetserver_slipprotocol == 3)) //Anything buffered(the header is required)?
+										)
 									{
 										//Send the frame to the server, if we're able to!
-										if (Packetserver_clients[connectedclient].packetserver_transmitlength <= 0xFFFF) //Within length range?
+										if ((Packetserver_clients[connectedclient].packetserver_transmitlength <= 0xFFFF) || (Packetserver_clients[connectedclient].packetserver_slipprotocol == 3)) //Within length range?
 										{
 											//dolog("ethernetcard","Sending generated packet(size: %u)!",packetserver_transmitlength);
 											//logpacket(1,packetserver_transmitbuffer,packetserver_transmitlength); //Log it!
-
+											if (Packetserver_clients[connectedclient].packetserver_slipprotocol == 3) //Length field needs fixing up?
+											{
+												NETWORKVALSPLITTER.wval = SDL_SwapBE16(Packetserver_clients[connectedclient].packetserver_transmitlength-0x22); //The length of the PPP packet itself!
+												Packetserver_clients[connectedclient].packetserver_transmitbuffer[0x12] = NETWORKVALSPLITTER.bval[0]; //First byte!
+												Packetserver_clients[connectedclient].packetserver_transmitbuffer[0x13] = NETWORKVALSPLITTER.bval[1]; //Second byte!
+											}
 											sendpkt_pcap(Packetserver_clients[connectedclient].packetserver_transmitbuffer, Packetserver_clients[connectedclient].packetserver_transmitlength); //Send the packet!
 										}
 										else
@@ -3409,6 +3677,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 								{
 									Packetserver_clients[connectedclient].packetserver_slipprotocol = (strcmp(Packetserver_clients[connectedclient].packetserver_protocol, "ppp") == 0)?3:((strcmp(Packetserver_clients[connectedclient].packetserver_protocol, "ipxslip") == 0)?2:((strcmp(Packetserver_clients[connectedclient].packetserver_protocol, "slip") == 0) ? 1 : 0)); //Are we using the slip protocol?
 									Packetserver_clients[connectedclient].packetserver_stage = PACKETSTAGE_INFORMATION; //We're logged in!
+									PPPOE_requestdiscovery(connectedclient); //Start the discovery phase of the connected client!
 								}
 								else goto packetserver_autherror; //Authentication error!
 								break;
