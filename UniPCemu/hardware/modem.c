@@ -2887,7 +2887,7 @@ byte PPPOE_requestdiscovery(sword connectedclient)
 {
 	byte broadcastmac[6] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF}; //Broadcast address!
 	uint_32 pos; //Our packet buffer location!
-	ETHERNETHEADER ethernetheader, packetheader;
+	ETHERNETHEADER packetheader;
 	//Now, the PADI packet!
 	memcpy(&packetheader.dst, broadcastmac, sizeof(packetheader.dst)); //Broadcast it!
 	memcpy(&packetheader.src, maclocal, sizeof(packetheader.src)); //Our own MAC address as the source!
@@ -3059,6 +3059,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 	sword connectionid;
 	byte datatotransmit;
 	ETHERNETHEADER ethernetheader, ppptransmitheader;
+	memset(&ppptransmitheader, 0, sizeof(ppptransmitheader));
 	word headertype; //What header type are we?
 	modem.timer += timepassed; //Add time to the timer!
 	if (modem.escaping) //Escapes buffered and escaping?
