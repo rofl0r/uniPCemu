@@ -114,7 +114,10 @@ typedef struct
 	PPPOE_PAD_PACKETBUFFER pppoe_discovery_PADO; //PADO(Received)!
 	PPPOE_PAD_PACKETBUFFER pppoe_discovery_PADR; //PADR(Sent)!
 	PPPOE_PAD_PACKETBUFFER pppoe_discovery_PADS; //PADS(Received)!
+	PPPOE_PAD_PACKETBUFFER pppoe_discovery_PADT; //PADT(Send final)!
 	//Disconnect clears all of the above packets(frees them if set) when receiving/sending a PADT packet!
+	byte pppoe_lastsentbytewasEND; //Last sent byte was END!
+	byte pppoe_lastrecvbytewasEND; //Last received byte was END!
 } PacketServer_client;
 
 PacketServer_client Packetserver_clients[0x100]; //Up to 100 clients!
@@ -173,6 +176,9 @@ word Packetserver_totalClients = 0; //How many clients are available?
 //Escaped value encoding and decoding
 #define PPP_ENCODEESC(val) (val^0x20)
 #define PPP_DECODEESC(val) (val^0x20)
+
+//Define below to encode/decode the PPP packets sent/received from the user using the PPP_ESC values
+//#define PPPOE_ENCODEDECODE
 
 #ifdef PACKETSERVER_ENABLED
 struct netstruct { //Supported, thus use!
@@ -412,7 +418,7 @@ void initPcap() {
 
 	for (i = 0; i < NUMITEMS(Packetserver_clients); ++i) //Initialize client data!
 	{
-		Packetserver_clients[i].packetserver_receivebuffer = allocfifobuffer(2, 0); //Simple receive buffer, the size of a packet byte(when encoded) to be able to buffer any packet(since any byte can be doubled)!
+		Packetserver_clients[i].packetserver_receivebuffer = allocfifobuffer(3, 0); //Simple receive buffer, the size of a packet byte(when encoded) to be able to buffer any packet(since any byte can be doubled)! This is 2 bytes required for SLIP, while 3 bytes for PPP(for the extra PPP_END character at the start of a first packet)
 		Packetserver_clients[i].packetserver_transmitlength = 0; //We're at the start of this buffer, nothing is sent yet!
 	}
 
@@ -2603,6 +2609,8 @@ void initModem(byte enabled) //Initialise modem!
 	}
 }
 
+void PPPOE_finishdiscovery(sword connectedclient); //Prototype for doneModem!
+
 void doneModem() //Finish modem!
 {
 	word i;
@@ -2622,6 +2630,7 @@ void doneModem() //Finish modem!
 	{
 		if (Packetserver_clients[i].used) //Connected?
 		{
+			PPPOE_finishdiscovery((sword)i); //Finish discovery, if needed!
 			TCP_DisconnectClientServer(Packetserver_clients[i].connectionid); //Stop connecting!
 			Packetserver_clients[i].connectionid = -1; //Unused!
 			terminatePacketServer(i); //Stop the packet server, if used!
@@ -2824,7 +2833,57 @@ union
 	byte bval[2]; //Byte of the word values!
 } NETWORKVALSPLITTER;
 
-void PPPOE_requestdiscovery(sword connectedclient)
+void PPPOE_finishdiscovery(sword connectedclient)
+{
+	ETHERNETHEADER ethernetheader, packetheader;
+	uint_32 pos; //Our packet buffer location!
+	if (!(Packetserver_clients[connectedclient].pppoe_discovery_PADS.buffer && Packetserver_clients[connectedclient].pppoe_discovery_PADS.length)) //Already disconnected?
+	{
+		return; //No discovery to disconnect!
+	}
+	memcpy(&ethernetheader.data, &Packetserver_clients[connectedclient].pppoe_discovery_PADS.buffer, sizeof(ethernetheader.data)); //Make a copy of the PADS ethernet header!
+
+	//Send the PADT packet now!
+	memcpy(&packetheader.dst, &ethernetheader.src, sizeof(packetheader.dst)); //Make a copy of the ethernet destination to use!
+	memcpy(&packetheader.src, &ethernetheader.dst, sizeof(packetheader.src)); //Make a copy of the ethernet source to use!
+	memcpy(&packetheader.type, &ethernetheader.type, sizeof(packetheader.type)); //Make a copy of the ethernet type to use!
+
+	packetServerFreePPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADT); //Clear the packet!
+
+	//First, the ethernet header!
+	for (pos = 0; pos < sizeof(packetheader.data); ++pos)
+	{
+		packetServerAddPPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADT, packetheader.data[pos]); //Send the header!
+	}
+
+	//Now, the PADT packet!
+	packetServerFreePPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADT); //Clear the packet!
+	packetServerAddPPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADT, 0x11); //V/T!
+	packetServerAddPPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADT, 0xA7); //PADT!
+	packetServerAddPPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADR, Packetserver_clients[connectedclient].pppoe_discovery_PADS.buffer[sizeof(ethernetheader.data)+2]); //Session_ID first byte!
+	packetServerAddPPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADR, Packetserver_clients[connectedclient].pppoe_discovery_PADS.buffer[sizeof(ethernetheader.data)+3]); //Session_ID second byte!
+	packetServerAddPPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADR, 0x00); //Length first byte!
+	packetServerAddPPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADR, 0x00); //Length second byte!
+	//Now, the packet is fully ready!
+	if (Packetserver_clients[connectedclient].pppoe_discovery_PADR.length != 0x14) //Packet length mismatch?
+	{
+		packetServerFreePPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADT); //PADR not ready to be sent yet!
+	}
+	else //Send the PADR packet!
+	{
+		//Send the PADR packet that's buffered!
+		sendpkt_pcap(Packetserver_clients[connectedclient].pppoe_discovery_PADT.buffer, Packetserver_clients[connectedclient].pppoe_discovery_PADT.length); //Send the packet to the network!
+	}
+
+	//Since we can't be using the buffers after this anyways, free them all!
+	packetServerFreePPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADI); //No PADI anymore!
+	packetServerFreePPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADO); //No PADO anymore!
+	packetServerFreePPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADR); //No PADR anymore!
+	packetServerFreePPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADS); //No PADS anymore!
+	packetServerFreePPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADT); //No PADT anymore!
+}
+
+byte PPPOE_requestdiscovery(sword connectedclient)
 {
 	byte broadcastmac[6] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF}; //Broadcast address!
 	uint_32 pos; //Our packet buffer location!
@@ -2858,15 +2917,17 @@ void PPPOE_requestdiscovery(sword connectedclient)
 	if (Packetserver_clients[connectedclient].pppoe_discovery_PADI.length != 0x18) //Packet length mismatch?
 	{
 		packetServerFreePPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADI); //PADR not ready to be sent yet!
+		return 0; //Failure!
 	}
 	else //Send the PADR packet!
 	{
 		//Send the PADR packet that's buffered!
 		sendpkt_pcap(Packetserver_clients[connectedclient].pppoe_discovery_PADI.buffer, Packetserver_clients[connectedclient].pppoe_discovery_PADI.length); //Send the packet to the network!
 	}
+	return 1; //Success!
 }
 
-void PPPOE_handlePADreceived(sword connectedclient)
+byte PPPOE_handlePADreceived(sword connectedclient)
 {
 	uint_32 pos; //Our packet buffer location!
 	word length,sessionid,requiredsessionid;
@@ -2876,7 +2937,7 @@ void PPPOE_handlePADreceived(sword connectedclient)
 	memcpy(&ethernetheader.data, &Packetserver_clients[connectedclient].packet[0], sizeof(ethernetheader.data)); //Make a copy of the ethernet header to use!
 	//Handle the CheckSum after the payload here?
 	code = Packetserver_clients[connectedclient].packet[sizeof(ethernetheader.data) + 1]; //The code field!
-	if (Packetserver_clients[connectedclient].packet[sizeof(ethernetheader.data)] != 0x11) return; //Invalid V/T fields!
+	if (Packetserver_clients[connectedclient].packet[sizeof(ethernetheader.data)] != 0x11) return 0; //Invalid V/T fields!
 	memcpy(&length, &Packetserver_clients[connectedclient].packet[sizeof(ethernetheader.data) + 4],sizeof(length)); //Length field!
 	memcpy(&sessionid, &Packetserver_clients[connectedclient].packet[sizeof(ethernetheader.data) + 2], sizeof(sessionid)); //Session_ID field!
 	if (Packetserver_clients[connectedclient].pppoe_discovery_PADI.buffer) //PADI sent?
@@ -2887,25 +2948,28 @@ void PPPOE_handlePADreceived(sword connectedclient)
 			{
 				if (Packetserver_clients[connectedclient].pppoe_discovery_PADS.buffer==NULL) //Waiting for PADS to arrive?
 				{
-					if (sessionid) return; //No session ID yet!
-					if (code != 0x65) return; //No PADS yet!
+					if (sessionid) return 0; //No session ID yet!
+					if (code != 0x65) return 0; //No PADS yet!
 					//We've received our PADO!
 					//Ignore it's contents for now(unused) and accept always!
 					for (pos = 0; pos < Packetserver_clients[connectedclient].pktlen; ++pos) //Add!
 					{
 						packetServerAddPPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADO, Packetserver_clients[connectedclient].packet[pos]); //Add to the buffer!
 					}
+					return 1; //Handled!
 				}
 				else //When PADS is received, we're ready for action for normal communication! Handle PADT packets!
 				{
 					memcpy(&requiredsessionid, &Packetserver_clients[connectedclient].pppoe_discovery_PADS.buffer[sizeof(ethernetheader.data) + 2], sizeof(sessionid)); //Session_ID field!
-					if (code != 0xA7) return; //Not a PADT packet?
-					if (sessionid != requiredsessionid) return; //Not our session ID?
+					if (code != 0xA7) return 0; //Not a PADT packet?
+					if (sessionid != requiredsessionid) return 0; //Not our session ID?
 					//Our session has been terminated. Clear all buffers!
 					packetServerFreePPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADI); //No PADI anymore!
 					packetServerFreePPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADO); //No PADO anymore!
 					packetServerFreePPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADR); //No PADR anymore!
 					packetServerFreePPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADS); //No PADS anymore!
+					packetServerFreePPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADT); //No PADT anymore!
+					return 1; //Handled!
 				}
 			}
 			else //Need PADR to be sent?
@@ -2939,12 +3003,13 @@ void PPPOE_handlePADreceived(sword connectedclient)
 					//Send the PADR packet that's buffered!
 					sendpkt_pcap(Packetserver_clients[connectedclient].pppoe_discovery_PADR.buffer, Packetserver_clients[connectedclient].pppoe_discovery_PADR.length); //Send the packet to the network!
 				}
+				return 0; //Not handled!
 			}
 		}
 		else //Waiting for PADO packet response? Parse any PADO responses!
 		{
-			if (sessionid) return; //No session ID yet!
-			if (code != 7) return; //No PADO yet!
+			if (sessionid) return 0; //No session ID yet!
+			if (code != 7) return 0; //No PADO yet!
 			//We've received our PADO!
 			//Ignore it's contents for now(unused) and accept always!
 			for (pos = 0; pos < Packetserver_clients[connectedclient].pktlen; ++pos) //Add!
@@ -2974,15 +3039,18 @@ void PPPOE_handlePADreceived(sword connectedclient)
 			if (Packetserver_clients[connectedclient].pppoe_discovery_PADR.length != Packetserver_clients[connectedclient].pktlen) //Packet length mismatch?
 			{
 				packetServerFreePPPDiscoveryQueue(&Packetserver_clients[connectedclient].pppoe_discovery_PADR); //PADR not ready to be sent yet!
+				return 0; //Not handled!
 			}
 			else //Send the PADR packet!
 			{
 				//Send the PADR packet that's buffered!
 				sendpkt_pcap(Packetserver_clients[connectedclient].pppoe_discovery_PADR.buffer,Packetserver_clients[connectedclient].pppoe_discovery_PADR.length); //Send the packet to the network!
 			}
+			return 1; //Handled!
 		}
 	}
 	//No PADI sent? Can't handle anything!
+	return 0; //Not handled!
 }
 
 void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
@@ -3203,7 +3271,13 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 											{
 												if (ethernetheader.type == SDL_SwapBE16(0x8863)) //Are we a discovery packet?
 												{
-													PPPOE_handlePADreceived(connectedclient); //Handle the received PAD packet!
+													if (PPPOE_handlePADreceived(connectedclient)) //Handle the received PAD packet!
+													{
+														//Discard the received packet, so nobody else handles it too!
+														freez((void**)&net.packet, net.pktlen, "MODEM_PACKET");
+														net.packet = NULL; //Discard if failed to deallocate!
+														net.pktlen = 0; //Not allocated!
+													}
 												}
 												headertype = SDL_SwapBE16(0x8864); //Receiving uses normal PPP packets to transfer/receive on the receiver line only!
 												if (Packetserver_clients[connectedclient].packetserver_stage != PACKETSTAGE_SLIP) goto invalidpacket; //Don't handle SLIP!
@@ -3302,6 +3376,16 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 											datatotransmit = Packetserver_clients[connectedclient].packet[Packetserver_clients[connectedclient].packetserver_packetpos++]; //Read the data to construct!
 											if (Packetserver_clients[connectedclient].packetserver_slipprotocol==3) //PPP?
 											{
+												if (Packetserver_clients[connectedclient].packetserver_packetpos == (sizeof(ethernetheader.data) + 0x8 + 1)) //Starting new packet?
+												{
+													if (!(Packetserver_clients[connectedclient].pppoe_lastrecvbytewasEND)) //Not doubled END?
+													{
+														writefifobuffer(Packetserver_clients[connectedclient].packetserver_receivebuffer, PPP_END); //END of frame!
+														Packetserver_clients[connectedclient].pppoe_lastrecvbytewasEND = 1; //Last was END!
+													}
+												}
+
+												#ifdef PPPOE_ENCODEDECODE
 												if (datatotransmit == PPP_END) //End byte?
 												{
 													//dolog("ethernetcard","transmitting escaped SLIP END to client");
@@ -3319,6 +3403,14 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 													//dolog("ethernetcard","transmitting raw to client: %02X",datatotransmit);
 													writefifobuffer(Packetserver_clients[connectedclient].packetserver_receivebuffer, datatotransmit); //Unescaped!
 												}
+												Packetserver_clients[connectedclient].pppoe_lastrecvbytewasEND = 0; //Last wasn't END!
+												#else
+												if (!((Packetserver_clients[connectedclient].pppoe_lastrecvbytewasEND) && (datatotransmit == PPP_END))) //Not doubled END?
+												{
+													writefifobuffer(Packetserver_clients[connectedclient].packetserver_receivebuffer, datatotransmit); //Raw!
+												}
+												Packetserver_clients[connectedclient].pppoe_lastrecvbytewasEND = (datatotransmit == PPP_END); //Last was END?
+												#endif
 											}
 											else //SLIP?
 											{
@@ -3346,7 +3438,11 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 											if (Packetserver_clients[connectedclient].packetserver_slipprotocol==3) //PPP?
 											{
 												//dolog("ethernetcard","transmitting PPP END to client and finishing packet buffer(size: %u)",net.pktlen);
-												writefifobuffer(Packetserver_clients[connectedclient].packetserver_receivebuffer, PPP_END); //END of frame!
+												if (!(Packetserver_clients[connectedclient].pppoe_lastrecvbytewasEND)) //Not doubled END?
+												{
+													writefifobuffer(Packetserver_clients[connectedclient].packetserver_receivebuffer, PPP_END); //END of frame!
+													Packetserver_clients[connectedclient].pppoe_lastrecvbytewasEND = 1; //Last was END!
+												}
 											}
 											else //SLIP?
 											{
@@ -3471,6 +3567,14 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 								{
 									dolog("ethernetcard", "Error: Transmit initialization failed. Resetting transmitter!");
 									noPPPtransmit:
+									if (!(Packetserver_clients[connectedclient].pppoe_discovery_PADS.buffer && Packetserver_clients[connectedclient].pppoe_discovery_PADS.length)) //Not ready to send?
+									{
+										if (!(Packetserver_clients[connectedclient].pppoe_discovery_PADT.buffer && Packetserver_clients[connectedclient].pppoe_discovery_PADI.length)) //No PADI sent yet? Start sending one now to restore the connection!
+										{
+											PPPOE_requestdiscovery(connectedclient); //Try to request a new discovery for transmitting PPP packets!
+										}
+										goto skipSLIP; //Don't handle the sent data yet, prepare for sending by reconnecting to the PPPOE server!
+									}
 									Packetserver_clients[connectedclient].packetserver_transmitlength = 0; //Abort the packet generation!
 								}
 								else
@@ -3494,7 +3598,6 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 								}
 								if (Packetserver_clients[connectedclient].packetserver_transmitstate == 0) //Ready to send the packet(not waiting for the buffer to free)?
 								{
-									readfifobuffer(modem.inputdatabuffer[connectedclient], &datatotransmit); //Ignore the data, just discard the packet END!
 									//Clean up the packet container!
 									if (
 										((Packetserver_clients[connectedclient].packetserver_transmitlength > sizeof(ethernetheader.data)) && (Packetserver_clients[connectedclient].packetserver_slipprotocol!=3)) || //Anything buffered(the header is required)?
@@ -3506,6 +3609,17 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 										{
 											//dolog("ethernetcard","Sending generated packet(size: %u)!",packetserver_transmitlength);
 											//logpacket(1,packetserver_transmitbuffer,packetserver_transmitlength); //Log it!
+											if (Packetserver_clients[connectedclient].packetserver_slipprotocol == 3) //PPP?
+											{
+												if (!((Packetserver_clients[connectedclient].pppoe_lastsentbytewasEND))) //Not doubled END?
+												{
+													if (!packetServerAddWriteQueue(connectedclient, PPP_END))
+													{
+														goto skipSLIP; //Don't handle the sending of the packet yet: not ready!
+													}
+													Packetserver_clients[connectedclient].pppoe_lastsentbytewasEND = 1; //Last was END!
+												}
+											}
 											if (Packetserver_clients[connectedclient].packetserver_slipprotocol == 3) //Length field needs fixing up?
 											{
 												NETWORKVALSPLITTER.wval = SDL_SwapBE16(Packetserver_clients[connectedclient].packetserver_transmitlength-0x22); //The length of the PPP packet itself!
@@ -3518,7 +3632,6 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 										{
 											dolog("ethernetcard", "Error: Can't send packet: packet is too large to send(size: %u)!", Packetserver_clients[connectedclient].packetserver_transmitlength);
 										}
-
 										//Now, cleanup the buffered frame!
 										freez((void**)&Packetserver_clients[connectedclient].packetserver_transmitbuffer, Packetserver_clients[connectedclient].packetserver_transmitsize, "MODEM_SENDPACKET"); //Free 
 										Packetserver_clients[connectedclient].packetserver_transmitsize = 1024; //How large is out transmit buffer!
@@ -3530,14 +3643,17 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 									}
 									Packetserver_clients[connectedclient].packetserver_transmitlength = 0; //We're at the start of this buffer, nothing is sent yet!
 									Packetserver_clients[connectedclient].packetserver_transmitstate = 0; //Not escaped anymore!
+									readfifobuffer(modem.inputdatabuffer[connectedclient], &datatotransmit); //Ignore the data, just discard the packet END!
 								}
 							}
+							#ifdef PPPOE_ENCODEDECODE
 							else if ((Packetserver_clients[connectedclient].packetserver_transmitstate) && (Packetserver_clients[connectedclient].packetserver_slipprotocol==3)) //PPP ESCaped value?
 							{
 								if (Packetserver_clients[connectedclient].packetserver_transmitlength) //Gotten a valid packet?
 								{
 									if (packetServerAddWriteQueue(connectedclient, PPP_DECODEESC(datatotransmit))) //Added to the queue?
 									{
+										Packetserver_clients[connectedclient].pppoe_lastsentbytewasEND = 0; //Last was not END!
 										readfifobuffer(modem.inputdatabuffer[connectedclient], &datatotransmit); //Ignore the data, just discard the packet byte!
 										Packetserver_clients[connectedclient].packetserver_transmitstate = 0; //We're not escaping something anymore!
 									}
@@ -3553,6 +3669,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 								readfifobuffer(modem.inputdatabuffer[connectedclient], &datatotransmit); //Discard, as it's processed!
 								Packetserver_clients[connectedclient].packetserver_transmitstate = 1; //We're escaping something! Multiple escapes are ignored and not sent!
 							}
+							#endif
 							else if ((datatotransmit == SLIP_ESC) && (Packetserver_clients[connectedclient].packetserver_slipprotocol!=3)) //Escaped something?
 							{
 								if (Packetserver_clients[connectedclient].packetserver_transmitstate) //Were we already escaping?
@@ -3609,6 +3726,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 										{
 											if (packetServerAddWriteQueue(connectedclient, datatotransmit)) //Added to the queue?
 											{
+												Packetserver_clients[connectedclient].pppoe_lastsentbytewasEND = 0; //Last was not PPP_END!
 												readfifobuffer(modem.inputdatabuffer[connectedclient], &datatotransmit); //Ignore the data, just discard the packet byte!
 												Packetserver_clients[connectedclient].packetserver_transmitstate = 0; //We're not escaping something anymore!
 											}
@@ -3842,6 +3960,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 							packetserver_autherror: //Packet server authentication error?
 								if (PacketServer_running == 0) //Not running a packet server?
 								{
+									PPPOE_finishdiscovery(connectedclient); //Finish discovery, if needed!
 									TCP_DisconnectClientServer(modem.connectionid); //Disconnect!
 									modem.connectionid = -1;
 									fifobuffer_clear(modem.inputdatabuffer[connectedclient]); //Clear the output buffer for the next client!
@@ -3853,6 +3972,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 								}
 								else //Disconnect from packet server?
 								{
+									PPPOE_finishdiscovery(connectedclient); //Finish discovery, if needed!
 									TCP_DisconnectClientServer(Packetserver_clients[connectedclient].connectionid); //Clean up the packet server!
 									Packetserver_clients[connectedclient].connectionid = -1; //Not connected!
 									terminatePacketServer(connectedclient); //Stop the packet server, if used!
@@ -3896,6 +4016,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 								}
 								else //Disconnect from packet server?
 								{
+									PPPOE_finishdiscovery(connectedclient); //Finish discovery, if needed!
 									terminatePacketServer(Packetserver_clients[connectedclient].connectionid); //Clean up the packet server!
 									freePacketserver_client(connectedclient); //Free the client list item!
 									fifobuffer_clear(modem.inputdatabuffer[connectedclient]); //Clear the output buffer for the next client!
