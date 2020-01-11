@@ -3260,7 +3260,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 								{
 									if ((Packetserver_clients[connectedclient].packetserver_packetpos == 0) && (Packetserver_clients[connectedclient].packetserver_packetack == 0)) //New packet?
 									{
-										if (Packetserver_clients[connectedclient].pktlen > (sizeof(ethernetheader.data) + 20)) //Length OK(at least one byte of data and complete IP header)?
+										if (Packetserver_clients[connectedclient].pktlen > (sizeof(ethernetheader.data) + (Packetserver_clients[connectedclient].packetserver_slipprotocol!=3)?20:7)) //Length OK(at least one byte of data and complete IP header) or the PPP packet size?
 										{
 											memcpy(&ethernetheader.data, Packetserver_clients[connectedclient].packet, sizeof(ethernetheader.data)); //Copy for inspection!
 											if ((memcmp(&ethernetheader.dst, &packetserver_sourceMAC, sizeof(ethernetheader.dst)) != 0) && (memcmp(&ethernetheader.dst, &packetserver_broadcastMAC, sizeof(ethernetheader.dst)) != 0)) //Invalid destination(and not broadcasting)?
@@ -3366,7 +3366,14 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 											Packetserver_clients[connectedclient].packetserver_packetack = 0; //Not acnowledged yet!
 										}
 									}
-									if (Packetserver_clients[connectedclient].packetserver_stage != PACKETSTAGE_SLIP) goto invalidpacket; //Don't handle SLIP/PPP because we're not ready yet!
+									if (Packetserver_clients[connectedclient].packetserver_stage != PACKETSTAGE_SLIP)
+									{
+										if (Packetserver_clients[connectedclient].packet) //Still have a packet allocated to discard?
+										{
+											goto invalidpacket; //Discard the received packet!
+										}
+										goto skipSLIP_PPP; //Don't handle SLIP/PPP because we're not ready yet!
+									}
 									if (Packetserver_clients[connectedclient].packet) //Still a valid packet to send?
 									{
 										//Convert the buffer into transmittable bytes using the proper encoding!
@@ -3574,7 +3581,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 										{
 											PPPOE_requestdiscovery(connectedclient); //Try to request a new discovery for transmitting PPP packets!
 										}
-										goto skipSLIP; //Don't handle the sent data yet, prepare for sending by reconnecting to the PPPOE server!
+										goto skipSLIP_PPP; //Don't handle the sent data yet, prepare for sending by reconnecting to the PPPOE server!
 									}
 									Packetserver_clients[connectedclient].packetserver_transmitlength = 0; //Abort the packet generation!
 								}
@@ -3616,7 +3623,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 												{
 													if (!packetServerAddWriteQueue(connectedclient, PPP_END))
 													{
-														goto skipSLIP; //Don't handle the sending of the packet yet: not ready!
+														goto skipSLIP_PPP; //Don't handle the sending of the packet yet: not ready!
 													}
 													Packetserver_clients[connectedclient].pppoe_lastsentbytewasEND = 1; //Last was END!
 												}
@@ -3736,7 +3743,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 								}
 							}
 						}
-					skipSLIP: //SLIP isn't available?
+					skipSLIP_PPP: //SLIP isn't available?
 
 					//Handle an authentication stage
 						if (Packetserver_clients[connectedclient].packetserver_stage == PACKETSTAGE_REQUESTUSERNAME)
