@@ -3578,7 +3578,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 									noPPPtransmit:
 									if (!(Packetserver_clients[connectedclient].pppoe_discovery_PADS.buffer && Packetserver_clients[connectedclient].pppoe_discovery_PADS.length)) //Not ready to send?
 									{
-										if (!(Packetserver_clients[connectedclient].pppoe_discovery_PADT.buffer && Packetserver_clients[connectedclient].pppoe_discovery_PADI.length)) //No PADI sent yet? Start sending one now to restore the connection!
+										if (!(Packetserver_clients[connectedclient].pppoe_discovery_PADI.buffer && Packetserver_clients[connectedclient].pppoe_discovery_PADI.length)) //No PADI sent yet? Start sending one now to restore the connection!
 										{
 											PPPOE_requestdiscovery(connectedclient); //Try to request a new discovery for transmitting PPP packets!
 										}
