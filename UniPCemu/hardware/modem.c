@@ -657,6 +657,7 @@ void initPacketServer(sword client) //Initialize the packet server for use when 
 	Packetserver_clients[client].packetserver_packetack = 0; //Not acnowledged yet!
 	fifobuffer_clear(modem.inputdatabuffer[client]); //Nothing is received yet!
 	fifobuffer_clear(modem.outputbuffer[client]); //Nothing is sent yet!
+	Packetserver_clients[client].packetserver_slipprotocol = 0; //Initialize the protocol to the default value, which is unused!
 }
 
 byte packetserver_authenticate(sword client)
