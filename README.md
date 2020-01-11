@@ -48,6 +48,12 @@ This README would normally document whatever steps are necessary to get your app
 	- Add the mingw32/mingw64 parameter to the above command when using MSys/MinGW compilers.
 	- To make the Android NDK use the SDL2_net library and compile with internet support, add " useSDL2_net=1" to the usual ndk-build command line or equivalent. A more simple version is using the build.bat to compile(which will automatically use the correct build with(out) SDL2_net). Otherwise, it isn't enabled/used. It's also an automatic process with Android Studio.
 
+### Extra files ###
+
+* Dial-up server
+	- UniPCemu/modemconnect.slip.scp is a Windows 95 SLIP connect script to connect to the server using the SLIP protocol.
+	- UniPCemu/modemconnect.ppp.scp is a Windows 95 PPP connect script to connect to the server using the PPP protocol. 
+
 ### Contribution guidelines ###
 
 * Writing tests
