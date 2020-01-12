@@ -3282,7 +3282,6 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 													}
 												}
 												headertype = SDL_SwapBE16(0x8864); //Receiving uses normal PPP packets to transfer/receive on the receiver line only!
-												if (Packetserver_clients[connectedclient].packetserver_stage != PACKETSTAGE_SLIP) goto invalidpacket; //Don't handle SLIP!
 											}
 											else if (Packetserver_clients[connectedclient].packetserver_slipprotocol==2) //IPX protocol used?
 											{
@@ -3292,6 +3291,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 											{
 												headertype = SDL_SwapBE16(0x0800); //We're an IP packet!
 											}
+											if (Packetserver_clients[connectedclient].packetserver_stage != PACKETSTAGE_SLIP) goto invalidpacket; //Don't handle SLIP/PPP/IPX yet!
 											if (ethernetheader.type != headertype) //Invalid type?
 											{
 												//dolog("ethernetcard","Discarding type: %04X",SDL_SwapBE16(ethernetheader.type)); //Showing why we discard!
