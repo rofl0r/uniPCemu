@@ -150,7 +150,7 @@ word Packetserver_totalClients = 0; //How many clients are available?
 //SLIP: Delaying before starting the SLIP mode!
 #define PACKETSTAGE_SLIPDELAY 9
 //SLIP: Transferring SLIP data
-#define PACKETSTAGE_SLIPPPP 10
+#define PACKETSTAGE_PACKETS 10
 //Initial packet stage without credentials
 #define PACKETSTAGE_INIT PACKETSTAGE_REQUESTPROTOCOL
 //Initial packet stage with credentials
@@ -3291,7 +3291,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 											{
 												headertype = SDL_SwapBE16(0x0800); //We're an IP packet!
 											}
-											if (Packetserver_clients[connectedclient].packetserver_stage != PACKETSTAGE_SLIPPPP) goto invalidpacket; //Don't handle SLIP/PPP/IPX yet!
+											if (Packetserver_clients[connectedclient].packetserver_stage != PACKETSTAGE_PACKETS) goto invalidpacket; //Don't handle SLIP/PPP/IPX yet!
 											if (ethernetheader.type != headertype) //Invalid type?
 											{
 												//dolog("ethernetcard","Discarding type: %04X",SDL_SwapBE16(ethernetheader.type)); //Showing why we discard!
@@ -3367,7 +3367,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 											Packetserver_clients[connectedclient].packetserver_packetack = 0; //Not acnowledged yet!
 										}
 									}
-									if (Packetserver_clients[connectedclient].packetserver_stage != PACKETSTAGE_SLIPPPP)
+									if (Packetserver_clients[connectedclient].packetserver_stage != PACKETSTAGE_PACKETS)
 									{
 										if (Packetserver_clients[connectedclient].packet) //Still have a packet allocated to discard?
 										{
@@ -3482,7 +3482,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 							}
 						}
 
-						if (Packetserver_clients[connectedclient].packetserver_stage != PACKETSTAGE_SLIPPPP)
+						if (Packetserver_clients[connectedclient].packetserver_stage != PACKETSTAGE_PACKETS)
 						{
 							goto skipSLIP_PPP; //Don't handle SLIP/PPP because we're not ready yet!
 						}
@@ -3885,7 +3885,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 							{
 								Packetserver_clients[connectedclient].packetserver_delay = (DOUBLE)0; //Finish the delay!
 								Packetserver_clients[connectedclient].packetserver_stage_byte = PACKETSTAGE_INITIALIZING; //Prepare for next step!
-								Packetserver_clients[connectedclient].packetserver_stage = PACKETSTAGE_SLIPPPP; //Start the SLIP service!
+								Packetserver_clients[connectedclient].packetserver_stage = PACKETSTAGE_PACKETS; //Start the SLIP service!
 							}
 						}
 					}
