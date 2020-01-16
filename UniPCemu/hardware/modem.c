@@ -3261,7 +3261,7 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 								{
 									if ((Packetserver_clients[connectedclient].packetserver_packetpos == 0) && (Packetserver_clients[connectedclient].packetserver_packetack == 0)) //New packet?
 									{
-										if (Packetserver_clients[connectedclient].pktlen > (sizeof(ethernetheader.data) + (Packetserver_clients[connectedclient].packetserver_slipprotocol!=3)?20:7)) //Length OK(at least one byte of data and complete IP header) or the PPP packet size?
+										if (Packetserver_clients[connectedclient].pktlen > (sizeof(ethernetheader.data) + ((Packetserver_clients[connectedclient].packetserver_slipprotocol!=3)?20:7))) //Length OK(at least one byte of data and complete IP header) or the PPP packet size?
 										{
 											memcpy(&ethernetheader.data, Packetserver_clients[connectedclient].packet, sizeof(ethernetheader.data)); //Copy for inspection!
 											if ((memcmp(&ethernetheader.dst, &packetserver_sourceMAC, sizeof(ethernetheader.dst)) != 0) && (memcmp(&ethernetheader.dst, &packetserver_broadcastMAC, sizeof(ethernetheader.dst)) != 0)) //Invalid destination(and not broadcasting)?
