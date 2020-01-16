@@ -25,7 +25,11 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/hardware/vga/vga_sequencer_graphicsmode.h" //Graphics mode!
 
 extern LOADEDPLANESCONTAINER loadedplanes; //All read planes for the current processing!
-byte pixelbuffer[8]; //All 8 pixels decoded from the planesbuffer!
+union
+{
+	uint_64 pixelbufferq;
+	byte pixelbuffer[8]; //All 8 pixels decoded from the planesbuffer!
+};
 
 /*
 
@@ -35,27 +39,19 @@ byte pixelbuffer[8]; //All 8 pixels decoded from the planesbuffer!
 
 void load256colorshiftmode() //256-color shift mode!
 {
-	INLINEREGISTER byte data;
-	//Now all planes are loaded for our calculation!
-	data = loadedplanes.splitplanes[0]; //First plane!
-	pixelbuffer[1] = (data & 0xF); //Take second pixel!
-	data >>= 4; //Shift high to low libble!
-	pixelbuffer[0] = data; //Take first pixel!
-
-	data = loadedplanes.splitplanes[1]; //Second plane!
-	pixelbuffer[3] = (data & 0xF); //Take second pixel!
-	data >>= 4; //Shift high to low libble!
-	pixelbuffer[2] = data; //Take first pixel!
-
-	data = loadedplanes.splitplanes[2]; //Third plane!
-	pixelbuffer[5] = (data & 0xF); //Take second pixel!
-	data >>= 4; //Shift high to low libble!
-	pixelbuffer[4] = data; //Take first pixel!
-
-	data = loadedplanes.splitplanes[3]; //Fourth plane!
-	pixelbuffer[7] = (data & 0xF); //Take second pixel!
-	data >>= 4; //Shift high to low libble!
-	pixelbuffer[6] = data; //Take first pixel!
+	INLINEREGISTER uint_32 originalplanes; //The loaded planes!
+	INLINEREGISTER LOADEDPLANESCONTAINER currentplanes; //For splitting the planes!
+	originalplanes = loadedplanes.loadedplanes; //Load the planes for retrieving!
+	currentplanes.loadedplanes = (originalplanes&0x0F0F0F0F); //Low planes!
+	pixelbuffer[1] = currentplanes.splitplanes[0];
+	pixelbuffer[3] = currentplanes.splitplanes[1];
+	pixelbuffer[5] = currentplanes.splitplanes[2];
+	pixelbuffer[7] = currentplanes.splitplanes[3];
+	currentplanes.loadedplanes = ((originalplanes&0xF0F0F0F0)>>4); //Load the planes for retrieving!
+	pixelbuffer[0] = currentplanes.splitplanes[0];
+	pixelbuffer[2] = currentplanes.splitplanes[1];
+	pixelbuffer[4] = currentplanes.splitplanes[2];
+	pixelbuffer[6] = currentplanes.splitplanes[3];
 }
 
 /*
@@ -67,51 +63,33 @@ SHIFT REGISTER INTERLEAVE MODE
 void loadpackedshiftmode() //Packed shift mode!
 {
 	INLINEREGISTER byte temp, tempbuffer; //A buffer for our current pixel!
-	pixelbuffer[0] = pixelbuffer[1] = pixelbuffer[2] = pixelbuffer[3] = loadedplanes.splitplanes[2]; //Load high plane!
-	pixelbuffer[4] = pixelbuffer[5] = pixelbuffer[6] = pixelbuffer[7] = loadedplanes.splitplanes[3]; //Load high plane!
-	pixelbuffer[0] >>= 4;
-	pixelbuffer[1] >>= 2;
-	pixelbuffer[3] <<= 2; //Shift to the high part!
-	pixelbuffer[4] >>= 4;
-	pixelbuffer[5] >>= 2;
-	pixelbuffer[7] <<= 2; //Shift to the high part!
+	uint_64 pixelbufferqbackup;
+	temp = loadedplanes.splitplanes[2]; //Load high plane!
+	pixelbuffer[3] = temp;
+	pixelbuffer[2] = (temp>>=2);
+	pixelbuffer[1] = (temp>>=2);
+	pixelbuffer[0] = (temp>>=2); //Shift out the high bits!
+	tempbuffer = loadedplanes.splitplanes[3]; //Load high plane!
+	pixelbuffer[7] = tempbuffer;
+	pixelbuffer[6] = (tempbuffer>>=2);
+	pixelbuffer[5] = (tempbuffer>>=2);
+	pixelbuffer[4] = (tempbuffer>>=2); //Shift out the high bits!
+	pixelbufferqbackup = ((pixelbufferq<<2)&0x0C0C0C0C0C0C0C0CULL); //Shift to the high part and store!
 
-	pixelbuffer[0] &= 0xC;
-	pixelbuffer[1] &= 0xC;
-	pixelbuffer[2] &= 0xC;
-	pixelbuffer[3] &= 0xC;
-	pixelbuffer[4] &= 0xC;
-	pixelbuffer[5] &= 0xC;
-	pixelbuffer[6] &= 0xC;
-	pixelbuffer[7] &= 0xC; //Clear bits 0-1 and 4+!
+	temp = loadedplanes.splitplanes[0]; //Load low plane!
+	pixelbuffer[3] = temp;
+	pixelbuffer[2] = (temp>>=2);
+	pixelbuffer[1] = (temp>>=2);
+	pixelbuffer[0] = (temp>>=2); //Shift out the low bits!
+	tempbuffer = loadedplanes.splitplanes[1]; //Load low plane!
+	pixelbuffer[7] = tempbuffer;
+	pixelbuffer[6] = (tempbuffer>>=2);
+	pixelbuffer[5] = (tempbuffer>>=2);
+	pixelbuffer[4] = (tempbuffer>>=2); //Shift out the low bits!
+	pixelbufferq &= 0x0303030303030303ULL; //Shift to the low part!
 
-	//First byte!
-	tempbuffer = temp = loadedplanes.splitplanes[0]; //Load low plane!
-	tempbuffer &= 3;
-	pixelbuffer[3] |= tempbuffer;
-	tempbuffer = (temp >>= 2); //Shift to the next data!
-	tempbuffer &= 3;
-	pixelbuffer[2] |= tempbuffer;
-	tempbuffer = (temp >>= 2); //Shift to the next data!
-	tempbuffer &= 3;
-	pixelbuffer[1] |= tempbuffer;
-	temp >>= 2; //Shift to the next data!
-	tempbuffer &= 3;
-	pixelbuffer[0] |= temp;
-
-	//Second byte!
-	tempbuffer = temp = loadedplanes.splitplanes[1]; //Load low plane!
-	tempbuffer &= 3;
-	pixelbuffer[7] |= tempbuffer;
-	tempbuffer = (temp >>= 2); //Shift to the next data!
-	tempbuffer &= 3;
-	pixelbuffer[6] |= tempbuffer;
-	tempbuffer = (temp >>= 2); //Shift to the next data!
-	tempbuffer &= 3;
-	pixelbuffer[5] |= tempbuffer;
-	temp >>= 2; //Shift to the next data!
-	tempbuffer &= 3;
-	pixelbuffer[4] |= temp;
+	//Combine the high and low values for their full 4-bit value!
+	pixelbufferq |= pixelbufferqbackup; //Combine both parts for the full value!
 }
 
 /*
