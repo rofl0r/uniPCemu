@@ -38,6 +38,7 @@ VGA ROM and handling functions.
 #include "headers/hardware/vga/vga_vram.h" //VRAM read!
 #include "headers/hardware/vga/vga_vramtext.h" //VRAM text read!
 #include "headers/hardware/vga/vga_precalcs.h" //Precalculations!
+#include "headers/hardware/vga/vga_sequencer_graphicsmode.h" //Graphics mode!
 #include "headers/support/zalloc.h" //Memory allocation!
 #include "headers/support/log.h" //Logging support!
 #include "headers/emu/gpu/gpu_renderer.h" //GPU rendering support!
@@ -60,7 +61,7 @@ extern BIOS_Settings_TYPE BIOS_Settings; //The BIOS Settings!
 
 byte is_loadchartable = 0; //Loading character table?
 
-extern byte pixelbuffer[8]; //All 8 pixels decoded from the planesbuffer!
+extern PIXELBUFFERCONTAINERTYPE pixelbuffercontainer; //All 8 pixels decoded from the planesbuffer!
 
 extern byte allcleared;
 
@@ -218,7 +219,7 @@ VGA_Type *VGAalloc(uint_32 custom_vram_size, int update_bios, byte extension) //
 	fillCGAfont(); //Initialise the CGA font map if needed to use it!
 	fillMDAfont(); //Initialise the MDA font map if needed to use it!
 
-	((SEQ_DATA *)VGA->Sequencer)->graphicsx = &pixelbuffer[0]; //Reset the graphics pointer!
+	((SEQ_DATA *)VGA->Sequencer)->graphicsx = &pixelbuffercontainer.pixelbuffer[0]; //Reset the graphics pointer!
 
 	VGA->enable_SVGA = extension; //Enable the extension when set!
 
