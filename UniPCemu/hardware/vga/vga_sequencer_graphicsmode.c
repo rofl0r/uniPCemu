@@ -59,34 +59,38 @@ SHIFT REGISTER INTERLEAVE MODE
 
 void loadpackedshiftmode() //Packed shift mode!
 {
-	INLINEREGISTER byte temp, tempbuffer; //A buffer for our current pixel!
-	uint_64 pixelbufferqbackup;
-	temp = loadedplanes.splitplanes[2]; //Load high plane!
-	pixelbuffercontainer.pixelbuffer[3] = temp;
-	pixelbuffercontainer.pixelbuffer[2] = (temp>>=2);
-	pixelbuffercontainer.pixelbuffer[1] = (temp>>=2);
-	pixelbuffercontainer.pixelbuffer[0] = (temp>>=2); //Shift out the high bits!
-	tempbuffer = loadedplanes.splitplanes[3]; //Load high plane!
-	pixelbuffercontainer.pixelbuffer[7] = tempbuffer;
-	pixelbuffercontainer.pixelbuffer[6] = (tempbuffer>>=2);
-	pixelbuffercontainer.pixelbuffer[5] = (tempbuffer>>=2);
-	pixelbuffercontainer.pixelbuffer[4] = (tempbuffer>>=2); //Shift out the high bits!
-	pixelbufferqbackup = ((pixelbuffercontainer.pixelbufferq<<2)&0x0C0C0C0C0C0C0C0CULL); //Shift to the high part and store!
+	INLINEREGISTER byte temp; //A buffer for our current pixel!
+	INLINEREGISTER PIXELBUFFERCONTAINERTYPE lpixelbuffercontainer;
+	INLINEREGISTER LOADEDPLANESCONTAINER currentplanes; //For splitting the planes!
+	INLINEREGISTER uint_64 pixelbufferqbackup;
+	currentplanes.loadedplanes = loadedplanes.loadedplanes; //All loaded planes!
+	temp = currentplanes.splitplanes[2]; //Load high plane!
+	lpixelbuffercontainer.pixelbuffer[3] = temp;
+	lpixelbuffercontainer.pixelbuffer[2] = (temp>>=2);
+	lpixelbuffercontainer.pixelbuffer[1] = (temp>>=2);
+	lpixelbuffercontainer.pixelbuffer[0] = (temp>>=2); //Shift out the high bits!
+	temp = currentplanes.splitplanes[3]; //Load high plane!
+	lpixelbuffercontainer.pixelbuffer[7] = temp;
+	lpixelbuffercontainer.pixelbuffer[6] = (temp>>=2);
+	lpixelbuffercontainer.pixelbuffer[5] = (temp>>=2);
+	lpixelbuffercontainer.pixelbuffer[4] = (temp>>=2); //Shift out the high bits!
+	pixelbufferqbackup = ((lpixelbuffercontainer.pixelbufferq<<2)&0x0C0C0C0C0C0C0C0CULL); //Shift to the high part and store!
 
-	temp = loadedplanes.splitplanes[0]; //Load low plane!
-	pixelbuffercontainer.pixelbuffer[3] = temp;
-	pixelbuffercontainer.pixelbuffer[2] = (temp>>=2);
-	pixelbuffercontainer.pixelbuffer[1] = (temp>>=2);
-	pixelbuffercontainer.pixelbuffer[0] = (temp>>=2); //Shift out the low bits!
-	tempbuffer = loadedplanes.splitplanes[1]; //Load low plane!
-	pixelbuffercontainer.pixelbuffer[7] = tempbuffer;
-	pixelbuffercontainer.pixelbuffer[6] = (tempbuffer>>=2);
-	pixelbuffercontainer.pixelbuffer[5] = (tempbuffer>>=2);
-	pixelbuffercontainer.pixelbuffer[4] = (tempbuffer>>=2); //Shift out the low bits!
-	pixelbuffercontainer.pixelbufferq &= 0x0303030303030303ULL; //Shift to the low part!
+	temp = currentplanes.splitplanes[0]; //Load low plane!
+	lpixelbuffercontainer.pixelbuffer[3] = temp;
+	lpixelbuffercontainer.pixelbuffer[2] = (temp>>=2);
+	lpixelbuffercontainer.pixelbuffer[1] = (temp>>=2);
+	lpixelbuffercontainer.pixelbuffer[0] = (temp>>=2); //Shift out the low bits!
+	temp = currentplanes.splitplanes[1]; //Load low plane!
+	lpixelbuffercontainer.pixelbuffer[7] = temp;
+	lpixelbuffercontainer.pixelbuffer[6] = (temp>>=2);
+	lpixelbuffercontainer.pixelbuffer[5] = (temp>>=2);
+	lpixelbuffercontainer.pixelbuffer[4] = (temp>>=2); //Shift out the low bits!
+	lpixelbuffercontainer.pixelbufferq &= 0x0303030303030303ULL; //Shift to the low part!
 
 	//Combine the high and low values for their full 4-bit value!
-	pixelbuffercontainer.pixelbufferq |= pixelbufferqbackup; //Combine both parts for the full value!
+	lpixelbuffercontainer.pixelbufferq |= pixelbufferqbackup; //Combine both parts for the full value!
+	pixelbuffercontainer.pixelbufferq = lpixelbuffercontainer.pixelbufferq; //Save the resulting pixel buffer!
 }
 
 /*
