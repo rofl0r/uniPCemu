@@ -4814,7 +4814,8 @@ void CPU8086_OP59()
 	{
 		if (checkStackAccess(1,0,0)) return;
 		++CPU[activeCPU].stackchecked;
-	} if (CPU8086_instructionstepPOPtimeout(0)) return; /*POP timeout*/
+	}
+	if (CPU8086_instructionstepPOPtimeout(0)) return; /*POP timeout*/
 	if (CPU8086_POPw(2,&REG_CX,0)) return; /*POP CX*/
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
@@ -5033,7 +5034,6 @@ void CPU8086_OP74()
 		if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 		{
 			CPU[activeCPU].cycles_OP += 1; /* Branch not taken */
-		
 		}
 	}
 }
