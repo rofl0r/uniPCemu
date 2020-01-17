@@ -62,6 +62,7 @@ struct
 	uint_64 bitmaskhigh; //High data bit mask!
 	uint_64 bitmasklow; //Low data bit mask!
 	byte extensionModel; //What model are we?
+	word portmask;
 } JOYSTICK;
 
 //WingMan Digital sequence from Linux: https://github.com/torvalds/linux/blob/master/drivers/input/joystick/adi.c
@@ -204,26 +205,20 @@ void updateJoystick(DOUBLE timepassed)
 byte joystick_readIO(word port, byte *result)
 {
 	INLINEREGISTER byte temp;
-	if (port != 0x201) return 0; //Not our port?
-	switch (port)
+	if ((port&JOYSTICK.portmask) != 0x200) return 0; //Not our port?
+	//Read joystick position and status?
+	//bits 8-7 are joystick B buttons 2/1, Bits 6-5 are joystick A buttons 2/1, bit 4-3 are joystick B Y-X timeout timing, bits 1-0 are joystick A Y-X timeout timing.
+	temp = 0xFF; //Init the result!
+	if (JOYSTICK.enabled[1]) //Joystick B enabled?
 	{
-		case 0x201: //Read joystick position and status?
-			//bits 8-7 are joystick B buttons 2/1, Bits 6-5 are joystick A buttons 2/1, bit 4-3 are joystick B Y-X timeout timing, bits 1-0 are joystick A Y-X timeout timing.
-			temp = 0xFF; //Init the result!
-			if (JOYSTICK.enabled[1]) //Joystick B enabled?
-			{
-				temp &= 0x33|(((JOYSTICK.buttons[1]<<6)|JOYSTICK.timeout)&0xCC); //Clear joystick B bits when applied!
-			}
-			if (JOYSTICK.enabled[0]) //Joystick A enabled?
-			{
-				temp &= 0xCC|(((JOYSTICK.buttons[0]<<4)|JOYSTICK.timeout)&0x33); //Set joystick A bits when applied!
-			}
-			*result = temp; //Give the result!
-			return 1; //OK!
-		default:
-			break;
+		temp &= 0x33|(((JOYSTICK.buttons[1]<<6)|JOYSTICK.timeout)&0xCC); //Clear joystick B bits when applied!
 	}
-	return 0; //Not an used port!
+	if (JOYSTICK.enabled[0]) //Joystick A enabled?
+	{
+		temp &= 0xCC|(((JOYSTICK.buttons[0]<<4)|JOYSTICK.timeout)&0x33); //Set joystick A bits when applied!
+	}
+	*result = temp; //Give the result!
+	return 1; //OK!
 }
 
 byte joystick_writeIO(word port, byte value)
@@ -237,10 +232,8 @@ byte joystick_writeIO(word port, byte value)
 	#include "headers/endpacked.h"
 	byte entry;
 	byte sequencepos;
-	if (port!=0x201) return 0; //Not our port?
-	switch (port)
-	{
-		case 0x201: //Fire joystick four one-shots?
+	if ((port&JOYSTICK.portmask)!=0x200) return 0; //Not our port?
+	//Fire joystick four one-shots?
 			//Set timeoutx and timeouty based on the relative status of Joystick_X and Joystick_Y to fully left/top!
 			//First joystick timeout!
 			if (JOYSTICK.enabled[1]) //Joystick B enabled?
@@ -351,12 +344,10 @@ byte joystick_writeIO(word port, byte value)
 				}
 			}
 			JOYSTICK.timeout = 0xF; //Start the timeout on all channels, regardless if they're enabled. Multivibrator output goes to logic 0.
-			return 1; //OK!
-		default:
-			break;
-	}
-	return 0; //Not an used port!
+			return 1;
 }
+
+extern byte is_XT; //Are we emulating a XT architecture?
 
 void joystickInit()
 {
@@ -370,6 +361,7 @@ void joystickInit()
 	JOYSTICK.digitalmodesequence = allocfifobuffer(MAXSEQUENCESIZE,0); //We use a simple buffer with 10 8-bit entries, unlocked!
 	JOYSTICK.lasttiming = 0.0f; //Last write digital timing delay!
 	JOYSTICK.extensionModel = 0; //Default: no extension specified!
+	JOYSTICK.portmask = is_XT?0xFFF0:0xFFF8; //XT:200-20F, AT+:200-207
 }
 
 void joystickDone()
