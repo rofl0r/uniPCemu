@@ -3073,7 +3073,8 @@ void CPU80386_OP5F()
 	{
 		if (checkStackAccess(1,0,1)) return;
 		++CPU[activeCPU].stackchecked;
-	} if (CPU80386_instructionstepPOPtimeout(0)) return; /*POP timeout*/
+	}
+	if (CPU80386_instructionstepPOPtimeout(0)) return; /*POP timeout*/
 	if (CPU80386_POPdw(2,&REG_EDI)) return;/*POP DI*/
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
