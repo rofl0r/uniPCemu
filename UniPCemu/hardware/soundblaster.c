@@ -238,7 +238,8 @@ void updateSoundBlaster(DOUBLE timepassed, uint_32 MHZ14passed)
 		//Play audio normally using timed output!
 		if (likely(soundblaster_sampletick)) //Valid to time?
 		{
-			soundblaster_sampletiming += (SOUNDBLASTER.DREQ&0x10)?soundblaster_recordedpassed:timepassed; //Tick time or real-time(for recording)!
+			//soundblaster_sampletiming += (SOUNDBLASTER.DREQ&0x10)?soundblaster_recordedpassed:timepassed; //Tick time or real-time(for recording)!
+			soundblaster_sampletiming += timepassed; //Always run at 100% emulated speed!
 			if (unlikely((soundblaster_sampletiming>=soundblaster_sampletick) && (soundblaster_sampletick>0.0))) //Expired?
 			{
 				for (;soundblaster_sampletiming>=soundblaster_sampletick;) //A sample to play?
