@@ -340,6 +340,9 @@ byte joystick_writeIO(word port, byte value)
 					axisconversion.axis = JOYSTICK.Joystick_X[0]; //Y!
 					JOYSTICK.packet |= ((((uint_64)axisconversion.data>>8)&0xFF)<<26); //Twist converted!
 					//The upper bits are 0x00!
+					//According to Linux, button state starts at zero when starting a packet!
+					JOYSTICK.buttons[1] &= ~3;
+					JOYSTICK.buttons[0] &= ~3;
 					break;
 				}
 			}
