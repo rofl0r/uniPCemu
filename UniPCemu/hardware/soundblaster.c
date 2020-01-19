@@ -113,6 +113,7 @@ extern byte specialdebugger; //Enable special debugger input?
 uint_32 soundblaster_soundtiming = 0;
 DOUBLE soundblaster_soundtick = 0.0;
 DOUBLE soundblaster_sampletiming = 0.0, soundblaster_recordingtiming = 0.0, soundblaster_sampletick = 0.0;
+DOUBLE soundblaster_sampletickfree = 0.0;
 
 DOUBLE soundblaster_IRR = 0.0, soundblaster_resettiming = 0.0; //No IRR nor reset requested!
 
@@ -170,6 +171,7 @@ extern byte backgroundpolicy; //Background task policy. 0=Full halt of the appli
 
 void updateSoundBlaster(DOUBLE timepassed, uint_32 MHZ14passed)
 {
+	uint_32 freesamples;
 	#ifdef IS_FLOATDOUBLE
 	double dummy;
 	#else
@@ -274,35 +276,23 @@ void updateSoundBlaster(DOUBLE timepassed, uint_32 MHZ14passed)
 	else //Not requesting playback/recording?
 	{
 		//Record audio normally/silenced using timed output!
-		if (likely(soundblaster_sampletick)) //Sample ticking?
+		if (likely(soundblaster_sampletickfree)) //Sample ticking?
 		{
 			soundblaster_sampletiming += timepassed; //Tick time or real-time(for recording)!
-			if (unlikely((soundblaster_sampletiming>=soundblaster_sampletick) && (soundblaster_sampletick>0.0))) //Expired?
+			if (unlikely((soundblaster_sampletiming>=soundblaster_sampletickfree) && (soundblaster_sampletickfree>0.0))) //Expired?
 			{
-				for (;soundblaster_sampletiming>=soundblaster_sampletick;) //A sample to play?
+				freesamples = (uint_32)(soundblaster_sampletiming / soundblaster_sampletickfree); //How many samples to render!
+				soundblaster_sampletiming -= ((DOUBLE)(freesamples)) * soundblaster_sampletickfree; //Remainder!
+				if (freesamples) //A sample to record? We can't record multiple samples at once, since we're recording realtime(1MHz)!
 				{
-					if (SOUNDBLASTER.silencesamples) //Silence requested?
-					{
-						sb_leftsample = sb_rightsample = 0x80; //Silent sample!
-						if (--SOUNDBLASTER.silencesamples == 0) //Decrease the sample counter! If expired, fire IRQ!
-						{
-							SoundBlaster_IRQ8(); //Fire the IRQ!
-							SOUNDBLASTER.DMADisabled |= 1; //We're a paused DMA transaction automatically!
-						}
-					}
-					else //Audio recording at hardware rate?
-					{
-						#ifdef RECORD_TESTWAVE
-						sample = (sword)(sinf(2.0f*PI*1.0f*recordtime)*(SHRT_MAX/2.0)); //Use a test wave instead!
-						recordtime += (1.0f/SOUNDBLASTER.frequency); //Tick time!
-						recordtime = fmodf(recordtime,1.0f); //Wrap around a second!
-						SOUNDBLASTER.recordedsample = ((signed2unsigned16(sample)>>8)^0x80); //Test sample to use!
-						#else
-						SOUNDBLASTER.recordedsample = (byte)(((word)getRecordedSampleL8u()+(word)getRecordedSampleR8u())*0.5f); //Update recording samples in real-time, mono!
-						#endif
-						tickSoundBlasterRecording();
-						soundblaster_sampletiming -= soundblaster_sampletick; //A sample has been ticked!
-					}	
+					#ifdef RECORD_TESTWAVE
+					sample = (sword)(sinf(2.0f*PI*1.0f*recordtime)*(SHRT_MAX/2.0)); //Use a test wave instead!
+					recordtime += (1.0f/1000000.0f); //Tick time!
+					recordtime = fmodf(recordtime,1.0f); //Wrap around a second!
+					SOUNDBLASTER.recordedsample = ((signed2unsigned16(sample)>>8)^0x80); //Test sample to use!
+					#else
+					SOUNDBLASTER.recordedsample = (byte)(((word)getRecordedSampleL8u()+(word)getRecordedSampleR8u())*0.5f); //Update recording samples in real-time, mono!
+					#endif
 				}
 			}
 		}
@@ -1204,6 +1194,7 @@ void initSoundBlaster(word baseaddr, byte version)
 	soundblaster_sampletick = 1000000000.0/SOUNDBLASTER.frequency; //Tick at the sample rate!
 	#endif
 
+	soundblaster_sampletickfree = (DOUBLE)(1000000000.0 / (DOUBLE)(1000000.0)); //Tick at the free recording sample rate!
 
 	switch (version & 0x7F) //What version to emulate?
 	{
