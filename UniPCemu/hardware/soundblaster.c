@@ -113,7 +113,7 @@ extern byte specialdebugger; //Enable special debugger input?
 uint_32 soundblaster_soundtiming = 0;
 DOUBLE soundblaster_soundtick = 0.0;
 DOUBLE soundblaster_sampletiming = 0.0, soundblaster_recordingtiming = 0.0, soundblaster_sampletick = 0.0;
-DOUBLE soundblaster_sampletickfree = 0.0;
+DOUBLE soundblaster_sampletimingfree = 0.0, soundblaster_sampletickfree = 0.0;
 
 DOUBLE soundblaster_IRR = 0.0, soundblaster_resettiming = 0.0; //No IRR nor reset requested!
 
@@ -211,6 +211,28 @@ void updateSoundBlaster(DOUBLE timepassed, uint_32 MHZ14passed)
 	static float recordtime = 0.0f;
 	#endif
 
+	//Record audio normally using constant timed output!
+	if (likely(soundblaster_sampletickfree)) //Sample ticking?
+	{
+		soundblaster_sampletimingfree += timepassed; //Tick time or real-time(for recording)!
+		if (unlikely((soundblaster_sampletimingfree >= soundblaster_sampletickfree) && (soundblaster_sampletickfree > 0.0))) //Expired?
+		{
+			freesamples = (uint_32)(soundblaster_sampletimingfree / soundblaster_sampletickfree); //How many samples to render!
+			soundblaster_sampletimingfree -= ((DOUBLE)(freesamples)) * soundblaster_sampletickfree; //Remainder!
+			if (likely(freesamples)) //A sample to record? We can't record multiple samples at once, since we're recording realtime(1MHz)!
+			{
+#ifdef RECORD_TESTWAVE
+				sample = (sword)(sinf(2.0f * PI * 1.0f * recordtime) * (SHRT_MAX / 2.0)); //Use a test wave instead!
+				recordtime += (1.0f / 1000000.0f); //Tick time!
+				recordtime = fmodf(recordtime, 1.0f); //Wrap around a second!
+				SOUNDBLASTER.recordedsample = ((signed2unsigned16(sample) >> 8) ^ 0x80); //Test sample to use!
+#else
+				SOUNDBLASTER.recordedsample = (byte)(((word)getRecordedSampleL8u() + (word)getRecordedSampleR8u()) * 0.5f); //Update recording samples in real-time, mono!
+#endif
+			}
+		}
+	}
+
 	if (unlikely(SOUNDBLASTER.DREQ || SOUNDBLASTER.silencesamples)) //Transaction busy?
 	{
 		//Play audio normally using timed output!
@@ -237,23 +259,7 @@ void updateSoundBlaster(DOUBLE timepassed, uint_32 MHZ14passed)
 							sb_rightsample = sb_leftsample; //Render the new mono sample!
 						}
 
-						#ifdef RECORD_TESTWAVE
-						sample = (sword)(sinf(2.0f*PI*1.0f*recordtime)*(SHRT_MAX/2.0)); //Use a test wave instead!
-						recordtime += (1.0f/SOUNDBLASTER.frequency); //Tick time by one sample!
-						recordtime = fmodf(recordtime,1.0f); //Wrap around a second!
-						SOUNDBLASTER.recordedsample = ((signed2unsigned16(sample)>>8)^0x80); //Test sample to use!
-						#else
-						SOUNDBLASTER.recordedsample = (byte)(((word)getRecordedSampleL8u()+(word)getRecordedSampleR8u())*0.5f); //Update recording samples in real-time, mono!
-						#endif
-
 						tickSoundBlasterRecording();
-
-						if (SOUNDBLASTER.command==0x20) //Direct ADC?
-						{
-							writefifobuffer(SOUNDBLASTER.DSPindata, SOUNDBLASTER.recordedsample); //Give the current sample!
-							fifobuffer_gotolast(SOUNDBLASTER.DSPindata); //Give the result!
-							SOUNDBLASTER.command = 0; //Finished!
-						}
 
 						if (fifobuffer_freesize(SOUNDBLASTER.DSPoutdata)==__SOUNDBLASTER_DSPOUTDATASIZE) //Empty buffer? We've finished rendering the samples specified!
 						{
@@ -269,30 +275,6 @@ void updateSoundBlaster(DOUBLE timepassed, uint_32 MHZ14passed)
 						SOUNDBLASTER.DREQ &= ~4; //We're done timing, start up DMA again, if allowed!
 					}
 					soundblaster_sampletiming -= soundblaster_sampletick; //A sample has been ticked!
-				}
-			}
-		}
-	}
-	else //Not requesting playback/recording?
-	{
-		//Record audio normally/silenced using timed output!
-		if (likely(soundblaster_sampletickfree)) //Sample ticking?
-		{
-			soundblaster_sampletiming += timepassed; //Tick time or real-time(for recording)!
-			if (unlikely((soundblaster_sampletiming>=soundblaster_sampletickfree) && (soundblaster_sampletickfree>0.0))) //Expired?
-			{
-				freesamples = (uint_32)(soundblaster_sampletiming / soundblaster_sampletickfree); //How many samples to render!
-				soundblaster_sampletiming -= ((DOUBLE)(freesamples)) * soundblaster_sampletickfree; //Remainder!
-				if (freesamples) //A sample to record? We can't record multiple samples at once, since we're recording realtime(1MHz)!
-				{
-					#ifdef RECORD_TESTWAVE
-					sample = (sword)(sinf(2.0f*PI*1.0f*recordtime)*(SHRT_MAX/2.0)); //Use a test wave instead!
-					recordtime += (1.0f/1000000.0f); //Tick time!
-					recordtime = fmodf(recordtime,1.0f); //Wrap around a second!
-					SOUNDBLASTER.recordedsample = ((signed2unsigned16(sample)>>8)^0x80); //Test sample to use!
-					#else
-					SOUNDBLASTER.recordedsample = (byte)(((word)getRecordedSampleL8u()+(word)getRecordedSampleR8u())*0.5f); //Update recording samples in real-time, mono!
-					#endif
 				}
 			}
 		}
