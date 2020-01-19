@@ -121,51 +121,52 @@ void updateJoystick(DOUBLE timepassed)
 	//Add to the digital timing sequence for detecting the activation sequence!
 	JOYSTICK.digitaltiming += timepassed; //Apply timing directly to the digital timing for activation sequence detection!
 
-	if (JOYSTICK.model==0) //Analog model? Use compatibiliy analog emulation!
+	//Always update the analog outputs!
+	if (JOYSTICK.timeout) //Timing?
 	{
-	updateAnalogMode:
-		if (JOYSTICK.timeout) //Timing?
+		if (JOYSTICK.enabled[0]) //Joystick A enabled?
 		{
-			if (JOYSTICK.enabled[0]) //Joystick A enabled?
+			if ((JOYSTICK.timeout & 1) && (JOYSTICK.enabled[0] & 1)) //AX timing?
 			{
-				if ((JOYSTICK.timeout & 1) && (JOYSTICK.enabled[0] & 1)) //AX timing?
+				JOYSTICK.timeoutx[0] -= timepassed; //Add the time to what's left!
+				if (JOYSTICK.timeoutx[0] <= 0.0) //Finished timing?
 				{
-					JOYSTICK.timeoutx[0] -= timepassed; //Add the time to what's left!
-					if (JOYSTICK.timeoutx[0] <= 0.0) //Finished timing?
-					{
-						JOYSTICK.timeout &= ~1; //Finished timing, go logic 1(digital 0)!
-					}
-				}
-				if ((JOYSTICK.timeout & 2) && (JOYSTICK.enabled[0] == 1)) //AY timing?
-				{
-					JOYSTICK.timeouty[0] -= timepassed; //Add the time to what's left!
-					if (JOYSTICK.timeouty[0] <= 0.0) //Finished timing?
-					{
-						JOYSTICK.timeout &= ~2; //Finished timing, go logic 1(digital 0)!
-					}
+					JOYSTICK.timeout &= ~1; //Finished timing, go logic 1(digital 0)!
 				}
 			}
-			if (JOYSTICK.enabled[1]) //Joystick B enabled?
+			if ((JOYSTICK.timeout & 2) && (JOYSTICK.enabled[0] == 1)) //AY timing?
 			{
-				if ((JOYSTICK.timeout & 4) && (JOYSTICK.enabled[1] & 1)) //BX timing?
+				JOYSTICK.timeouty[0] -= timepassed; //Add the time to what's left!
+				if (JOYSTICK.timeouty[0] <= 0.0) //Finished timing?
 				{
-					JOYSTICK.timeoutx[1] -= timepassed; //Add the time to what's left!
-					if (JOYSTICK.timeoutx[1] <= 0.0) //Finished timing?
-					{
-						JOYSTICK.timeout &= ~4; //Finished timing, go logic 1(digital 0)!
-					}
-				}
-				if ((JOYSTICK.timeout & 8) && (JOYSTICK.enabled[1] == 1)) //BY timing?
-				{
-					JOYSTICK.timeouty[1] -= timepassed; //Add the time to what's left!
-					if (JOYSTICK.timeouty[1] <= 0.0) //Finished timing?
-					{
-						JOYSTICK.timeout &= ~8; //Finished timing, go logic 1(digital 0)!
-					}
+					JOYSTICK.timeout &= ~2; //Finished timing, go logic 1(digital 0)!
 				}
 			}
 		}
+		if (JOYSTICK.enabled[1]) //Joystick B enabled?
+		{
+			if ((JOYSTICK.timeout & 4) && (JOYSTICK.enabled[1] & 1)) //BX timing?
+			{
+				JOYSTICK.timeoutx[1] -= timepassed; //Add the time to what's left!
+				if (JOYSTICK.timeoutx[1] <= 0.0) //Finished timing?
+				{
+					JOYSTICK.timeout &= ~4; //Finished timing, go logic 1(digital 0)!
+				}
+			}
+			if ((JOYSTICK.timeout & 8) && (JOYSTICK.enabled[1] == 1)) //BY timing?
+			{
+				JOYSTICK.timeouty[1] -= timepassed; //Add the time to what's left!
+				if (JOYSTICK.timeouty[1] <= 0.0) //Finished timing?
+				{
+					JOYSTICK.timeout &= ~8; //Finished timing, go logic 1(digital 0)!
+				}
+			}
+		}
+	}
 
+	if (JOYSTICK.model==0) //Analog model? Use compatibiliy analog emulation!
+	{
+	updateAnalogMode:
 		//Not in digital mode, so behave!
 		JOYSTICK.resettimer = (DOUBLE)0; //Stop the timer!
 		JOYSTICK.model = 0; //Return to analog mode!
