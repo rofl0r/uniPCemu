@@ -230,10 +230,18 @@ byte joystick_readIO(word port, byte *result)
 	temp = 0xFF; //Init the result!
 	if (JOYSTICK.enabled[1]) //Joystick B enabled?
 	{
+		if (JOYSTICK.extensionModel && (!JOYSTICK.model)) //Digital joystick not in digital mode? Compatibility mode for unsupporting software!
+		{
+			JOYSTICK.buttons[1] = (JOYSTICK.buttons2[3] ? 0x0 : 0x2) | (JOYSTICK.buttons2[2] ? 0x0 : 0x1); //Button 3&4, as pressed!
+		}
 		temp &= 0x33|(((JOYSTICK.buttons[1]<<6)|JOYSTICK.timeout)&0xCC); //Clear joystick B bits when applied!
 	}
 	if (JOYSTICK.enabled[0]) //Joystick A enabled?
 	{
+		if (JOYSTICK.extensionModel && (!JOYSTICK.model)) //Digital joystick not in digital mode? Compatibility mode for unsupporting software!
+		{
+			JOYSTICK.buttons[0] = (JOYSTICK.buttons2[1] ? 0x0 : 0x2) | (JOYSTICK.buttons2[0] ? 0x0 : 0x1); //Button 1&2, as pressed!
+		}
 		temp &= 0xCC|(((JOYSTICK.buttons[0]<<4)|JOYSTICK.timeout)&0x33); //Set joystick A bits when applied!
 	}
 	*result = temp; //Give the result!
