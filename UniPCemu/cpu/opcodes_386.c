@@ -4108,6 +4108,8 @@ void CPU80386_OPD1() //GRP2 Ev,1
 		oper1d = instructionbufferd;
 		res32 = op_grp2_32(1,0); //Execute!
 		++CPU[activeCPU].instructionstep; //Next step: writeback!
+		CPU[activeCPU].executed = 0; //Time it!
+		return; //Wait for the next step!
 	}
 	if (CPU80386_instructionstepwritemodrmdw(2,res32,MODRM_src0)) return;
 }
@@ -4156,6 +4158,8 @@ void CPU80386_OPD3() //GRP2 Ev,CL
 		oper1d = instructionbufferd;
 		res32 = op_grp2_32(REG_CL,1); //Execute!
 		++CPU[activeCPU].instructionstep; //Next step: writeback!
+		CPU[activeCPU].executed = 0; //Time it!
+		return; //Wait for the next step!
 	}
 	if (CPU80386_instructionstepwritemodrmdw(2,res32,MODRM_src0)) return;
 }
@@ -5228,6 +5232,8 @@ void CPU386_OPC1()
 		oper1d = instructionbufferd;
 		res32 = op_grp2_32((byte)oper2d,2); //Execute!
 		++CPU[activeCPU].instructionstep; //Next step: writeback!
+		CPU[activeCPU].executed = 0; //Time it!
+		return; //Wait for the next step!
 	}
 	if (CPU80386_instructionstepwritemodrmdw(2,res32,MODRM_src0)) return;
 } //GRP2 Ev,Ib
