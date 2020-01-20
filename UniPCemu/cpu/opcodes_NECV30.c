@@ -670,6 +670,8 @@ void CPU186_OPC0()
 		oper1b = instructionbufferb;
 		res8 = op_grp2_8(oper2b,2); //Execute!
 		++CPU[activeCPU].instructionstep; //Next step: writeback!
+		CPU[activeCPU].executed = 0; //Time it!
+		return; //Wait for the next step!
 	}
 	if (CPU8086_instructionstepwritemodrmb(2,res8,MODRM_src0)) return;
 } //GRP2 Eb,Ib
@@ -719,6 +721,8 @@ void CPU186_OPC1()
 		oper1 = instructionbufferw;
 		res16 = op_grp2_16((byte)oper2,2); //Execute!
 		++CPU[activeCPU].instructionstep; //Next step: writeback!
+		CPU[activeCPU].executed = 0; //Time it!
+		return; //Wait for the next step!
 	}
 	if (CPU8086_instructionstepwritemodrmw(2,res16,MODRM_src0,0)) return;
 } //GRP2 Ev,Ib

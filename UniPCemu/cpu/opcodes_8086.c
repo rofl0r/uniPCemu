@@ -6536,6 +6536,8 @@ void CPU8086_OPD0() //GRP2 Eb,1
 		oper1b = instructionbufferb;
 		res8 = op_grp2_8(1,0); //Execute!
 		++CPU[activeCPU].instructionstep; //Next step: writeback!
+		CPU[activeCPU].executed = 0; //Time it!
+		return; //Wait for the next step!
 	}
 	if (CPU8086_instructionstepwritemodrmb(2,res8,MODRM_src0)) return;
 }
@@ -6583,6 +6585,8 @@ void CPU8086_OPD1() //GRP2 Ev,1
 		oper1 = instructionbufferw;
 		res16 = op_grp2_16(1,0); //Execute!
 		++CPU[activeCPU].instructionstep; //Next step: writeback!
+		CPU[activeCPU].executed = 0; //Time it!
+		return; //Wait for the next step!
 	}
 	if (CPU8086_instructionstepwritemodrmw(2,res16,MODRM_src0,0)) return;
 }
@@ -6630,6 +6634,8 @@ void CPU8086_OPD2() //GRP2 Eb,CL
 		oper1b = instructionbufferb;
 		res8 = op_grp2_8(REG_CL,1); //Execute!
 		++CPU[activeCPU].instructionstep; //Next step: writeback!
+		CPU[activeCPU].executed = 0; //Time it!
+		return; //Wait for the next step!
 	}
 	if (CPU8086_instructionstepwritemodrmb(2,res8,MODRM_src0)) return;
 }
@@ -6677,6 +6683,8 @@ void CPU8086_OPD3() //GRP2 Ev,CL
 		oper1 = instructionbufferw;
 		res16 = op_grp2_16(REG_CL,1); //Execute!
 		++CPU[activeCPU].instructionstep; //Next step: writeback!
+		CPU[activeCPU].executed = 0; //Time it!
+		return; //Wait for the next step!
 	}
 	if (CPU8086_instructionstepwritemodrmw(2,res16,MODRM_src0,0)) return;
 }
