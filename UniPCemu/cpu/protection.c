@@ -1087,7 +1087,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 				*isdifferentCPL = 1; //We're a different level!
 				arguments = CALLGATE_NUMARGUMENTS =  (GATEDESCRIPTOR.desc.ParamCnt&0x1F); //Amount of parameters!
 				CPU[activeCPU].CallGateParamCount = 0; //Initialize the amount of arguments that we're storing!
-				if (checkStackAccess(arguments,0,(callgatetype==2)?1:0)) return NULL; //Abort on stack fault!
+				if (checkStackAccess(arguments,0,(callgatetype==2)?1:0)) return NULL; //Abort on stack fault! Use #SS(0) because we're on the unchanged stack still!
 				for (;arguments--;) //Copy as many arguments as needed!
 				{
 					if (callgatetype==2) //32-bit source?
@@ -1173,7 +1173,7 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 					case AVL_SYSTEM_TSS16BIT:
 						if (switchStacks(GENERALSEGMENTPTR_DPL(descriptor)|((isJMPorCALL&0x400)>>8))) return 1; //Abort failing switching stacks!
 						
-						if (checkStackAccess(2,1,CPU[activeCPU].CallGateSize)) return 1; //Abort on error!
+						if (checkStackAccess(2,1|(0x100|0x200),CPU[activeCPU].CallGateSize)) return 1; //Abort on error! Call Gates throws #SS(SS) instead of #SS(0)!
 
 						CPU_PUSH16(&CPU[activeCPU].oldSS,CPU[activeCPU].CallGateSize); //SS to return!
 
@@ -1188,7 +1188,7 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 						}
 						
 						//Now, we've switched to the destination stack! Load all parameters onto the new stack!
-						if (checkStackAccess(CPU[activeCPU].CallGateParamCount,1,CPU[activeCPU].CallGateSize)) return 1; //Abort on error!
+						if (checkStackAccess(CPU[activeCPU].CallGateParamCount,1|(0x100|0x200),CPU[activeCPU].CallGateSize)) return 1; //Abort on error! Call Gates throws #SS(SS) instead of #SS(0)!
 						for (;CPU[activeCPU].CallGateParamCount;) //Process the CALL Gate Stack!
 						{
 							stackval = CPU[activeCPU].CallGateStack[--CPU[activeCPU].CallGateParamCount]; //Read the next value to store!
@@ -1215,7 +1215,7 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 				
 				if ((isJMPorCALL&0x1FF)==2) //CALL pushes return address!
 				{
-					if (checkStackAccess(2,1,CPU[activeCPU].CallGateSize)) return 1; //Abort on error!
+					if (checkStackAccess(2,1,CPU[activeCPU].CallGateSize|((isDifferentCPL==1)?(0x100|0x200):0))) return 1; //Abort on error! Call Gates throws #SS(SS) instead of #SS(0)!
 
 					//Push the old address to the new stack!
 					if (CPU[activeCPU].CallGateSize) //32-bit?
@@ -2071,7 +2071,7 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 				//Switch Stack segment first!
 				if (switchStacks(newCPL|(EXT<<2))) return 1; //Abort failing switching stacks!
 				//Verify that the new stack is available!
-				if (checkStackAccess(9+((errorcode>=0)?1:0),1|0x100|((EXT&1)<<9),is32bit?1:0)) return 0; //Abort on fault!
+				if (checkStackAccess(9+((errorcode>=0)?1:0),1|0x100|0x200,is32bit?1:0)) return 0; //Abort on fault! Different privileges throws #SS(SS) instead of #SS(0)!
 
 				//Calculate and check the limit!
 
@@ -2134,7 +2134,7 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 				if (switchStacks(newCPL|(EXT<<2))) return 1; //Abort failing switching stacks!
 
 				//Verify that the new stack is available!
-				if (checkStackAccess(5+((errorcode>=0)?1:0),1|0x100|((EXT&1)<<9),is32bit?1:0)) return 0; //Abort on fault!
+				if (checkStackAccess(5+((errorcode>=0)?1:0),1|0x100|0x200,is32bit?1:0)) return 0; //Abort on fault! Different privileges throws #SS(SS) instead of #SS(0)!
 
 				//Calculate and check the limit!
 
