@@ -1173,7 +1173,7 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 					case AVL_SYSTEM_TSS16BIT:
 						if (switchStacks(GENERALSEGMENTPTR_DPL(descriptor)|((isJMPorCALL&0x400)>>8))) return 1; //Abort failing switching stacks!
 						
-						if (checkStackAccess(2,1|(0x100|0x200),CPU[activeCPU].CallGateSize)) return 1; //Abort on error! Call Gates throws #SS(SS) instead of #SS(0)!
+						if (checkStackAccess(2,1|(0x100|0x200|(isJMPorCALL&0x400)),CPU[activeCPU].CallGateSize)) return 1; //Abort on error! Call Gates throws #SS(SS) instead of #SS(0)!
 
 						CPU_PUSH16(&CPU[activeCPU].oldSS,CPU[activeCPU].CallGateSize); //SS to return!
 
@@ -1188,7 +1188,7 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 						}
 						
 						//Now, we've switched to the destination stack! Load all parameters onto the new stack!
-						if (checkStackAccess(CPU[activeCPU].CallGateParamCount,1|(0x100|0x200),CPU[activeCPU].CallGateSize)) return 1; //Abort on error! Call Gates throws #SS(SS) instead of #SS(0)!
+						if (checkStackAccess(CPU[activeCPU].CallGateParamCount,1|(0x100|0x200|(isJMPorCALL&0x400)),CPU[activeCPU].CallGateSize)) return 1; //Abort on error! Call Gates throws #SS(SS) instead of #SS(0)!
 						for (;CPU[activeCPU].CallGateParamCount;) //Process the CALL Gate Stack!
 						{
 							stackval = CPU[activeCPU].CallGateStack[--CPU[activeCPU].CallGateParamCount]; //Read the next value to store!
@@ -1215,7 +1215,7 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 				
 				if ((isJMPorCALL&0x1FF)==2) //CALL pushes return address!
 				{
-					if (checkStackAccess(2,1,CPU[activeCPU].CallGateSize|((isDifferentCPL==1)?(0x100|0x200):0))) return 1; //Abort on error! Call Gates throws #SS(SS) instead of #SS(0)!
+					if (checkStackAccess(2,1,CPU[activeCPU].CallGateSize|((isDifferentCPL==1)?(0x100|0x200|(isJMPorCALL&0x400)):0))) return 1; //Abort on error! Call Gates throws #SS(SS) instead of #SS(0)!
 
 					//Push the old address to the new stack!
 					if (CPU[activeCPU].CallGateSize) //32-bit?
@@ -1653,7 +1653,7 @@ byte CPU_MMU_checkrights(int segment, word segmentval, uint_64 offset, byte forr
 	return 0; //OK!
 }
 
-//Used by the MMU! forreading: 0=Writes, 1=Read normal, 3=Read opcode fetch. bit8=bit9 contains EXT bit to use!
+//Used by the MMU! forreading: 0=Writes, 1=Read normal, 3=Read opcode fetch. bit8=Use SS instead of 0 for the error code, bit9=bit10 contains EXT bit to use!
 int CPU_MMU_checklimit(int segment, word segmentval, uint_64 offset, word forreading, byte is_offset16) //Determines the limit of the segment, forreading=2 when reading an opcode!
 {
 	byte rights;
@@ -1674,7 +1674,7 @@ int CPU_MMU_checklimit(int segment, word segmentval, uint_64 offset, word forrea
 			{
 			default: //Unknown status? Count #GP by default!
 			case 1: //#GP(0) or pseudo protection fault(Real/V86 mode(V86 mode only during limit range exceptions, otherwise error code 0))?
-				if (unlikely((forreading&0x10)==0)) CPU_GP(((getcpumode()==CPU_MODE_PROTECTED) || (!(((CPU_MMU_checkrights_cause==6) && (getcpumode()==CPU_MODE_8086)) || (getcpumode()==CPU_MODE_REAL))))?0:-2); //Throw (pseudo) fault when not prefetching!
+				if (unlikely((forreading&0x10)==0)) CPU_GP(((getcpumode()==CPU_MODE_PROTECTED) || (!(((CPU_MMU_checkrights_cause==6) && (getcpumode()==CPU_MODE_8086)) || (getcpumode()==CPU_MODE_REAL))))?(0|((forreading&0x200)?((forreading&0x400)>>10):0)):-2); //Throw (pseudo) fault when not prefetching!
 				return 1; //Error out!
 				break;
 			case 2: //#NP?
@@ -1682,7 +1682,7 @@ int CPU_MMU_checklimit(int segment, word segmentval, uint_64 offset, word forrea
 				return 1; //Error out!
 				break;
 			case 3: //#SS(0) or pseudo protection fault(Real/V86 mode)?
-				if (unlikely((forreading&0x10)==0)) CPU_StackFault(((getcpumode()==CPU_MODE_PROTECTED) || (!(((CPU_MMU_checkrights_cause==6) && (getcpumode()==CPU_MODE_8086)) || (getcpumode()==CPU_MODE_REAL))))?(((((forreading&0x200)>>1)&(forreading&0x100))>>8)?(REG_SS&0xFFFC):0):-2); //Throw (pseudo) fault when not prefetching! Set EXT bit(bit7) when requested(bit6) and give SS instead of 0!
+				if (unlikely((forreading&0x10)==0)) CPU_StackFault(((getcpumode()==CPU_MODE_PROTECTED) || (!(((CPU_MMU_checkrights_cause==6) && (getcpumode()==CPU_MODE_8086)) || (getcpumode()==CPU_MODE_REAL))))?((((forreading&0x100))?((REG_SS&0xFFF8)|(((REG_SS&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT)<<1)):0)|((forreading&0x200)?((forreading&0x400)>>10):0)):-2); //Throw (pseudo) fault when not prefetching! Set EXT bit(bit7) when requested(bit6) and give SS instead of 0!
 				return 1; //Error out!
 				break;
 			}
@@ -2071,7 +2071,7 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 				//Switch Stack segment first!
 				if (switchStacks(newCPL|(EXT<<2))) return 1; //Abort failing switching stacks!
 				//Verify that the new stack is available!
-				if (checkStackAccess(9+((errorcode>=0)?1:0),1|0x100|0x200,is32bit?1:0)) return 0; //Abort on fault! Different privileges throws #SS(SS) instead of #SS(0)!
+				if (checkStackAccess(9+((errorcode>=0)?1:0),1|0x100|0x200|((EXT&1)<<10),is32bit?1:0)) return 0; //Abort on fault! Different privileges throws #SS(SS) instead of #SS(0)!
 
 				//Calculate and check the limit!
 
@@ -2134,7 +2134,7 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 				if (switchStacks(newCPL|(EXT<<2))) return 1; //Abort failing switching stacks!
 
 				//Verify that the new stack is available!
-				if (checkStackAccess(5+((errorcode>=0)?1:0),1|0x100|0x200,is32bit?1:0)) return 0; //Abort on fault! Different privileges throws #SS(SS) instead of #SS(0)!
+				if (checkStackAccess(5+((errorcode>=0)?1:0),1|0x100|0x200|((EXT&1)<<10),is32bit?1:0)) return 0; //Abort on fault! Different privileges throws #SS(SS) instead of #SS(0)!
 
 				//Calculate and check the limit!
 
@@ -2161,7 +2161,7 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 			}
 			else //No privilege level change?
 			{
-				if (checkStackAccess(3+((errorcode>=0)?1:0),1/*|0x100|((EXT&1)<<9)*/,is32bit?1:0)) return 0; //Abort on fault!
+				if (checkStackAccess(3+((errorcode>=0)?1:0),1|0x200|((EXT&1)<<10),is32bit?1:0)) return 0; //Abort on fault!
 				//Calculate and check the limit!
 
 				if (verifyLimit(&newdescriptor,((idtentry.offsetlow | (idtentry.offsethigh << 16))&(0xFFFFFFFFU>>((is32bit^1)<<4))))==0) //Limit exceeded?
