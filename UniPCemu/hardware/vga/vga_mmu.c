@@ -157,7 +157,7 @@ uint_32 VGA_WriteMode1(uint_32 data) //Video-to-video transfer
 
 uint_32 VGA_WriteMode2(uint_32 data) //Write color to all pixels in the source address byte of VRAM. Use Bit Mask Register.
 {
-	data = getActiveVGA()->FillTable[data]; //Replicate across all 8 bits of their respective planes.
+	data = getActiveVGA()->FillTable[data&0xF]; //Replicate across all 4 planes to 8 bits set or cleared of their respective planes. The upper 4 bits of the CPU input are unused.
 	data = LogicalOperation(data); //Execute the logical operation!
 	data = BitmaskOperation(data, getActiveVGA()->registers->GraphicsRegisters.REGISTERS.BITMASKREGISTER); //Execute the bitmask operation fully!
 	return data;
