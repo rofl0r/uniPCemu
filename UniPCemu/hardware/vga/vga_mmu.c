@@ -168,7 +168,7 @@ uint_32 VGA_WriteMode3(uint_32 data) //Ignore enable set reset register!
 {
 	data = ror(data, GETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.DATAROTATEREGISTER,0,7)); //Rotate it! Keep 8-bit data!
 	data &= getActiveVGA()->registers->GraphicsRegisters.REGISTERS.BITMASKREGISTER; //AND with the Bit Mask field.
-	data = BitmaskOperation(getActiveVGA()->ExpandTable[GETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.SETRESETREGISTER,0,0xF)], data); //Use the generated data on the Set/Reset register
+	data = BitmaskOperation(getActiveVGA()->FillTable[GETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.SETRESETREGISTER,0,0xF)], data); //Use the generated data on the Set/Reset register
 	return data;
 }
 
