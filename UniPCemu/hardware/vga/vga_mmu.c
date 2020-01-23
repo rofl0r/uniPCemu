@@ -137,14 +137,15 @@ uint_32 VGA_WriteMode0(uint_32 data) //Read-Modify-Write operation!
 	data = (byte)ror((byte)data, GETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.DATAROTATEREGISTER,0,7)); //Rotate it! Keep 8-bit data!
 	data = getActiveVGA()->ExpandTable[data]; //Make sure the data is on the all planes!
 
-	curplane = 0;
+	curplane = 1; //Process all 4 plane bits!
 	do
 	{
-		if (GETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.ENABLESETRESETREGISTER,0,0xF)&(1 << curplane)) //Enable set/reset? (Mode 3 ignores this flag)
+		if (GETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.ENABLESETRESETREGISTER,0,0xF)&curplane) //Enable set/reset? (Mode 3 ignores this flag)
 		{
-			data = (data&(~getActiveVGA()->FillTable[(1 << curplane)])) | getActiveVGA()->FillTable[GETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.SETRESETREGISTER,0,0xF)&(1 << curplane)]; //Turn all those bits off, and the set/reset plane ON=0xFF for the plane and OFF=0x00!
+			data = (data&(~getActiveVGA()->FillTable[curplane])) | getActiveVGA()->FillTable[GETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.SETRESETREGISTER,0,0xF)&curplane]; //Turn all those bits off, and the set/reset plane ON=0xFF for the plane and OFF=0x00!
 		}
-	} while (++curplane!=4);
+		curplane <<= 1; //Next plane!
+	} while (curplane!=0x10); //Only the 4 planes are used!
 	data = LogicalOperation(data); //Execute the logical operation!
 	data = BitmaskOperation(data, getActiveVGA()->registers->GraphicsRegisters.REGISTERS.BITMASKREGISTER); //Execute the bitmask operation!
 	return data; //Give the resulting data!
