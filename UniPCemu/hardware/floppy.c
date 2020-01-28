@@ -174,6 +174,7 @@ struct
 
 //1 if busy in seek mode.
 #define FLOPPY_MSR_BUSYINPOSITIONINGMODEW(drive,val) FLOPPY.MSR=((FLOPPY.MSR&~(1<<drive))|((val&1)<<drive))
+#define FLOPPY_MSR_BUSYINPOSITIONINGMODER(drive) ((FLOPPY.MSR&(1<<drive))>>drive)
 //Busy: read/write command of FDC in progress. Set when received command byte, cleared at end of result phase
 #define FLOPPY_MSR_COMMANDBUSYW(val) FLOPPY.MSR=((FLOPPY.MSR&~0x10)|(((val)&1)<<4))
 //1 when not in DMA mode, else DMA mode, during execution phase.
@@ -542,7 +543,7 @@ byte floppy_sides(uint_64 floppy_size)
 
 //Simple floppy recalibrate/seek action complete handlers!
 void FLOPPY_finishrecalibrate(byte drive);
-void FLOPPY_finishseek(byte drive);
+void FLOPPY_finishseek(byte drive, byte finishIRQ);
 void FLOPPY_checkfinishtiming(byte drive);
 
 extern CMOS_Type CMOS;
@@ -1160,7 +1161,7 @@ OPTINLINE void floppy_readsector() //Request a read sector command!
 		if (FLOPPY.RWRequestedCylinder<FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->tracks) //Valid track?
 		{
 			FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.RWRequestedCylinder; //Implied seek!
-			FLOPPY_finishseek(FLOPPY_DOR_DRIVENUMBERR); //Simulate seek complete!
+			FLOPPY_finishseek(FLOPPY_DOR_DRIVENUMBERR,0); //Simulate seek complete!
 			FLOPPY_checkfinishtiming(FLOPPY_DOR_DRIVENUMBERR); //Seek is completed!
 		}
 	}
@@ -1260,7 +1261,7 @@ OPTINLINE void FLOPPY_formatsector() //Request a read sector command!
 			if (FLOPPY.RWRequestedCylinder<FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->tracks) //Valid track?
 			{
 				FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.RWRequestedCylinder; //Implied seek!
-				FLOPPY_finishseek(FLOPPY_DOR_DRIVENUMBERR); //Simulate seek complete!
+				FLOPPY_finishseek(FLOPPY_DOR_DRIVENUMBERR,0); //Simulate seek complete!
 				FLOPPY_checkfinishtiming(FLOPPY_DOR_DRIVENUMBERR); //Seek is completed!
 			}
 		}
@@ -1419,7 +1420,7 @@ OPTINLINE void floppy_executeWriteData()
 		if (FLOPPY.RWRequestedCylinder<FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->tracks) //Valid track?
 		{
 			FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.RWRequestedCylinder; //Implied seek!
-			FLOPPY_finishseek(FLOPPY_DOR_DRIVENUMBERR); //Simulate seek complete!
+			FLOPPY_finishseek(FLOPPY_DOR_DRIVENUMBERR,0); //Simulate seek complete!
 			FLOPPY_checkfinishtiming(FLOPPY_DOR_DRIVENUMBERR); //Seek is completed!
 		}
 	}
@@ -1727,7 +1728,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			FLOPPY_MSR_BUSYINPOSITIONINGMODEW(FLOPPY_DOR_DRIVENUMBERR,1); //Seeking!
 			if ((FLOPPY_DOR_DRIVENUMBERR<2) && (((FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]==FLOPPY.seekdestination[FLOPPY_DOR_DRIVENUMBERR]) && (FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR] < FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->tracks) && (FLOPPY.seekrel[FLOPPY_DOR_DRIVENUMBERR]==0)) || (FLOPPY.seekrel[FLOPPY_DOR_DRIVENUMBERR] && (FLOPPY.seekdestination[FLOPPY_DOR_DRIVENUMBERR]==0)))) //Found and existant?
 			{
-				FLOPPY_finishseek(FLOPPY_DOR_DRIVENUMBERR); //Finish the recalibration automatically(we're eating up the command)!
+				FLOPPY_finishseek(FLOPPY_DOR_DRIVENUMBERR,1); //Finish the recalibration automatically(we're eating up the command)!
 				FLOPPY_checkfinishtiming(FLOPPY_DOR_DRIVENUMBERR); //Finish if required!
 			}
 			else
@@ -1744,12 +1745,21 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			break;
 		case READ_ID: //Read sector ID
 			FLOPPY.activecommand[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[0]; //Our command to execute!
+			FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] = ((FLOPPY.commandbuffer[1] & 4) >> 2); //The head to use!
 			FLOPPY.ST0 &= 0x20; //Clear ST0 by default! Keep the Seek End flag intact!
 			if (!FLOPPY_supportsrate(FLOPPY_DOR_DRIVENUMBERR)) //We don't support the rate?
 			{
 				goto floppy_errorReadID; //Error out!
 			}
 			FLOPPY.RWRequestedCylinder = FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]; //Cylinder to access?
+			if (FLOPPY_IMPLIEDSEEKENABLER) //Implied seek?
+			{
+				if ((FLOPPY_MSR_BUSYINPOSITIONINGMODER(FLOPPY_DOR_DRIVENUMBERR) == 0) && ((FLOPPY.ST0 & 0x20) == 0)) //Not in positioning mode and not finished seeking according to status?
+				{
+					FLOPPY_finishseek(FLOPPY_DOR_DRIVENUMBERR,0); //Simulate seek complete!
+					FLOPPY_checkfinishtiming(FLOPPY_DOR_DRIVENUMBERR); //Seek is completed!
+				}
+			}
 			FLOPPY_ST0_UNITCHECKW(0); //Not faulted!
 			FLOPPY_ST0_NOTREADYW(0); //Ready!
 			FLOPPY_ST0_INTERRUPTCODEW(0); //OK! Correctly executed!
@@ -2243,15 +2253,18 @@ void FLOPPY_finishrecalibrate(byte drive)
 	floppytimer[drive] = 0.0; //Don't time anymore!
 }
 
-void FLOPPY_finishseek(byte drive)
+void FLOPPY_finishseek(byte drive, byte finishIRQ)
 {
-	FLOPPY.ST0 = 0x20 | (FLOPPY.currenthead[drive]<<2) | drive; //Valid command!
-	if (((FLOPPY_DOR_MOTORCONTROLR&(1<<(drive&3)))==0) || ((drive&3)>1)) //Motor not on or invalid drive(which can't finish the seek correctly and provide the signal for completion)?
+	FLOPPY.ST0 = 0x20 | (FLOPPY.currenthead[drive] << 2) | drive; //Valid command!
+	if (((FLOPPY_DOR_MOTORCONTROLR & (1 << (drive & 3))) == 0) || ((drive & 3) > 1)) //Motor not on or invalid drive(which can't finish the seek correctly and provide the signal for completion)?
 	{
 		FLOPPY.ST0 |= 0x50; //Completed command! 0x10: Unit Check, cannot find track 0 after 79 pulses.
 	}
 	updateST3(drive); //Update ST3 only!
-	FLOPPY_raiseIRQ(); //Finished executing phase!
+	if (finishIRQ) //Finishing with IRQ?
+	{
+		FLOPPY_raiseIRQ(); //Finished executing phase!
+	}
 	floppytimer[drive] = 0.0; //Don't time anymore!
 	FLOPPY_MSR_BUSYINPOSITIONINGMODEW(drive,0); //Not seeking anymore!
 }
@@ -2316,7 +2329,7 @@ void updateFloppy(DOUBLE timepassed)
 							//Check if we're there!
 							if ((drive<2) && (((FLOPPY.currentcylinder[drive]==FLOPPY.seekdestination[drive]) && (FLOPPY.currentcylinder[drive] < FLOPPY.geometries[drive]->tracks) && (FLOPPY.seekrel[drive]==0)) || (FLOPPY.seekrel[drive] && (FLOPPY.seekdestination[drive]==0)))) //Found and existant?
 							{
-								FLOPPY_finishseek(drive); //Finish!
+								FLOPPY_finishseek(drive,1); //Finish!
 								goto finishdrive; //Give an error!
 							}
 							else if (movedcylinder==0) //Reached no destination?
