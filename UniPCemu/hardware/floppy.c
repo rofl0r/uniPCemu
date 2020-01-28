@@ -2038,7 +2038,7 @@ OPTINLINE void floppy_writeData(byte value)
 					if (FLOPPY.reset_pended) //Finished reset?
 					{
 						FLOPPY_LOGD("FLOPPY: Reset for all drives has been finished!");
-	 					FLOPPY.ST0 = 0x00; //Reset the ST0 register after we've all been read!
+	 					FLOPPY.ST0 &= 0x20; //Reset the ST0 register after we've all been read!
 						FLOPPY.reset_pended = 0; //Not pending anymore, so don't check for it!
 					}
 					FLOPPY.commandbuffer[0] = value; //Set the command to use!
