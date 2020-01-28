@@ -1827,6 +1827,7 @@ OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are f
 			break;
 		case FORMAT_TRACK: //Format sector
 			FLOPPY.activecommand[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[0]; //Our command to execute!
+			FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] = (FLOPPY.commandbuffer[1] & 4) >> 2; //Set the new head from the parameters!
 			if (!(FLOPPY_DOR_MOTORCONTROLR&(1 << FLOPPY_DOR_DRIVENUMBERR))) //Not motor ON?
 			{
 				FLOPPY_LOGD("FLOPPY: Error: drive motor not ON!")
