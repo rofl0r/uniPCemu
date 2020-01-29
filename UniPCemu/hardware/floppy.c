@@ -927,7 +927,7 @@ OPTINLINE void updateFloppyWriteProtected(byte iswrite, byte drivenumber)
 
 OPTINLINE byte floppy_increasesector(byte floppy) //Increase the sector number automatically!
 {
-	byte result = 1; //Default: read/write more
+	byte result = 2; //Default: read/write more
 	if (FLOPPY.geometries[floppy]) //Do we have a valid geometry?
 	{
 		if (++FLOPPY.currentsector[floppy] > FLOPPY.commandbuffer[6]) //Overflow next sector by parameter?
@@ -973,15 +973,24 @@ OPTINLINE byte floppy_increasesector(byte floppy) //Increase the sector number a
 
 	if (FLOPPY_useDMA()) //DMA mode determines our triggering?
 	{
-		if (result) //OK to transfer more?
+		result |= (!FLOPPY.TC)?1:0; //No terminal count triggered? Then we read the next sector!
+		if (result&1) //OK to transfer more?
 		{
-			result = !FLOPPY.TC; //No terminal count triggered? Then we read the next sector!
+			if (result & 2) //Not finished transferring data?
+			{
+				result = 1; //Transfer more!
+			}
+			else //Error occurred during DMA transfer? Requesting more by DMA than we can handle?
+			{
+				result = 2; //Abort!
+				FLOPPY_ST0_INTERRUPTCODEW(1); //Couldn't finish correctly!
+				FLOPPY_ST0_SEEKENDW(0); //Failed!
+			}
 		}
-		else //Error occurred during DMA transfer?
+		else //Terminal count but not finished?
 		{
-			result = 2; //Abort!
-			FLOPPY_ST0_INTERRUPTCODEW(1); //Couldn't finish correctly!
-			FLOPPY_ST0_SEEKENDW(0); //Failed!
+			//Finished transferring! Enter result phase!
+			result = 0; //Finished!
 		}
 	}
 
