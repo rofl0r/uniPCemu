@@ -358,6 +358,8 @@ void CPU_filterflags()
 		{
 			tempflags &= 0x277FFF; //Bit 15 is always cleared! Don't allow setting of the CPUID and larger flags! Allow toggling the CPUID flag too(it's supported)!
 		}
+		//Don't handle CPUID yet!
+		tempflags &= ~0x200000; //Clear CPUID always!
 		break;
 	case CPU_PENTIUM:
 		//Allow all bits to be set, except the one needed from the 80386+ identification(bit 15=0)!

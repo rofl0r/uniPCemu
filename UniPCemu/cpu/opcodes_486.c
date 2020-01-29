@@ -73,6 +73,8 @@ extern byte MODRM_src1; //What source operand in our modr/m? (2/2)
 
 void CPU486_CPUID()
 {
+	CPU_unkOP(); //We don't know how to handle this yet, so handle like a #UD for now(also EFLAGS.CPUID)!
+	return;
 	switch (REG_EAX)
 	{
 	case 0x00: //Highest function parameter!
