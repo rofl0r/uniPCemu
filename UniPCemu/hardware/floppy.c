@@ -928,10 +928,9 @@ OPTINLINE void updateFloppyWriteProtected(byte iswrite, byte drivenumber)
 OPTINLINE byte floppy_increasesector(byte floppy) //Increase the sector number automatically!
 {
 	byte result = 1; //Default: read/write more
-	//byte headoverflow = 0; //Head overflown?
 	if (FLOPPY.geometries[floppy]) //Do we have a valid geometry?
 	{
-		if (++FLOPPY.currentsector[floppy] > FLOPPY.geometries[floppy]->SPT) //Overflow next sector by parameter?
+		if (++FLOPPY.currentsector[floppy] > FLOPPY.commandbuffer[6]) //Overflow next sector by parameter?
 		{
 			if (!FLOPPY_useDMA()) //Non-DMA mode?
 			{
@@ -946,23 +945,31 @@ OPTINLINE byte floppy_increasesector(byte floppy) //Increase the sector number a
 			//Apply Multi Track accordingly!
 			if (FLOPPY.MT&FLOPPY.MTMask) //Multi Track used?
 			{
-				++FLOPPY.currenthead[floppy]; //Increase the head!
-				if (FLOPPY.currenthead[floppy] >= FLOPPY.geometries[floppy]->sides) //Side overflow?
+				FLOPPY.resultbuffer[4] = FLOPPY.currenthead[floppy]; //The head number of the last sector read!
+				FLOPPY.currenthead[floppy] = ((FLOPPY.currenthead[floppy]+1)&1); //Toggle the head to 1 or 0!
+				if (FLOPPY.currenthead[floppy]==0) //Overflown, EOT, switching to head 0?
 				{
-					FLOPPY.currenthead[floppy] = 0; //Reset side number!
-					//headoverflow = 1; //We've overflown the head!
+					FLOPPY.resultbuffer[3] = (FLOPPY.physicalcylinder[floppy]+1); //The next cylinder number!
+					FLOPPY.resultbuffer[4] = FLOPPY.currenthead[floppy]; //The head number of the last sector read!
+				}
+				else //Same track?
+				{
+					FLOPPY.resultbuffer[3] = FLOPPY.physicalcylinder[floppy]; //The current cylinder number!
 				}
 			}
-			/*else //Single head?
+			else //Single track mode reached end-of-track?
 			{
-				headoverflow = 1; //We always overflow the head!
-			}*/
+				FLOPPY.resultbuffer[3] = (FLOPPY.physicalcylinder[floppy]+1); //The next cylinder number!
+				FLOPPY.resultbuffer[4] = FLOPPY.currenthead[floppy]; //The current head number!
+				result = 0; //Stop processing, we're in single track mode!
+			}
 
-			/*if (headoverflow) //Head overflown?
-			{
-				Overflow doesn't tick the cylinder to another track?
-			}*/
 			updateST3(floppy); //Update ST3 only!
+		}
+		else //Busy transfer on the current track? Report the current track number for these!
+		{
+			FLOPPY.resultbuffer[3] = FLOPPY.physicalcylinder[floppy]; //The current cylinder number!
+			FLOPPY.resultbuffer[4] = FLOPPY.currenthead[floppy]; //The current head number!
 		}
 	}
 	
@@ -1454,8 +1461,8 @@ OPTINLINE void floppy_executeWriteData()
 		FLOPPY.resultbuffer[0] = FLOPPY.ST0; //ST0!
 		FLOPPY.resultbuffer[1] = FLOPPY.ST1; //ST1!
 		FLOPPY.resultbuffer[2] = FLOPPY.ST2; //ST2!
-		FLOPPY.resultbuffer[3] = FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR];
-		FLOPPY.resultbuffer[4] = FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR];
+		//The cylinder is set by floppy_increasesector!
+		//The head is set by floppy_increasesector!
 		FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR];
 		FLOPPY.resultbuffer[6] = FLOPPY.commandbuffer[5]; //Sector size from the command buffer!
 		FLOPPY.commandstep = 3; //Move to result phrase and give the result!
@@ -1505,8 +1512,8 @@ OPTINLINE void floppy_executeWriteData()
 					FLOPPY.resultbuffer[0] = FLOPPY.ST0 = ((FLOPPY.ST0 & 0x3B) | 1) | ((FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] & 1) << 2); //Abnormal termination! ST0!
 					FLOPPY.resultbuffer[1] = FLOPPY.ST1; //Drive write-protected! ST1!
 					FLOPPY.resultbuffer[2] = FLOPPY.ST2 = 0x00; //ST2!
-					FLOPPY.resultbuffer[3] = FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR];
-					FLOPPY.resultbuffer[4] = FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR];
+					//The cylinder is set by floppy_increasesector!
+					//The head is set by floppy_increasesector!
 					FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR];
 					FLOPPY.resultbuffer[6] = FLOPPY.commandbuffer[5]; //Sector size!
 					FLOPPY.commandstep = 3; //Move to result phase!
@@ -1543,8 +1550,8 @@ OPTINLINE void floppy_executeReadData()
 	FLOPPY.resultbuffer[0] = FLOPPY.ST0;
 	FLOPPY.resultbuffer[1] = FLOPPY.ST1;
 	FLOPPY.resultbuffer[2] = FLOPPY.ST2;
-	FLOPPY.resultbuffer[3] = FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR];
-	FLOPPY.resultbuffer[4] = FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR];
+	//The cylinder is set by floppy_increasesector!
+	//The head is set by floppy_increasesector!
 	FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR];
 	FLOPPY.resultbuffer[6] = FLOPPY.commandbuffer[5]; //Sector size from the command buffer!
 	FLOPPY.commandstep = 3; //Move to result phrase and give the result!
