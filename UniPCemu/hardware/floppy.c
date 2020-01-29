@@ -932,12 +932,9 @@ OPTINLINE byte floppy_increasesector(byte floppy) //Increase the sector number a
 	{
 		if (++FLOPPY.currentsector[floppy] > FLOPPY.commandbuffer[6]) //Overflow next sector by parameter?
 		{
-			if (!FLOPPY_useDMA()) //Non-DMA mode?
+			if (((FLOPPY.MT&FLOPPY.MTMask) && FLOPPY.currenthead[floppy]) || !(FLOPPY.MT&FLOPPY.MTMask)) //Multi-track and side 1, or not Multi-track?
 			{
-				if (((FLOPPY.MT&FLOPPY.MTMask) && FLOPPY.currenthead[floppy]) || !(FLOPPY.MT&FLOPPY.MTMask)) //Multi-track and side 1, or not Multi-track?
-				{
-					result = 0; //SPT finished!
-				}
+				result = 0; //SPT finished!
 			}
 
 			FLOPPY.currentsector[floppy] = 1; //Reset sector number!
@@ -961,7 +958,6 @@ OPTINLINE byte floppy_increasesector(byte floppy) //Increase the sector number a
 			{
 				FLOPPY.resultbuffer[3] = (FLOPPY.physicalcylinder[floppy]+1); //The next cylinder number!
 				FLOPPY.resultbuffer[4] = FLOPPY.currenthead[floppy]; //The current head number!
-				result = 0; //Stop processing, we're in single track mode!
 			}
 
 			updateST3(floppy); //Update ST3 only!
