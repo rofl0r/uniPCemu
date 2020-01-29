@@ -930,7 +930,7 @@ OPTINLINE byte floppy_increasesector(byte floppy) //Increase the sector number a
 	byte result = 2; //Default: read/write more
 	if (FLOPPY.geometries[floppy]) //Do we have a valid geometry?
 	{
-		if (++FLOPPY.currentsector[floppy] > FLOPPY.commandbuffer[6]) //Overflow next sector by parameter?
+		if (++FLOPPY.currentsector[floppy] > /*FLOPPY.commandbuffer[6]*/ FLOPPY.geometries[floppy]->SPT) //Overflow next sector by parameter?
 		{
 			if (((FLOPPY.MT&FLOPPY.MTMask) && FLOPPY.currenthead[floppy]) || !(FLOPPY.MT&FLOPPY.MTMask)) //Multi-track and side 1, or not Multi-track?
 			{
