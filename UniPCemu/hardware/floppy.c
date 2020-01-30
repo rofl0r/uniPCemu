@@ -929,11 +929,13 @@ OPTINLINE void updateFloppyWriteProtected(byte iswrite, byte drivenumber)
 OPTINLINE byte floppy_increasesector(byte floppy) //Increase the sector number automatically!
 {
 	byte result = 2; //Default: read/write more
+	byte useMT=0;
+	useMT = FLOPPY.MT&FLOPPY.MTMask; //Used MT?
 	if (FLOPPY.geometries[floppy]) //Do we have a valid geometry?
 	{
-		if (++FLOPPY.currentsector[floppy] > (FLOPPY_useDMA()?FLOPPY.geometries[floppy]->SPT:FLOPPY.commandbuffer[6])) //Overflow next sector by parameter?
+		if (++FLOPPY.currentsector[floppy] > ((FLOPPY_useDMA() && useMT)?FLOPPY.geometries[floppy]->SPT:FLOPPY.commandbuffer[6])) //Overflow next sector by parameter?
 		{
-			if (((FLOPPY.MT&FLOPPY.MTMask) && FLOPPY.currenthead[floppy]) || !(FLOPPY.MT&FLOPPY.MTMask)) //Multi-track and side 1, or not Multi-track?
+			if ((useMT && FLOPPY.currenthead[floppy]) || !(useMT)) //Multi-track and side 1, or not Multi-track?
 			{
 				result = 0; //SPT finished!
 			}
@@ -941,7 +943,7 @@ OPTINLINE byte floppy_increasesector(byte floppy) //Increase the sector number a
 			FLOPPY.currentsector[floppy] = 1; //Reset sector number!
 
 			//Apply Multi Track accordingly!
-			if (FLOPPY.MT&FLOPPY.MTMask) //Multi Track used?
+			if (useMT) //Multi Track used?
 			{
 				FLOPPY.resultbuffer[4] = FLOPPY.currenthead[floppy]; //The head number of the last sector read!
 				FLOPPY.currenthead[floppy] = ((FLOPPY.currenthead[floppy]+1)&1); //Toggle the head to 1 or 0!
