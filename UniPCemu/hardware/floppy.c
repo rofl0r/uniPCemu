@@ -925,12 +925,13 @@ OPTINLINE void updateFloppyWriteProtected(byte iswrite, byte drivenumber)
 	}
 }
 
+//result: 0=Finish, 1=Read/write another time, 2=Error out(error handled by floppy_increasesector).
 OPTINLINE byte floppy_increasesector(byte floppy) //Increase the sector number automatically!
 {
 	byte result = 2; //Default: read/write more
 	if (FLOPPY.geometries[floppy]) //Do we have a valid geometry?
 	{
-		if (++FLOPPY.currentsector[floppy] > /*FLOPPY.commandbuffer[6]*/ FLOPPY.geometries[floppy]->SPT) //Overflow next sector by parameter?
+		if (++FLOPPY.currentsector[floppy] > (FLOPPY_useDMA()?FLOPPY.geometries[floppy]->SPT:FLOPPY.commandbuffer[6])) //Overflow next sector by parameter?
 		{
 			if (((FLOPPY.MT&FLOPPY.MTMask) && FLOPPY.currenthead[floppy]) || !(FLOPPY.MT&FLOPPY.MTMask)) //Multi-track and side 1, or not Multi-track?
 			{
@@ -992,6 +993,10 @@ OPTINLINE byte floppy_increasesector(byte floppy) //Increase the sector number a
 			//Finished transferring! Enter result phase!
 			result = 0; //Finished!
 		}
+	}
+	else //Non-DMA?
+	{
+		result = ((result >> 1) & 1); //Read/Write more or not?
 	}
 
 	++FLOPPY.sectorstransferred; //Increase the amount of sectors transferred.
