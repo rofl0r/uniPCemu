@@ -931,45 +931,42 @@ OPTINLINE byte floppy_increasesector(byte floppy) //Increase the sector number a
 	byte result = 2; //Default: read/write more
 	byte useMT=0;
 	useMT = FLOPPY.MT&FLOPPY.MTMask; //Used MT?
-	if (FLOPPY.geometries[floppy]) //Do we have a valid geometry?
+	if (++FLOPPY.currentsector[floppy] > ((FLOPPY_useDMA() && useMT)?(FLOPPY.geometries[floppy]?FLOPPY.geometries[floppy]->SPT:0):FLOPPY.commandbuffer[6])) //Overflow next sector by parameter?
 	{
-		if (++FLOPPY.currentsector[floppy] > ((FLOPPY_useDMA() && useMT)?FLOPPY.geometries[floppy]->SPT:FLOPPY.commandbuffer[6])) //Overflow next sector by parameter?
+		if ((useMT && FLOPPY.currenthead[floppy]) || !(useMT)) //Multi-track and side 1, or not Multi-track?
 		{
-			if ((useMT && FLOPPY.currenthead[floppy]) || !(useMT)) //Multi-track and side 1, or not Multi-track?
-			{
-				result = 0; //SPT finished!
-			}
+			result = 0; //SPT finished!
+		}
 
-			FLOPPY.currentsector[floppy] = 1; //Reset sector number!
+		FLOPPY.currentsector[floppy] = 1; //Reset sector number!
 
-			//Apply Multi Track accordingly!
-			if (useMT) //Multi Track used?
-			{
-				FLOPPY.resultbuffer[4] = FLOPPY.currenthead[floppy]; //The head number of the last sector read!
-				FLOPPY.currenthead[floppy] = ((FLOPPY.currenthead[floppy]+1)&1); //Toggle the head to 1 or 0!
-				if (FLOPPY.currenthead[floppy]==0) //Overflown, EOT, switching to head 0?
-				{
-					FLOPPY.resultbuffer[3] = (FLOPPY.physicalcylinder[floppy]+1); //The next cylinder number!
-					FLOPPY.resultbuffer[4] = FLOPPY.currenthead[floppy]; //The head number of the last sector read!
-				}
-				else //Same track?
-				{
-					FLOPPY.resultbuffer[3] = FLOPPY.physicalcylinder[floppy]; //The current cylinder number!
-				}
-			}
-			else //Single track mode reached end-of-track?
+		//Apply Multi Track accordingly!
+		if (useMT) //Multi Track used?
+		{
+			FLOPPY.resultbuffer[4] = FLOPPY.currenthead[floppy]; //The head number of the last sector read!
+			FLOPPY.currenthead[floppy] = ((FLOPPY.currenthead[floppy]+1)&1); //Toggle the head to 1 or 0!
+			if (FLOPPY.currenthead[floppy]==0) //Overflown, EOT, switching to head 0?
 			{
 				FLOPPY.resultbuffer[3] = (FLOPPY.physicalcylinder[floppy]+1); //The next cylinder number!
-				FLOPPY.resultbuffer[4] = FLOPPY.currenthead[floppy]; //The current head number!
+				FLOPPY.resultbuffer[4] = FLOPPY.currenthead[floppy]; //The head number of the last sector read!
 			}
-
-			updateST3(floppy); //Update ST3 only!
+			else //Same track?
+			{
+				FLOPPY.resultbuffer[3] = FLOPPY.physicalcylinder[floppy]; //The current cylinder number!
+			}
 		}
-		else //Busy transfer on the current track? Report the current track number for these!
+		else //Single track mode reached end-of-track?
 		{
-			FLOPPY.resultbuffer[3] = FLOPPY.physicalcylinder[floppy]; //The current cylinder number!
+			FLOPPY.resultbuffer[3] = (FLOPPY.physicalcylinder[floppy]+1); //The next cylinder number!
 			FLOPPY.resultbuffer[4] = FLOPPY.currenthead[floppy]; //The current head number!
 		}
+
+		updateST3(floppy); //Update ST3 only!
+	}
+	else //Busy transfer on the current track? Report the current track number for these!
+	{
+		FLOPPY.resultbuffer[3] = FLOPPY.physicalcylinder[floppy]; //The current cylinder number!
+		FLOPPY.resultbuffer[4] = FLOPPY.currenthead[floppy]; //The current head number!
 	}
 	
 	FLOPPY_ST0_CURRENTHEADW(FLOPPY.currenthead[floppy]); //Our idea of the current head!
