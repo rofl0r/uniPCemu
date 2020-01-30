@@ -926,7 +926,7 @@ OPTINLINE void updateFloppyWriteProtected(byte iswrite, byte drivenumber)
 }
 
 //result: 0=Finish, 1=Read/write another time, 2=Error out(error handled by floppy_increasesector).
-OPTINLINE byte floppy_increasesector(byte floppy) //Increase the sector number automatically!
+byte floppy_increasesector(byte floppy) //Increase the sector number automatically!
 {
 	byte result = 2; //Default: read/write more
 	byte useMT=0;
@@ -1121,7 +1121,7 @@ void updateFloppy(DOUBLE timepassed)
 
 //Normal floppy disk emulation again!
 
-OPTINLINE void floppy_readsector() //Request a read sector command!
+void floppy_readsector() //Request a read sector command!
 {
 	char *DSKImageFile = NULL; //DSK image file to use?
 	SECTORINFORMATIONBLOCK sectorinformation; //Information about the sector!
@@ -1221,7 +1221,7 @@ OPTINLINE void floppy_readsector() //Request a read sector command!
 	}
 }
 
-OPTINLINE void FLOPPY_formatsector() //Request a read sector command!
+void FLOPPY_formatsector() //Request a read sector command!
 {
 	char *DSKImageFile;
 	SECTORINFORMATIONBLOCK sectorinfo;
@@ -1366,7 +1366,7 @@ OPTINLINE void FLOPPY_formatsector() //Request a read sector command!
 	FLOPPY_startData();
 }
 
-OPTINLINE void floppy_writesector() //Request a write sector command!
+void floppy_writesector() //Request a write sector command!
 {
 	FLOPPY.databuffersize = translateSectorSize(FLOPPY.commandbuffer[5]); //Sector size into data buffer!
 	if (!FLOPPY.commandbuffer[5]) //Special case? Use given info!
@@ -1413,7 +1413,7 @@ OPTINLINE void floppy_writesector() //Request a write sector command!
 	FLOPPY_startData(); //Start the DMA transfer if needed!
 }
 
-OPTINLINE void floppy_executeWriteData()
+void floppy_executeWriteData()
 {
 	char *DSKImageFile = NULL; //DSK image file to use?
 	if (!FLOPPY_supportsrate(FLOPPY_DOR_DRIVENUMBERR) || !FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR] || ((FLOPPY_DOR_DRIVENUMBERR < 2) ? (!is_mounted(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0)) : 1)) //We don't support the rate or geometry?
@@ -1537,7 +1537,7 @@ OPTINLINE void floppy_executeWriteData()
 	}
 }
 
-OPTINLINE void floppy_executeReadData()
+void floppy_executeReadData()
 {
 	switch (floppy_increasesector(FLOPPY_DOR_DRIVENUMBERR)) //Goto next sector!
 	{
@@ -1568,7 +1568,7 @@ OPTINLINE void floppy_executeReadData()
 	FLOPPY_raiseIRQ(); //Entering result phase!
 }
 
-OPTINLINE void floppy_executeData() //Execute a floppy command. Data is fully filled!
+void floppy_executeData() //Execute a floppy command. Data is fully filled!
 {
 	switch (FLOPPY.commandbuffer[0]) //What command!
 	{
@@ -1632,7 +1632,7 @@ OPTINLINE void floppy_executeData() //Execute a floppy command. Data is fully fi
 	}
 }
 
-OPTINLINE void floppy_executeCommand() //Execute a floppy command. Buffers are fully filled!
+void floppy_executeCommand() //Execute a floppy command. Buffers are fully filled!
 {
 	char *DSKImageFile = NULL; //DSK image file to use?
 	SECTORINFORMATIONBLOCK sectorinformation; //Information about the sector!
