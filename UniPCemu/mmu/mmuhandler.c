@@ -221,7 +221,7 @@ extern byte BIOSROM_DisableLowMemory; //Disable low-memory mapping of the BIOS a
 
 byte MMU_memorymapinfo[0x10000]; //What memory hole is this? Low nibble=Block number of the memory! High nibble=Hole number
 byte MMU_memorymaphole[0x2000]; //Memory hole identification. Bit set(for that 64KB memory aperture) means memory hole is present!
-uint_32 MMU_memorymaplocpatch[4]; //Memory to substract for the mapped memory when mapped!
+uint_32 MMU_memorymaplocpatch[0x100]; //Memory to substract for the mapped memory when mapped(4 entries used)!
 
 //Memory hole start/end locations!
 #define LOW_MEMORYHOLE_START 0xA0000
@@ -405,9 +405,8 @@ OPTINLINE void MMU_INTERNAL_INVMEM(uint_32 originaladdress, uint_32 realaddress,
 
 struct
 {
-	uint_64 maskedaddress; //Masked address to match!
+	uint_32 maskedaddress; //Masked address to match!
 	uint_32 memorylocpatch; //How much to substract for the physical memory location?
-	byte mapped;
 	byte memLocHole; //Prefetched data!
 } memorymapinfo[4]; //One for reads, one for writes!
 
@@ -419,7 +418,7 @@ OPTINLINE byte applyMemoryHoles(uint_32 *realaddress, byte isread)
 	byte memoryhole;
 
 	maskedaddress = (originaladdress >> 0x10); //Take the block number we're trying to access!
-	if (unlikely(((memorymapinfo[isread].maskedaddress != (uint_64)maskedaddress)))) //Not matched already? Load the cache with it's information!
+	if (unlikely(((memorymapinfo[isread].maskedaddress != maskedaddress)))) //Not matched already? Load the cache with it's information!
 	{
 		memorymapinfo[isread].maskedaddress = maskedaddress; //Map!
 		memloc = memoryhole = memorymapinfo[isread].memLocHole = MMU_memorymapinfo[maskedaddress]; //Take from the mapped info into our cache!
@@ -494,6 +493,7 @@ extern byte specialdebugger; //Enable special debugger input?
 
 void MMU_updatemaxsize() //updated the maximum size!
 {
+	byte memloc, memoryhole, isread;
 	byte loc;
 	MMU.effectivemaxsize = ((MMU.maxsize >= 0) ? MIN(MMU.maxsize, MMU.size) : MMU.size); //Precalculate the effective maximum size!
 	for (loc=0;loc<=3;++loc)
@@ -501,8 +501,15 @@ void MMU_updatemaxsize() //updated the maximum size!
 		MMU_memorymaplocpatch[loc] = MMU_calcmaplocpatch(loc);
 	}
 	//Invalidate the caches, since it's become invalid(due to updating memory locations)!
-	memorymapinfo[0].maskedaddress = ~0; //Invalidate!
-	memorymapinfo[1].maskedaddress = ~0; //Invalidate!
+	isread = 0; //Init to the first cache!
+	do //Update all caches and reload them from the precalcs!
+	{
+		memloc = memoryhole = memorymapinfo[isread].memLocHole = MMU_memorymapinfo[memorymapinfo[isread].maskedaddress]; //Take from the mapped info into our cache!
+		memloc &= 0xF; //The location of said memory!
+		memoryhole >>= 4; //The map number that it's in, when it's a hole!
+		memorymapinfo[isread].memLocHole = memoryhole; //Save the memory hole to use, if any!
+		memorymapinfo[isread].memorylocpatch = MMU_memorymaplocpatch[memloc]; //The patch address to substract!
+	} while (++isread < 4); //Process all caches!
 }
 
 extern DRAM_accessHandler doDRAM_access; //DRAM access?
