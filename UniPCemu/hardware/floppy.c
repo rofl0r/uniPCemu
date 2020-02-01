@@ -674,7 +674,7 @@ OPTINLINE void FLOPPY_lowerIRQ()
 
 OPTINLINE byte FLOPPY_useDMA()
 {
-	return (FLOPPY_DOR_DMA_IRQR && (FLOPPY_DRIVEDATA_NDMR(FLOPPY_DOR_DRIVENUMBERR)==0)); //Are we using DMA?
+	return ((FLOPPY_DOR_DMA_IRQR && (FLOPPY_DRIVEDATA_NDMR(FLOPPY_DOR_DRIVENUMBERR)==0))&1); //Are we using DMA?
 }
 
 OPTINLINE byte FLOPPY_supportsrate(byte disk)
@@ -868,12 +868,17 @@ OPTINLINE void updateFloppyMSR() //Update the floppy MSR!
 		FLOPPY_MSR_HAVEDATAFORCPUW(1); //We have data for the CPU!
 		FLOPPY_MSR_NONDMAW(0); //No DMA transfer busy!
 		break;
-	case 0xFE: //Locked up?
 	case 0xFF: //Error?
 		FLOPPY_MSR_COMMANDBUSYW(1); //Default: busy!
 		FLOPPY_MSR_RQMW(1); //Data transfer!
 		FLOPPY_MSR_HAVEDATAFORCPUW(1); //We have data for the CPU!
 		FLOPPY_MSR_NONDMAW(0); //No DMA transfer busy!
+		break;
+	case 0xFE: //Locked up?
+		FLOPPY_MSR_COMMANDBUSYW(0); //Not busy anymore!
+		FLOPPY_MSR_RQMW(0); //No Data transfer!
+		FLOPPY_MSR_HAVEDATAFORCPUW(0); //We have no data for the CPU!
+		FLOPPY_MSR_NONDMAW(0); //No non-DMA transfer busy!
 		break;
 	default: //Unknown status?
 		break; //Unknown?
@@ -1039,6 +1044,7 @@ OPTINLINE void FLOPPY_startData() //Start a Data transfer if needed!
 		FLOPPY.DMArate = FLOPPY.DMAratePending; //Start running at the specified speed!		
 		floppytimer[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY_DMA_TIMEOUT; //Time the timeout for floppy!
 		floppytiming |= (1<<FLOPPY_DOR_DRIVENUMBERR); //Make sure we're timing on the specified disk channel!
+		FLOPPY.DMAPending = 0; //Not pending DMA!
 	}
 	else //Normal data transfer?
 	{
@@ -1047,6 +1053,10 @@ OPTINLINE void FLOPPY_startData() //Start a Data transfer if needed!
 			FLOPPY.DMAPending = 1; //Pending DMA! Start when available!
 			FLOPPY_supportsrate(FLOPPY_DOR_DRIVENUMBERR); //Make sure we have a rate set!
 			FLOPPY.DMArate = FLOPPY.DMAratePending; //Start running at the specified speed!
+		}
+		else //Non-DMA transfer!
+		{
+			FLOPPY.DMAPending = 0; //Not pending DMA!
 		}
 		FLOPPY_dataReady(); //We have data to transfer!
 	}
@@ -1124,6 +1134,11 @@ void updateFloppy(DOUBLE timepassed)
 
 //Normal floppy disk emulation again!
 
+void floppy_erroringout() //Generic handling of when a floppy errors out!
+{
+	FLOPPY.DMAPending = 0; //DMA not pending anymore, so stop handling that!
+}
+
 void floppy_readsector() //Request a read sector command!
 {
 	char *DSKImageFile = NULL; //DSK image file to use?
@@ -1134,6 +1149,7 @@ void floppy_readsector() //Request a read sector command!
 		FLOPPY_LOGD("FLOPPY: Error: Invalid drive!")
 		FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Abnormal termination!
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
+		floppy_erroringout(); //Erroring out!
 		return;
 	}
 	if ((FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->DoubleDensity!=(FLOPPY.DoubleDensity&~DENSITY_IGNORE)) && (!(FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->DoubleDensity&DENSITY_IGNORE) || density_forced) && EMULATE_DENSITY) //Wrong density?
@@ -1141,6 +1157,7 @@ void floppy_readsector() //Request a read sector command!
 		FLOPPY_LOGD("FLOPPY: Error: Invalid density!")
 		FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Abnormal termination!
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
+		floppy_erroringout(); //Erroring out!
 		return;
 	}
 
@@ -1160,6 +1177,7 @@ void floppy_readsector() //Request a read sector command!
 		FLOPPY_LOGD("FLOPPY: Error: drive motor not ON!")
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
 		FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Abnormal termination!
+		floppy_erroringout(); //Erroring out!
 		return;
 	}
 
@@ -1196,7 +1214,8 @@ void floppy_readsector() //Request a read sector command!
 		{
 			FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Abnormal termination!
 			FLOPPY.commandstep = 0xFF; //Move to error phase!
-			return;					
+			floppy_erroringout(); //Erroring out!
+			return;
 		}
 		FLOPPY_ST0_SEEKENDW(1); //Successfull read with implicit seek!
 		FLOPPY_startData();
@@ -1221,6 +1240,7 @@ void floppy_readsector() //Request a read sector command!
 		//Plain error reading the sector!
 		FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Abnormal termination!
 		FLOPPY.commandstep = 0xFF; //Error!
+		floppy_erroringout(); //Erroring out!
 	}
 }
 
@@ -1238,6 +1258,7 @@ void FLOPPY_formatsector() //Request a read sector command!
 	{
 		FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Abnormal termination!
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
+		floppy_erroringout(); //Erroring out!
 		return;
 	}
 
@@ -1246,14 +1267,16 @@ void FLOPPY_formatsector() //Request a read sector command!
 		FLOPPY_LOGD("FLOPPY: Error: Invalid density!")
 		FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Abnormal termination!
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
-		return;					
+		floppy_erroringout(); //Erroring out!
+		return;
 	}
 
 	if ((FLOPPY.commandbuffer[5]!=FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->GAPLength) && (FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->GAPLength!=GAPLENGTH_IGNORE) && EMULATE_GAPLENGTH) //Wrong GAP length?
 	{
 		FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Abnormal termination!
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
-		return;					
+		floppy_erroringout(); //Erroring out!
+		return;
 	}
 
 
@@ -1294,6 +1317,7 @@ void FLOPPY_formatsector() //Request a read sector command!
 			floppy_errorformat:
 			FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Invalid command!
 			FLOPPY.commandstep = 0xFF; //Error!
+			floppy_erroringout(); //Erroring out!
 			return; //Error!
 		}
 		if (FLOPPY.databuffer[1] != FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]) //Not current head?
@@ -1389,6 +1413,7 @@ void floppy_writesector() //Request a write sector command!
 		FLOPPY_LOGD("FLOPPY: Error: drive motor not ON!")
 		FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Abnormal termination!
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
+		floppy_erroringout(); //Erroring out!
 		return;
 	}
 
@@ -1396,6 +1421,7 @@ void floppy_writesector() //Request a write sector command!
 	{
 		FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Abnormal termination!
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
+		floppy_erroringout(); //Erroring out!
 		return;
 	}
 
@@ -1410,6 +1436,7 @@ void floppy_writesector() //Request a write sector command!
 	{
 		FLOPPY.ST0 = ((FLOPPY.ST0 & 0x3B) | 1) | ((FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] & 1) << 2); //Abnormal termination!
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
+		floppy_erroringout(); //Erroring out!
 		return;
 	}
 
@@ -1424,6 +1451,7 @@ void floppy_executeWriteData()
 		FLOPPY_LOGD("FLOPPY: Error: Invalid disk rate/geometry!")
 		FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Abnormal termination!
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
+		floppy_erroringout(); //Erroring out!
 		return;
 	}
 	if ((FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->DoubleDensity!=(FLOPPY.DoubleDensity&~DENSITY_IGNORE)) && (!(FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->DoubleDensity&DENSITY_IGNORE) || density_forced) && EMULATE_DENSITY) //Wrong density?
@@ -1431,7 +1459,8 @@ void floppy_executeWriteData()
 		FLOPPY_LOGD("FLOPPY: Error: Invalid density!")
 		FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Abnormal termination!
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
-		return;					
+		floppy_erroringout(); //Erroring out!
+		return;
 	}
 
 	if (FLOPPY_IMPLIEDSEEKENABLER) //Implied seek?
@@ -1536,6 +1565,7 @@ void floppy_executeWriteData()
 			//Plain error!
 			FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Invalid command!
 			FLOPPY.commandstep = 0xFF; //Error!
+			floppy_erroringout(); //Erroring out!
 		}
 	}
 }
@@ -1631,6 +1661,7 @@ void floppy_executeData() //Execute a floppy command. Data is fully filled!
 		default: //Unknown command?
 			FLOPPY.commandstep = 0xFF; //Move to error phrase!
 			FLOPPY.ST0 = 0x80 | (FLOPPY.ST0&0x20); //Invalid command!
+			floppy_erroringout(); //Erroring out!
 			break;
 	}
 }
@@ -1721,6 +1752,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 				FLOPPY.ignorecommands = 1; //Ignore commands until a reset!
 				FLOPPY.ST0 = 0x80 | (FLOPPY.ST0 & 0x20); //Error!
 				FLOPPY.commandstep = 0xFD; //Error out! Lock up after reading result!
+				floppy_erroringout(); //Erroring out!
 				return; //Error out now!
 			}
 			
@@ -1852,6 +1884,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 				FLOPPY_LOGD("FLOPPY: Error: drive motor not ON!")
 				FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Invalid command!
 				FLOPPY.commandstep = 0xFF; //Move to error phase!
+				floppy_erroringout(); //Erroring out!
 				return;
 			}
 
@@ -1859,12 +1892,16 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			{
 				FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Invalid command!
 				FLOPPY.commandstep = 0xFF; //Error!
+				floppy_erroringout(); //Erroring out!
+				return;
 			}
 
 			if (FLOPPY.commandbuffer[3] != FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->SPT) //Invalid SPT?
 			{
 				FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Invalid command!
 				FLOPPY.commandstep = 0xFF; //Error!
+				floppy_erroringout(); //Erroring out!
+				return;
 			}
 
 			if ((DSKImageFile = getDSKimage((FLOPPY_DOR_DRIVENUMBERR) ? FLOPPY1 : FLOPPY0))) //Are we a DSK image file?
@@ -1878,6 +1915,8 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 				{
 					FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Invalid command!
 					FLOPPY.commandstep = 0xFF; //Error!
+					floppy_erroringout(); //Erroring out!
+					return;
 				}
 				else
 				{
@@ -1931,6 +1970,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 		case READ_TRACK: //Read complete track!
 			FLOPPY.commandstep = 0xFF; //Move to error phrase!
 			FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Invalid command!
+			floppy_erroringout(); //Erroring out!
 			break;
 		default:
 			break;
@@ -1943,6 +1983,7 @@ OPTINLINE void floppy_abnormalpolling()
 	FLOPPY_ST0_INTERRUPTCODEW(3); //Abnormal termination by polling!
 	FLOPPY_ST0_NOTREADYW(0); //We became not ready!
 	FLOPPY.commandstep = 0xFF; //Error!
+	floppy_erroringout(); //Erroring out!
 }
 
 OPTINLINE void floppy_scanbyte(byte fdcbyte, byte cpubyte)
@@ -1987,7 +2028,7 @@ OPTINLINE void floppy_scanbyte(byte fdcbyte, byte cpubyte)
 	}
 }
 
-OPTINLINE void floppy_writeData(byte value)
+OPTINLINE void floppy_writeData(byte isDMA, byte value)
 {
 	byte isscan = 0; //We're not scanning something by default!
 	byte commandlength[0x20] = {
@@ -2028,6 +2069,11 @@ OPTINLINE void floppy_writeData(byte value)
 	switch (FLOPPY.commandstep) //What step are we at?
 	{
 		case 0: //Command
+			if (isDMA) //DMA? Error out!
+			{
+				floppy_abnormalpolling(); //Abnormal polling!
+				return; //Error out!
+			}
 			if (FLOPPY.ignorecommands) return; //Ignore commands: we're locked up!
 			FLOPPY.commandstep = 1; //Start inserting parameters!
 			FLOPPY.commandposition = 1; //Start at position 1 with out parameters/data!
@@ -2077,10 +2123,16 @@ OPTINLINE void floppy_writeData(byte value)
 					FLOPPY_LOGD("FLOPPY: Invalid or unsupported command: %02X",value); //Detection of invalid/unsupported command!
 					FLOPPY.ST0 = 0x80 | (FLOPPY.ST0 & 0x20); //Invalid command!
 					FLOPPY.commandstep = 0xFF; //Error: lockup!
+					floppy_erroringout(); //Erroring out!
 					break;
 			}
 			break;
 		case 1: //Parameters
+			if (isDMA) //DMA? Error out!
+			{
+				floppy_abnormalpolling(); //Abnormal polling!
+				return; //Error out!
+			}
 			FLOPPY_LOGD("FLOPPY: Parameter sent: %02X(#%u/%u)", value, FLOPPY.commandposition, commandlength[FLOPPY.commandbuffer[0]]) //Log the parameter!
 			FLOPPY.commandbuffer[FLOPPY.commandposition++] = value; //Set the command to use!
 			if (FLOPPY.commandposition > (commandlength[FLOPPY.commandbuffer[0]])) //All parameters have been processed?
@@ -2095,11 +2147,19 @@ OPTINLINE void floppy_writeData(byte value)
 				case SCAN_EQUAL:
 				case SCAN_LOW_OR_EQUAL:
 				case SCAN_HIGH_OR_EQUAL:
+					if (FLOPPY_useDMA() != isDMA) //Wrong type!
+					{
+						goto floppy_abnormalpollingwrite; //Abnormal polling used!
+					}
 					isscan = 1; //We're scanning instead!
 					floppy_scanbyte(FLOPPY.databuffer[FLOPPY.databufferposition++],value); //Execute the scanning!
 				case WRITE_DATA: //Write sector
 				case WRITE_DELETED_DATA: //Write deleted sector
 				case FORMAT_TRACK: //Format track
+					if (FLOPPY_useDMA() != isDMA) //Wrong type!
+					{
+						goto floppy_abnormalpollingwrite; //Abnormal polling used!
+					}
 					if (likely(isscan==0)) //Not Scanning? We're writing to the buffer!
 					{
 						FLOPPY.databuffer[FLOPPY.databufferposition++] = value; //Set the command to use!
@@ -2119,6 +2179,7 @@ OPTINLINE void floppy_writeData(byte value)
 					}
 					break;
 				default: //Invalid command
+					floppy_abnormalpollingwrite:
 					floppy_abnormalpolling(); //Abnormal polling!
 					break;
 			}
@@ -2130,12 +2191,15 @@ OPTINLINE void floppy_writeData(byte value)
 			floppy_abnormalpolling();
 			//We can't do anything! Ignore any writes now!
 			break;
+		case 0xFD: //Give the result and lockup?
+			//Ignore DMA writes for the error to be given!
+		case 0xFE: //Locked up?
 		default:
 			break; //Unknown status, hang the controller or do nothing!
 	}
 }
 
-OPTINLINE byte floppy_readData()
+OPTINLINE byte floppy_readData(byte isDMA)
 {
 	byte resultlength[0x20] = {
 		0, //0
@@ -2187,6 +2251,10 @@ OPTINLINE byte floppy_readData()
 				case READ_TRACK: //Read complete track
 				case READ_DATA: //Read sector
 				case READ_DELETED_DATA: //Read deleted sector
+					if (FLOPPY_useDMA()!=isDMA) //Non-DMA mode addressing DMA or reversed?
+					{
+						goto abnormalpollingread;
+					}
 					temp = FLOPPY.databuffer[FLOPPY.databufferposition++]; //Read data!
 					if (FLOPPY.databufferposition==FLOPPY.databuffersize) //Finished?
 					{
@@ -2204,11 +2272,17 @@ OPTINLINE byte floppy_readData()
 					return temp; //Give the result!
 					break;
 				default: //Invalid command: we have no data to be READ!
+					abnormalpollingread:
 					floppy_abnormalpolling(); //Abnormal polling!
 					break;
 			}
 			break;
 		case 3: //Result
+			if (isDMA) //DMA? Error out because we're overrunning the access!
+			{
+				floppy_abnormalpolling(); //Abnormal polling detected!
+				return 0; //Error out!
+			}
 			temp = FLOPPY.resultbuffer[FLOPPY.resultposition++]; //Read a result byte!
 			switch (FLOPPY.commandbuffer[0]) //What command?
 			{
@@ -2241,6 +2315,10 @@ OPTINLINE byte floppy_readData()
 			break;
 		case 0xFD: //Give result and lockup?
 		case 0xFF: //Error or reset result
+			if (isDMA) //DMA? Error out!
+			{
+				return 0; //Error out: nothing to give until the result is fetched!
+			}
 			if (FLOPPY.commandstep==0xFD) //Lock up now?
 			{
 				FLOPPY.commandstep = 0xFE; //Lockup!
@@ -2461,7 +2539,7 @@ byte PORT_IN_floppy(word port, byte *result)
 		return 1;
 	case 5: //Data?
 		//Process data!
-		*result = floppy_readData(); //Read data!
+		*result = floppy_readData(0); //Read data!
 		return 1;
 	case 7: //DIR?
 		if (is_XT==0) //AT?
@@ -2510,7 +2588,7 @@ byte PORT_OUT_floppy(word port, byte value)
 	case 5: //Data?
 		FLOPPY_hadIRQ = FLOPPY.IRQPending; //Was an IRQ Pending?
 		FLOPPY_lowerIRQ(); //Lower the IRQ!
-		floppy_writeData(value); //Write data!
+		floppy_writeData(0,value); //Write data!
 		return 1; //Default handler!
 	case 7: //CCR?
 		if (is_XT==0) //AT?
@@ -2532,12 +2610,12 @@ byte PORT_OUT_floppy(word port, byte value)
 
 void DMA_floppywrite(byte data)
 {
-	floppy_writeData(data); //Send the data to the FDC!
+	floppy_writeData(1,data); //Send the data to the FDC!
 }
 
 byte DMA_floppyread()
 {
-	return floppy_readData(); //Read data!
+	return floppy_readData(1); //Read data!
 }
 
 void FLOPPY_DMADREQ() //For checking any new DREQ signals!
@@ -2548,9 +2626,12 @@ void FLOPPY_DMADREQ() //For checking any new DREQ signals!
 void FLOPPY_DMADACK() //For processing DACK signal!
 {
 	DMA_SetDREQ(FLOPPY_DMA,0); //Stop the current transfer!
-	FLOPPY.DMAPending |= 2; //We're not pending anymore, until timed out!
-	floppytimer[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY_DMA_TIMEOUT; //Time the timeout for floppy!
-	floppytiming |= (1<<FLOPPY_DOR_DRIVENUMBERR); //Make sure we're timing on the specified disk channel!
+	if (FLOPPY.DMAPending) //Pending?
+	{
+		FLOPPY.DMAPending |= 2; //We're not pending anymore, until timed out!
+		floppytimer[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY_DMA_TIMEOUT; //Time the timeout for floppy!
+		floppytiming |= (1 << FLOPPY_DOR_DRIVENUMBERR); //Make sure we're timing on the specified disk channel!
+	}
 }
 
 void FLOPPY_DMATC() //Terminal count triggered?
