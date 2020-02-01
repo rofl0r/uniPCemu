@@ -43,6 +43,7 @@ typedef struct
 	word CurrentCountRegister; //Count register set by the user and counting!
 	word BaseCountRegister; //Current count register when resetting (base)! Written together with the counter!
 	byte PageAddressRegister; //Upper 8 bits of the 24-bit transfer memory address!
+	uint_32 PageAddressRegisterPreshifted; //Preshifted Page Address Register to bit 16!
 	
 	DMAWriteBHandler WriteBHandler; //Write handler 8-bit!
 	DMAReadBHandler ReadBHandler; //Read handler 8-bit
@@ -134,6 +135,7 @@ byte DMA_WriteIO(word port, byte value) //Handles OUT instructions to I/O ports.
 		//Extra 8 bits for addresses:
 		case 0x7: //
 			DMAController[controller].DMAChannel[0].PageAddressRegister = value; //Set!
+			DMAController[controller].DMAChannel[0].PageAddressRegisterPreshifted = (value<<16); //Set!
 			break;
 		case 0x4:
 		case 0x5:
@@ -145,12 +147,15 @@ byte DMA_WriteIO(word port, byte value) //Handles OUT instructions to I/O ports.
 			break;
 		case 0x3: //
 			DMAController[controller].DMAChannel[1].PageAddressRegister = value; //Set!
+			DMAController[controller].DMAChannel[1].PageAddressRegisterPreshifted = (value<<16); //Set!
 			break;
 		case 0x1: //
 			DMAController[controller].DMAChannel[2].PageAddressRegister = value; //Set!
+			DMAController[controller].DMAChannel[2].PageAddressRegisterPreshifted = (value<<16); //Set!
 			break;
 		case 0x2: //
 			DMAController[controller].DMAChannel[3].PageAddressRegister = value; //Set!
+			DMAController[controller].DMAChannel[3].PageAddressRegisterPreshifted = (value<<16); //Set!
 			break;
 		default:
 			return 0; //Invalid register!
@@ -636,7 +641,7 @@ void DMA_StateHandler_S3()
 	{
 		address = DMAController[controller].DMAChannel[DMAchannel].CurrentAddressRegister; //Normal addressing!
 	}
-	address |= (DMAController[controller].DMAChannel[DMAchannel].PageAddressRegister<<16); //Apply page address to get the full address!
+	address |= DMAController[controller].DMAChannel[DMAchannel].PageAddressRegisterPreshifted; //Apply page address to get the full address!
 				
 	//Process the address counter step: we've been processed and ready to move on!
 	if (DMAmoderegister&0x20) //Decrease address?
