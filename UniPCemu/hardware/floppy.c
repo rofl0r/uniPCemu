@@ -933,9 +933,12 @@ byte floppy_increasesector(byte floppy) //Increase the sector number automatical
 	useMT = FLOPPY.MT&FLOPPY.MTMask; //Used MT?
 	if (++FLOPPY.currentsector[floppy] > ((FLOPPY_useDMA() && useMT)?(FLOPPY.geometries[floppy]?FLOPPY.geometries[floppy]->SPT:0):FLOPPY.commandbuffer[6])) //Overflow next sector by parameter?
 	{
-		if ((useMT && FLOPPY.currenthead[floppy]) || !(useMT)) //Multi-track and side 1, or not Multi-track?
+		if (!FLOPPY_useDMA()) //non-DMA mode?
 		{
-			result = 0; //SPT finished!
+			if ((useMT && FLOPPY.currenthead[floppy]) || !(useMT)) //Multi-track and side 1, or not Multi-track?
+			{
+				result = 0; //SPT finished!
+			}
 		}
 
 		FLOPPY.currentsector[floppy] = 1; //Reset sector number!
