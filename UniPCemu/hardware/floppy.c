@@ -871,13 +871,14 @@ OPTINLINE void updateFloppyMSR() //Update the floppy MSR!
 		FLOPPY_MSR_HAVEDATAFORCPUW(1); //We have data for the CPU!
 		FLOPPY_MSR_NONDMAW(0); //No DMA transfer busy!
 		break;
+	case 0xFE: //Locked up?
 	case 0xFF: //Error?
 		FLOPPY_MSR_COMMANDBUSYW(1); //Default: busy!
 		FLOPPY_MSR_RQMW(1); //Data transfer!
 		FLOPPY_MSR_HAVEDATAFORCPUW(1); //We have data for the CPU!
 		FLOPPY_MSR_NONDMAW(0); //No DMA transfer busy!
 		break;
-	case 0xFE: //Locked up?
+	//Locked up?
 		FLOPPY_MSR_COMMANDBUSYW(0); //Not busy anymore!
 		FLOPPY_MSR_RQMW(0); //No Data transfer!
 		FLOPPY_MSR_HAVEDATAFORCPUW(0); //We have no data for the CPU!
@@ -1801,12 +1802,11 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			}
 			else if (!FLOPPY_hadIRQ) //Not an pending IRQ?
 			{
-				FLOPPY_LOGD("FLOPPY: Warning: Checking interrupt status without IRQ pending! Locking up controller!")
-				FLOPPY.ignorecommands = 1; //Ignore commands until a reset!
-				FLOPPY.ST0 = 0x80 | (FLOPPY.ST0 & 0x20); //Error!
-				FLOPPY.commandstep = 0xFD; //Error out! Lock up after reading result!
+				FLOPPY_LOGD("FLOPPY: Warning: Checking interrupt status without IRQ pending!")
+				FLOPPY.ST0 = 0x80 | (FLOPPY.ST0 & 0x3F); //Error!
+				FLOPPY.commandstep = 0xFF; //Move to error phase!
 				floppy_erroringout(); //Erroring out!
-				return; //Error out now!
+				return;
 			}
 			
 			FLOPPY_LOGD("FLOPPY: Sense interrupt: ST0=%02X, Currentcylinder=%02X", datatemp, FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR])
