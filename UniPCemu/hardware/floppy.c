@@ -2166,6 +2166,7 @@ OPTINLINE void floppy_writeData(byte isDMA, byte value)
 				case SENSE_INTERRUPT: //Check interrupt status
 				case DUMPREG: //Dumpreg command
 				case VERSION: //Version
+				case LOCK: //Lock
 					FLOPPY.commandbuffer[0] = value; //Set the command to use!
 					floppy_executeCommand(); //Execute the command!
 					break;
@@ -2183,7 +2184,6 @@ OPTINLINE void floppy_writeData(byte isDMA, byte value)
 				case READ_ID: //Read sector ID
 				case FORMAT_TRACK: //Format sector
 				case CONFIGURE: //Configure
-				case LOCK: //Lock
 				case SCAN_EQUAL:
 				case SCAN_LOW_OR_EQUAL:
 				case SCAN_HIGH_OR_EQUAL:
