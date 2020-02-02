@@ -1142,7 +1142,8 @@ void floppy_erroringout() //Generic handling of when a floppy errors out!
 void floppy_readsector() //Request a read sector command!
 {
 	char *DSKImageFile = NULL; //DSK image file to use?
-	SECTORINFORMATIONBLOCK sectorinformation; //Information about the sector!
+	SECTORINFORMATIONBLOCK sectorinfo; //Information about the sector!
+	word sectornr;
 
 	if ((!FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]) || ((FLOPPY_DOR_DRIVENUMBERR<2)?(!is_mounted(FLOPPY_DOR_DRIVENUMBERR?FLOPPY1:FLOPPY0)):1)) //Not inserted or valid?
 	{
@@ -1224,12 +1225,24 @@ void floppy_readsector() //Request a read sector command!
 	{
 		if ((DSKImageFile = getDSKimage((FLOPPY_DOR_DRIVENUMBERR) ? FLOPPY1 : FLOPPY0))) //Are we a DSK image file?
 		{
-			if (readDSKSectorData(DSKImageFile,FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.commandbuffer[5], &FLOPPY.databuffersize)) //Read the data into memory?
+			for (sectornr = 0; sectornr < 0x100; ++sectornr) //Find the sector that's to be requested!
 			{
-				if (readDSKSectorInfo(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR], &sectorinformation)) //Read the sector information too!
+				if (readDSKSectorInfo(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], sectornr, &sectorinfo)) //Read?
 				{
-					FLOPPY.ST1 = sectorinformation.ST1; //Load ST1!
-					FLOPPY.ST2 = sectorinformation.ST2; //Load ST2!
+					if (sectorinfo.SectorID == FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]) //Found the requested sector?
+					{
+						goto foundsectorIDread; //Found it!
+					}
+				}
+			}
+			goto floppy_errorread;
+			foundsectorIDread: //Found the sector ID for the write!
+			if (readDSKSectorData(DSKImageFile,FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], sectornr, FLOPPY.commandbuffer[5], &FLOPPY.databuffersize)) //Read the data into memory?
+			{
+				if (readDSKSectorInfo(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], sectornr, &sectorinfo)) //Read the sector information too!
+				{
+					FLOPPY.ST1 = sectorinfo.ST1; //Load ST1!
+					FLOPPY.ST2 = sectorinfo.ST2; //Load ST2!
 				}
 				FLOPPY_startData();
 				return; //Just execute it!
@@ -1334,7 +1347,16 @@ void FLOPPY_formatsector() //Request a read sector command!
 		//Check disk specific information!
 		if ((DSKImageFile = getDSKimage((FLOPPY_DOR_DRIVENUMBERR) ? FLOPPY1 : FLOPPY0))) //Are we a DSK image file?
 		{
-			if (!readDSKSectorInfo(DSKImageFile, FLOPPY.databuffer[1], FLOPPY.databuffer[0], FLOPPY.databuffer[2], &sectorinfo)) //Failed to read sector information block?
+			if (!readDSKSectorInfo(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR], &sectorinfo)) //Failed to read sector information block?
+			{
+				goto floppy_errorformat;
+				return; //Error!
+			}
+
+			if ((sectorinfo.SectorID != FLOPPY.databuffer[2]) ||
+				(sectorinfo.track != FLOPPY.databuffer[0]) ||
+				(sectorinfo.side != FLOPPY.databuffer[1]) ||
+				(sectorinfo.SectorSize != FLOPPY.databuffer[3])) //Sector ID mismatch?
 			{
 				goto floppy_errorformat;
 				return; //Error!
@@ -1348,7 +1370,7 @@ void FLOPPY_formatsector() //Request a read sector command!
 			}
 
 			//Fill the sector buffer and write it!
-			memset(&FLOPPY.databuffer, FLOPPY.commandbuffer[5], ((size_t)1 << sectorinfo.SectorSize)); //Clear our buffer with the fill byte!
+			memset(&FLOPPY.databuffer, FLOPPY.commandbuffer[5], MIN(((size_t)1 << sectorinfo.SectorSize),sizeof(FLOPPY.databuffer))); //Clear our buffer with the fill byte!
 			if (!writeDSKSectorData(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR], sectorinfo.SectorSize, &FLOPPY.databuffer)) //Failed writing the formatted sector?
 			{
 				goto floppy_errorformat;
@@ -1445,7 +1467,9 @@ void floppy_writesector() //Request a write sector command!
 
 void floppy_executeWriteData()
 {
+	word sectornr;
 	char *DSKImageFile = NULL; //DSK image file to use?
+	SECTORINFORMATIONBLOCK sectorinfo;
 	if (!FLOPPY_supportsrate(FLOPPY_DOR_DRIVENUMBERR) || !FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR] || ((FLOPPY_DOR_DRIVENUMBERR < 2) ? (!is_mounted(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0)) : 1)) //We don't support the rate or geometry?
 	{
 		FLOPPY_LOGD("FLOPPY: Error: Invalid disk rate/geometry!")
@@ -1529,7 +1553,19 @@ void floppy_executeWriteData()
 		{
 			if ((DSKImageFile = getDSKimage((FLOPPY_DOR_DRIVENUMBERR) ? FLOPPY1 : FLOPPY0))) //Are we a DSK image file?
 			{
-				if (writeDSKSectorData(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.commandbuffer[5], &FLOPPY.databuffersize)) //Read the data into memory?
+				for (sectornr = 0; sectornr < 0x100; ++sectornr) //Find the sector that's to be requested!
+				{
+					if (readDSKSectorInfo(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], sectornr, &sectorinfo)) //Read?
+					{
+						if (sectorinfo.SectorID == FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]) //Found the requested sector?
+						{
+							goto foundsectorIDwrite; //Found it!
+						}
+					}
+				}
+				goto didntfindsectoridwrite;
+				foundsectorIDwrite: //Found the sector ID for the write!
+				if (writeDSKSectorData(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], sectornr, FLOPPY.commandbuffer[5], &FLOPPY.databuffersize)) //Read the data into memory?
 				{
 					switch (floppy_increasesector(FLOPPY_DOR_DRIVENUMBERR)) //Goto next sector!
 					{
@@ -1562,6 +1598,7 @@ void floppy_executeWriteData()
 					return;
 				}
 			}
+			didntfindsectoridwrite: //Couldn't find the sector ID!
 			//Plain error!
 			FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Invalid command!
 			FLOPPY.commandstep = 0xFF; //Error!
@@ -1669,7 +1706,8 @@ void floppy_executeData() //Execute a floppy command. Data is fully filled!
 void floppy_executeCommand() //Execute a floppy command. Buffers are fully filled!
 {
 	char *DSKImageFile = NULL; //DSK image file to use?
-	SECTORINFORMATIONBLOCK sectorinformation; //Information about the sector!
+	SECTORINFORMATIONBLOCK sectorinfo; //Information about the sector!
+	word sectornr;
 	FLOPPY.TC = 0; //Reset TC flag!
 	FLOPPY.resultposition = 0; //Default: start of the result!
 	FLOPPY.databuffersize = 0; //Default: nothing to write/read!
@@ -1818,14 +1856,27 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			FLOPPY_ST0_UNITSELECTW(FLOPPY_DOR_DRIVENUMBERR); //Unit selected!
 			if ((DSKImageFile = getDSKimage((FLOPPY_DOR_DRIVENUMBERR) ? FLOPPY1 : FLOPPY0))) //Are we a DSK image file?
 			{
-				if (readDSKSectorInfo(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR], &sectorinformation)) //Read the sector information too!
+				for (sectornr = 0; sectornr < 0x100; ++sectornr) //Find the sector that's to be requested!
 				{
-					FLOPPY.ST1 = sectorinformation.ST1; //Load ST1!
-					FLOPPY.ST2 = sectorinformation.ST2; //Load ST2!
-					FLOPPY.resultbuffer[6] = sectorinformation.SectorSize; //Sector size!
+					if (readDSKSectorInfo(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], sectornr, &sectorinfo)) //Read?
+					{
+						if (sectorinfo.SectorID == FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]) //Found the requested sector?
+						{
+							goto foundsectorIDreadid; //Found it!
+						}
+					}
+				}
+				goto didntfindsectoridreadid;
+				foundsectorIDreadid: //Found the sector ID for the write!
+				if (readDSKSectorInfo(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], sectornr, &sectorinfo)) //Read the sector information too!
+				{
+					FLOPPY.ST1 = sectorinfo.ST1; //Load ST1!
+					FLOPPY.ST2 = sectorinfo.ST2; //Load ST2!
+					FLOPPY.resultbuffer[6] = sectorinfo.SectorSize; //Sector size!
 				}
 				else
 				{
+					didntfindsectoridreadid:
 					FLOPPY.ST1 = 0x00; //Not found!
 					FLOPPY.ST2 = 0x00; //Not found!
 					FLOPPY.resultbuffer[6] = 0; //Unknown sector size!
