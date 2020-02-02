@@ -1143,6 +1143,7 @@ void floppy_readsector() //Request a read sector command!
 {
 	char *DSKImageFile = NULL; //DSK image file to use?
 	SECTORINFORMATIONBLOCK sectorinfo; //Information about the sector!
+	TRACKINFORMATIONBLOCK trackinfo;
 	word sectornr;
 
 	if ((!FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]) || ((FLOPPY_DOR_DRIVENUMBERR<2)?(!is_mounted(FLOPPY_DOR_DRIVENUMBERR?FLOPPY1:FLOPPY0)):1)) //Not inserted or valid?
@@ -1225,7 +1226,11 @@ void floppy_readsector() //Request a read sector command!
 	{
 		if ((DSKImageFile = getDSKimage((FLOPPY_DOR_DRIVENUMBERR) ? FLOPPY1 : FLOPPY0))) //Are we a DSK image file?
 		{
-			for (sectornr = 0; sectornr < 0x100; ++sectornr) //Find the sector that's to be requested!
+			if (readDSKTrackInfo(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], &trackinfo) == 0) //Read?
+			{
+				goto floppy_errorread;
+			}
+			for (sectornr = 0; sectornr < (word)trackinfo.numberofsectors; ++sectornr) //Find the sector that's to be requested!
 			{
 				if (readDSKSectorInfo(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], sectornr, &sectorinfo)) //Read?
 				{
@@ -1469,6 +1474,7 @@ void floppy_executeWriteData()
 	word sectornr;
 	char *DSKImageFile = NULL; //DSK image file to use?
 	SECTORINFORMATIONBLOCK sectorinfo;
+	TRACKINFORMATIONBLOCK trackinfo;
 	if (!FLOPPY_supportsrate(FLOPPY_DOR_DRIVENUMBERR) || !FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR] || ((FLOPPY_DOR_DRIVENUMBERR < 2) ? (!is_mounted(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0)) : 1)) //We don't support the rate or geometry?
 	{
 		FLOPPY_LOGD("FLOPPY: Error: Invalid disk rate/geometry!")
@@ -1552,7 +1558,11 @@ void floppy_executeWriteData()
 		{
 			if ((DSKImageFile = getDSKimage((FLOPPY_DOR_DRIVENUMBERR) ? FLOPPY1 : FLOPPY0))) //Are we a DSK image file?
 			{
-				for (sectornr = 0; sectornr < 0x100; ++sectornr) //Find the sector that's to be requested!
+				if (readDSKTrackInfo(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], &trackinfo) == 0) //Read?
+				{
+					goto didntfindsectoridwrite;
+				}
+				for (sectornr = 0; sectornr < (word)trackinfo.numberofsectors; ++sectornr) //Find the sector that's to be requested!
 				{
 					if (readDSKSectorInfo(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], sectornr, &sectorinfo)) //Read?
 					{
@@ -1706,6 +1716,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 {
 	char *DSKImageFile = NULL; //DSK image file to use?
 	SECTORINFORMATIONBLOCK sectorinfo; //Information about the sector!
+	TRACKINFORMATIONBLOCK trackinfo;
 	word sectornr;
 	FLOPPY.TC = 0; //Reset TC flag!
 	FLOPPY.resultposition = 0; //Default: start of the result!
@@ -1855,7 +1866,11 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			FLOPPY_ST0_UNITSELECTW(FLOPPY_DOR_DRIVENUMBERR); //Unit selected!
 			if ((DSKImageFile = getDSKimage((FLOPPY_DOR_DRIVENUMBERR) ? FLOPPY1 : FLOPPY0))) //Are we a DSK image file?
 			{
-				for (sectornr = 0; sectornr < 0x100; ++sectornr) //Find the sector that's to be requested!
+				if (readDSKTrackInfo(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], &trackinfo) == 0) //Read?
+				{
+					goto didntfindsectoridreadid;
+				}
+				for (sectornr = 0; sectornr < (word)trackinfo.numberofsectors; ++sectornr) //Find the sector that's to be requested!
 				{
 					if (readDSKSectorInfo(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], sectornr, &sectorinfo)) //Read?
 					{
