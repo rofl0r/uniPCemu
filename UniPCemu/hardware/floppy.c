@@ -1325,25 +1325,6 @@ void FLOPPY_formatsector() //Request a read sector command!
 			goto floppy_errorformat; //Error out!
 		}
 
-		if (FLOPPY.databuffer[0] != FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]) //Not current track?
-		{
-			floppy_errorformat:
-			FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Invalid command!
-			FLOPPY.commandstep = 0xFF; //Error!
-			floppy_erroringout(); //Erroring out!
-			return; //Error!
-		}
-		if (FLOPPY.databuffer[1] != FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]) //Not current head?
-		{
-			goto floppy_errorformat;
-			return; //Error!
-		}
-		if (FLOPPY.databuffer[2] != FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]) //Not current sector?
-		{
-			goto floppy_errorformat;
-			return; //Error!
-		}
-
 		//Check disk specific information!
 		if ((DSKImageFile = getDSKimage((FLOPPY_DOR_DRIVENUMBERR) ? FLOPPY1 : FLOPPY0))) //Are we a DSK image file?
 		{
@@ -1353,10 +1334,9 @@ void FLOPPY_formatsector() //Request a read sector command!
 				return; //Error!
 			}
 
-			if ((sectorinfo.SectorID != FLOPPY.databuffer[2]) ||
-				(sectorinfo.track != FLOPPY.databuffer[0]) ||
+			if ((sectorinfo.track != FLOPPY.databuffer[0]) ||
 				(sectorinfo.side != FLOPPY.databuffer[1]) ||
-				(sectorinfo.SectorSize != FLOPPY.databuffer[3])) //Sector ID mismatch?
+				(sectorinfo.SectorID != FLOPPY.databuffer[2])) //Sector ID mismatch?
 			{
 				goto floppy_errorformat;
 				return; //Error!
@@ -1379,6 +1359,25 @@ void FLOPPY_formatsector() //Request a read sector command!
 		}
 		else //Are we a normal image file?
 		{
+			if (FLOPPY.databuffer[0] != FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]) //Not current track?
+			{
+			floppy_errorformat:
+				FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Invalid command!
+				FLOPPY.commandstep = 0xFF; //Error!
+				floppy_erroringout(); //Erroring out!
+				return; //Error!
+			}
+			if (FLOPPY.databuffer[1] != FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]) //Not current head?
+			{
+				goto floppy_errorformat;
+				return; //Error!
+			}
+			if (FLOPPY.databuffer[2] != FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]) //Not current sector?
+			{
+				goto floppy_errorformat;
+				return; //Error!
+			}
+
 			if (FLOPPY.databuffer[3] != 0x2) //Not 512 bytes/sector?
 			{
 				goto floppy_errorformat;
