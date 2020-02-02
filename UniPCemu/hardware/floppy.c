@@ -1234,7 +1234,7 @@ void floppy_readsector() //Request a read sector command!
 			{
 				if (readDSKSectorInfo(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], sectornr, &sectorinfo)) //Read?
 				{
-					if (sectorinfo.SectorID == FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]) //Found the requested sector?
+					if ((sectorinfo.SectorID == FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]) && (sectorinfo.side == FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]) && (sectorinfo.track == FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR])) //Found the requested sector as indicated?
 					{
 						goto foundsectorIDread; //Found it!
 					}
@@ -1566,7 +1566,7 @@ void floppy_executeWriteData()
 				{
 					if (readDSKSectorInfo(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], sectornr, &sectorinfo)) //Read?
 					{
-						if (sectorinfo.SectorID == FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]) //Found the requested sector?
+						if ((sectorinfo.SectorID == FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]) && (sectorinfo.side == FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]) && (sectorinfo.track == FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR])) //Found the requested sector as indicated?
 						{
 							goto foundsectorIDwrite; //Found it!
 						}
@@ -1874,7 +1874,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 				{
 					if (readDSKSectorInfo(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], sectornr, &sectorinfo)) //Read?
 					{
-						if (sectorinfo.SectorID == FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]) //Found the requested sector?
+						if ((sectorinfo.SectorID == FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]) && (sectorinfo.side==FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]) && (sectorinfo.track==FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR])) //Found the requested sector as indicated?
 						{
 							goto foundsectorIDreadid; //Found it!
 						}
