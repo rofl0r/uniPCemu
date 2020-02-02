@@ -556,12 +556,15 @@ OPTINLINE void updateFloppyGeometries(byte floppy, byte side, byte track)
 	DISKINFORMATIONBLOCK DSKInformation;
 	TRACKINFORMATIONBLOCK DSKTrackInformation;
 	FLOPPY.geometries[floppy] = NULL; //Init geometry to unknown!
-	for (i = 0; i < NUMITEMS(floppygeometries); i++) //Update the geometry!
+	if (!(DSKImageFile = getDSKimage((floppy) ? FLOPPY1 : FLOPPY0))) //Are we not a DSK image file?
 	{
-		if (floppygeometries[i].KB == KB(floppysize)) //Found?
+		for (i = 0; i < NUMITEMS(floppygeometries); i++) //Update the geometry!
 		{
-			FLOPPY.geometries[floppy] = &floppygeometries[i]; //The geometry we use!
-			return; //Stop searching!
+			if (floppygeometries[i].KB == KB(floppysize)) //Found?
+			{
+				FLOPPY.geometries[floppy] = &floppygeometries[i]; //The geometry we use!
+				return; //Stop searching!
+			}
 		}
 	}
 
@@ -1333,7 +1336,7 @@ void FLOPPY_formatsector() //Request a read sector command!
 		//Check disk specific information!
 		if ((DSKImageFile = getDSKimage((FLOPPY_DOR_DRIVENUMBERR) ? FLOPPY1 : FLOPPY0))) //Are we a DSK image file?
 		{
-			if (!readDSKSectorInfo(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR], &sectorinfo)) //Failed to read sector information block?
+			if (!readDSKSectorInfo(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], (FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]-1), &sectorinfo)) //Failed to read sector information block?
 			{
 				goto floppy_errorformat;
 				return; //Error!
@@ -1356,7 +1359,7 @@ void FLOPPY_formatsector() //Request a read sector command!
 
 			//Fill the sector buffer and write it!
 			memset(&FLOPPY.databuffer, FLOPPY.commandbuffer[5], MIN(((size_t)1 << sectorinfo.SectorSize),sizeof(FLOPPY.databuffer))); //Clear our buffer with the fill byte!
-			if (!writeDSKSectorData(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR], sectorinfo.SectorSize, &FLOPPY.databuffer)) //Failed writing the formatted sector?
+			if (!writeDSKSectorData(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], (FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]-1), sectorinfo.SectorSize, &FLOPPY.databuffer)) //Failed writing the formatted sector?
 			{
 				goto floppy_errorformat;
 				return; //Error!
@@ -1731,6 +1734,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			FLOPPY.RWRequestedCylinder = FLOPPY.commandbuffer[2]; //Requested cylinder!
 			FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[3]; //Current head!
 			FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[4]; //Current sector!
+			updateFloppyGeometries(FLOPPY_DOR_DRIVENUMBERR, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]); //Update our geometry to use!
 			updateST3(FLOPPY_DOR_DRIVENUMBERR); //Update ST3 only!
 			floppy_writesector(); //Start writing a sector!
 			break;
@@ -1745,6 +1749,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[3]; //Current head!
 			FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[4]; //Current sector!
 			updateST3(FLOPPY_DOR_DRIVENUMBERR); //Update ST3 only!
+			updateFloppyGeometries(FLOPPY_DOR_DRIVENUMBERR, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR],FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]); //Update our geometry to use!
 			floppy_readsector(); //Start reading a sector!
 			break;
 		case SPECIFY: //Fix drive data/specify command
@@ -1859,6 +1864,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 					FLOPPY_checkfinishtiming(FLOPPY_DOR_DRIVENUMBERR); //Seek is completed!
 				}
 			}
+			updateFloppyGeometries(FLOPPY_DOR_DRIVENUMBERR, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]); //Update our geometry to use!
 			FLOPPY_ST0_UNITCHECKW(0); //Not faulted!
 			FLOPPY_ST0_NOTREADYW(0); //Ready!
 			FLOPPY_ST0_INTERRUPTCODEW(0); //OK! Correctly executed!
@@ -1944,6 +1950,8 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 		case FORMAT_TRACK: //Format sector
 			FLOPPY.activecommand[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[0]; //Our command to execute!
 			FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] = (FLOPPY.commandbuffer[1] & 4) >> 2; //Set the new head from the parameters!
+			FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR] = 1; //Start out with sector #1(first sector of the track on DSK images)!
+			updateFloppyGeometries(FLOPPY_DOR_DRIVENUMBERR, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]); //Update our geometry to use!
 			if (!(FLOPPY_DOR_MOTORCONTROLR&(1 << FLOPPY_DOR_DRIVENUMBERR))) //Not motor ON?
 			{
 				FLOPPY_LOGD("FLOPPY: Error: drive motor not ON!")
