@@ -1157,6 +1157,7 @@ void floppy_readsector() //Request a read sector command!
 		FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Abnormal termination!
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
 		floppy_erroringout(); //Erroring out!
+		FLOPPY_raiseIRQ(); //Raise an IRQ because of the error!
 		return;
 	}
 	if ((FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->DoubleDensity!=(FLOPPY.DoubleDensity&~DENSITY_IGNORE)) && (!(FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->DoubleDensity&DENSITY_IGNORE) || density_forced) && EMULATE_DENSITY) //Wrong density?
@@ -1165,6 +1166,7 @@ void floppy_readsector() //Request a read sector command!
 		FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Abnormal termination!
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
 		floppy_erroringout(); //Erroring out!
+		FLOPPY_raiseIRQ(); //Raise an IRQ because of the error!
 		return;
 	}
 
@@ -1185,6 +1187,7 @@ void floppy_readsector() //Request a read sector command!
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
 		FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Abnormal termination!
 		floppy_erroringout(); //Erroring out!
+		FLOPPY_raiseIRQ(); //Raise an IRQ because of the error!
 		return;
 	}
 
@@ -1222,6 +1225,7 @@ void floppy_readsector() //Request a read sector command!
 			FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Abnormal termination!
 			FLOPPY.commandstep = 0xFF; //Move to error phase!
 			floppy_erroringout(); //Erroring out!
+			FLOPPY_raiseIRQ(); //Raise an IRQ because of the error!
 			return;
 		}
 		FLOPPY_ST0_SEEKENDW(1); //Successfull read with implicit seek!
@@ -1264,6 +1268,7 @@ void floppy_readsector() //Request a read sector command!
 		FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Abnormal termination!
 		FLOPPY.commandstep = 0xFF; //Error!
 		floppy_erroringout(); //Erroring out!
+		FLOPPY_raiseIRQ(); //Raise an IRQ because of the error!
 	}
 }
 
@@ -1282,6 +1287,7 @@ void FLOPPY_formatsector() //Request a read sector command!
 		FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Abnormal termination!
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
 		floppy_erroringout(); //Erroring out!
+		FLOPPY_raiseIRQ(); //Raise an IRQ because of the error!
 		return;
 	}
 
@@ -1291,6 +1297,7 @@ void FLOPPY_formatsector() //Request a read sector command!
 		FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Abnormal termination!
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
 		floppy_erroringout(); //Erroring out!
+		FLOPPY_raiseIRQ(); //Raise an IRQ because of the error!
 		return;
 	}
 
@@ -1299,6 +1306,7 @@ void FLOPPY_formatsector() //Request a read sector command!
 		FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Abnormal termination!
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
 		floppy_erroringout(); //Erroring out!
+		FLOPPY_raiseIRQ(); //Raise an IRQ because of the error!
 		return;
 	}
 
@@ -1375,6 +1383,7 @@ void FLOPPY_formatsector() //Request a read sector command!
 				FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Invalid command!
 				FLOPPY.commandstep = 0xFF; //Error!
 				floppy_erroringout(); //Erroring out!
+				FLOPPY_raiseIRQ(); //Raise an IRQ because of the error!
 				return; //Error!
 			}
 			if (FLOPPY.databuffer[1] != FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]) //Not current head?
@@ -1445,6 +1454,7 @@ void floppy_writesector() //Request a write sector command!
 		FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Abnormal termination!
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
 		floppy_erroringout(); //Erroring out!
+		FLOPPY_raiseIRQ(); //Raise an IRQ because of the error!
 		return;
 	}
 
@@ -1453,6 +1463,7 @@ void floppy_writesector() //Request a write sector command!
 		FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Abnormal termination!
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
 		floppy_erroringout(); //Erroring out!
+		FLOPPY_raiseIRQ(); //Raise an IRQ because of the error!
 		return;
 	}
 
@@ -1468,6 +1479,7 @@ void floppy_writesector() //Request a write sector command!
 		FLOPPY.ST0 = ((FLOPPY.ST0 & 0x3B) | 1) | ((FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] & 1) << 2); //Abnormal termination!
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
 		floppy_erroringout(); //Erroring out!
+		FLOPPY_raiseIRQ(); //Raise an IRQ because of the error!
 		return;
 	}
 
@@ -1486,6 +1498,7 @@ void floppy_executeWriteData()
 		FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Abnormal termination!
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
 		floppy_erroringout(); //Erroring out!
+		FLOPPY_raiseIRQ(); //Raise an IRQ because of the error!
 		return;
 	}
 	if ((FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->DoubleDensity!=(FLOPPY.DoubleDensity&~DENSITY_IGNORE)) && (!(FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->DoubleDensity&DENSITY_IGNORE) || density_forced) && EMULATE_DENSITY) //Wrong density?
@@ -1494,6 +1507,7 @@ void floppy_executeWriteData()
 		FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Abnormal termination!
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
 		floppy_erroringout(); //Erroring out!
+		FLOPPY_raiseIRQ(); //Raise an IRQ because of the error!
 		return;
 	}
 
@@ -1617,6 +1631,7 @@ void floppy_executeWriteData()
 			FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Invalid command!
 			FLOPPY.commandstep = 0xFF; //Error!
 			floppy_erroringout(); //Erroring out!
+			FLOPPY_raiseIRQ(); //Raise an IRQ because of the error!
 		}
 	}
 }
@@ -1713,6 +1728,7 @@ void floppy_executeData() //Execute a floppy command. Data is fully filled!
 			FLOPPY.commandstep = 0xFF; //Move to error phrase!
 			FLOPPY.ST0 = 0x80 | (FLOPPY.ST0&0x20); //Invalid command!
 			floppy_erroringout(); //Erroring out!
+			FLOPPY_raiseIRQ(); //Raise an IRQ because of the error!
 			break;
 	}
 }
@@ -1805,8 +1821,10 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			{
 				FLOPPY_LOGD("FLOPPY: Warning: Checking interrupt status without IRQ pending!")
 				FLOPPY.ST0 = 0x80 | (FLOPPY.ST0 & 0x3F); //Error!
-				FLOPPY.commandstep = 0xFF; //Move to error phase!
-				floppy_erroringout(); //Erroring out!
+				FLOPPY.resultbuffer[0] = FLOPPY.ST0; //Give ST0!
+				FLOPPY.resultbuffer[1] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]; //Our idea of the current cylinder!
+				FLOPPY.resultposition = 0; //Start result!
+				FLOPPY.commandstep = 3; //Move to result phase!
 				return;
 			}
 			
@@ -1959,6 +1977,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 				FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Invalid command!
 				FLOPPY.commandstep = 0xFF; //Move to error phase!
 				floppy_erroringout(); //Erroring out!
+				FLOPPY_raiseIRQ(); //Raise an IRQ because of the error!
 				return;
 			}
 
@@ -1967,6 +1986,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 				FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Invalid command!
 				FLOPPY.commandstep = 0xFF; //Error!
 				floppy_erroringout(); //Erroring out!
+				FLOPPY_raiseIRQ(); //Raise an IRQ because of the error!
 				return;
 			}
 
@@ -1975,6 +1995,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 				FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Invalid command!
 				FLOPPY.commandstep = 0xFF; //Error!
 				floppy_erroringout(); //Erroring out!
+				FLOPPY_raiseIRQ(); //Raise an IRQ because of the error!
 				return;
 			}
 
@@ -1990,6 +2011,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 					FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Invalid command!
 					FLOPPY.commandstep = 0xFF; //Error!
 					floppy_erroringout(); //Erroring out!
+					FLOPPY_raiseIRQ(); //Raise an IRQ because of the error!
 					return;
 				}
 				else
@@ -2049,6 +2071,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			FLOPPY.commandstep = 0xFF; //Move to error phrase!
 			FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Invalid command!
 			floppy_erroringout(); //Erroring out!
+			FLOPPY_raiseIRQ(); //Raise an IRQ because of the error!
 			break;
 		default:
 			break;
@@ -2062,6 +2085,7 @@ OPTINLINE void floppy_abnormalpolling()
 	FLOPPY_ST0_NOTREADYW(0); //We became not ready!
 	FLOPPY.commandstep = 0xFF; //Error!
 	floppy_erroringout(); //Erroring out!
+	FLOPPY_raiseIRQ(); //Raise an IRQ because of the error!
 }
 
 OPTINLINE void floppy_scanbyte(byte fdcbyte, byte cpubyte)
@@ -2202,6 +2226,7 @@ OPTINLINE void floppy_writeData(byte isDMA, byte value)
 					FLOPPY.ST0 = 0x80 | (FLOPPY.ST0 & 0x20); //Invalid command!
 					FLOPPY.commandstep = 0xFF; //Error: lockup!
 					floppy_erroringout(); //Erroring out!
+					FLOPPY_raiseIRQ(); //Raise an IRQ because of the error!
 					break;
 			}
 			break;
