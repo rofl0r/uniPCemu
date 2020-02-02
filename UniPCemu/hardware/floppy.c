@@ -137,6 +137,7 @@ struct
 	byte MTMask; //Allow MT to be used in sector increase operations?
 	DOUBLE DMArate, DMAratePending; //Current DMA transfer rate!
 	byte RWRequestedCylinder; //Read/Write requested cylinder!
+	byte PerpendicularMode; //Perpendicular mode enabled for these drives!
 } FLOPPY; //Our floppy drive data!
 
 //DOR
@@ -2032,13 +2033,17 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			{
 				FLOPPY.resultbuffer[6] = 0; //Give the sectors/track!
 			}
+			FLOPPY.resultbuffer[7] = (FLOPPY.Locked ? 0x80 : 0x00) | (FLOPPY.PerpendicularMode & 0x7F); //Locked and perpendicular!
+			FLOPPY.resultbuffer[8] = FLOPPY.Configuration.data[1]; //Configure second parameter byte!
+			FLOPPY.resultbuffer[9] = FLOPPY.Configuration.data[2]; //Configure third parameter byte!
 			FLOPPY.commandstep = 3; //We're starting the result phase!
 			FLOPPY_raiseIRQ(); //Give the result!
 			break;
 		case PERPENDICULAR_MODE:	// * used during initialization, once, maybe
-			FLOPPY.ST0 = 0x00 | (FLOPPY.ST0 & 0x20); //OK!
+			FLOPPY.PerpendicularMode = FLOPPY.commandbuffer[1]; //What perpendicular mode! Bits 0-3=Drives 0-3!
+			FLOPPY.ST0 = 0x00 | (FLOPPY.ST0 & 0x3F); //OK!
 			FLOPPY.commandstep = 0; //Ready for a new command!
-			FLOPPY_raiseIRQ(); //Give the OK signal!
+			//No interrupt!
 			break;
 		case READ_TRACK: //Read complete track!
 			FLOPPY.commandstep = 0xFF; //Move to error phrase!
@@ -2123,7 +2128,7 @@ OPTINLINE void floppy_writeData(byte isDMA, byte value)
 		2 //F
 		,0 //10
 		,8 //11
-		,0 //12
+		,1 //12
 		,3 //13
 		,1 //14
 		,0 //15
@@ -2160,7 +2165,6 @@ OPTINLINE void floppy_writeData(byte isDMA, byte value)
 			{
 				case SENSE_INTERRUPT: //Check interrupt status
 				case DUMPREG: //Dumpreg command
-				case PERPENDICULAR_MODE:	// * used during initialization, once, maybe
 				case VERSION: //Version
 					FLOPPY.commandbuffer[0] = value; //Set the command to use!
 					floppy_executeCommand(); //Execute the command!
@@ -2183,6 +2187,7 @@ OPTINLINE void floppy_writeData(byte isDMA, byte value)
 				case SCAN_EQUAL:
 				case SCAN_LOW_OR_EQUAL:
 				case SCAN_HIGH_OR_EQUAL:
+				case PERPENDICULAR_MODE:	// * used during initialization, once, maybe
 					FLOPPY.reset_pending = 0; //Stop pending reset if we're pending it: we become active!
 					if (FLOPPY.reset_pended) //Finished reset?
 					{
@@ -2289,7 +2294,7 @@ OPTINLINE byte floppy_readData(byte isDMA)
 		0, //b
 		7, //c
 		7, //d
-		7, //e
+		10, //e
 		7, //f
 		1, //10
 		7, //11
