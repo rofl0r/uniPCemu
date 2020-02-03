@@ -898,32 +898,29 @@ OPTINLINE void updateFloppyMSR() //Update the floppy MSR!
 OPTINLINE void updateFloppyDIR() //Update the floppy DIR!
 {
 	FLOPPY.DIR = 0; //Init to not changed!
-	if (FLOPPY.diskchanged[0] && (FLOPPY_DOR_MOTORCONTROLR&1))
+	if (FLOPPY.diskchanged[0] && (FLOPPY_DOR_MOTORCONTROLR&1) && (FLOPPY_DOR_DRIVENUMBERR==0))
 	{
 		FLOPPY.DIR = 0x80; //Set our bit!
 	}
-	if (FLOPPY.diskchanged[1] && (FLOPPY_DOR_MOTORCONTROLR&2))
+	if (FLOPPY.diskchanged[1] && (FLOPPY_DOR_MOTORCONTROLR&2) && (FLOPPY_DOR_DRIVENUMBERR==1))
 	{
 		FLOPPY.DIR = 0x80; //Set our bit!
 	}
-	if (FLOPPY.diskchanged[2] && (FLOPPY_DOR_MOTORCONTROLR&4))
+	if (FLOPPY.diskchanged[2] && (FLOPPY_DOR_MOTORCONTROLR&4) && (FLOPPY_DOR_DRIVENUMBERR==2))
 	{
 		FLOPPY.DIR = 0x80; //Set our bit!
 	}
-	if (FLOPPY.diskchanged[3] && (FLOPPY_DOR_MOTORCONTROLR&8))
+	if (FLOPPY.diskchanged[3] && (FLOPPY_DOR_MOTORCONTROLR&8) && (FLOPPY_DOR_DRIVENUMBERR==3))
 	{
 		FLOPPY.DIR = 0x80; //Set our bit!
 	}
 	//Rest of the bits are reserved on an AT!
 }
 
-OPTINLINE void clearDiskChanged()
+OPTINLINE void clearDiskChanged(byte drive)
 {
 	//Reset state for all drives!
-	FLOPPY.diskchanged[0] = 0; //Reset!
-	FLOPPY.diskchanged[1] = 0; //Reset!
-	FLOPPY.diskchanged[2] = 0; //Reset!
-	FLOPPY.diskchanged[3] = 0; //Reset!
+	FLOPPY.diskchanged[drive] = 0; //Reset!
 }
 
 OPTINLINE void updateFloppyWriteProtected(byte iswrite, byte drivenumber)
@@ -1208,6 +1205,7 @@ void floppy_readsector() //Request a read sector command!
 		if (FLOPPY.RWRequestedCylinder<FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->tracks) //Valid track?
 		{
 			FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.RWRequestedCylinder; //Implied seek!
+			clearDiskChanged(FLOPPY_DOR_DRIVENUMBERR); //Clear the disk changed flag for the new command!
 			FLOPPY_finishseek(FLOPPY_DOR_DRIVENUMBERR,0); //Simulate seek complete!
 			FLOPPY_checkfinishtiming(FLOPPY_DOR_DRIVENUMBERR); //Seek is completed!
 		}
@@ -1334,6 +1332,7 @@ void FLOPPY_formatsector() //Request a read sector command!
 			if (FLOPPY.RWRequestedCylinder<FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->tracks) //Valid track?
 			{
 				FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.RWRequestedCylinder; //Implied seek!
+				clearDiskChanged(FLOPPY_DOR_DRIVENUMBERR); //Clear the disk changed flag for the new command!
 				FLOPPY_finishseek(FLOPPY_DOR_DRIVENUMBERR,0); //Simulate seek complete!
 				FLOPPY_checkfinishtiming(FLOPPY_DOR_DRIVENUMBERR); //Seek is completed!
 			}
@@ -1516,6 +1515,7 @@ void floppy_executeWriteData()
 		if (FLOPPY.RWRequestedCylinder<FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->tracks) //Valid track?
 		{
 			FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.RWRequestedCylinder; //Implied seek!
+			clearDiskChanged(FLOPPY_DOR_DRIVENUMBERR); //Clear the disk changed flag for the new command!
 			FLOPPY_finishseek(FLOPPY_DOR_DRIVENUMBERR,0); //Simulate seek complete!
 			FLOPPY_checkfinishtiming(FLOPPY_DOR_DRIVENUMBERR); //Seek is completed!
 		}
@@ -1796,7 +1796,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			}
 			else
 			{
-				clearDiskChanged(); //Clear the disk changed flag for the new command!
+				clearDiskChanged(FLOPPY_DOR_DRIVENUMBERR); //Clear the disk changed flag for the new command!
 			}
 			break;
 		case SENSE_INTERRUPT: //Check interrupt status
@@ -1856,7 +1856,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			}
 			else
 			{
-				clearDiskChanged(); //Clear the disk changed flag for the new command!
+				clearDiskChanged(FLOPPY_DOR_DRIVENUMBERR); //Clear the disk changed flag for the new command!
 			}
 			break;
 		case SENSE_DRIVE_STATUS: //Check drive status
@@ -1879,6 +1879,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			{
 				if ((FLOPPY_MSR_BUSYINPOSITIONINGMODER(FLOPPY_DOR_DRIVENUMBERR) == 0) && ((FLOPPY.ST0 & 0x20) == 0)) //Not in positioning mode and not finished seeking according to status?
 				{
+					clearDiskChanged(FLOPPY_DOR_DRIVENUMBERR); //Clear the disk changed flag for the new command!
 					FLOPPY_finishseek(FLOPPY_DOR_DRIVENUMBERR,0); //Simulate seek complete!
 					FLOPPY_checkfinishtiming(FLOPPY_DOR_DRIVENUMBERR); //Seek is completed!
 				}
@@ -2501,7 +2502,7 @@ void updateFloppy(DOUBLE timepassed)
 							if ((drive>=2) || (!FLOPPY.geometries[drive])) //Floppy not inserted?
 							{
 								FLOPPY.ST0 = 0x20 | (FLOPPY.currenthead[drive]<<2) | drive; //Error: drive not ready!
-								clearDiskChanged(); //Clear the disk changed flag for the new command!
+								clearDiskChanged(drive); //Clear the disk changed flag for the new command!
 								FLOPPY_raiseIRQ(); //Finished executing phase!
 								floppytimer[drive] = 0.0; //Don't time anymore!
 								FLOPPY_MSR_BUSYINPOSITIONINGMODEW(drive,0); //Not seeking anymore!
