@@ -1475,7 +1475,7 @@ void floppy_writesector() //Request a write sector command!
 
 	if (!(FLOPPY_DOR_MOTORCONTROLR&(1 << FLOPPY_DOR_DRIVENUMBERR))) //Not motor ON?
 	{
-		FLOPPY.ST0 = ((FLOPPY.ST0 & 0x3B) | 1) | ((FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] & 1) << 2); //Abnormal termination!
+		FLOPPY.ST0 = 0x40 | ((FLOPPY.ST0 & 0x3B) | 1) | ((FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] & 1) << 2); //Abnormal termination!
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
 		floppy_erroringout(); //Erroring out!
 		FLOPPY_raiseIRQ(); //Raise an IRQ because of the error!
