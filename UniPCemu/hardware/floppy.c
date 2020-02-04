@@ -127,7 +127,7 @@ struct
 	byte activecommand[4]; //What command is running to time?
 	byte TC; //Terminal count triggered?
 	uint_32 sectorstransferred; //Ammount of sectors transferred!
-	byte MT,DoubleDensity,Skip; //MT bit, Double Density bit and Skip bit  as set by the command, if any!
+	byte MT,MFM,Skip; //MT bit, Double Density(MFM) bit and Skip bit  as set by the command, if any!
 	byte floppy_resetted; //Are we resetted?
 	byte ignorecommands; //Locked up by an invalid Sense Interrupt?
 	byte recalibratestepsleft[4]; //Starts out at 79. Counts down with each step! Error if 0 and not track 0 reached yet!
@@ -468,7 +468,7 @@ enum FloppyCommands
 
 //Flags when executing commands!
 #define CMD_EXT_SKIPDELETEDADDRESSMARKS 0x20
-#define CMD_EXT_DOUBLEDENSITYMODE 0x40
+#define CMD_EXT_MFMMODE 0x40
 #define CMD_EXT_MULTITRACKOPERATION 0x80
 
 //Density limits and specification!
@@ -960,7 +960,7 @@ byte floppy_increasesector(byte floppy) //Increase the sector number automatical
 				++FLOPPY.currentcylinder[floppy]; //Step down!
 				if (FLOPPY.geometries[floppy])
 				{
-					if (FLOPPY.physicalcylinder[floppy] < (FLOPPY.geometries[floppy]->tracks-1)) ++FLOPPY.physicalcylinder[floppy]; //Increase when available!
+					if (FLOPPY.physicalcylinder[floppy] < FLOPPY.geometries[floppy]->tracks) ++FLOPPY.physicalcylinder[floppy]; //Increase when available!
 				}
 				FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[floppy]; //The next cylinder number!
 				FLOPPY.resultbuffer[4] = FLOPPY.currenthead[floppy]; //The head number of the last sector read!
@@ -975,7 +975,7 @@ byte floppy_increasesector(byte floppy) //Increase the sector number automatical
 			++FLOPPY.currentcylinder[floppy]; //Step down!
 			if (FLOPPY.geometries[floppy])
 			{
-				if (FLOPPY.physicalcylinder[floppy] < (FLOPPY.geometries[floppy]->tracks-1)) ++FLOPPY.physicalcylinder[floppy]; //Increase when available!
+				if (FLOPPY.physicalcylinder[floppy] < FLOPPY.geometries[floppy]->tracks) ++FLOPPY.physicalcylinder[floppy]; //Increase when available!
 			}
 			FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[floppy]; //The next cylinder number!
 			FLOPPY.resultbuffer[4] = FLOPPY.currenthead[floppy]; //The current head number!
@@ -1167,7 +1167,7 @@ void floppy_readsector() //Request a read sector command!
 		FLOPPY_raiseIRQ(); //Raise an IRQ because of the error!
 		return;
 	}
-	if ((FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->DoubleDensity!=(FLOPPY.DoubleDensity&~DENSITY_IGNORE)) && (!(FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->DoubleDensity&DENSITY_IGNORE) || density_forced) && EMULATE_DENSITY) //Wrong density?
+	if ((FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->DoubleDensity!=(FLOPPY.MFM&~DENSITY_IGNORE)) && (!(FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->DoubleDensity&DENSITY_IGNORE) || density_forced) && EMULATE_DENSITY) //Wrong density?
 	{
 		FLOPPY_LOGD("FLOPPY: Error: Invalid density!")
 		FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Abnormal termination!
@@ -1299,7 +1299,7 @@ void FLOPPY_formatsector() //Request a read sector command!
 		return;
 	}
 
-	if ((FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->DoubleDensity!=(FLOPPY.DoubleDensity&~DENSITY_IGNORE)) && (!(FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->DoubleDensity&DENSITY_IGNORE) || density_forced) && EMULATE_DENSITY) //Wrong density?
+	if ((FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->DoubleDensity!=(FLOPPY.MFM&~DENSITY_IGNORE)) && (!(FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->DoubleDensity&DENSITY_IGNORE) || density_forced) && EMULATE_DENSITY) //Wrong density?
 	{
 		FLOPPY_LOGD("FLOPPY: Error: Invalid density!")
 		FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Abnormal termination!
@@ -1510,7 +1510,7 @@ void floppy_executeWriteData()
 		FLOPPY_raiseIRQ(); //Raise an IRQ because of the error!
 		return;
 	}
-	if ((FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->DoubleDensity!=(FLOPPY.DoubleDensity&~DENSITY_IGNORE)) && (!(FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->DoubleDensity&DENSITY_IGNORE) || density_forced) && EMULATE_DENSITY) //Wrong density?
+	if ((FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->DoubleDensity!=(FLOPPY.MFM&~DENSITY_IGNORE)) && (!(FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->DoubleDensity&DENSITY_IGNORE) || density_forced) && EMULATE_DENSITY) //Wrong density?
 	{
 		FLOPPY_LOGD("FLOPPY: Error: Invalid density!")
 		FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Abnormal termination!
@@ -1853,7 +1853,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			FLOPPY.activecommand[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[0]; //Our command to execute!
 			FLOPPY.seekdestination[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[2]; //Our destination!
 			FLOPPY.seekrel[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.MT; //Seek relative?
-			FLOPPY.seekrelup[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.DoubleDensity; //Seek relative up(when seeking relatively)
+			FLOPPY.seekrelup[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.MFM; //Seek relative up(when seeking relatively)
 			FLOPPY.ST0 &= ~0x20; //We start to seek!
 			floppytime[FLOPPY_DOR_DRIVENUMBERR] = 0.0;
 			floppytiming |= (1<<FLOPPY_DOR_DRIVENUMBERR); //Timing!
@@ -1885,6 +1885,10 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 				goto floppy_errorReadID; //Error out!
 			}
 			FLOPPY.RWRequestedCylinder = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]; //Cylinder to access?
+			if (FLOPPY.RWRequestedCylinder != FLOPPY.physicalcylinder) //Wrong cylinder?
+			{
+				goto floppy_errorReadID; //Error out!
+			}
 			if (FLOPPY_IMPLIEDSEEKENABLER) //Implied seek?
 			{
 				if ((FLOPPY_MSR_BUSYINPOSITIONINGMODER(FLOPPY_DOR_DRIVENUMBERR) == 0) && ((FLOPPY.ST0 & 0x20) == 0)) //Not in positioning mode and not finished seeking according to status?
@@ -1923,6 +1927,9 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 					FLOPPY.ST1 = sectorinfo.ST1; //Load ST1!
 					FLOPPY.ST2 = sectorinfo.ST2; //Load ST2!
 					FLOPPY.resultbuffer[6] = sectorinfo.SectorSize; //Sector size!
+					FLOPPY.resultbuffer[3] = sectorinfo.track; //Cylinder(exception: actually give what we read from the disk)!
+					FLOPPY.resultbuffer[4] = sectorinfo.side; //Head!
+					FLOPPY.resultbuffer[5] = sectorinfo.SectorID; //Sector!
 				}
 				else
 				{
@@ -1951,14 +1958,14 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 					goto floppy_errorReadID; //Error out!
 				}
 				FLOPPY.resultbuffer[6] = 2; //Always 512 byte sectors!
+				FLOPPY.resultbuffer[3] = FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]; //Cylinder(exception: actually give what we read from the disk)!
+				FLOPPY.resultbuffer[4] = FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]; //Head!
+				FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]; //Sector!
 			}
 			FLOPPY.resultposition = 0; //Start the result!
 			FLOPPY.resultbuffer[0] = FLOPPY.ST0; //ST0!
 			FLOPPY.resultbuffer[1] = FLOPPY.ST1; //ST1!
 			FLOPPY.resultbuffer[2] = FLOPPY.ST2; //ST2!
-			FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]; //Cylinder!
-			FLOPPY.resultbuffer[4] = FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]; //Head!
-			FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]; //Sector!
 			FLOPPY.commandstep = 3; //Result phase!
 			FLOPPY_raiseIRQ(); //Entering result phase!
 			return; //Correct read!
@@ -2192,7 +2199,7 @@ OPTINLINE void floppy_writeData(byte isDMA, byte value)
 			FLOPPY.commandposition = 1; //Start at position 1 with out parameters/data!
 			FLOPPY_LOGD("FLOPPY: Command byte sent: %02X", value) //Log our information about the command byte!
 			FLOPPY.MT = (value & CMD_EXT_MULTITRACKOPERATION)?1:0; //Multiple track mode?
-			FLOPPY.DoubleDensity = (value & CMD_EXT_DOUBLEDENSITYMODE)?1:0; //Multiple track mode?
+			FLOPPY.MFM = (value & CMD_EXT_MFMMODE)?1:0; //MFM(Double Density)/Seek direction mode?
 			FLOPPY.Skip = (value & CMD_EXT_SKIPDELETEDADDRESSMARKS)?1:0; //Multiple track mode?
 			FLOPPY.MTMask = 1; //Default: allow the MT bit to be applied during sector calculations!
 			value &= 0x1F; //Make sure that the high data is filtered out!
