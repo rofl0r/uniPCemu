@@ -957,17 +957,27 @@ byte floppy_increasesector(byte floppy) //Increase the sector number automatical
 			FLOPPY.currenthead[floppy] = ((FLOPPY.currenthead[floppy]+1)&1); //Toggle the head to 1 or 0!
 			if (FLOPPY.currenthead[floppy]==0) //Overflown, EOT, switching to head 0?
 			{
-				FLOPPY.resultbuffer[3] = (FLOPPY.physicalcylinder[floppy]+1); //The next cylinder number!
+				++FLOPPY.currentcylinder[floppy]; //Step down!
+				if (FLOPPY.geometries[floppy])
+				{
+					if (FLOPPY.physicalcylinder[floppy] < (FLOPPY.geometries[floppy]->tracks-1)) ++FLOPPY.physicalcylinder[floppy]; //Increase when available!
+				}
+				FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[floppy]; //The next cylinder number!
 				FLOPPY.resultbuffer[4] = FLOPPY.currenthead[floppy]; //The head number of the last sector read!
 			}
 			else //Same track?
 			{
-				FLOPPY.resultbuffer[3] = FLOPPY.physicalcylinder[floppy]; //The current cylinder number!
+				FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[floppy]; //The current cylinder number!
 			}
 		}
 		else //Single track mode reached end-of-track?
 		{
-			FLOPPY.resultbuffer[3] = (FLOPPY.physicalcylinder[floppy]+1); //The next cylinder number!
+			++FLOPPY.currentcylinder[floppy]; //Step down!
+			if (FLOPPY.geometries[floppy])
+			{
+				if (FLOPPY.physicalcylinder[floppy] < (FLOPPY.geometries[floppy]->tracks-1)) ++FLOPPY.physicalcylinder[floppy]; //Increase when available!
+			}
+			FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[floppy]; //The next cylinder number!
 			FLOPPY.resultbuffer[4] = FLOPPY.currenthead[floppy]; //The current head number!
 		}
 
@@ -975,7 +985,7 @@ byte floppy_increasesector(byte floppy) //Increase the sector number automatical
 	}
 	else //Busy transfer on the current track? Report the current track number for these!
 	{
-		FLOPPY.resultbuffer[3] = FLOPPY.physicalcylinder[floppy]; //The current cylinder number!
+		FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[floppy]; //The current cylinder number!
 		FLOPPY.resultbuffer[4] = FLOPPY.currenthead[floppy]; //The current head number!
 	}
 	
@@ -1316,7 +1326,7 @@ void FLOPPY_formatsector() //Request a read sector command!
 		FLOPPY.resultbuffer[0] = FLOPPY.ST0;
 		FLOPPY.resultbuffer[1] = FLOPPY.ST1;
 		FLOPPY.resultbuffer[2] = FLOPPY.ST2;
-		FLOPPY.resultbuffer[3] = FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR];
+		FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR];
 		FLOPPY.resultbuffer[4] = FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR];
 		FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR];
 		FLOPPY.resultbuffer[6] = FLOPPY.commandbuffer[2]; //Sector size from the command buffer!
@@ -1421,7 +1431,7 @@ void FLOPPY_formatsector() //Request a read sector command!
 		FLOPPY.resultbuffer[0] = FLOPPY.ST0;
 		FLOPPY.resultbuffer[1] = FLOPPY.ST1;
 		FLOPPY.resultbuffer[2] = FLOPPY.ST2;
-		FLOPPY.resultbuffer[3] = FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR];
+		FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR];
 		FLOPPY.resultbuffer[4] = FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR];
 		FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR];
 		FLOPPY.resultbuffer[6] = FLOPPY.commandbuffer[2]; //Sector size from the command buffer!
@@ -1566,7 +1576,7 @@ void floppy_executeWriteData()
 			FLOPPY.resultbuffer[0] = FLOPPY.ST0 = 0x40|((FLOPPY.ST0 & 0x3B) | 1) | ((FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] & 1) << 2); //Abnormal termination! ST0!
 			FLOPPY.resultbuffer[1] = FLOPPY.ST1 = 0x27; //Drive write-protected! ST1!
 			FLOPPY.resultbuffer[2] = FLOPPY.ST2 = 0x31; //ST2!
-			FLOPPY.resultbuffer[3] = FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR];
+			FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR];
 			FLOPPY.resultbuffer[4] = FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR];
 			FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR];
 			FLOPPY.resultbuffer[6] = FLOPPY.commandbuffer[5]; //Sector size!
@@ -1685,7 +1695,7 @@ void floppy_executeData() //Execute a floppy command. Data is fully filled!
 				FLOPPY.resultbuffer[0] = FLOPPY.ST0 = ((FLOPPY.ST0 & 0x3B) | 1) | ((FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] & 1) << 2); //Abnormal termination! ST0!
 				FLOPPY.resultbuffer[1] = FLOPPY.ST1; //Drive write-protected! ST1!
 				FLOPPY.resultbuffer[2] = FLOPPY.ST2; //ST2!
-				FLOPPY.resultbuffer[3] = FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR];
+				FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR];
 				FLOPPY.resultbuffer[4] = FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR];
 				FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR];
 				FLOPPY.resultbuffer[6] = FLOPPY.commandbuffer[5]; //Sector size from the command buffer!
@@ -1712,7 +1722,7 @@ void floppy_executeData() //Execute a floppy command. Data is fully filled!
 				FLOPPY.resultbuffer[0] = FLOPPY.ST0 = ((FLOPPY.ST0 & 0x3B) | 1) | ((FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] & 1) << 2); //Abnormal termination! ST0!
 				FLOPPY.resultbuffer[1] = FLOPPY.ST1; //Drive write-protected! ST1!
 				FLOPPY.resultbuffer[2] = FLOPPY.ST2; //ST2!
-				FLOPPY.resultbuffer[3] = FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR];
+				FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR];
 				FLOPPY.resultbuffer[4] = FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR];
 				FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR];
 				FLOPPY.resultbuffer[6] = FLOPPY.commandbuffer[5]; //Sector size!
@@ -1874,7 +1884,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			{
 				goto floppy_errorReadID; //Error out!
 			}
-			FLOPPY.RWRequestedCylinder = FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]; //Cylinder to access?
+			FLOPPY.RWRequestedCylinder = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]; //Cylinder to access?
 			if (FLOPPY_IMPLIEDSEEKENABLER) //Implied seek?
 			{
 				if ((FLOPPY_MSR_BUSYINPOSITIONINGMODER(FLOPPY_DOR_DRIVENUMBERR) == 0) && ((FLOPPY.ST0 & 0x20) == 0)) //Not in positioning mode and not finished seeking according to status?
@@ -1946,7 +1956,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			FLOPPY.resultbuffer[0] = FLOPPY.ST0; //ST0!
 			FLOPPY.resultbuffer[1] = FLOPPY.ST1; //ST1!
 			FLOPPY.resultbuffer[2] = FLOPPY.ST2; //ST2!
-			FLOPPY.resultbuffer[3] = FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]; //Cylinder!
+			FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]; //Cylinder!
 			FLOPPY.resultbuffer[4] = FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]; //Head!
 			FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]; //Sector!
 			FLOPPY.commandstep = 3; //Result phase!
@@ -1960,7 +1970,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			FLOPPY.resultbuffer[0] = FLOPPY.ST0; //ST0!
 			FLOPPY.resultbuffer[1] = FLOPPY.ST1; //ST1!
 			FLOPPY.resultbuffer[2] = FLOPPY.ST2; //ST2!
-			FLOPPY.resultbuffer[3] = FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]; //Cylinder!
+			FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]; //Cylinder!
 			FLOPPY.resultbuffer[4] = FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]; //Head!
 			FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]; //Sector!
 			FLOPPY.commandstep = 3; //Result phase!
@@ -2520,7 +2530,7 @@ void updateFloppy(DOUBLE timepassed)
 								++FLOPPY.currentcylinder[drive]; //Step down!
 								if (FLOPPY.geometries[drive])
 								{
-									if (FLOPPY.physicalcylinder[drive] < FLOPPY.geometries[drive]->tracks) ++FLOPPY.physicalcylinder[drive]; //Increase when available!
+									if (FLOPPY.physicalcylinder[drive] < (FLOPPY.geometries[drive]->tracks-1)) ++FLOPPY.physicalcylinder[drive]; //Increase when available!
 								}
 								movedcylinder = 1;
 							}
