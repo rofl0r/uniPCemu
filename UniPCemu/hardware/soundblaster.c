@@ -169,6 +169,7 @@ void tickSoundBlasterRecording()
 extern byte haswindowactive; //For detecting paused operation!
 extern byte backgroundpolicy; //Background task policy. 0=Full halt of the application, 1=Keep running without video and audio muted, 2=Keep running with audio playback, recording muted, 3=Keep running fully without video.
 
+DOUBLE soundblaster_recordedpassed = (DOUBLE)0.0;
 void updateSoundBlaster(DOUBLE timepassed, uint_32 MHZ14passed)
 {
 	uint_32 freesamples;
@@ -179,7 +180,6 @@ void updateSoundBlaster(DOUBLE timepassed, uint_32 MHZ14passed)
 	#endif
 	DOUBLE temp;
 	byte activeleft, activeright;
-	DOUBLE soundblaster_recordedpassed;
 	if (SOUNDBLASTER.baseaddr == 0) return; //No game blaster?
 
 	//Check for pending IRQ request!
