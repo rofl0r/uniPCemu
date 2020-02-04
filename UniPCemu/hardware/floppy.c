@@ -1885,7 +1885,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 				goto floppy_errorReadID; //Error out!
 			}
 			FLOPPY.RWRequestedCylinder = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]; //Cylinder to access?
-			if (FLOPPY.RWRequestedCylinder != FLOPPY.physicalcylinder) //Wrong cylinder?
+			if (FLOPPY.RWRequestedCylinder != FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]) //Wrong cylinder?
 			{
 				goto floppy_errorReadID; //Error out!
 			}
@@ -1977,7 +1977,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			FLOPPY.resultbuffer[0] = FLOPPY.ST0; //ST0!
 			FLOPPY.resultbuffer[1] = FLOPPY.ST1; //ST1!
 			FLOPPY.resultbuffer[2] = FLOPPY.ST2; //ST2!
-			FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]; //Cylinder!
+			FLOPPY.resultbuffer[3] = FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]; //Cylinder!
 			FLOPPY.resultbuffer[4] = FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]; //Head!
 			FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]; //Sector!
 			FLOPPY.commandstep = 3; //Result phase!
