@@ -429,10 +429,25 @@ OPTINLINE void DSP_writeCommand(byte command)
 	byte AutoInit = 0; //Auto initialize command?
 	switch (command) //What command?
 	{
+	case 0x04: //Unknown what this is.
+		SB_LOGCOMMAND
+		SOUNDBLASTER.command = 0; //Default: no command to process!
+		if (SB_VERSION < SB_VERSION20) //Pre-2.0?
+		{
+			writefifobuffer(SOUNDBLASTER.DSPindata, 0xFF); //Give set bytes!
+			fifobuffer_gotolast(SOUNDBLASTER.DSPindata); //Use the given result!
+		}
+		else //Version 2.0?
+		{
+			writefifobuffer(SOUNDBLASTER.DSPindata, 0x88); //Give these bytes!
+			fifobuffer_gotolast(SOUNDBLASTER.DSPindata); //Use the given result!
+		}
+		break;
 	case 0x10: //Direct DAC, 8-bit
 		SB_LOGCOMMAND
 		SOUNDBLASTER.command = 0x10; //Enable direct DAC mode!
 		break;
+	case 0x90: //Auto-Initialize DMA DAC, high speed(DSP 2.01+)
 	case 0x1C: //Auto-Initialize DMA DAC, 8-bit(DSP 2.01+)
 		SB2COMMAND
 		AutoInit = 1; //Auto initialize command instead!
