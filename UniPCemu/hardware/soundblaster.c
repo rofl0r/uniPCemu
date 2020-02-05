@@ -376,10 +376,13 @@ OPTINLINE void SoundBlaster_DetectDMALength(byte command, word length)
 {
 	switch (command) //What command?
 	{
+	case 0x90: //Auto-Initialize DMA DAC, high speed(DSP 2.01+)
+	case 0x1C: //Auto-Initialize DMA DAC, 8-bit(DSP 2.01+)
 	case 0x14: //DMA DAC, 8-bit
 	case 0x16: //DMA DAC, 2-bit ADPCM
 	case 0x17: //DMA DAC, 2-bit ADPCM reference
 	case 0x24: //DMA ADC, 8-bit
+	case 0x98: //Auto-initialize DMA ADC, 8-bit(DSP 2.01+)
 	case 0x2C: //Auto-Initialize DMA ADC, 8-bit
 	case 0x74: //DMA DAC, 4-bit ADPCM
 	case 0x75: //DMA DAC, 4-bit ADPCM Reference
@@ -427,11 +430,11 @@ OPTINLINE void DSP_writeCommand(byte command)
 {
 	byte ADPCM_reference = 0; //ADPCM reference byte is used?
 	byte AutoInit = 0; //Auto initialize command?
+	byte result;
 	switch (command) //What command?
 	{
-	case 0x04: //Unknown what this is.
+	case 0x04: //DSP Status
 		SB_LOGCOMMAND
-		SOUNDBLASTER.command = 0; //Default: no command to process!
 		if (SB_VERSION < SB_VERSION20) //Pre-2.0?
 		{
 			writefifobuffer(SOUNDBLASTER.DSPindata, 0xFF); //Give set bytes!
@@ -439,7 +442,22 @@ OPTINLINE void DSP_writeCommand(byte command)
 		}
 		else //Version 2.0?
 		{
-			writefifobuffer(SOUNDBLASTER.DSPindata, 0x88); //Give these bytes!
+			result = 0; //Init the result!
+			//bit3=1: Direct ADC, 8-bit burst active?
+			//bit7=1: DMA DAC 8-bit active?
+			result |= 8; //Unknown what to do, always set!
+			switch (SOUNDBLASTER.command) //Active command?
+			{
+			case 0x90: //Auto-Initialize DMA DAC, high speed(DSP 2.01+)
+			case 0x1C: //Auto-Initialize DMA DAC, 8-bit(DSP 2.01+)
+			case 0x14: //DMA DAC, 8-bit
+				if (SOUNDBLASTER.DREQ & 1) //DMA transfer busy?
+				{
+					result |= 0x80; //DMA DAC active!
+				}
+				break;
+			}
+			writefifobuffer(SOUNDBLASTER.DSPindata, result); //Give the result!
 			fifobuffer_gotolast(SOUNDBLASTER.DSPindata); //Use the given result!
 		}
 		break;
@@ -481,6 +499,7 @@ OPTINLINE void DSP_writeCommand(byte command)
 		fifobuffer_gotolast(SOUNDBLASTER.DSPindata); //Give the result!
 		SOUNDBLASTER.command = SOUNDBLASTER.DREQ = 0; //Finished! Stop DMA!
 		break;
+	case 0x98: //Auto-initialize DMA ADC, 8-bit(DSP 2.01+)
 	case 0x2C: //Auto-initialize DMA ADC, 8-bit(DSP 2.01+)
 		SB2COMMAND
 		AutoInit = 1; //Auto initialize command instead!
@@ -765,6 +784,7 @@ OPTINLINE void DSP_writeData(byte data, byte isDMA)
 	case 0x14: //DMA DAC, 8-bit
 	case 0x16: //DMA DAC, 2-bit ADPCM
 	case 0x17: //DMA DAC, 2-bit ADPCM reference
+	case 0x90: //Auto-Initialize DMA DAC, high speed(DSP 2.01+)
 	case 0x1C: //Auto-initialize DMA DAC, 8-bit
 	case 0x1F: //Auto-initialize DMA DAC, 2-bit ADPCM Reference
 	case 0x74: //DMA DAC, 4-bit ADPCM
@@ -860,6 +880,7 @@ OPTINLINE void DSP_writeData(byte data, byte isDMA)
 			}
 		}
 		break;
+	case 0x98: //Auto-initialize DMA ADC, 8-bit(DSP 2.01+)
 	case 0x2C: //Auto-Initialize DMA ADC, 8-bit
 	case 0x24: //DMA ADC, 8-bit
 		if (SOUNDBLASTER.commandstep) //DMA transfer active?
@@ -966,6 +987,7 @@ OPTINLINE byte readDSPData(byte isDMA)
 {
 	switch (SOUNDBLASTER.command) //What command?
 	{
+	case 0x98: //Auto-initialize DMA ADC, 8-bit(DSP 2.01+)
 	case 0x2C: //Auto-Initialize DMA ADC, 8-bit
 	case 0x24: //DMA ADC, 8-bit
 		if (SOUNDBLASTER.commandstep) //DMA transfer active?
