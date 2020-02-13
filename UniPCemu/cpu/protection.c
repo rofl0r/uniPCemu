@@ -450,17 +450,17 @@ int isGateDescriptor(SEGMENT_DESCRIPTOR *loadeddescriptor) //0=Fault, 1=Gate, -1
 
 void THROWDESCGP(word segmentval, byte external, byte tbl)
 {
-	CPU_GP((external&1)|(segmentval&(0xFFF8))|((tbl&0x3)<<1)); //#GP with an error in the LDT/GDT (index@bits 3-15)!
+	CPU_GP((int_64)((external&1)|(segmentval&(0xFFF8))|((tbl&0x3)<<1))); //#GP with an error in the LDT/GDT (index@bits 3-15)!
 }
 
 void THROWDESCSS(word segmentval, byte external, byte tbl)
 {
-	CPU_StackFault((external&1)|(segmentval&(0xFFF8))|((tbl&0x3)<<1)); //#StackFault with an error in the LDT/GDT (index@bits 3-15)!
+	CPU_StackFault((int_64)((external&1)|(segmentval&(0xFFF8))|((tbl&0x3)<<1))); //#StackFault with an error in the LDT/GDT (index@bits 3-15)!
 }
 
 void THROWDESCNP(word segmentval, byte external, byte tbl)
 {
-	CPU_SegNotPresent((external&1)|(segmentval&(0xFFF8))|((tbl&0x3)<<1)); //#SegFault with an error in the LDT/GDT (index@bits 3-15)!
+	CPU_SegNotPresent((int_64)((external&1)|(segmentval&(0xFFF8))|((tbl&0x3)<<1))); //#SegFault with an error in the LDT/GDT (index@bits 3-15)!
 }
 
 void THROWDESCTS(word segmentval, byte external, byte tbl)
