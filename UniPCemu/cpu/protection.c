@@ -1140,14 +1140,320 @@ byte RETF_checkSegmentRegisters[4] = {CPU_SEGMENT_ES,CPU_SEGMENT_FS,CPU_SEGMENT_
 
 word segmentWrittenVal, isJMPorCALLval;
 
+byte CPU_segmentWritten_protectedmode_JMPCALL(word *value, word isJMPorCALL, SEGMENT_DESCRIPTOR* descriptor, byte isDifferentCPL)
+{
+	uint_32 stackval;
+	word stackval16; //16-bit stack value truncated!
+	if ((isDifferentCPL == 1) && ((isJMPorCALL & 0x1FF) == 2)) //Stack switch is required with CALL only?
+	{
+		//TSSSize = 0; //Default to 16-bit TSS!
+		switch (GENERALSEGMENT_TYPE(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) //What kind of TSS?
+		{
+		case AVL_SYSTEM_BUSY_TSS32BIT:
+		case AVL_SYSTEM_TSS32BIT:
+			//TSSSize = 1; //32-bit TSS!
+		case AVL_SYSTEM_BUSY_TSS16BIT:
+		case AVL_SYSTEM_TSS16BIT:
+			if (switchStacks(GENERALSEGMENTPTR_DPL(descriptor) | ((isJMPorCALL & 0x400) >> 8))) return 1; //Abort failing switching stacks!
+
+			if (checkStackAccess(2, 1 | (0x100 | 0x200 | (isJMPorCALL & 0x400)), CPU[activeCPU].CallGateSize)) return 1; //Abort on error! Call Gates throws #SS(SS) instead of #SS(0)!
+
+			CPU_PUSH16(&CPU[activeCPU].oldSS, CPU[activeCPU].CallGateSize); //SS to return!
+
+			if (CPU[activeCPU].CallGateSize)
+			{
+				CPU_PUSH32(&CPU[activeCPU].oldESP);
+			}
+			else
+			{
+				word temp = (word)(CPU[activeCPU].oldESP & 0xFFFF);
+				CPU_PUSH16(&temp, 0);
+			}
+
+			//Now, we've switched to the destination stack! Load all parameters onto the new stack!
+			if (checkStackAccess(CPU[activeCPU].CallGateParamCount, 1 | (0x100 | 0x200 | (isJMPorCALL & 0x400)), CPU[activeCPU].CallGateSize)) return 1; //Abort on error! Call Gates throws #SS(SS) instead of #SS(0)!
+			for (; CPU[activeCPU].CallGateParamCount;) //Process the CALL Gate Stack!
+			{
+				stackval = CPU[activeCPU].CallGateStack[--CPU[activeCPU].CallGateParamCount]; //Read the next value to store!
+				if (CPU[activeCPU].CallGateSize) //32-bit stack to push to?
+				{
+					CPU_PUSH32(&stackval); //Push the 32-bit stack value to the new stack!
+				}
+				else //16-bit?
+				{
+					stackval16 = (word)(stackval & 0xFFFF); //Reduced data if needed!
+					CPU_PUSH16(&stackval16, 0); //Push the 16-bit stack value to the new stack!
+				}
+			}
+			break;
+		default:
+			break;
+		}
+	}
+	else if (isDifferentCPL == 0) //Unchanging CPL? Take call size from operand size!
+	{
+		CPU[activeCPU].CallGateSize = CPU_Operand_size[activeCPU]; //Use the call instruction size!
+	}
+	//Else, call by call gate size!
+
+	if ((isJMPorCALL & 0x1FF) == 2) //CALL pushes return address!
+	{
+		if (checkStackAccess(2, 1, CPU[activeCPU].CallGateSize | ((isDifferentCPL == 1) ? (0x100 | 0x200 | (isJMPorCALL & 0x400)) : 0))) return 1; //Abort on error! Call Gates throws #SS(SS) instead of #SS(0)!
+
+		//Push the old address to the new stack!
+		if (CPU[activeCPU].CallGateSize) //32-bit?
+		{
+			CPU_PUSH16(&REG_CS, 1);
+			CPU_PUSH32(&REG_EIP);
+		}
+		else //16-bit?
+		{
+			CPU_PUSH16(&REG_CS, 0);
+			CPU_PUSH16(&REG_IP, 0);
+		}
+	}
+
+	/*if ((EXECSEGMENTPTR_C(descriptor)==0) && (isDifferentCPL==1)) //Non-Conforming segment, call gate and more privilege?
+	{
+		CPU[activeCPU].CPL = GENERALSEGMENTPTR_DPL(descriptor); //CPL = DPL!
+	}*/
+	setRPL(*value, getCPL()); //RPL of CS always becomes CPL!
+
+	if (isDifferentCPL == 1) //Different CPL?
+	{
+		hascallinterrupttaken_type = CALLGATE_NUMARGUMENTS ? CALLGATE_DIFFERENTLEVEL_XPARAMETERS : CALLGATE_DIFFERENTLEVEL_NOPARAMETERS; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task gate flag. Left at 0xFF when nothing is used(unknown case?)
+	}
+	else //Same CPL call gate?
+	{
+		hascallinterrupttaken_type = CALLGATE_SAMELEVEL; //Same level call gate!
+	}
+	return 0; //OK!
+}
+
+byte CPU_segmentWritten_protectedmode_RETF(byte oldCPL, word value, word isJMPorCALL, byte *RETF_segmentregister)
+{
+	if (is_stackswitching == 0) //We're ready to process?
+	{
+		if (STACK_SEGMENT_DESCRIPTOR_B_BIT())
+		{
+			REG_ESP += RETF_popbytes; //Process ESP!
+		}
+		else
+		{
+			REG_SP += RETF_popbytes; //Process SP!
+		}
+		if (oldCPL < getRPL(value)) //Lowering privilege?
+		{
+			if (checkStackAccess(2, 0, CPU_Operand_size[activeCPU])) return 1; //Stack fault?
+		}
+	}
+
+	if (oldCPL < getRPL(value)) //CPL changed or still busy for this stage?
+	{
+		//Now, return to the old prvilege level!
+		hascallinterrupttaken_type = RET_DIFFERENTLEVEL; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task
+		if (CPU_Operand_size[activeCPU])
+		{
+			if (CPU80386_internal_POPdw(6, &segmentWritten_tempESP))
+			{
+				//CPU[activeCPU].CPL = oldCPL; //Restore CPL for continuing!
+				is_stackswitching = 1; //We're stack switching!
+				return 1; //POP ESP!
+			}
+		}
+		else
+		{
+			if (CPU8086_internal_POPw(6, &segmentWritten_tempSP, 0))
+			{
+				//CPU[activeCPU].CPL = oldCPL; //Restore CPL for continuing!
+				is_stackswitching = 1; //We're stack switching!
+				return 1; //POP SP!
+			}
+		}
+		if (CPU8086_internal_POPw(8, &segmentWritten_tempSS, CPU_Operand_size[activeCPU]))
+		{
+			//CPU[activeCPU].CPL = oldCPL; //Restore CPL for continuing!
+			is_stackswitching = 1; //We're stack switching!
+			return 1; //POPped?
+		}
+		is_stackswitching = 0; //We've finished stack switching!
+		//Privilege change!
+		if (segmentWritten(CPU_SEGMENT_SS, segmentWritten_tempSS, (getRPL(value) << 13) | 0x1000)) return 1; //Back to our calling stack!
+		if (CPU_Operand_size[activeCPU])
+		{
+			REG_ESP = segmentWritten_tempESP; //POP ESP!
+		}
+		else
+		{
+			REG_ESP = (uint_32)segmentWritten_tempSP; //POP SP!
+		}
+		*RETF_segmentregister = 1; //We're checking the segments for privilege changes to be invalidated!
+	}
+	else if (oldCPL > getRPL(value)) //CPL raised during RETF?
+	{
+		THROWDESCGP(value, (isJMPorCALL & 0x200) ? 1 : (((isJMPorCALL & 0x400) >> 10)), (value & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Raising CPL using RETF isn't allowed!
+		return 1; //Abort on fault!
+	}
+	else //Same privilege? (E)SP on the destination stack is already processed, don't process again!
+	{
+		RETF_popbytes = 0; //Nothing to pop anymore!
+	}
+	return 0; //OK!
+}
+
+byte CPU_segmentWritten_protectedmode_IRET(byte oldCPL, word value, word isJMPorCALL, byte *RETF_segmentregister)
+{
+	uint_32 tempesp;
+	if (getRPL(value) > oldCPL) //Stack needs to be restored when returning to outer privilege level!
+	{
+		if (checkStackAccess(2, 0, CPU_Operand_size[activeCPU])) return 1; //First level IRET data?
+		if (CPU_Operand_size[activeCPU])
+		{
+			tempesp = CPU_POP32();
+		}
+		else
+		{
+			tempesp = CPU_POP16(CPU_Operand_size[activeCPU]);
+		}
+
+		segmentWritten_tempSS = CPU_POP16(CPU_Operand_size[activeCPU]);
+
+		if (segmentWritten(CPU_SEGMENT_SS, segmentWritten_tempSS, (getRPL(value) << 13) | 0x1000)) return 1; //Back to our calling stack!
+		REG_ESP = tempesp;
+
+		*RETF_segmentregister = 1; //We're checking the segments for privilege changes to be invalidated!
+	}
+	else if (oldCPL > getRPL(value)) //CPL raised during IRET?
+	{
+		THROWDESCGP(value, (isJMPorCALL & 0x200) ? 1 : ((isJMPorCALL & 0x400) >> 10), (value & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Raising CPL using RETF isn't allowed!
+		return 1; //Abort!
+	}
+	return 0; //OK!
+}
+
+byte CPU_segmentWritten_protectedmode_TR(int segment, word value, word isJMPorCALL, SEGMENT_DESCRIPTOR *tempdescriptor)
+{
+	if ((isJMPorCALL & 0x1FF) == 0) //Not a JMP or CALL itself, or a task switch, so just a plain load using LTR?
+	{
+		SEGMENT_DESCRIPTOR savedescriptor;
+		switch (GENERALSEGMENTPTR_TYPE(tempdescriptor)) //What kind of TSS?
+		{
+		case AVL_SYSTEM_BUSY_TSS32BIT:
+		case AVL_SYSTEM_BUSY_TSS16BIT:
+			if ((isJMPorCALL & 0x800) == 0) //Needs to be non-busy?
+			{
+				THROWDESCGP(value, (isJMPorCALL & 0x200) ? 1 : (((isJMPorCALL & 0x400) >> 10)), (value & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //We cannot load a busy TSS!
+				return 1; //Abort on fault!
+			}
+			break;
+		case AVL_SYSTEM_TSS32BIT:
+		case AVL_SYSTEM_TSS16BIT:
+			if ((isJMPorCALL & 0x800)) //Needs to be busy?
+			{
+				THROWDESCGP(value, (isJMPorCALL & 0x200) ? 1 : (((isJMPorCALL & 0x400) >> 10)), (value & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //We cannot load a busy TSS!
+				return 1; //Abort on fault!
+			}
+
+			tempdescriptor->desc.AccessRights |= 2; //Mark not idle in the RAM descriptor!
+			savedescriptor.desc.DATA64 = tempdescriptor->desc.DATA64; //Copy the resulting descriptor contents to our buffer for writing to RAM!
+			if (SAVEDESCRIPTOR(segment, value, &savedescriptor, isJMPorCALL) <= 0) //Save it back to RAM failed?
+			{
+				return 1; //Abort on fault!
+			}
+			break;
+		default: //Invalid segment descriptor to load into the TR register?
+			THROWDESCGP(value, (isJMPorCALL & 0x200) ? 1 : ((isJMPorCALL & 0x400) >> 10), (value & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //We cannot load a busy TSS!
+			return 1; //Abort on fault!
+			break; //Ignore!
+		}
+	}
+	return 0; //OK!
+}
+
+byte CPU_segmentWritten_protectedmode_CS(word isJMPorCALL)
+{
+	REG_EIP = destEIP; //The current OPCode: just jump to the address specified by the descriptor OR command!
+	if (((isJMPorCALL & 0x1FF) == 4) || ((isJMPorCALL & 0x1FF) == 3)) //IRET/RETF required limit check!
+	{
+		if (CPU_MMU_checkrights(CPU_SEGMENT_CS, REG_CS, REG_EIP, 3, &CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS], 2, CPU_Operand_size[activeCPU])) //Limit broken or protection fault?
+		{
+			THROWDESCGP(0, 0, 0); //#GP(0) when out of limit range!
+			return 1; //Abort on fault!
+		}
+	}
+	return 0; //OK!
+}
+
+void CPU_segmentWritten_protectedmode_RETFIRET(word isJMPorCALL)
+{
+	byte RETF_segmentregister, RETF_whatsegment; //The segment registers we're handling!
+	byte isnonconformingcodeordata;
+	for (RETF_segmentregister = 0; RETF_segmentregister < NUMITEMS(RETF_checkSegmentRegisters); ++RETF_segmentregister) //Process all we need to check!
+	{
+		RETF_whatsegment = RETF_checkSegmentRegisters[RETF_segmentregister]; //What register to check?
+		word descriptor_index;
+		descriptor_index = getDescriptorIndex(*CPU[activeCPU].SEGMENT_REGISTERS[RETF_whatsegment]); //What descriptor index?
+		if (descriptor_index) //Valid index(Non-NULL)?
+		{
+			if ((word)(descriptor_index | 0x7) > ((*CPU[activeCPU].SEGMENT_REGISTERS[RETF_whatsegment] & 4) ? CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].PRECALCS.limit : CPU[activeCPU].registers->GDTR.limit)) //LDT/GDT limit exceeded?
+			{
+			invalidRETFsegment:
+				if ((CPU[activeCPU].have_oldSegReg & (1 << RETF_whatsegment)) == 0) //Backup not loaded yet?
+				{
+					memcpy(&CPU[activeCPU].SEG_DESCRIPTORbackup[RETF_whatsegment], &CPU[activeCPU].SEG_DESCRIPTOR[RETF_whatsegment], sizeof(CPU[activeCPU].SEG_DESCRIPTORbackup[0])); //Restore the descriptor!
+					CPU[activeCPU].oldSegReg[RETF_whatsegment] = *CPU[activeCPU].SEGMENT_REGISTERS[RETF_whatsegment]; //Backup the register too!
+					CPU[activeCPU].have_oldSegReg |= (1 << RETF_whatsegment); //Loaded!
+				}
+				//Selector and Access rights are zeroed!
+				*CPU[activeCPU].SEGMENT_REGISTERS[RETF_whatsegment] = 0; //Zero the register!
+				if ((isJMPorCALL & 0x1FF) == 3) //IRET?
+				{
+					CPU[activeCPU].SEG_DESCRIPTOR[RETF_whatsegment].desc.AccessRights &= 0x7F; //Clear the valid flag only with IRET!
+				}
+				else //RETF?
+				{
+					CPU[activeCPU].SEG_DESCRIPTOR[RETF_whatsegment].desc.AccessRights = 0; //Invalid!
+				}
+				CPU_calcSegmentPrecalcs(0, &CPU[activeCPU].SEG_DESCRIPTOR[RETF_whatsegment]); //Update the precalcs for said access rights!
+				continue; //Next register!
+			}
+		}
+		if (GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[RETF_whatsegment]) == 0) //Not present?
+		{
+			goto invalidRETFsegment; //Next register!
+		}
+		if (GENERALSEGMENT_S(CPU[activeCPU].SEG_DESCRIPTOR[RETF_whatsegment]) == 0) //Not data/readable code segment?
+		{
+			goto invalidRETFsegment; //Next register!
+		}
+		//We're either data or code!
+		isnonconformingcodeordata = 0; //Default: neither!
+		if (EXECSEGMENT_ISEXEC(CPU[activeCPU].SEG_DESCRIPTOR[RETF_whatsegment])) //Code?
+		{
+			if (!EXECSEGMENT_C(CPU[activeCPU].SEG_DESCRIPTOR[RETF_whatsegment])) //Nonconforming? Invalid!
+			{
+				isnonconformingcodeordata = 1; //Next register!
+			}
+			if (!EXECSEGMENT_R(CPU[activeCPU].SEG_DESCRIPTOR[RETF_whatsegment])) //Not readable? Invalid!
+			{
+				goto invalidRETFsegment; //Next register!
+			}
+		}
+		else isnonconformingcodeordata = 1; //Data!
+		//We're either data or readable code!
+		if (isnonconformingcodeordata && (GENERALSEGMENT_DPL(CPU[activeCPU].SEG_DESCRIPTOR[RETF_whatsegment]) < MAX(getCPL(), getRPL(*CPU[activeCPU].SEGMENT_REGISTERS[RETF_whatsegment])))) //Not privileged enough to handle said segment descriptor?
+		{
+			goto invalidRETFsegment; //Next register!
+		}
+	}
+}
+
 byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment register has been written to!
 {
-	byte RETF_segmentregister=0,RETF_whatsegment; //A segment register we're checking during a RETF instruction!
+	byte checkSegmentRegisters=0; //A segment register we're checking during a RETF instruction!
 	byte oldCPL= getCPL();
 	byte isDifferentCPL;
-	byte isnonconformingcodeordata;
 	sbyte loadresult;
-	uint_32 tempesp;
 	segmentWrittenVal = value; //What value is written!
 	isJMPorCALLval = isJMPorCALL; //What type of write are we?
 	if (getcpumode()==CPU_MODE_PROTECTED) //Protected mode, must not be real or V8086 mode, so update the segment descriptor cache!
@@ -1155,228 +1461,43 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 		isDifferentCPL = 0; //Default: same CPL!
 		SEGMENT_DESCRIPTOR tempdescriptor;
 		SEGMENT_DESCRIPTOR *descriptor = getsegment_seg(segment,&tempdescriptor,&value,isJMPorCALL,&isDifferentCPL); //Read the segment!
-		uint_32 stackval;
-		word stackval16; //16-bit stack value truncated!
 		if (descriptor) //Loaded&valid?
 		{
-			if ((segment == CPU_SEGMENT_CS) && (((isJMPorCALL&0x1FF) == 2) || ((isJMPorCALL&0x1FF)==1))) //JMP(with call gate)/CALL needs pushed data on the stack?
+			if (segment == CPU_SEGMENT_CS) //Code segment? We're some kind of jump or return!
 			{
-				if ((isDifferentCPL==1) && ((isJMPorCALL&0x1FF) == 2)) //Stack switch is required with CALL only?
+				switch (isJMPorCALL & 0x1FF) //Special action to take?
 				{
-					//TSSSize = 0; //Default to 16-bit TSS!
-					switch (GENERALSEGMENT_TYPE(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) //What kind of TSS?
+				case 1: //JMP?
+				case 2: //CALL?
+					//JMP(with call gate)/CALL needs pushed data on the stack?
+					if (CPU_segmentWritten_protectedmode_JMPCALL(&value, isJMPorCALL, descriptor, isDifferentCPL)) //Handle JMP/CALL for protected mode segments!
 					{
-					case AVL_SYSTEM_BUSY_TSS32BIT:
-					case AVL_SYSTEM_TSS32BIT:
-						//TSSSize = 1; //32-bit TSS!
-					case AVL_SYSTEM_BUSY_TSS16BIT:
-					case AVL_SYSTEM_TSS16BIT:
-						if (switchStacks(GENERALSEGMENTPTR_DPL(descriptor)|((isJMPorCALL&0x400)>>8))) return 1; //Abort failing switching stacks!
-						
-						if (checkStackAccess(2,1|(0x100|0x200|(isJMPorCALL&0x400)),CPU[activeCPU].CallGateSize)) return 1; //Abort on error! Call Gates throws #SS(SS) instead of #SS(0)!
-
-						CPU_PUSH16(&CPU[activeCPU].oldSS,CPU[activeCPU].CallGateSize); //SS to return!
-
-						if (CPU[activeCPU].CallGateSize)
-						{
-							CPU_PUSH32(&CPU[activeCPU].oldESP);
-						}
-						else
-						{
-							word temp=(word)(CPU[activeCPU].oldESP&0xFFFF);
-							CPU_PUSH16(&temp,0);
-						}
-						
-						//Now, we've switched to the destination stack! Load all parameters onto the new stack!
-						if (checkStackAccess(CPU[activeCPU].CallGateParamCount,1|(0x100|0x200|(isJMPorCALL&0x400)),CPU[activeCPU].CallGateSize)) return 1; //Abort on error! Call Gates throws #SS(SS) instead of #SS(0)!
-						for (;CPU[activeCPU].CallGateParamCount;) //Process the CALL Gate Stack!
-						{
-							stackval = CPU[activeCPU].CallGateStack[--CPU[activeCPU].CallGateParamCount]; //Read the next value to store!
-							if (CPU[activeCPU].CallGateSize) //32-bit stack to push to?
-							{
-								CPU_PUSH32(&stackval); //Push the 32-bit stack value to the new stack!
-							}
-							else //16-bit?
-							{
-								stackval16 = (word)(stackval&0xFFFF); //Reduced data if needed!
-								CPU_PUSH16(&stackval16,0); //Push the 16-bit stack value to the new stack!
-							}
-						}
-						break;
-					default:
-						break;
+						return 1; //Abort!
 					}
-				}
-				else if (isDifferentCPL==0) //Unchanging CPL? Take call size from operand size!
-				{
-					CPU[activeCPU].CallGateSize = CPU_Operand_size[activeCPU]; //Use the call instruction size!
-				}
-				//Else, call by call gate size!
-				
-				if ((isJMPorCALL&0x1FF)==2) //CALL pushes return address!
-				{
-					if (checkStackAccess(2,1,CPU[activeCPU].CallGateSize|((isDifferentCPL==1)?(0x100|0x200|(isJMPorCALL&0x400)):0))) return 1; //Abort on error! Call Gates throws #SS(SS) instead of #SS(0)!
-
-					//Push the old address to the new stack!
-					if (CPU[activeCPU].CallGateSize) //32-bit?
+					break;
+				case 3: //IRET?
+					//IRET might need extra data popped?
+					if (CPU_segmentWritten_protectedmode_IRET(oldCPL, value, isJMPorCALL, &checkSegmentRegisters)) //Handle RETF for protected mode segments!
 					{
-						CPU_PUSH16(&REG_CS,1);
-						CPU_PUSH32(&REG_EIP);
+						return 1; //Abort!
 					}
-					else //16-bit?
+					break;
+				case 4: //RETF?
+					//RETF needs popped data on the stack?
+					if (CPU_segmentWritten_protectedmode_RETF(oldCPL, value, isJMPorCALL, &checkSegmentRegisters)) //Handle RETF for protected mode segments!
 					{
-						CPU_PUSH16(&REG_CS,0);
-						CPU_PUSH16(&REG_IP,0);
+						return 1; //Abort!
 					}
-				}
-
-				/*if ((EXECSEGMENTPTR_C(descriptor)==0) && (isDifferentCPL==1)) //Non-Conforming segment, call gate and more privilege?
-				{
-					CPU[activeCPU].CPL = GENERALSEGMENTPTR_DPL(descriptor); //CPL = DPL!
-				}*/
-				setRPL(value,getCPL()); //RPL of CS always becomes CPL!
-
-				if (isDifferentCPL==1) //Different CPL?
-				{
-					hascallinterrupttaken_type = CALLGATE_NUMARGUMENTS?CALLGATE_DIFFERENTLEVEL_XPARAMETERS:CALLGATE_DIFFERENTLEVEL_NOPARAMETERS; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task gate flag. Left at 0xFF when nothing is used(unknown case?)
-				}
-				else //Same CPL call gate?
-				{
-					hascallinterrupttaken_type = CALLGATE_SAMELEVEL; //Same level call gate!
+					break;
+				default: //Unknown action?
+					break;
 				}
 			}
-			else if ((segment == CPU_SEGMENT_CS) && ((isJMPorCALL&0x1FF) == 4)) //RETF needs popped data on the stack?
+			else if (segment==CPU_SEGMENT_TR) //Loading the Task Register? We're to mask us as busy!
 			{
-				if (is_stackswitching == 0) //We're ready to process?
+				if (CPU_segmentWritten_protectedmode_TR(segment, value, isJMPorCALL, descriptor)) //Handle TR for protected mode segments!
 				{
-					if (STACK_SEGMENT_DESCRIPTOR_B_BIT())
-					{
-						REG_ESP += RETF_popbytes; //Process ESP!
-					}
-					else
-					{
-						REG_SP += RETF_popbytes; //Process SP!
-					}
-					if (oldCPL < getRPL(value)) //Lowering privilege?
-					{
-						if (checkStackAccess(2, 0, CPU_Operand_size[activeCPU])) return 1; //Stack fault?
-					}
-				}
-
-				if (oldCPL<getRPL(value)) //CPL changed or still busy for this stage?
-				{
-					//Now, return to the old prvilege level!
-					hascallinterrupttaken_type = RET_DIFFERENTLEVEL; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task
-					if (CPU_Operand_size[activeCPU])
-					{
-						if (CPU80386_internal_POPdw(6, &segmentWritten_tempESP))
-						{
-							//CPU[activeCPU].CPL = oldCPL; //Restore CPL for continuing!
-							is_stackswitching = 1; //We're stack switching!
-							return 1; //POP ESP!
-						}
-					}
-					else
-					{
-						if (CPU8086_internal_POPw(6, &segmentWritten_tempSP, 0))
-						{
-							//CPU[activeCPU].CPL = oldCPL; //Restore CPL for continuing!
-							is_stackswitching = 1; //We're stack switching!
-							return 1; //POP SP!
-						}
-					}
-					if (CPU8086_internal_POPw(8, &segmentWritten_tempSS, CPU_Operand_size[activeCPU]))
-					{
-						//CPU[activeCPU].CPL = oldCPL; //Restore CPL for continuing!
-						is_stackswitching = 1; //We're stack switching!
-						return 1; //POPped?
-					}
-					is_stackswitching = 0; //We've finished stack switching!
-					//Privilege change!
-					if (segmentWritten(CPU_SEGMENT_SS,segmentWritten_tempSS,(getRPL(value)<<13)|0x1000)) return 1; //Back to our calling stack!
-					if (CPU_Operand_size[activeCPU])
-					{
-						REG_ESP = segmentWritten_tempESP; //POP ESP!
-					}
-					else
-					{
-						REG_ESP = (uint_32)segmentWritten_tempSP; //POP SP!
-					}
-					RETF_segmentregister = 1; //We're checking the segments for privilege changes to be invalidated!
-				}
-				else if (oldCPL > getRPL(value)) //CPL raised during RETF?
-				{
-					THROWDESCGP(value, (isJMPorCALL&0x200)?1:(((isJMPorCALL&0x400)>>10)), (value & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Raising CPL using RETF isn't allowed!
-					return 1; //Abort on fault!
-				}
-				else //Same privilege? (E)SP on the destination stack is already processed, don't process again!
-				{
-					RETF_popbytes = 0; //Nothing to pop anymore!
-				}
-			}
-			else if ((segment==CPU_SEGMENT_CS) && ((isJMPorCALL&0x1FF)==3)) //IRET might need extra data popped?
-			{
-				if (getRPL(value)>oldCPL) //Stack needs to be restored when returning to outer privilege level!
-				{
-					if (checkStackAccess(2,0,CPU_Operand_size[activeCPU])) return 1; //First level IRET data?
-					if (CPU_Operand_size[activeCPU])
-					{
-						tempesp = CPU_POP32();
-					}
-					else
-					{
-						tempesp = CPU_POP16(CPU_Operand_size[activeCPU]);
-					}
-
-					segmentWritten_tempSS = CPU_POP16(CPU_Operand_size[activeCPU]);
-
-					if (segmentWritten(CPU_SEGMENT_SS,segmentWritten_tempSS,(getRPL(value)<<13)|0x1000)) return 1; //Back to our calling stack!
-					REG_ESP = tempesp;
-
-					RETF_segmentregister = 1; //We're checking the segments for privilege changes to be invalidated!
-				}
-				else if (oldCPL > getRPL(value)) //CPL raised during IRET?
-				{
-					THROWDESCGP(value, (isJMPorCALL&0x200)?1:((isJMPorCALL&0x400)>>10), (value & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //Raising CPL using RETF isn't allowed!
 					return 1; //Abort!
-				}
-			}
-
-			if (segment==CPU_SEGMENT_TR) //Loading the Task Register? We're to mask us as busy!
-			{
-				if ((isJMPorCALL&0x1FF)==0) //Not a JMP or CALL itself, or a task switch, so just a plain load using LTR?
-				{
-					SEGMENT_DESCRIPTOR savedescriptor;
-					switch (GENERALSEGMENT_TYPE(tempdescriptor)) //What kind of TSS?
-					{
-					case AVL_SYSTEM_BUSY_TSS32BIT:
-					case AVL_SYSTEM_BUSY_TSS16BIT:
-						if ((isJMPorCALL & 0x800) == 0) //Needs to be non-busy?
-						{
-							THROWDESCGP(value, (isJMPorCALL & 0x200) ? 1 : (((isJMPorCALL & 0x400) >> 10)), (value & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //We cannot load a busy TSS!
-							return 1; //Abort on fault!
-						}
-						break;
-					case AVL_SYSTEM_TSS32BIT:
-					case AVL_SYSTEM_TSS16BIT:
-						if ((isJMPorCALL & 0x800)) //Needs to be busy?
-						{
-							THROWDESCGP(value, (isJMPorCALL & 0x200) ? 1 : (((isJMPorCALL & 0x400) >> 10)), (value & 4) ? EXCEPTION_TABLE_LDT : EXCEPTION_TABLE_GDT); //We cannot load a busy TSS!
-							return 1; //Abort on fault!
-						}
-
-						tempdescriptor.desc.AccessRights |= 2; //Mark not idle in the RAM descriptor!
-						savedescriptor.desc.DATA64 = tempdescriptor.desc.DATA64; //Copy the resulting descriptor contents to our buffer for writing to RAM!
-						if (SAVEDESCRIPTOR(segment,value,&savedescriptor,isJMPorCALL)<=0) //Save it back to RAM failed?
-						{
-							return 1; //Abort on fault!
-						}
-						break;
-					default: //Invalid segment descriptor to load into the TR register?
-						THROWDESCGP(value,(isJMPorCALL&0x200)?1:((isJMPorCALL&0x400)>>10),(value&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT); //We cannot load a busy TSS!
-						return 1; //Abort on fault!
-						break; //Ignore!
-					}
 				}
 			}
 			//Now, load the new descriptor and address for CS if needed(with secondary effects)!
@@ -1408,85 +1529,26 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 				return 1; //Abort on fault!
 			}
 
-			if (segment == CPU_SEGMENT_CS) //CS register?
+			switch (segment)
 			{
-				REG_EIP = destEIP; //The current OPCode: just jump to the address specified by the descriptor OR command!
-				if (((isJMPorCALL & 0x1FF) == 4) || ((isJMPorCALL & 0x1FF) == 3)) //IRET/RETF required limit check!
+			case CPU_SEGMENT_CS: //CS register?
+				if (CPU_segmentWritten_protectedmode_CS(isJMPorCALL))
 				{
-					if (CPU_MMU_checkrights(CPU_SEGMENT_CS, REG_CS, REG_EIP, 3, &CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS], 2, CPU_Operand_size[activeCPU])) //Limit broken or protection fault?
-					{
-						THROWDESCGP(0, 0, 0); //#GP(0) when out of limit range!
-						return 1; //Abort on fault!
-					}
+					return 1; //Abort!
 				}
-			}
-			else if (segment == CPU_SEGMENT_SS) //SS? We're also updating the CPL!
-			{
+				break;
+			case CPU_SEGMENT_SS: //SS? We're also updating the CPL!
 				updateCPL(); //Update the CPL according to the mode!
+				break;
+			default: //All other segments: nothing special!
+				break;
 			}
 
-			if (RETF_segmentregister) //Are we to check the segment registers for validity during a RETF?
+			if (checkSegmentRegisters) //Are we to check the segment registers for validity during a RETF?
 			{
-				for (RETF_segmentregister = 0; RETF_segmentregister < NUMITEMS(RETF_checkSegmentRegisters); ++RETF_segmentregister) //Process all we need to check!
-				{
-					RETF_whatsegment = RETF_checkSegmentRegisters[RETF_segmentregister]; //What register to check?
-					word descriptor_index;
-					descriptor_index = getDescriptorIndex(*CPU[activeCPU].SEGMENT_REGISTERS[RETF_whatsegment]); //What descriptor index?
-					if (descriptor_index) //Valid index(Non-NULL)?
-					{
-						if ((word)(descriptor_index | 0x7) > ((*CPU[activeCPU].SEGMENT_REGISTERS[RETF_whatsegment] & 4) ? CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].PRECALCS.limit : CPU[activeCPU].registers->GDTR.limit)) //LDT/GDT limit exceeded?
-						{
-						invalidRETFsegment:
-							if ((CPU[activeCPU].have_oldSegReg&(1 << RETF_whatsegment)) == 0) //Backup not loaded yet?
-							{
-								memcpy(&CPU[activeCPU].SEG_DESCRIPTORbackup[RETF_whatsegment], &CPU[activeCPU].SEG_DESCRIPTOR[RETF_whatsegment], sizeof(CPU[activeCPU].SEG_DESCRIPTORbackup[0])); //Restore the descriptor!
-								CPU[activeCPU].oldSegReg[RETF_whatsegment] = *CPU[activeCPU].SEGMENT_REGISTERS[RETF_whatsegment]; //Backup the register too!
-								CPU[activeCPU].have_oldSegReg |= (1 << RETF_whatsegment); //Loaded!
-							}
-							//Selector and Access rights are zeroed!
-							*CPU[activeCPU].SEGMENT_REGISTERS[RETF_whatsegment] = 0; //Zero the register!
-							if ((isJMPorCALL&0x1FF) == 3) //IRET?
-							{
-								CPU[activeCPU].SEG_DESCRIPTOR[RETF_whatsegment].desc.AccessRights &= 0x7F; //Clear the valid flag only with IRET!
-							}
-							else //RETF?
-							{
-								CPU[activeCPU].SEG_DESCRIPTOR[RETF_whatsegment].desc.AccessRights = 0; //Invalid!
-							}
-							CPU_calcSegmentPrecalcs(0,&CPU[activeCPU].SEG_DESCRIPTOR[RETF_whatsegment]); //Update the precalcs for said access rights!
-							continue; //Next register!
-						}
-					}
-					if (GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[RETF_whatsegment])==0) //Not present?
-					{
-						goto invalidRETFsegment; //Next register!
-					}
-					if (GENERALSEGMENT_S(CPU[activeCPU].SEG_DESCRIPTOR[RETF_whatsegment])==0) //Not data/readable code segment?
-					{
-						goto invalidRETFsegment; //Next register!
-					}
-					//We're either data or code!
-					isnonconformingcodeordata = 0; //Default: neither!
-					if (EXECSEGMENT_ISEXEC(CPU[activeCPU].SEG_DESCRIPTOR[RETF_whatsegment])) //Code?
-					{
-						if (!EXECSEGMENT_C(CPU[activeCPU].SEG_DESCRIPTOR[RETF_whatsegment])) //Nonconforming? Invalid!
-						{
-							isnonconformingcodeordata = 1; //Next register!
-						}
-						if (!EXECSEGMENT_R(CPU[activeCPU].SEG_DESCRIPTOR[RETF_whatsegment])) //Not readable? Invalid!
-						{
-							goto invalidRETFsegment; //Next register!
-						}
-					}
-					else isnonconformingcodeordata = 1; //Data!
-					//We're either data or readable code!
-					if (isnonconformingcodeordata && (GENERALSEGMENT_DPL(CPU[activeCPU].SEG_DESCRIPTOR[RETF_whatsegment])<MAX(getCPL(),getRPL(*CPU[activeCPU].SEGMENT_REGISTERS[RETF_whatsegment])))) //Not privileged enough to handle said segment descriptor?
-					{
-						goto invalidRETFsegment; //Next register!
-					}
-				}
+				CPU_segmentWritten_protectedmode_RETFIRET(isJMPorCALL); //Handle it!
 			}
-			if (segment == CPU_SEGMENT_CS)
+			if (segment == CPU_SEGMENT_CS) //CS needs a update on all CPU-related stuff!
 			{
 				if (CPU_condflushPIQ(-1)) return 1; //We're jumping to another address!
 			}
@@ -1543,38 +1605,33 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 			CPU[activeCPU].SEG_DESCRIPTOR[segment].desc.limit_low = 0xFFFF;
 			CPU[activeCPU].SEG_DESCRIPTOR[segment].desc.noncallgate_info = 0x00; //Clear: D/B-bit, G-bit, Limit High!
 		}
-		if ((segment == CPU_SEGMENT_CS) && (EMULATED_CPU >= CPU_PENTIUM) && (getcpumode() == CPU_MODE_REAL)) //Real mode loading CS on Pentium+?
+		switch (segment)
 		{
-			CPU[activeCPU].SEG_DESCRIPTOR[segment].desc.noncallgate_info &= ~0x40; //Clear the B-bit only, to enforce 16-bit code when loading CS in real mode! Leave the Granularity and Limit fields alone!
-		}
-		if (segment==CPU_SEGMENT_CS) //CS segment? Reload access rights in real mode on first write access!
-		{
-			if ((EMULATED_CPU<CPU_PENTIUM) || (getcpumode()==CPU_MODE_8086)) //Only before Pentium or V86 mode?
+		case CPU_SEGMENT_CS: //CS segment? Reload access rights in real mode on first write access!
+			if ((EMULATED_CPU >= CPU_PENTIUM) && (getcpumode() == CPU_MODE_REAL)) //Real mode loading CS on Pentium+?
+			{
+				CPU[activeCPU].SEG_DESCRIPTOR[segment].desc.noncallgate_info &= ~0x40; //Clear the B-bit only, to enforce 16-bit code when loading CS in real mode! Leave the Granularity and Limit fields alone!
+			}
+			if ((EMULATED_CPU < CPU_PENTIUM) || (getcpumode() == CPU_MODE_8086)) //Only before Pentium or V86 mode?
 			{
 				CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].desc.AccessRights = 0x93; //Load default access rights!
 			}
-			CPU_calcSegmentPrecalcs(1,&CPU[activeCPU].SEG_DESCRIPTOR[segment]); //Calculate any precalcs for the segment descriptor(do it here since we don't load descriptors externally)!
+			CPU_calcSegmentPrecalcs(1, &CPU[activeCPU].SEG_DESCRIPTOR[segment]); //Calculate any precalcs for the segment descriptor(do it here since we don't load descriptors externally)!
 			REG_EIP = destEIP; //... The current OPCode: just jump to the address!
 			if (CPU_MMU_checkrights(CPU_SEGMENT_CS, REG_CS, REG_EIP, 3, &CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS], 2, CPU_Operand_size[activeCPU])) //Limit broken or protection fault?
 			{
 				THROWDESCGP(0, 0, 0); //#GP(0) when out of limit range!
 				return 1; //Abort on fault!
 			}
-		}
-		else if (segment == CPU_SEGMENT_SS) //SS? We're also updating the CPL!
-		{
+			if (CPU_condflushPIQ(-1)) return 1; //We're jumping to another address!
+			break;
+		case CPU_SEGMENT_SS: //SS? We're also updating the CPL!
 			updateCPL(); //Update the CPL according to the mode!
-			CPU_calcSegmentPrecalcs(0,&CPU[activeCPU].SEG_DESCRIPTOR[segment]); //Calculate any precalcs for the segment descriptor(do it here since we don't load descriptors externally)!
+			//Fall through to normal segments for it's precalcs!
+		default: //All other segments!
+			CPU_calcSegmentPrecalcs(0, &CPU[activeCPU].SEG_DESCRIPTOR[segment]); //Calculate any precalcs for the segment descriptor(do it here since we don't load descriptors externally)!
+			break;
 		}
-		else
-		{
-			CPU_calcSegmentPrecalcs(0,&CPU[activeCPU].SEG_DESCRIPTOR[segment]); //Calculate any precalcs for the segment descriptor(do it here since we don't load descriptors externally)!
-		}
-	}
-	//Real mode doesn't use the descriptors?
-	if (segment == CPU_SEGMENT_CS)
-	{
-		if (CPU_condflushPIQ(-1)) return 1; //We're jumping to another address!
 	}
 	return 0; //No fault raised&continue!
 }
