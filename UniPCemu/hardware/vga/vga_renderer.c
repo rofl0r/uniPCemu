@@ -566,10 +566,12 @@ OPTINLINE void VGA_RenderOutput(SEQ_DATA *Sequencer, VGA_Type *VGA) //Render the
 	//First, render ourselves to the screen!
 	GPU.xres = Sequencer->xres; //Apply x resolution!
 	GPU.yres = Sequencer->yres; //Apply y resolution!
+	/*
 	if (Sequencer->is_topwindow) //Top window isn't supported yet?
 	{
 		GPU.yres = Sequencer->topwindowCRTbase; //Take the top window only, the bottom window(splitscreen) isn't supported yet!
 	}
+	*/ //Just render the bottom and top windows normally!
 	//unlockGPU(); //Unlock the GPU!
 	VGA_VBlankHandler(VGA); //Handle all VBlank stuff!
 	//lockGPU(); //Lock the GPU again! We're using it again!
@@ -635,11 +637,11 @@ void VGA_HRetrace(SEQ_DATA *Sequencer, VGA_Type *VGA)
 		{
 			drawCGALine(VGA); //Draw the current CGA line using NTSC colours!	
 		}
-		++VGA->CRTC.y; //Not retracing vertically? Next row on-screen!
-		if (likely(Sequencer->is_topwindow==0)) //Not top window?
+		if (likely(Sequencer->is_topwindow == 0)) //Not top window?
 		{
 			Sequencer->topwindowCRTbase = VGA->CRTC.y; //Save bottom resolution!
 		}
+		++VGA->CRTC.y; //Not retracing vertically? Next row on-screen!
 	}
 	++Sequencer->Scanline; //Next scanline to process!
 }
