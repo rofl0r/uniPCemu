@@ -482,10 +482,9 @@ OPTINLINE void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
 	INLINEREGISTER word row;
 	INLINEREGISTER uint_32 charystart;
 	row = Sequencer->Scanline; //Default: our normal scanline!
-	if (row>VGA->precalcs.topwindowstart) //Splitscreen operations?
+	if (row>=VGA->precalcs.topwindowstart) //Splitscreen operations?
 	{
 		row -= VGA->precalcs.topwindowstart; //This starts after the row specified, at row #0!
-		--row; //We start at row #0, not row #1(1 after topwindowstart).
 		Sequencer->is_topwindow = 1; //We're starting the top window rendering!
 	}
 	else
@@ -637,11 +636,11 @@ void VGA_HRetrace(SEQ_DATA *Sequencer, VGA_Type *VGA)
 		{
 			drawCGALine(VGA); //Draw the current CGA line using NTSC colours!	
 		}
+		++VGA->CRTC.y; //Not retracing vertically? Next row on-screen!
 		if (likely(Sequencer->is_topwindow == 0)) //Not top window?
 		{
 			Sequencer->topwindowCRTbase = VGA->CRTC.y; //Save bottom resolution!
 		}
-		++VGA->CRTC.y; //Not retracing vertically? Next row on-screen!
 	}
 	++Sequencer->Scanline; //Next scanline to process!
 }
