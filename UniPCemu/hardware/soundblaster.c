@@ -106,6 +106,8 @@ struct
 	DOUBLE frequency; //The frequency we're currently rendering at!
 	TicksHolder recordingtimer; //Real-time recording support!
 	byte recordedsample; //Last recorded sample, updated real-time!
+	byte timeconstant; //Time contant to reload at!
+	word timer; //The timer we're counting down! 0=Finished and tick a sample!
 } SOUNDBLASTER; //The Sound Blaster data!
 
 extern byte specialdebugger; //Enable special debugger input?
@@ -243,6 +245,16 @@ void updateSoundBlaster(DOUBLE timepassed, uint_32 MHZ14passed)
 			{
 				for (;soundblaster_sampletiming>=soundblaster_sampletick;) //A sample to play?
 				{
+					if (likely(SOUNDBLASTER.timer==0)) //Not timing?
+					{
+						soundblaster_sampletiming -= soundblaster_sampletick; //A sample has been ticked!
+						continue; //Skip: we're not timing!
+					}
+					if (likely(--SOUNDBLASTER.timer)) //Still waiting for the timer to expire?
+					{
+						soundblaster_sampletiming -= soundblaster_sampletick; //A sample has been ticked!
+						continue; //Skip: we're not timing!
+					}
 					if (SOUNDBLASTER.silencesamples) //Silence requested?
 					{
 						sb_leftsample = sb_rightsample = 0x80; //Silent sample!
@@ -414,6 +426,7 @@ OPTINLINE void DSP_startDMADAC(byte autoinitDMA, byte isRecording)
 	}
 	*/
 	//Auto-init DMA starting already has wordparamoutput loaded during the parameter phase!
+	SOUNDBLASTER.timer = 256 - SOUNDBLASTER.timeconstant; //Start ticking the timer at the current rate!
 	SoundBlaster_DetectDMALength((byte)SOUNDBLASTER.command, SOUNDBLASTER.wordparamoutput); //The length of the DMA transfer to play back, in bytes!
 }
 
@@ -777,11 +790,10 @@ OPTINLINE void DSP_writeData(byte data, byte isDMA)
 		//TimeConstant = 256 - (1000000(us) / (SampleChannels * SampleRate)), where SampleChannels is 1 for non-SBPro.
 		#ifdef IS_LONGDOUBLE
 		SOUNDBLASTER.frequency = (1000000.0L / (DOUBLE)(256 - data)); //Calculate the frequency to run at!
-		soundblaster_sampletick = 1000000000.0L/SOUNDBLASTER.frequency; //Tick at the sample rate!
 		#else
 		SOUNDBLASTER.frequency = (1000000.0 / (DOUBLE)(256 - data)); //Calculate the frequency to run at!
-		soundblaster_sampletick = 1000000000.0/SOUNDBLASTER.frequency; //Tick at the sample rate!
 		#endif
+		SOUNDBLASTER.timeconstant = data; //What time constant is set!
 		SOUNDBLASTER.command = 0; //No command anymore!
 		break;
 	case 0x14: //DMA DAC, 8-bit
@@ -849,16 +861,19 @@ OPTINLINE void DSP_writeData(byte data, byte isDMA)
 					SoundBlaster_IRQ8(); //Raise the 8-bit IRQ!
 					if (SOUNDBLASTER.AutoInit) //Autoinit enabled?
 					{
+						SOUNDBLASTER.timer = 256 - SOUNDBLASTER.timeconstant; //Start ticking the timer at the current rate!
 						SoundBlaster_DetectDMALength((byte)SOUNDBLASTER.command, SOUNDBLASTER.AutoInitBlockSize); //Reload the length of the DMA transfer to play back, in bytes!
 						SOUNDBLASTER.DREQ |= (2|8); //Wait for the next sample to be played, according to the sample rate! Also wait for the IRQ to be aclowledged!
 					}
 					else
 					{
+						SOUNDBLASTER.timer = 0; //Stop ticking the timer at the current rate!
 						SOUNDBLASTER.DREQ = 0; //Stop DMA: we're finished!
 					}
 				}
 				else
 				{
+					SOUNDBLASTER.timer = 256 - SOUNDBLASTER.timeconstant; //Start ticking the timer at the current rate!
 					SOUNDBLASTER.DREQ |= 2; //Wait for the next sample to be played, according to the sample rate!
 				}
 			}
@@ -906,6 +921,7 @@ OPTINLINE void DSP_writeData(byte data, byte isDMA)
 				break;
 			case 1: //Length hi byte!
 				SOUNDBLASTER.wordparamoutput |= (((word)data) << 8); //The second parameter!
+				SOUNDBLASTER.timer = 256 - SOUNDBLASTER.timeconstant; //Start ticking the timer at the current rate!
 				SoundBlaster_DetectDMALength((byte)SOUNDBLASTER.command,SOUNDBLASTER.wordparamoutput); //The length of the DMA transfer to play back, in bytes!
 				SOUNDBLASTER.commandstep = 1; //Goto step 1!
 				//Sound Blasters prior to SB16 return the first sample in Direct Mode! Not anymore according to the current Dosbox commits!
@@ -1004,16 +1020,19 @@ OPTINLINE byte readDSPData(byte isDMA)
 					SoundBlaster_IRQ8(); //Raise the 8-bit IRQ!
 					if (SOUNDBLASTER.AutoInit) //Autoinit enabled?
 					{
+						SOUNDBLASTER.timer = 256 - SOUNDBLASTER.timeconstant; //Start ticking the timer at the current rate!
 						SoundBlaster_DetectDMALength((byte)SOUNDBLASTER.command, SOUNDBLASTER.AutoInitBlockSize); //Reload the length of the DMA transfer to play back, in bytes!
 						SOUNDBLASTER.DREQ |= (2|8); //Wait for the next sample to be played, according to the sample rate! Also wait for the IRQ to be aclowledged!
 					}
 					else
 					{
+						SOUNDBLASTER.timer = 256 - SOUNDBLASTER.timeconstant; //Start ticking the timer at the current rate!
 						SOUNDBLASTER.DREQ = 0; //Finished!
 					}
 				}
 				else //Busy transfer?
 				{
+					SOUNDBLASTER.timer = 256 - SOUNDBLASTER.timeconstant; //Start ticking the timer at the current rate!
 					SOUNDBLASTER.DREQ |= 2; //Wait for the next sample to be played, according to the sample rate!
 				}
 				return SOUNDBLASTER.recordedsample; //Send the current sample from DMA!
@@ -1210,10 +1229,10 @@ void initSoundBlaster(word baseaddr, byte version)
 
 	#ifdef IS_LONGDOUBLE
 	SOUNDBLASTER.frequency = (1000000.0L / (DOUBLE)(256 - 0)); //Calculate the frequency to run at!
-	soundblaster_sampletick = 1000000000.0L/SOUNDBLASTER.frequency; //Tick at the sample rate!
+	soundblaster_sampletick = 1000000000.0L/(DOUBLE)1000000; //Tick at the base rate!
 	#else
 	SOUNDBLASTER.frequency = (1000000.0 / (DOUBLE)(256 - 0)); //Calculate the frequency to run at!
-	soundblaster_sampletick = 1000000000.0/SOUNDBLASTER.frequency; //Tick at the sample rate!
+	soundblaster_sampletick = 1000000000.0/(DOUBLE)1000000; //Tick at the base rate!
 	#endif
 
 	soundblaster_sampletickfree = (DOUBLE)(1000000000.0 / (DOUBLE)(1000000.0)); //Tick at the free recording sample rate!
