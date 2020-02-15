@@ -431,6 +431,11 @@ OPTINLINE void DSP_startDMADAC(byte autoinitDMA, byte isRecording)
 	*/
 	//Auto-init DMA starting already has wordparamoutput loaded during the parameter phase!
 	SoundBlaster_DetectDMALength((byte)SOUNDBLASTER.command, SOUNDBLASTER.wordparamoutput); //The length of the DMA transfer to play back, in bytes!
+	if ((SOUNDBLASTER.timer == 0) || (SOUNDBLASTER.timeconstantdirty)) //Not timing yet or dirtied?
+	{
+		SOUNDBLASTER.timer = 256 - SOUNDBLASTER.timeconstant; //Start ticking the timer at the current rate!
+		SOUNDBLASTER.timeconstantdirty = 0; //Not dirty anymore!
+	}
 }
 
 extern byte MPU_ready; //MPU installed?
@@ -926,12 +931,6 @@ OPTINLINE void DSP_writeData(byte data, byte isDMA)
 				break;
 			case 1: //Length hi byte!
 				SOUNDBLASTER.wordparamoutput |= (((word)data) << 8); //The second parameter!
-				if ((SOUNDBLASTER.timer == 0) || (SOUNDBLASTER.timeconstantdirty)) //Not timing yet or dirtied?
-				{
-					SOUNDBLASTER.timer = 256 - SOUNDBLASTER.timeconstant; //Start ticking the timer at the current rate!
-					SOUNDBLASTER.timeconstantdirty = 0; //Not dirty anymore!
-				}
-				SoundBlaster_DetectDMALength((byte)SOUNDBLASTER.command,SOUNDBLASTER.wordparamoutput); //The length of the DMA transfer to play back, in bytes!
 				SOUNDBLASTER.commandstep = 1; //Goto step 1!
 				//Sound Blasters prior to SB16 return the first sample in Direct Mode! Not anymore according to the current Dosbox commits!
 				DSP_startDMADAC(SOUNDBLASTER.AutoInitBuf,1); //Start DMA DAC, autoinit supplied!
