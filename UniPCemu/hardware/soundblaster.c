@@ -501,11 +501,14 @@ OPTINLINE void DSP_writeCommand(byte command)
 		SOUNDBLASTER.ADPCM_format = ADPCM_FORMAT_NONE; //Plain samples!
 		SOUNDBLASTER.AutoInitBuf = AutoInit; //The autoinit setting to use!
 		SB_LOGCOMMAND
+		/*
 		if (AutoInit)
 		{
 			SOUNDBLASTER.wordparamoutput = SOUNDBLASTER.AutoInitBlockSize; //Start this transfer now!
 			DSP_startDMADAC(1,0); //Start DMA transfer!
 		}
+		*/
+		//Enter parameter phase!
 		break;
 	case 0x1F: //Auto-Initialize DMA DAC, 2-bit ADPCM reference(DSP 2.01+)
 		SB2COMMAND
@@ -534,11 +537,13 @@ OPTINLINE void DSP_writeCommand(byte command)
 		SOUNDBLASTER.DREQ = 0; //Disable DMA!
 		SOUNDBLASTER.dataleft = 0; //counter of parameters!
 		SOUNDBLASTER.AutoInitBuf = AutoInit; //The autoinit setting to use!
+		/*
 		if (AutoInit)
 		{
 			SOUNDBLASTER.wordparamoutput = SOUNDBLASTER.AutoInitBlockSize; //Start this transfer now!
 			DSP_startDMADAC(1,1); //Start DMA transfer!
 		}
+		*/
 		break;
 	case 0x30: //MIDI read poll
 	case 0x31: //MIDI read interrupt
@@ -576,11 +581,13 @@ OPTINLINE void DSP_writeCommand(byte command)
 	case 0x74: //DMA DAC, 4-bit ADPCM
 		SB_LOGCOMMAND
 		DSP_startParameterADPCM(command,ADPCM_FORMAT_4BIT,ADPCM_reference,AutoInit); //Starting the ADPCM command!
+		/*
 		if (AutoInit)
 		{
 			SOUNDBLASTER.wordparamoutput = SOUNDBLASTER.AutoInitBlockSize; //Start this transfer now!
 			DSP_startDMADAC(1,0); //Start DMA transfer!
 		}
+		*/
 		break;
 	case 0x7F: //Auto-initialize DMA DAC, 2.6-bit ADPCM Reference
 		SB2COMMAND
@@ -590,11 +597,13 @@ OPTINLINE void DSP_writeCommand(byte command)
 	case 0x76: //DMA DAC, 2.6-bit ADPCM
 		SB_LOGCOMMAND
 		DSP_startParameterADPCM(command,ADPCM_FORMAT_26BIT,ADPCM_reference,AutoInit); //Starting the ADPCM command!
+		/*
 		if (AutoInit)
 		{
 			SOUNDBLASTER.wordparamoutput = SOUNDBLASTER.AutoInitBlockSize; //Start this transfer now!
 			DSP_startDMADAC(1,0); //Start DMA transfer!
 		}
+		*/
 		break;
 	case 0x80: //Silence DAC
 		SB_LOGCOMMAND
