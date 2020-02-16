@@ -1046,6 +1046,12 @@ CPU_OpcodeInformation *currentOpcodeInformation = NULL; //The timing used for th
 Handler currentOP_handler = &CPU_unkOP;
 extern Handler CurrentCPU_opcode_jmptbl[1024]; //Our standard internal standard opcode jmptbl!
 
+word CPU_exec_CS, CPU_debugger_CS; //OPCode CS
+uint_32 CPU_exec_EIP, CPU_debugger_EIP; //OPCode EIP
+
+word CPU_exec_lastCS = 0; //OPCode CS
+uint_32 CPU_exec_lastEIP = 0; //OPCode EIP
+
 OPTINLINE void CPU_resetInstructionSteps()
 {
 	//Prepare for a (repeated) instruction to execute!
@@ -1058,7 +1064,7 @@ void CPU_interruptcomplete()
 	//Prepare in the case of hardware interrupts!
 	CPU_exec_CS = REG_CS; //CS to execute!
 	CPU_exec_EIP = REG_EIP; //EIP to execute!
-	CPU_commitstate(); //Commit the state of the CPU for any future faults or interrupts!
+	CPU_commitState(); //Commit the state of the CPU for any future faults or interrupts!
 }
 
 uint_32 last_eip;
@@ -1428,12 +1434,6 @@ char* CPU_segmentname(byte segment) //Plain segment to use!
 }
 
 void CPU_afterexec(); //Prototype for below!
-
-word CPU_exec_CS, CPU_debugger_CS; //OPCode CS
-uint_32 CPU_exec_EIP, CPU_debugger_EIP; //OPCode EIP
-
-word CPU_exec_lastCS=0; //OPCode CS
-uint_32 CPU_exec_lastEIP=0; //OPCode EIP
 
 void CPU_beforeexec()
 {
