@@ -1055,6 +1055,10 @@ OPTINLINE void CPU_resetInstructionSteps()
 void CPU_interruptcomplete()
 {
 	CPU_resetInstructionSteps(); //Reset the instruction steps to properly handle it!
+	//Prepare in the case of hardware interrupts!
+	CPU_exec_CS = REG_CS; //CS to execute!
+	CPU_exec_EIP = REG_EIP; //EIP to execute!
+	CPU_commitstate(); //Commit the state of the CPU for any future faults or interrupts!
 }
 
 uint_32 last_eip;
