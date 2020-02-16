@@ -55,7 +55,7 @@ Packet server support!
 #ifdef IS_PSP
 #ifndef SDL_SwapBE16
 //PSP doesn't support SDL_SwapBE16
-#define SDL_SwapBE16(x) (((x>>8)&0xFF)|((x&0xFF)<<8))
+#define SDL_SwapBE16(x) ((((x)>>8)&0xFF)|(((x)&0xFF)<<8))
 #endif
 #endif
 
