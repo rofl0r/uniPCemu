@@ -1065,6 +1065,7 @@ void CPU_interruptcomplete()
 	CPU_exec_CS = REG_CS; //CS to execute!
 	CPU_exec_EIP = REG_EIP; //EIP to execute!
 	CPU_commitState(); //Commit the state of the CPU for any future faults or interrupts!
+	CPU_InterruptReturn = REG_EIP; //Make sure that interrupts behave with a correct EIP after faulting on REP prefixed instructions!
 }
 
 uint_32 last_eip;
