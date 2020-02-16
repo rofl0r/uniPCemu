@@ -109,7 +109,7 @@ typedef struct
 	sword diagnosticsportoutput_breakpoint; //Use a diagnostics port breakpoint?
 	uint_32 diagnosticsportoutput_timeout; //Breakpoint timeout used!
 	byte useDirectMIDI; //Use Direct MIDI synthesis by using a passthrough to the OS?
-	uint_64 breakpoint; //The used breakpoint segment:offset and mode!
+	uint_64 breakpoint[5]; //The used breakpoint segment:offset and mode!
 	byte BIOSROMmode; //BIOS ROM mode.
 	byte debugger_logstates; //Are we logging states? 1=Log states, 0=Don't log states!
 

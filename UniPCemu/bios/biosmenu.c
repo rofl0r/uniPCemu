@@ -615,7 +615,11 @@ byte runBIOS(byte showloadingtext) //Run the BIOS menu (whether in emulation or 
 	GPU_AspectRatio(BIOS_Settings.aspectratio); //Keep the aspect ratio?
 	setGPUFramerate(BIOS_Settings.ShowFramerate); //Show the framerate?
 	diagnosticsportoutput_breakpoint = BIOS_Settings.diagnosticsportoutput_breakpoint; //Set our new breakpoint, if any!
-	updateEMUSingleStep(); //Update the single-step breakpoint!
+	updateEMUSingleStep(0); //Update the single-step breakpoint!
+	updateEMUSingleStep(1); //Update the single-step breakpoint!
+	updateEMUSingleStep(2); //Update the single-step breakpoint!
+	updateEMUSingleStep(3); //Update the single-step breakpoint!
+	updateEMUSingleStep(4); //Update the single-step breakpoint!
 
 	unlock(LOCK_MAINTHREAD); //Continue!
 
@@ -5185,6 +5189,70 @@ void BIOS_Architecture()
 	BIOS_Menu = 35; //Goto CPU menu!
 }
 
+void BIOSMenu_breakpointDisplay(byte point)
+{
+	byte breakpointindex[5] = {15,22,23,24,25};
+	if (point >= NUMITEMS(BIOS_Settings.breakpoint)) return; //Can't handle this?
+	optioninfo[advancedoptions] = breakpointindex[point]; //Breakpoint!
+	safestrcpy(menuoptions[advancedoptions], sizeof(menuoptions[0]), "Breakpoint: ");
+	//First, convert the current breakpoint to a string format!
+	switch ((BIOS_Settings.breakpoint[point] >> SETTINGS_BREAKPOINT_MODE_SHIFT)) //What mode?
+	{
+	case 0: //No breakpoint?
+		safestrcat(menuoptions[advancedoptions], sizeof(menuoptions[0]), "Not set"); //seg16:offs16 default!
+		break;
+	case 1: //Real mode?
+		safescatnprintf(menuoptions[advancedoptions], sizeof(menuoptions[0]), "%04X:%04X", (word)((BIOS_Settings.breakpoint[point] >> SETTINGS_BREAKPOINT_SEGMENT_SHIFT)& SETTINGS_BREAKPOINT_SEGMENT_MASK), (word)((BIOS_Settings.breakpoint[point] & SETTINGS_BREAKPOINT_OFFSET_MASK) & 0xFFFF)); //seg16:offs16!
+		if ((BIOS_Settings.breakpoint[point] >> SETTINGS_BREAKPOINT_IGNOREADDRESS_SHIFT) & 1) //Ignore address?
+		{
+			safestrcat(menuoptions[advancedoptions], sizeof(menuoptions[0]), "M"); //Ignore Address!
+		}
+		else if ((BIOS_Settings.breakpoint[point] >> SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT) & 1) //Ignore EIP?
+		{
+			safestrcat(menuoptions[advancedoptions], sizeof(menuoptions[0]), "I"); //Ignore EIP!
+		}
+		else if ((BIOS_Settings.breakpoint[point] >> SETTINGS_BREAKPOINT_IGNORESEGMENT_SHIFT) & 1) //Ignore CS?
+		{
+			safestrcat(menuoptions[advancedoptions], sizeof(menuoptions[0]), "O"); //Ignore CS!
+		}
+		break;
+	case 2: //Protected mode?
+		safescatnprintf(menuoptions[advancedoptions], sizeof(menuoptions[0]), "%04X:%08XP", (word)((BIOS_Settings.breakpoint[point] >> SETTINGS_BREAKPOINT_SEGMENT_SHIFT)& SETTINGS_BREAKPOINT_SEGMENT_MASK), (uint_32)(BIOS_Settings.breakpoint[point] & SETTINGS_BREAKPOINT_OFFSET_MASK)); //seg16:offs16!
+		if ((BIOS_Settings.breakpoint[point] >> SETTINGS_BREAKPOINT_IGNOREADDRESS_SHIFT) & 1) //Ignore address?
+		{
+			safestrcat(menuoptions[advancedoptions], sizeof(menuoptions[0]), "M"); //Ignore Address!
+		}
+		else if ((BIOS_Settings.breakpoint[point] >> SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT) & 1) //Ignore EIP?
+		{
+			safestrcat(menuoptions[advancedoptions], sizeof(menuoptions[0]), "I"); //Ignore EIP!
+		}
+		else if ((BIOS_Settings.breakpoint[point] >> SETTINGS_BREAKPOINT_IGNORESEGMENT_SHIFT) & 1) //Ignore CS?
+		{
+			safestrcat(menuoptions[advancedoptions], sizeof(menuoptions[0]), "O"); //Ignore CS!
+		}
+		break;
+	case 3: //Virtual 8086 mode?
+		safescatnprintf(menuoptions[advancedoptions], sizeof(menuoptions[0]), "%04X:%04XV", (word)((BIOS_Settings.breakpoint[point] >> SETTINGS_BREAKPOINT_SEGMENT_SHIFT)& SETTINGS_BREAKPOINT_SEGMENT_MASK), (word)((BIOS_Settings.breakpoint[point] & SETTINGS_BREAKPOINT_OFFSET_MASK) & 0xFFFF)); //seg16:offs16!
+		if ((BIOS_Settings.breakpoint[point] >> SETTINGS_BREAKPOINT_IGNOREADDRESS_SHIFT) & 1) //Ignore address?
+		{
+			safestrcat(menuoptions[advancedoptions], sizeof(menuoptions[0]), "M"); //Ignore Address!
+		}
+		else if ((BIOS_Settings.breakpoint[point] >> SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT) & 1) //Ignore EIP?
+		{
+			safestrcat(menuoptions[advancedoptions], sizeof(menuoptions[0]), "I"); //Ignore EIP!
+		}
+		else if ((BIOS_Settings.breakpoint[point] >> SETTINGS_BREAKPOINT_IGNORESEGMENT_SHIFT) & 1) //Ignore CS?
+		{
+			safestrcat(menuoptions[advancedoptions], sizeof(menuoptions[0]), "O"); //Ignore CS!
+		}
+		break;
+	default: //Just in case!
+		safestrcat(menuoptions[advancedoptions], sizeof(menuoptions[0]), "<UNKNOWN. CHECK SETTINGS VERSION>");
+		break;
+	}
+	++advancedoptions; //Increase after!
+}
+
 void BIOS_InitCPUText()
 {
 	advancedoptions = 0; //Init!
@@ -5478,64 +5546,11 @@ setShowCPUSpeed:
 		break;
 	}
 
-	optioninfo[advancedoptions] = 15; //Breakpoint!
-	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Breakpoint: ");
-	//First, convert the current breakpoint to a string format!
-	switch ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_MODE_SHIFT)) //What mode?
-	{
-		case 0: //No breakpoint?
-			safestrcat(menuoptions[advancedoptions],sizeof(menuoptions[0]),"Not set"); //seg16:offs16 default!
-			break;
-		case 1: //Real mode?
-			safescatnprintf(menuoptions[advancedoptions],sizeof(menuoptions[0]),"%04X:%04X",(word)((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK),(word)((BIOS_Settings.breakpoint&SETTINGS_BREAKPOINT_OFFSET_MASK)&0xFFFF)); //seg16:offs16!
-			if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREADDRESS_SHIFT)&1) //Ignore address?
-			{
-				safestrcat(menuoptions[advancedoptions],sizeof(menuoptions[0]),"M"); //Ignore Address!
-			}
-			else if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT)&1) //Ignore EIP?
-			{
-				safestrcat(menuoptions[advancedoptions],sizeof(menuoptions[0]),"I"); //Ignore EIP!
-			}
-			else if ((BIOS_Settings.breakpoint >> SETTINGS_BREAKPOINT_IGNORESEGMENT_SHIFT) & 1) //Ignore CS?
-			{
-				safestrcat(menuoptions[advancedoptions], sizeof(menuoptions[0]), "O"); //Ignore CS!
-			}
-			break;
-		case 2: //Protected mode?
-			safescatnprintf(menuoptions[advancedoptions],sizeof(menuoptions[0]),"%04X:%08XP",(word)((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK),(uint_32)(BIOS_Settings.breakpoint&SETTINGS_BREAKPOINT_OFFSET_MASK)); //seg16:offs16!
-			if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREADDRESS_SHIFT)&1) //Ignore address?
-			{
-				safestrcat(menuoptions[advancedoptions],sizeof(menuoptions[0]),"M"); //Ignore Address!
-			}
-			else if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT)&1) //Ignore EIP?
-			{
-				safestrcat(menuoptions[advancedoptions],sizeof(menuoptions[0]),"I"); //Ignore EIP!
-			}
-			else if ((BIOS_Settings.breakpoint >> SETTINGS_BREAKPOINT_IGNORESEGMENT_SHIFT) & 1) //Ignore CS?
-			{
-				safestrcat(menuoptions[advancedoptions], sizeof(menuoptions[0]), "O"); //Ignore CS!
-			}
-			break;
-		case 3: //Virtual 8086 mode?
-			safescatnprintf(menuoptions[advancedoptions],sizeof(menuoptions[0]),"%04X:%04XV",(word)((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK),(word)((BIOS_Settings.breakpoint&SETTINGS_BREAKPOINT_OFFSET_MASK)&0xFFFF)); //seg16:offs16!
-			if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREADDRESS_SHIFT)&1) //Ignore address?
-			{
-				safestrcat(menuoptions[advancedoptions],sizeof(menuoptions[0]),"M"); //Ignore Address!
-			}
-			else if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT)&1) //Ignore EIP?
-			{
-				safestrcat(menuoptions[advancedoptions],sizeof(menuoptions[0]),"I"); //Ignore EIP!
-			}
-			else if ((BIOS_Settings.breakpoint >> SETTINGS_BREAKPOINT_IGNORESEGMENT_SHIFT) & 1) //Ignore CS?
-			{
-				safestrcat(menuoptions[advancedoptions], sizeof(menuoptions[0]), "O"); //Ignore CS!
-			}
-			break;
-		default: //Just in case!
-			safestrcat(menuoptions[advancedoptions],sizeof(menuoptions[0]), "<UNKNOWN. CHECK SETTINGS VERSION>");
-			break;
-	}
-	++advancedoptions; //Increase after!
+	BIOSMenu_breakpointDisplay(0);
+	BIOSMenu_breakpointDisplay(1);
+	BIOSMenu_breakpointDisplay(2);
+	BIOSMenu_breakpointDisplay(3);
+	BIOSMenu_breakpointDisplay(4);
 
 	optioninfo[advancedoptions] = 20; //Task Breakpoint!
 	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Task Breakpoint: ");
@@ -5657,6 +5672,8 @@ setInboardInitialWaitstates: //For fixing it!
 		break;
 	}
 }
+
+byte BPindex; //What breakpoint to use?
 
 void BIOS_CPU() //CPU menu!
 {
@@ -5792,6 +5809,11 @@ void BIOS_CPU() //CPU menu!
 			}
 			break;
 		case 15: //Breakpoint
+		case 22: //Breakpoint
+		case 23: //Breakpoint
+		case 24: //Breakpoint
+		case 25: //Breakpoint
+			BPindex = (optioninfo[menuresult] == 15) ? 0 : (optioninfo[menuresult] - 21); //What index?
 			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
 			{
 				#ifndef IS_PSP
@@ -5823,7 +5845,7 @@ void BIOS_CPU() //CPU menu!
 				}
 				segment = REG_CS; //CS!
 				offset = mode==1?REG_IP:REG_EIP; //Our offset!
-				BIOS_Settings.breakpoint = (((uint_64)mode&3)<<SETTINGS_BREAKPOINT_MODE_SHIFT)|(((uint_64)segment&SETTINGS_BREAKPOINT_SEGMENT_MASK)<<SETTINGS_BREAKPOINT_SEGMENT_SHIFT)|((uint_64)offset&SETTINGS_BREAKPOINT_OFFSET_MASK); //Set the new breakpoint!
+				BIOS_Settings.breakpoint[BPindex] = (((uint_64)mode&3)<<SETTINGS_BREAKPOINT_MODE_SHIFT)|(((uint_64)segment&SETTINGS_BREAKPOINT_SEGMENT_MASK)<<SETTINGS_BREAKPOINT_SEGMENT_SHIFT)|((uint_64)offset&SETTINGS_BREAKPOINT_OFFSET_MASK); //Set the new breakpoint!
 				BIOS_Changed = 1; //We've changed!
 				unlock(LOCK_CPU); //Finished with the CPU!
 			}
@@ -7299,71 +7321,71 @@ uint_32 converthex2int(char *s)
 	return result; //Give the result we calculated!
 }
 
-void BIOS_setBreakpoint(char *breakpointstr, word semicolonpos, byte mode, byte ignoreEIP, byte ignoreAddress, byte ignoreSegment);
+void BIOS_setBreakpoint(byte index, char *breakpointstr, word semicolonpos, byte mode, byte ignoreEIP, byte ignoreAddress, byte ignoreSegment);
 
 void BIOS_breakpoint()
 {
 	char breakpointstr[256]; //32-bits offset, colon, 16-bits segment, mode if required(Protected/Virtual 8086), Ignore EIP/CS/Whole address(mode only) and final character(always zero)!
 	cleardata(&breakpointstr[0],sizeof(breakpointstr));
 	//First, convert the current breakpoint to a string format!
-	switch ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_MODE_SHIFT)) //What mode?
+	switch ((BIOS_Settings.breakpoint[BPindex]>>SETTINGS_BREAKPOINT_MODE_SHIFT)) //What mode?
 	{
 		case 0: //No breakpoint?
 			snprintf(breakpointstr,sizeof(breakpointstr),"%04X:%04X",0,0); //seg16:offs16 default!
-			if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREADDRESS_SHIFT)&1) //Ignore address?
+			if ((BIOS_Settings.breakpoint[BPindex]>>SETTINGS_BREAKPOINT_IGNOREADDRESS_SHIFT)&1) //Ignore address?
 			{
 				safestrcat(breakpointstr,sizeof(breakpointstr),"M"); //Ignore mode!
 			}
-			else if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT)&1) //Ignore EIP?
+			else if ((BIOS_Settings.breakpoint[BPindex]>>SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT)&1) //Ignore EIP?
 			{
 				safestrcat(breakpointstr,sizeof(breakpointstr),"I"); //Ignore EIP!
 			}
-			else if ((BIOS_Settings.breakpoint >> SETTINGS_BREAKPOINT_IGNORESEGMENT_SHIFT) & 1) //Ignore CS?
+			else if ((BIOS_Settings.breakpoint[BPindex] >> SETTINGS_BREAKPOINT_IGNORESEGMENT_SHIFT) & 1) //Ignore CS?
 			{
 				safestrcat(breakpointstr, sizeof(breakpointstr), "O"); //Ignore CS!
 			}
 			break;
 		case 1: //Real mode?
-			snprintf(breakpointstr,sizeof(breakpointstr),"%04X:%04X",(word)((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK),(word)((BIOS_Settings.breakpoint&SETTINGS_BREAKPOINT_OFFSET_MASK)&0xFFFF)); //seg16:offs16!
-			if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREADDRESS_SHIFT)&1) //Ignore address?
+			snprintf(breakpointstr,sizeof(breakpointstr),"%04X:%04X",(word)((BIOS_Settings.breakpoint[BPindex]>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK),(word)((BIOS_Settings.breakpoint[BPindex]&SETTINGS_BREAKPOINT_OFFSET_MASK)&0xFFFF)); //seg16:offs16!
+			if ((BIOS_Settings.breakpoint[BPindex]>>SETTINGS_BREAKPOINT_IGNOREADDRESS_SHIFT)&1) //Ignore address?
 			{
 				safestrcat(breakpointstr,sizeof(breakpointstr),"M"); //Ignore mode!
 			}
-			else if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT)&1) //Ignore EIP?
+			else if ((BIOS_Settings.breakpoint[BPindex]>>SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT)&1) //Ignore EIP?
 			{
 				safestrcat(breakpointstr,sizeof(breakpointstr),"I"); //Ignore EIP!
 			}
-			else if ((BIOS_Settings.breakpoint >> SETTINGS_BREAKPOINT_IGNORESEGMENT_SHIFT) & 1) //Ignore CS?
+			else if ((BIOS_Settings.breakpoint[BPindex]>>SETTINGS_BREAKPOINT_IGNORESEGMENT_SHIFT) & 1) //Ignore CS?
 			{
 				safestrcat(breakpointstr, sizeof(breakpointstr), "O"); //Ignore CS!
 			}
 			break;
 		case 2: //Protected mode?
-			snprintf(breakpointstr,sizeof(breakpointstr),"%04X:%08XP",(word)((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK),(uint_32)(BIOS_Settings.breakpoint&SETTINGS_BREAKPOINT_OFFSET_MASK)); //seg16:offs16!
-			if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREADDRESS_SHIFT)&1) //Ignore address?
+			snprintf(breakpointstr,sizeof(breakpointstr),"%04X:%08XP",(word)((BIOS_Settings.breakpoint[BPindex]>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK),(uint_32)(BIOS_Settings.breakpoint[BPindex]&SETTINGS_BREAKPOINT_OFFSET_MASK)); //seg16:offs16!
+			if ((BIOS_Settings.breakpoint[BPindex]>>SETTINGS_BREAKPOINT_IGNOREADDRESS_SHIFT)&1) //Ignore address?
 			{
 				safestrcat(breakpointstr,sizeof(breakpointstr),"M"); //Ignore mode!
 			}
-			else if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT)&1) //Ignore EIP?
+			else if ((BIOS_Settings.breakpoint[BPindex]>>SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT)&1) //Ignore EIP?
 			{
 				safestrcat(breakpointstr,sizeof(breakpointstr),"I"); //Ignore EIP!
 			}
-			else if ((BIOS_Settings.breakpoint >> SETTINGS_BREAKPOINT_IGNORESEGMENT_SHIFT) & 1) //Ignore CS?
+			else if ((BIOS_Settings.breakpoint[BPindex]>>SETTINGS_BREAKPOINT_IGNORESEGMENT_SHIFT)&1) //Ignore CS?
 			{
 				safestrcat(breakpointstr, sizeof(breakpointstr), "O"); //Ignore CS!
 			}
 			break;
 		case 3: //Virtual 8086 mode?
-			snprintf(breakpointstr,sizeof(breakpointstr),"%04X:%04XV",(word)((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK),(word)((BIOS_Settings.breakpoint&SETTINGS_BREAKPOINT_OFFSET_MASK)&0xFFFF)); //seg16:offs16!
-			if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREADDRESS_SHIFT)&1) //Ignore address?
+			snprintf(breakpointstr,sizeof(breakpointstr),"%04X:%04XV",(word)((BIOS_Settings.breakpoint[BPindex]>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK),(word)((BIOS_Settings.breakpoint[BPindex]&SETTINGS_BREAKPOINT_OFFSET_MASK)&0xFFFF)); //seg16:offs16!
+			if ((BIOS_Settings.breakpoint[BPindex]>>SETTINGS_BREAKPOINT_IGNOREADDRESS_SHIFT)&1) //Ignore address?
 			{
 				safestrcat(breakpointstr,sizeof(breakpointstr),"M"); //Ignore mode!
 			}
-			else if ((BIOS_Settings.breakpoint>>SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT)&1) //Ignore EIP?
+			else if ((BIOS_Settings.breakpoint[BPindex]>>SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT)&1) //Ignore EIP?
 			{
 				safestrcat(breakpointstr,sizeof(breakpointstr),"I"); //Ignore EIP!
 			}
-			else if ((BIOS_Settings.breakpoint >> SETTINGS_BREAKPOINT_IGNORESEGMENT_SHIFT) & 1) //Ignore CS?
+			else if ((BIOS_Settings.breakpoint[BPindex]>>SETTINGS_BREAKPOINT_IGNORESEGMENT_SHIFT)&1) //Ignore CS?
 			{
 				safestrcat(breakpointstr, sizeof(breakpointstr), "O"); //Ignore CS!
 			}
@@ -7431,15 +7453,15 @@ void BIOS_breakpoint()
 					//This won't compile on the PSP for some unknown reason, crashing the compiler!
 					if (((safe_strlen(&breakpointstr[0],sizeof(breakpointstr))-semicolonpos)-1)<=maxoffsetsize) //Offset OK?
 					{
-						BIOS_setBreakpoint(&breakpointstr[0],semicolonpos,mode,ignoreEIP,ignoreAddress,ignoreSegment);
+						BIOS_setBreakpoint(BPindex,&breakpointstr[0],semicolonpos,mode,ignoreEIP,ignoreAddress,ignoreSegment);
 					}
 					#endif
 			}
 		}
 		else //Unset?
 		{
-			BIOS_Changed = BIOS_Changed||((BIOS_Settings.breakpoint!=0)?1:0); //We've changed!			
-			BIOS_Settings.breakpoint = 0; //No breakpoint!
+			BIOS_Changed = BIOS_Changed||((BIOS_Settings.breakpoint[BPindex]!=0)?1:0); //We've changed!			
+			BIOS_Settings.breakpoint[BPindex] = 0; //No breakpoint!
 		}
 	}
 	abortcoloninput:
@@ -7584,7 +7606,7 @@ void BIOS_CR3breakpoint()
 	BIOS_Menu = 35; //Goto CPU menu!
 }
 
-void BIOS_setBreakpoint(char *breakpointstr, word semicolonpos, byte mode, byte ignoreEIP, byte ignoreAddress, byte ignoreSegment)
+void BIOS_setBreakpoint(byte index, char *breakpointstr, word semicolonpos, byte mode, byte ignoreEIP, byte ignoreAddress, byte ignoreSegment)
 {
 	word segment;
 	uint_32 offset;
@@ -7593,12 +7615,12 @@ void BIOS_setBreakpoint(char *breakpointstr, word semicolonpos, byte mode, byte 
 	offset = converthex2int(&breakpointstr[semicolonpos+1]); //Convert the number to our usable format!
 
 	//Apply the new breakpoint!
-	BIOS_Settings.breakpoint = (((uint_64)mode&3)<<SETTINGS_BREAKPOINT_MODE_SHIFT);
-	BIOS_Settings.breakpoint |= (((ignoreEIP?1LLU:0LLU)<<SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT));
-	BIOS_Settings.breakpoint |=	(((ignoreAddress?1LLU:0LLU)<<SETTINGS_BREAKPOINT_IGNOREADDRESS_SHIFT));
-	BIOS_Settings.breakpoint |= (((ignoreSegment ? 1LLU : 0LLU) << SETTINGS_BREAKPOINT_IGNORESEGMENT_SHIFT));
-	BIOS_Settings.breakpoint |= (((uint_64)segment&SETTINGS_BREAKPOINT_SEGMENT_MASK)<<SETTINGS_BREAKPOINT_SEGMENT_SHIFT);
-	BIOS_Settings.breakpoint |= ((uint_64)offset&SETTINGS_BREAKPOINT_OFFSET_MASK); //Set the new breakpoint!
+	BIOS_Settings.breakpoint[index] = (((uint_64)mode&3)<<SETTINGS_BREAKPOINT_MODE_SHIFT);
+	BIOS_Settings.breakpoint[index] |= (((ignoreEIP?1LLU:0LLU)<<SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT));
+	BIOS_Settings.breakpoint[index] |=	(((ignoreAddress?1LLU:0LLU)<<SETTINGS_BREAKPOINT_IGNOREADDRESS_SHIFT));
+	BIOS_Settings.breakpoint[index] |= (((ignoreSegment ? 1LLU : 0LLU) << SETTINGS_BREAKPOINT_IGNORESEGMENT_SHIFT));
+	BIOS_Settings.breakpoint[index] |= (((uint_64)segment&SETTINGS_BREAKPOINT_SEGMENT_MASK)<<SETTINGS_BREAKPOINT_SEGMENT_SHIFT);
+	BIOS_Settings.breakpoint[index] |= ((uint_64)offset&SETTINGS_BREAKPOINT_OFFSET_MASK); //Set the new breakpoint!
 	BIOS_Changed = 1; //We've changed!
 }
 

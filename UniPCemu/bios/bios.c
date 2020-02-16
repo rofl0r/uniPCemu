@@ -881,7 +881,11 @@ void BIOS_LoadData() //Load BIOS settings!
 	BIOS_Settings.debugger_log = (byte)get_private_profile_uint64("debugger", "debuggerlog", DEFAULT_DEBUGGERLOG, BIOS_Settings_file);
 	BIOS_Settings.debugger_logstates = (byte)get_private_profile_uint64("debugger", "logstates", DEFAULT_DEBUGGERSTATELOG, BIOS_Settings_file); //Are we logging states? 1=Log states, 0=Don't log states!
 	BIOS_Settings.debugger_logregisters = (byte)get_private_profile_uint64("debugger", "logregisters", DEFAULT_DEBUGGERREGISTERSLOG, BIOS_Settings_file); //Are we logging states? 1=Log states, 0=Don't log states!
-	BIOS_Settings.breakpoint = get_private_profile_uint64("debugger", "breakpoint", 0, BIOS_Settings_file); //The used breakpoint segment:offset and mode!
+	BIOS_Settings.breakpoint[0] = get_private_profile_uint64("debugger", "breakpoint", 0, BIOS_Settings_file); //The used breakpoint segment:offset and mode!
+	BIOS_Settings.breakpoint[1] = get_private_profile_uint64("debugger", "breakpoint2", 0, BIOS_Settings_file); //The used breakpoint segment:offset and mode!
+	BIOS_Settings.breakpoint[2] = get_private_profile_uint64("debugger", "breakpoint3", 0, BIOS_Settings_file); //The used breakpoint segment:offset and mode!
+	BIOS_Settings.breakpoint[3] = get_private_profile_uint64("debugger", "breakpoint4", 0, BIOS_Settings_file); //The used breakpoint segment:offset and mode!
+	BIOS_Settings.breakpoint[4] = get_private_profile_uint64("debugger", "breakpoint5", 0, BIOS_Settings_file); //The used breakpoint segment:offset and mode!
 	BIOS_Settings.taskBreakpoint = get_private_profile_uint64("debugger", "taskbreakpoint", 0, BIOS_Settings_file); //The used breakpoint segment:offset and mode!
 	BIOS_Settings.CR3breakpoint = get_private_profile_uint64("debugger", "CR3breakpoint", 0, BIOS_Settings_file); //The used breakpoint segment:offset and mode!
 	BIOS_Settings.diagnosticsportoutput_breakpoint = (sword)get_private_profile_int64("debugger", "diagnosticsport_breakpoint", DEFAULT_DIAGNOSTICSPORTOUTPUT_BREAKPOINT, BIOS_Settings_file); //Use a diagnostics port breakpoint?
@@ -1154,7 +1158,11 @@ int BIOS_SaveData() //Save BIOS settings!
 	if (!write_private_profile_uint64("debugger", debugger_commentused, "debuggerlog", BIOS_Settings.debugger_log, BIOS_Settings_file)) return 0;
 	if (!write_private_profile_uint64("debugger", debugger_commentused, "logstates", BIOS_Settings.debugger_logstates, BIOS_Settings_file)) return 0; //Are we logging states? 1=Log states, 0=Don't log states!
 	if (!write_private_profile_uint64("debugger", debugger_commentused, "logregisters", BIOS_Settings.debugger_logregisters, BIOS_Settings_file)) return 0; //Are we logging states? 1=Log states, 0=Don't log states!
-	if (!write_private_profile_uint64("debugger", debugger_commentused, "breakpoint", BIOS_Settings.breakpoint, BIOS_Settings_file)) return 0; //The used breakpoint segment:offset and mode!
+	if (!write_private_profile_uint64("debugger", debugger_commentused, "breakpoint", BIOS_Settings.breakpoint[0], BIOS_Settings_file)) return 0; //The used breakpoint segment:offset and mode!
+	if (!write_private_profile_uint64("debugger", debugger_commentused, "breakpoint2", BIOS_Settings.breakpoint[1], BIOS_Settings_file)) return 0; //The used breakpoint segment:offset and mode!
+	if (!write_private_profile_uint64("debugger", debugger_commentused, "breakpoint3", BIOS_Settings.breakpoint[2], BIOS_Settings_file)) return 0; //The used breakpoint segment:offset and mode!
+	if (!write_private_profile_uint64("debugger", debugger_commentused, "breakpoint4", BIOS_Settings.breakpoint[3], BIOS_Settings_file)) return 0; //The used breakpoint segment:offset and mode!
+	if (!write_private_profile_uint64("debugger", debugger_commentused, "breakpoint5", BIOS_Settings.breakpoint[4], BIOS_Settings_file)) return 0; //The used breakpoint segment:offset and mode!
 	if (!write_private_profile_uint64("debugger", debugger_commentused, "taskbreakpoint", BIOS_Settings.taskBreakpoint, BIOS_Settings_file)) return 0; //The used breakpoint segment:offset and enable!
 	if (!write_private_profile_uint64("debugger", debugger_commentused, "CR3breakpoint", BIOS_Settings.CR3breakpoint, BIOS_Settings_file)) return 0; //The used breakpoint offset ans enable!
 	if (!write_private_profile_int64("debugger", debugger_commentused, "diagnosticsport_breakpoint", BIOS_Settings.diagnosticsportoutput_breakpoint, BIOS_Settings_file)) return 0; //Use a diagnostics port breakpoint?
