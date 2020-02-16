@@ -230,7 +230,7 @@ byte CPU_executionphase_starttaskswitch(int whatsegment, SEGMENT_DESCRIPTOR *LOA
 
 byte CPU_executionphase_busy() //Are we busy?
 {
-	return ((currentEUphasehandler!=&CPU_executionphase_normal)&&currentEUphasehandler); //Are we operating on something other than a (new) instruction?
+	return (currentEUphasehandler?1:0); //Are we operating on something other than a (new) instruction?
 }
 
 //Actual phase handler that transfers to the current phase!
