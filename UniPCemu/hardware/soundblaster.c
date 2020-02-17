@@ -274,6 +274,7 @@ void updateSoundBlaster(DOUBLE timepassed, uint_32 MHZ14passed)
 						if (SOUNDBLASTER.DMAfinishtimer) //Finished?
 						{
 							SoundBlaster_IRQ8(); //Raise the 8-bit IRQ!
+							SOUNDBLASTER.DREQ |= 8; //Wait for the interrupt to trigger before acnowledging!
 							SOUNDBLASTER.DMAfinishtimer = 0; //Not anymore!
 						}
 						if (readfifobuffer(SOUNDBLASTER.DSPoutdata, &sb_leftsample)) //Mono sample read?
@@ -884,7 +885,7 @@ OPTINLINE void DSP_writeData(byte data, byte isDMA)
 					if (SOUNDBLASTER.AutoInit) //Autoinit enabled?
 					{
 						SoundBlaster_DetectDMALength((byte)SOUNDBLASTER.command, SOUNDBLASTER.AutoInitBlockSize); //Reload the length of the DMA transfer to play back, in bytes!
-						SOUNDBLASTER.DREQ |= (2|8); //Wait for the next sample to be played, according to the sample rate! Also wait for the IRQ to be aclowledged!
+						SOUNDBLASTER.DREQ |= 2; //Wait for the next sample to be played, according to the sample rate! Also wait for the IRQ to be aclowledged!
 					}
 					else
 					{
@@ -1045,7 +1046,7 @@ OPTINLINE byte readDSPData(byte isDMA)
 					if (SOUNDBLASTER.AutoInit) //Autoinit enabled?
 					{
 						SoundBlaster_DetectDMALength((byte)SOUNDBLASTER.command, SOUNDBLASTER.AutoInitBlockSize); //Reload the length of the DMA transfer to play back, in bytes!
-						SOUNDBLASTER.DREQ |= (2|8); //Wait for the next sample to be played, according to the sample rate! Also wait for the IRQ to be aclowledged!
+						SOUNDBLASTER.DREQ |= 2; //Wait for the next sample to be played, according to the sample rate! Also wait for the IRQ to be aclowledged!
 					}
 					else
 					{
