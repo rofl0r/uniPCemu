@@ -109,6 +109,7 @@ struct
 	byte timeconstant; //Time contant to reload at!
 	byte timeconstantdirty; //Time constant is changed since the last load?
 	word timer; //The timer we're counting down! 0=Finished and tick a sample!
+	byte DMAfinishtimer; //DMA finished timer!
 } SOUNDBLASTER; //The Sound Blaster data!
 
 extern byte specialdebugger; //Enable special debugger input?
@@ -270,6 +271,11 @@ void updateSoundBlaster(DOUBLE timepassed, uint_32 MHZ14passed)
 					}
 					else //Audio playing?
 					{
+						if (SOUNDBLASTER.DMAfinishtimer) //Finished?
+						{
+							SoundBlaster_IRQ8(); //Raise the 8-bit IRQ!
+							SOUNDBLASTER.DMAfinishtimer = 0; //Not anymore!
+						}
 						if (readfifobuffer(SOUNDBLASTER.DSPoutdata, &sb_leftsample)) //Mono sample read?
 						{
 							sb_rightsample = sb_leftsample; //Render the new mono sample!
@@ -433,7 +439,7 @@ OPTINLINE void DSP_startDMADAC(byte autoinitDMA, byte isRecording)
 
 	//According to Bochs, starting a DMA transfer loads the block size setting with the selected DMA length, even when not using Auto-Init DMA!
 	SOUNDBLASTER.AutoInitBlockSize = SOUNDBLASTER.wordparamoutput;
-
+	SOUNDBLASTER.DMAfinishtimer = 0; //Signal DMA transfer not yet finished!
 	SoundBlaster_DetectDMALength((byte)SOUNDBLASTER.command, SOUNDBLASTER.wordparamoutput); //The length of the DMA transfer to play back, in bytes!
 	if ((SOUNDBLASTER.timer == 0) || (SOUNDBLASTER.timeconstantdirty)) //Not timing yet or dirtied?
 	{
@@ -873,8 +879,8 @@ OPTINLINE void DSP_writeData(byte data, byte isDMA)
 				}
 				if (--SOUNDBLASTER.dataleft==0) //One data used! Finished? Give IRQ!
 				{
-					nooutdataleft: //Nothing left?
-					SoundBlaster_IRQ8(); //Raise the 8-bit IRQ!
+				nooutdataleft: //Nothing left?
+					SOUNDBLASTER.DMAfinishtimer = 1; //Signal DMA finished!
 					if (SOUNDBLASTER.AutoInit) //Autoinit enabled?
 					{
 						SoundBlaster_DetectDMALength((byte)SOUNDBLASTER.command, SOUNDBLASTER.AutoInitBlockSize); //Reload the length of the DMA transfer to play back, in bytes!
@@ -882,6 +888,7 @@ OPTINLINE void DSP_writeData(byte data, byte isDMA)
 					}
 					else
 					{
+						SoundBlaster_IRQ8(); //Raise the 8-bit IRQ!
 						SOUNDBLASTER.timer = 0; //Stop ticking the timer at the current rate!
 						SOUNDBLASTER.DREQ = 0; //Stop DMA: we're finished!
 					}
@@ -1033,8 +1040,8 @@ OPTINLINE byte readDSPData(byte isDMA)
 				if (SOUNDBLASTER.dataleft==0) goto noreaddataleft;
 				if (--SOUNDBLASTER.dataleft == 0) //One data used! Finished? Give IRQ!
 				{
-					noreaddataleft:
-					SoundBlaster_IRQ8(); //Raise the 8-bit IRQ!
+				noreaddataleft:
+					SOUNDBLASTER.DMAfinishtimer = 1; //Signal DMA finished!
 					if (SOUNDBLASTER.AutoInit) //Autoinit enabled?
 					{
 						SoundBlaster_DetectDMALength((byte)SOUNDBLASTER.command, SOUNDBLASTER.AutoInitBlockSize); //Reload the length of the DMA transfer to play back, in bytes!
@@ -1042,6 +1049,7 @@ OPTINLINE byte readDSPData(byte isDMA)
 					}
 					else
 					{
+						SoundBlaster_IRQ8(); //Raise the 8-bit IRQ!
 						SOUNDBLASTER.timer = 0; //Stop ticking the timer at the current rate!
 						SOUNDBLASTER.DREQ = 0; //Finished!
 					}
