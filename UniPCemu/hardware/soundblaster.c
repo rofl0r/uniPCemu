@@ -430,6 +430,10 @@ OPTINLINE void DSP_startDMADAC(byte autoinitDMA, byte isRecording)
 	}
 	*/
 	//Auto-init DMA starting already has wordparamoutput loaded during the parameter phase!
+
+	//According to Bochs, starting a DMA transfer loads the block size setting with the selected DMA length, even when not using Auto-Init DMA!
+	SOUNDBLASTER.AutoInitBlockSize = SOUNDBLASTER.wordparamoutput;
+
 	SoundBlaster_DetectDMALength((byte)SOUNDBLASTER.command, SOUNDBLASTER.wordparamoutput); //The length of the DMA transfer to play back, in bytes!
 	if ((SOUNDBLASTER.timer == 0) || (SOUNDBLASTER.timeconstantdirty)) //Not timing yet or dirtied?
 	{
