@@ -792,7 +792,10 @@ void debugger_logregisters(char *filename, CPU_registers *registers, byte halted
 		{
 			if (CPU_exec_lastCS!=REGR_CS(registers))
 			{
-				dolog(filename, "Previous CS:IP: %04x:%08x", CPU_exec_lastCS,CPU_exec_lastEIP);
+				if ((DEBUGGER_LOG == DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG == DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG == DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT)) //Common log format?
+					dolog(filename, "\t\t\tPrevious CS:IP: %04x:%04x", CPU_exec_lastCS,CPU_exec_lastEIP);
+				else
+					dolog(filename, "Previous CS:IP: %04x:%04x", CPU_exec_lastCS, CPU_exec_lastEIP);
 			}
 		}
 		#endif
@@ -825,7 +828,10 @@ void debugger_logregisters(char *filename, CPU_registers *registers, byte halted
 			debugger_logdescriptors(filename); //Log descriptors too!
 			if (CPU_exec_lastCS!=REGR_CS(registers))
 			{
-				dolog(filename, "Previous CS:IP: %04x:%08x", CPU_exec_lastCS,CPU_exec_lastEIP);
+				if ((DEBUGGER_LOG == DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG == DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG == DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT)) //Common log format?
+					dolog(filename, "\t\t\tPrevious CS:EIP: %04x:%08x", CPU_exec_lastCS, CPU_exec_lastEIP);
+				else
+					dolog(filename, "Previous CS:EIP: %04x:%08x", CPU_exec_lastCS, CPU_exec_lastEIP);
 			}
 		}
 		#endif
