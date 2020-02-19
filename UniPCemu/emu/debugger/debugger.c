@@ -792,7 +792,7 @@ void debugger_logregisters(char *filename, CPU_registers *registers, byte halted
 		{
 			if (CPU_exec_lastCS!=REGR_CS(registers))
 			{
-				dolog(filename, "Previous CS:IP: %02x:%08x", CPU_exec_lastCS,CPU_exec_lastEIP);
+				dolog(filename, "Previous CS:IP: %04x:%08x", CPU_exec_lastCS,CPU_exec_lastEIP);
 			}
 		}
 		#endif
@@ -825,7 +825,7 @@ void debugger_logregisters(char *filename, CPU_registers *registers, byte halted
 			debugger_logdescriptors(filename); //Log descriptors too!
 			if (CPU_exec_lastCS!=REGR_CS(registers))
 			{
-				dolog(filename, "Previous CS:IP: %02x:%08x", CPU_exec_lastCS,CPU_exec_lastEIP);
+				dolog(filename, "Previous CS:IP: %04x:%08x", CPU_exec_lastCS,CPU_exec_lastEIP);
 			}
 		}
 		#endif
