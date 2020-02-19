@@ -743,6 +743,9 @@ void debugger_logdescriptors(char* filename)
 	}
 }
 
+extern word CPU_exec_lastCS; //OPCode CS
+extern uint_32 CPU_exec_lastEIP; //OPCode EIP
+
 void debugger_logregisters(char *filename, CPU_registers *registers, byte halted, byte isreset)
 {
 	if (likely(DEBUGGER_LOGREGISTERS==0)) //Disable register loggimg?
@@ -785,6 +788,13 @@ void debugger_logregisters(char *filename, CPU_registers *registers, byte halted
 				debugger_logdescriptors(filename); //Log descriptors too!
 			}
 		}
+		if (advancedlog) //Advanced log enabled?
+		{
+			if (CPU_exec_lastCS!=REGR_CS(registers))
+			{
+				dolog(filename, "Previous CS:IP: %02x:%08x", CPU_exec_lastCS,CPU_exec_lastEIP);
+			}
+		}
 		#endif
 		dolog(filename,"FLAGSINFO: %s%c",debugger_generateFlags(registers),decodeHLTreset(halted,isreset)); //Log the flags!
 		//More aren't implemented in the 80(1/2)86!
@@ -813,6 +823,10 @@ void debugger_logregisters(char *filename, CPU_registers *registers, byte halted
 		if (advancedlog) //Advanced log enabled?
 		{
 			debugger_logdescriptors(filename); //Log descriptors too!
+			if (CPU_exec_lastCS!=REGR_CS(registers))
+			{
+				dolog(filename, "Previous CS:IP: %02x:%08x", CPU_exec_lastCS,CPU_exec_lastEIP);
+			}
 		}
 		#endif
 		//Finally, flags seperated!
