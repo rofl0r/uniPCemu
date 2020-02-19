@@ -855,6 +855,7 @@ typedef struct
 
 	//POP SS inhabits interrupts!
 	byte allowInterrupts; //Do we allow interrupts to run?
+	byte previousAllowInterrupts; //Do we allow interrupts to run?
 	byte allowTF; //Allow trapping now?
 	byte is0Fopcode; //Are we a 0F opcode to be executed?
 	byte D_B_Mask; //D_B bit mask when used for 16 vs 32-bits!

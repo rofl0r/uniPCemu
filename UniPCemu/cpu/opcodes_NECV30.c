@@ -620,7 +620,7 @@ void CPU186_OP8E()
 	}
 	if (CPU8086_instructionstepreadmodrmw(0, &temp8Edata, MODRM_src1)) return;
 	CPU186_internal_MOV16(modrm_addr16(&params, MODRM_src0, 0), temp8Edata);
-	if ((params.info[MODRM_src0].reg16 == &REG_SS) && (params.info[MODRM_src0].isreg == 1))
+	if ((params.info[MODRM_src0].reg16 == &REG_SS) && (params.info[MODRM_src0].isreg == 1) && (CPU[activeCPU].previousAllowInterrupts))
 	{
 		CPU[activeCPU].allowInterrupts = 0; /* Inhabit all interrupts up to the next instruction */
 	}

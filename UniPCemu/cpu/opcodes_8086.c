@@ -4388,7 +4388,10 @@ void CPU8086_OP17()
 	{
 		CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*Pop Segreg!*/
 	}
-	CPU[activeCPU].allowInterrupts = 0; /* Inhabit all interrupts up to the next instruction */
+	if (CPU[activeCPU].previousAllowInterrupts) //Not already inhibiting?
+	{
+		CPU[activeCPU].allowInterrupts = 0; /* Inhabit all interrupts up to the next instruction */
+	}
 }
 void CPU8086_execute_SBB_modrmmodrm8()
 {
@@ -5378,7 +5381,7 @@ void CPU8086_execute_MOVSegRegMemory()
 	}
 	if (CPU8086_instructionstepreadmodrmw(0, &instructionbufferw, MODRM_src1)) return;
 	if (CPU8086_internal_MOV16(modrm_addr16(&params, MODRM_src0, 0), instructionbufferw, 8)) return;
-	if ((params.info[MODRM_src0].reg16 == &REG_SS) && (params.info[MODRM_src0].isreg == 1))
+	if ((params.info[MODRM_src0].reg16 == &REG_SS) && (params.info[MODRM_src0].isreg == 1) && (CPU[activeCPU].previousAllowInterrupts))
 	{
 		CPU[activeCPU].allowInterrupts = 0; /* Inhabit all interrupts up to the next instruction */
 	}
@@ -6466,7 +6469,7 @@ void CPU8086_OP8F() //Undocumented GRP opcode 8F r/m16
 		if (CPU8086_instructionstepPOPtimeout(0)) return; /*POP timeout*/
 		if (CPU8086_POPw(2,&value,0)) return; //POP first!
 		if (CPU8086_instructionstepwritemodrmw(0,value,MODRM_src0,0)) return; //POP r/m16
-		if ((params.info[MODRM_src0].reg16 == &REG_SS) && (params.info[MODRM_src0].isreg==1)) //Popping into SS?
+		if ((params.info[MODRM_src0].reg16 == &REG_SS) && (params.info[MODRM_src0].isreg==1) && (CPU[activeCPU].previousAllowInterrupts)) //Popping into SS?
 		{
 			CPU[activeCPU].allowInterrupts = 0; /* Inhabit all interrupts up to the next instruction */
 		}

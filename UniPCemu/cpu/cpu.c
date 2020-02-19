@@ -909,7 +909,7 @@ void resetCPU(byte isInit) //Initialises the currently selected CPU!
 	byte i;
 	for (i = 0;i < NUMITEMS(CPU);++i) //Process all CPUs!
 	{
-		CPU[i].allowInterrupts = 1; //Default to allowing all interrupts to run!
+		CPU[i].allowInterrupts = CPU[i].previousAllowInterrupts = 1; //Default to allowing all interrupts to run!
 		CPU[i].TSC = 0; //Reset timestamp counter!
 	}
 	CPU_initRegisters(isInit); //Initialise the registers!
@@ -1595,6 +1595,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 			THROWDESCGP(0, 0, 0); //#GP(0)!
 			return; //Abort! Don't fetch or execute!
 		}
+		CPU[activeCPU].previousAllowInterrupts = CPU[activeCPU].allowInterrupts; //Were interrupts inhibited for this instruction?
 		CPU[activeCPU].allowInterrupts = 1; //Allow interrupts again after this instruction!
 	}
 

@@ -3128,7 +3128,7 @@ void CPU80386_OP8C()
 	{
 		if (CPU80386_internal_MOV16(modrm_addr16(&params, MODRM_src0, 0), instructionbufferd, 8)) return;
 	}
-	if ((params.info[MODRM_src0].reg16 == &REG_SS) && (params.info[MODRM_src0].isreg == 1))
+	if ((params.info[MODRM_src0].reg16 == &REG_SS) && (params.info[MODRM_src0].isreg == 1) && (CPU[activeCPU].previousAllowInterrupts))
 	{
 		CPU[activeCPU].allowInterrupts = 0; /* Inhabit all interrupts up to the next instruction */
 	}
