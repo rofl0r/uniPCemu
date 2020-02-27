@@ -83,6 +83,8 @@ void CPU_doublefault()
 	CPU[activeCPU].faultraised = 1; //Raising a fault!
 	uint_64 zerovalue=0; //Zero value pushed!
 	++CPU[activeCPU].faultlevel; //Raise the fault level to cause triple faults!
+	CPU_resetOP();
+	CPU_onResettingFault();
 	CPU_executionphase_startinterrupt(EXCEPTION_DOUBLEFAULT,2,zerovalue); //Execute the double fault handler!
 }
 
