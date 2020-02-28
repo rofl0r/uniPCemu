@@ -407,15 +407,23 @@ struct
 {
 	uint_32 maskedaddress; //Masked address to match!
 	uint_32 memorylocpatch; //How much to substract for the physical memory location?
+	uint_32 byteaddr; //Byte address within the block of memory(address MOD 8)!
+	byte *cache; //Cached data of the byte address in memory(only valid when not a memory hole)!
 	byte memLocHole; //Prefetched data!
-} memorymapinfo[4]; //One for reads, one for writes!
+} memorymapinfo[4]; //Two for reads(code, data), one for writes!
 
 //isread: 0=write, 1=read, 3=Instruction read
-OPTINLINE byte applyMemoryHoles(uint_32 *realaddress, byte isread)
+OPTINLINE byte applyMemoryHoles(uint_32 realaddress, byte isread)
 {
-	INLINEREGISTER uint_32 originaladdress = *realaddress, maskedaddress; //Original address!
+	INLINEREGISTER uint_32 originaladdress = (realaddress&~7), maskedaddress; //Original address!
 	byte memloc; //What memory block?
 	byte memoryhole;
+	realaddress = originaladdress; //Make sure we're aligned at chunks!
+
+	if (likely((memorymapinfo[isread].byteaddr == originaladdress) && (memorymapinfo[isread].cache))) //Cached the requested adress block? We can return immediately, as we're ready to process!
+	{
+		return 0; //Found cached!
+	}
 
 	maskedaddress = (originaladdress >> 0x10); //Take the block number we're trying to access!
 	if (unlikely(((memorymapinfo[isread].maskedaddress != maskedaddress)))) //Not matched already? Load the cache with it's information!
@@ -427,6 +435,7 @@ OPTINLINE byte applyMemoryHoles(uint_32 *realaddress, byte isread)
 		memorymapinfo[isread].memLocHole = memoryhole; //Save the memory hole to use, if any!
 		maskedaddress = memorymapinfo[isread].memorylocpatch = MMU_memorymaplocpatch[memloc]; //The patch address to substract!
 		//Now that our cache is loaded with relevant data, start processing it!
+		memorymapinfo[isread].cache = NULL; //Invalidate the cache by default! This is loaded later, when it's valid to use only!
 	}
 	else //Already loaded?
 	{
@@ -437,6 +446,7 @@ OPTINLINE byte applyMemoryHoles(uint_32 *realaddress, byte isread)
 		//memoryhole >>= 4; //The map number that it's in, when it's not a hole!
 	}
 
+	memorymapinfo[isread].byteaddr = originaladdress; //New loaded cached address!
 
 	if (unlikely(memoryhole)) //Memory hole?
 	{
@@ -462,10 +472,14 @@ OPTINLINE byte applyMemoryHoles(uint_32 *realaddress, byte isread)
 			if (likely(((EMULATED_CPU==CPU_80386) && is_XT) || (is_Compaq==1))) //Compaq or XT reserved area?
 			{
 				/**realaddress*/ originaladdress += MMU.size-(0xFA0000+(0x100000-0xA0000)); //Patch to physical FE0000-FFFFFF reserved memory range to use, at the end of the physical memory!
-				*realaddress = originaladdress; //Save our new location!
+				realaddress = originaladdress; //Save our new location!
 				// *nonexistant = 3; //Reserved memory!
 				if (unlikely((originaladdress>=MMU.size) /*|| ((originaladdress>=MMU.effectivemaxsize) && (nonexistant!=3))*/ /*|| (nonexistant==1)*/ )) //Overflow/invalid location?
 					return 1; //Invalid memory location!
+				//Valid chunk to address!
+
+				//Load the new cache address now!
+				memorymapinfo[isread].cache = &MMU.memory[originaladdress]; //Cached address in memory!
 			}
 			else
 				return 1; //Unmapped memory!
@@ -484,7 +498,8 @@ OPTINLINE byte applyMemoryHoles(uint_32 *realaddress, byte isread)
 		{
 			return 1; //Not mapped or invalid!
 		}
-		*realaddress = originaladdress; //Save our new location!
+		//Load the new cache address now!
+		memorymapinfo[isread].cache = &MMU.memory[originaladdress]; //Cached address for the memory!
 	}
 	return 0; //We're mapped!
 }
@@ -509,6 +524,7 @@ void MMU_updatemaxsize() //updated the maximum size!
 		memoryhole >>= 4; //The map number that it's in, when it's a hole!
 		memorymapinfo[isread].memLocHole = memoryhole; //Save the memory hole to use, if any!
 		memorymapinfo[isread].memorylocpatch = MMU_memorymaplocpatch[memloc]; //The patch address to substract!
+		memorymapinfo[isread].cache = NULL; //Invalidate the cache!
 	} while (++isread < 4); //Process all caches!
 }
 
@@ -595,23 +611,25 @@ byte emulateCompaqMMURegisters = 0; //Emulate Compaq MMU registers?
 byte MMU_INTERNAL_directrb_debugger(uint_32 realaddress, byte index, byte *result) //Direct read from real memory (with real data direct)!
 {
 	uint_32 originaladdress = realaddress; //Original address!
+	byte precalcval;
 	byte nonexistant = 0;
 	if (unlikely(emulateCompaqMMURegisters && (realaddress == 0x80C00000))) //Compaq special register?
 	{
 		*result = readCompaqMMURegister(); //Read the Compaq MMU register!
 		goto specialreadcycledebugger; //Apply the special read cycle!
 	}
-	if (unlikely(applyMemoryHoles(&realaddress, index_readprecalcs[index]))) //Overflow/invalid location?
+	precalcval = index_readprecalcs[index]; //Lookup the precalc val!
+	if (unlikely(applyMemoryHoles(realaddress, precalcval))) //Overflow/invalid location?
 	{
 		MMU_INTERNAL_INVMEM(originaladdress, realaddress, 0, 0, index, nonexistant); //Invalid memory accessed!
 		return 1; //Invalid memory, no response!
 	}
 	if (unlikely(doDRAM_access)) //DRAM access?
 	{
-		doDRAM_access(realaddress); //Tick the DRAM!
+		doDRAM_access(originaladdress); //Tick the DRAM!
 	}
-	*result = MMU.memory[realaddress]; //Get data from memory!
-	debugger_logmemoryaccess(0, realaddress, *result, LOGMEMORYACCESS_RAM_LOGMMUALL | (((index & 0x20) >> 5) << LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
+	*result = memorymapinfo[precalcval].cache[realaddress&7]; //Get data from memory!
+	debugger_logmemoryaccess(0, ((ptrnum)&memorymapinfo[precalcval].cache[realaddress & 7]-(ptrnum)MMU.memory), *result, LOGMEMORYACCESS_RAM_LOGMMUALL | (((index & 0x20) >> 5) << LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
 	//is_debugging |= 2; //Already gotten!
 specialreadcycledebugger:
 	debugger_logmemoryaccess(0, originaladdress, *result, LOGMEMORYACCESS_RAM | (((index & 0x20) >> 5) << LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
@@ -626,21 +644,23 @@ byte MMU_INTERNAL_directrb_nodebugger(uint_32 realaddress, byte index, byte *res
 {
 	uint_32 originaladdress = realaddress; //Original address!
 	byte nonexistant = 0;
+	byte precalcval;
 	if (unlikely(emulateCompaqMMURegisters && (realaddress == 0x80C00000))) //Compaq special register?
 	{
 		*result = readCompaqMMURegister(); //Read the Compaq MMU register!
 		goto specialreadcycle; //Apply the special read cycle!
 	}
-	if (unlikely(applyMemoryHoles(&realaddress, index_readprecalcs[index]))) //Overflow/invalid location?
+	precalcval = index_readprecalcs[index]; //Lookup the precalc val!
+	if (unlikely(applyMemoryHoles(realaddress, precalcval))) //Overflow/invalid location?
 	{
 		MMU_INTERNAL_INVMEM(originaladdress, realaddress, 0, 0, index, nonexistant); //Invalid memory accessed!
 		return 1; //Not mapped!
 	}
+	*result = memorymapinfo[precalcval].cache[realaddress&7]; //Get data from memory!
 	if (unlikely(doDRAM_access)) //DRAM access?
 	{
-		doDRAM_access(realaddress); //Tick the DRAM!
+		doDRAM_access(originaladdress); //Tick the DRAM!
 	}
-	*result = MMU.memory[realaddress]; //Get data from memory!
 specialreadcycle:
 	if (unlikely((index != 0xFF) && bushandler)) //Don't ignore BUS?
 	{
@@ -704,7 +724,7 @@ OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index
 	{
 		bushandler(index, value); //Update the bus handler!
 	}
-	if (unlikely(applyMemoryHoles(&realaddress,0))) //Overflow/invalid location?
+	if (unlikely(applyMemoryHoles(realaddress,0))) //Overflow/invalid location?
 	{
 		MMU_INTERNAL_INVMEM(originaladdress,realaddress,1,value,index,nonexistant); //Invalid memory accessed!
 		return; //Abort!
@@ -719,10 +739,10 @@ OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index
 	if (unlikely(MMU_logging == 1)) //Data debugging?
 	{
 		debugger_logmemoryaccess(1, originaladdress, value, LOGMEMORYACCESS_RAM);
-		debugger_logmemoryaccess(1, realaddress, value, LOGMEMORYACCESS_RAM_LOGMMUALL); //Log it!
+		debugger_logmemoryaccess(1, ((ptrnum)&memorymapinfo[0].cache[realaddress & 7] - (ptrnum)MMU.memory), value, LOGMEMORYACCESS_RAM_LOGMMUALL); //Log it!
 	}
 #endif
-	MMU.memory[realaddress] = value; //Set data, full memory protection!
+	memorymapinfo[0].cache[realaddress & 7] = value; //Set data, full memory protection!
 	if (unlikely(doDRAM_access)) //DRAM access?
 	{
 		doDRAM_access(realaddress); //Tick the DRAM!
