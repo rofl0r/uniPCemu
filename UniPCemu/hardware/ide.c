@@ -4046,7 +4046,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 					}
 			} //Error out when invalid sector!
 
-			ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel,drive,1); //Seek complete!
+			ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel,drive,0); //Seek complete! Are we supposed to set it here?
 
 			//Position the CD-ROM idea of LBA location!
 			ATA[channel].Drive[drive].ATAPI_lastLBA = LBA; //We are positioned here now!
@@ -4179,7 +4179,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			if (ATAPI_audioplayer_startPlayback(channel, drive, startM, startS, startF, endM, endS, endF)) //Start playback in this range!
 			{
 				//Set DSC on completion!
-				ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel, drive, 1); //Drive Seek Complete!
+				ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel, drive, 0); //Drive Seek Complete!
 				ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
 				ATA[channel].Drive[drive].commandstatus = 0; //New command can be specified!
 				ATAPI_giveresultsize(channel, drive, 0, 1); //No result size!
@@ -4254,7 +4254,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			if (ATAPI_audioplayer_startPlayback(channel, drive, startM, startS, startF, endM, endS, endF)) //Start playback in this range!
 			{
 				//Set DSC on completion!
-				ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel, drive, 1); //Drive Seek Complete!
+				ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel, drive, 0); //Drive Seek Complete!
 				ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
 				ATA[channel].Drive[drive].commandstatus = 0; //New command can be specified!
 				ATAPI_giveresultsize(channel, drive, 0, 1); //No result size!
