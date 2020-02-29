@@ -1140,7 +1140,7 @@ OPTINLINE byte coreHandler()
 				if (unlikely((!CPU[activeCPU].trapped) && CPU[activeCPU].registers && CPU[activeCPU].allowInterrupts && (CPU[activeCPU].permanentreset==0) && (CPU[activeCPU].internalinterruptstep==0) && BIU_Ready() && (CPU_executionphase_busy()==0) && (CPU[activeCPU].instructionfetch.CPU_isFetching && (CPU[activeCPU].instructionfetch.CPU_fetchphase==1)))) //Only check for hardware interrupts when not trapped and allowed to execute interrupts(not permanently reset)!
 				{
 					//Handle NMI first!
-					if (likely(CPU_handleNMI()==0)) //NMI isn't triggered?
+					if (likely(CPU_handleNMI())) //NMI isn't triggered?
 					{
 						if (likely(FLAG_IF)) //Interrupts available?
 						{
