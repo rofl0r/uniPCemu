@@ -22,6 +22,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #define CPU_EXECUTION_H
 #include "headers/cpu/protection.h" //Protection typedef support!
 
+void CPU_executionphase_init(); //Initialize the execution phase!
 void CPU_executionphase_newopcode(); //Starting a new opcode to handle?
 void CPU_executionphase_startinterrupt(byte vectornr, byte type, int_64 errorcode); //Starting a new interrupt to handle?
 byte CPU_executionphase_starttaskswitch(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *segment, word destinationtask, byte isJMPorCALL, byte gated, int_64 errorcode); //Switching to a certain task?

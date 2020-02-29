@@ -243,3 +243,8 @@ void CPU_OP() //Normal CPU opcode execution!
 		currentEUphasehandler = NULL; //Finished instruction!
 	}
 }
+
+void CPU_executionphase_init()
+{
+	currentEUphasehandler = NULL; //Nothing running yet!
+}

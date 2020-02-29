@@ -940,6 +940,7 @@ void resetCPU(byte isInit) //Initialises the currently selected CPU!
 	Paging_initTLB(); //Init and clear the TLB when resetting!
 	effectivecpuaddresspins = cpuaddresspins[((EMULATED_CPU<<1)|is_XT)]; //What pins are supported for the current CPU/architecture?
 	protectedModeDebugger_updateBreakpoints(); //Update the breakpoints to use!
+	CPU_executionphase_init(); //Initialize the execution phase to it's initial state!
 }
 
 void initCPU() //Initialize CPU for full system reset into known state!
