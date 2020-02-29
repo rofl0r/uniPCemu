@@ -209,7 +209,7 @@ void CPU_executionphase_startinterrupt(byte vectornr, byte type, int_64 errorcod
 		CPU_executionphaseinterrupt_errorcode = -1; //No error code, fault!
 		return; //Don't execute right away to prevent looping because of T-bit in debugger TSS.
 	}
-	CPU_OP(); //Execute right away for simple timing compatility!
+	CPU_OP(); //Execute right away for simple timing compatibility!
 }
 
 byte CPU_executionphase_starttaskswitch(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *segment, word destinationtask, byte isJMPorCALL, byte gated, int_64 errorcode) //Switching to a certain task?

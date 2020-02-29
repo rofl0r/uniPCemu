@@ -1139,27 +1139,31 @@ OPTINLINE byte coreHandler()
 				acnowledgeirrs(); //Acnowledge IRR!
 				if (unlikely((!CPU[activeCPU].trapped) && CPU[activeCPU].registers && CPU[activeCPU].allowInterrupts && (CPU[activeCPU].permanentreset==0) && (CPU[activeCPU].internalinterruptstep==0) && BIU_Ready() && (CPU_executionphase_busy()==0) && (CPU[activeCPU].instructionfetch.CPU_isFetching && (CPU[activeCPU].instructionfetch.CPU_fetchphase==1)))) //Only check for hardware interrupts when not trapped and allowed to execute interrupts(not permanently reset)!
 				{
-					if (likely(FLAG_IF)) //Interrupts available?
+					//Handle NMI first!
+					if (likely(CPU_handleNMI()==0)) //NMI isn't triggered?
 					{
-						if (unlikely(PICInterrupt())) //We have a hardware interrupt ready?
+						if (likely(FLAG_IF)) //Interrupts available?
 						{
-							HWINT_nr = nextintr(); //Get the HW interrupt nr!
-							HWINT_saved = 2; //We're executing a HW(PIC) interrupt!
-							if (likely(((EMULATED_CPU <= CPU_80286) && REPPending)==0)) //Not 80386+, REP pending and segment override?
+							if (unlikely(PICInterrupt())) //We have a hardware interrupt ready?
 							{
-								CPU_8086REPPending(1); //Process pending REPs normally as documented!
+								HWINT_nr = nextintr(); //Get the HW interrupt nr!
+								HWINT_saved = 2; //We're executing a HW(PIC) interrupt!
+								if (likely(((EMULATED_CPU <= CPU_80286) && REPPending) == 0)) //Not 80386+, REP pending and segment override?
+								{
+									CPU_8086REPPending(1); //Process pending REPs normally as documented!
+								}
+								else //Execute the CPU bug!
+								{
+									CPU_8086REPPending(1); //Process pending REPs normally as documented!
+									REG_EIP = CPU_InterruptReturn; //Use the special interrupt return address to return to the last prefix instead of the start!
+								}
+								CPU_exec_lastCS = CPU_exec_CS;
+								CPU_exec_lastEIP = CPU_exec_EIP;
+								CPU_exec_CS = REG_CS; //Save for error handling!
+								CPU_exec_EIP = (REG_EIP & CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof); //Save for error handling!
+								CPU_commitState(); //Save fault data to go back to when exceptions occur!
+								call_hard_inthandler(HWINT_nr); //get next interrupt from the i8259, if any!
 							}
-							else //Execute the CPU bug!
-							{
-								CPU_8086REPPending(1); //Process pending REPs normally as documented!
-								REG_EIP = CPU_InterruptReturn; //Use the special interrupt return address to return to the last prefix instead of the start!
-							}
-							CPU_exec_lastCS = CPU_exec_CS;
-							CPU_exec_lastEIP = CPU_exec_EIP;
-							CPU_exec_CS = REG_CS; //Save for error handling!
-							CPU_exec_EIP = (REG_EIP&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof); //Save for error handling!
-							CPU_commitState(); //Save fault data to go back to when exceptions occur!
-							call_hard_inthandler(HWINT_nr); //get next interrupt from the i8259, if any!
 						}
 					}
 				}

@@ -415,28 +415,62 @@ extern byte SystemControlPortB; //System control port B data!
 extern byte PPI62; //For XT support!
 byte NMI = 1; //NMI Disabled?
 
-extern word CPU_exec_CS;
-extern uint_32 CPU_exec_EIP;
+extern uint_32 CPU_InterruptReturn, CPU_exec_EIP; //Interrupt return address!
+extern word CPU_exec_CS; //Executing CS for faults!
+extern word CPU_exec_lastCS; //OPCode CS
+extern uint_32 CPU_exec_lastEIP; //OPCode EIP
+
+byte NMIQueued = 0; //NMI raised to handle?
+
+
+byte CPU_handleNMI()
+{
+	if (NMIQueued == 0) return 1; //No NMI Pending!
+	NMIQueued = 0; //Not anymore, we're handling it!
+	if ((MMU_logging == 1) && advancedlog) //Are we logging?
+	{
+		dolog("debugger", "#NMI fault(-1)!");
+	}
+
+	if (CPU_faultraised(EXCEPTION_NMI)) //OK to trigger the NMI exception?
+	{
+		if (likely(((EMULATED_CPU <= CPU_80286) && REPPending) == 0)) //Not 80386+, REP pending and segment override?
+		{
+			CPU_8086REPPending(1); //Process pending REPs normally as documented!
+		}
+		else //Execute the CPU bug!
+		{
+			CPU_8086REPPending(1); //Process pending REPs normally as documented!
+			REG_EIP = CPU_InterruptReturn; //Use the special interrupt return address to return to the last prefix instead of the start!
+		}
+		CPU_exec_lastCS = CPU_exec_CS;
+		CPU_exec_lastEIP = CPU_exec_EIP;
+		CPU_exec_CS = REG_CS; //Save for error handling!
+		CPU_exec_EIP = (REG_EIP & CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof); //Save for error handling!
+		CPU_commitState(); //Save fault data to go back to when exceptions occur!
+		call_hard_inthandler(EXCEPTION_NMI); //Trigger the hardware interrupt-style NMI!
+	}
+	CPU[activeCPU].cycles_HWOP = 50; /* Normal interrupt as hardware interrupt */
+	return 0; //NMI handled!
+}
 
 byte execNMI(byte causeisMemory) //Execute an NMI!
 {
-	byte doNMI = 0;
+	byte doNMI = 0; //Default: no NMI is to be triggered!
 	if (causeisMemory) //I/O error on memory?
 	{
 		if (EMULATED_CPU >= CPU_80286) //AT?
 		{
 			if ((SystemControlPortB & 4)==0) //Parity check enabled(the enable bits are reversed according to the AT BIOS)?
 			{
-				SystemControlPortB |= 0x80; //Signal a Memory error!
-				doNMI = 1; //Allow NMI, if enabled!
+				doNMI |= 0x80; //Signal a Memory error!
 			}
 		}
 		else //XT?
 		{
 			if ((SystemControlPortB & 0x10)==0) //Enabled?
 			{
-				PPI62 |= 0x80; //Signal a Memory error on a XT!
-				doNMI = 1; //Allow NMI, if enabled!
+				doNMI |= 0x80; //Signal a Memory error on a XT!
 			}
 		}
 		#ifdef DISABLE_MEMNMI
@@ -450,16 +484,14 @@ byte execNMI(byte causeisMemory) //Execute an NMI!
 		{
 			if ((SystemControlPortB & 8)==0) //Channel check enabled(the enable bits are reversed according to the AT BIOS)?
 			{
-				SystemControlPortB |= 0x40; //Signal a Bus error!
-				doNMI = 1; //Allow NMI, if enabled!
+				doNMI |= 0x40; //Signal a Bus error!
 			}
 		}
 		else //XT?
 		{
 			if ((SystemControlPortB & 0x20)==0) //Parity check enabled?
 			{
-				PPI62 |= 0x40; //Signal a Parity error on a XT!
-				doNMI = 1; //Allow NMI, if enabled!
+				doNMI |= 0x40; //Signal a Parity error on a XT!
 			}
 		}
 	}
@@ -467,21 +499,20 @@ byte execNMI(byte causeisMemory) //Execute an NMI!
 #ifdef DISABLE_NMI
 	return 1; //We don't handle any NMI's from Bus or Memory through the NMI PIN!
 #endif
-	if (!NMI && !NMIMasked) //NMI interrupt enabled and not masked off?
+	if (!(NMI|NMIMasked)) //NMI interrupt enabled and not masked off?
 	{
-		NMIMasked = 1; //Mask future NMI!
-		if (doNMI && CPU[activeCPU].allowInterrupts) //I/O error on memory or bus?
+		if (doNMI && (NMIQueued==0)) //I/O error on memory or bus and we can handle it(nothing is queued yet)?
 		{
-			if ((MMU_logging == 1) && advancedlog) //Are we logging?
+			NMIMasked = 1; //Mask future NMI!
+			if (EMULATED_CPU >= CPU_80286) //AT?
 			{
-				dolog("debugger","#NMI fault(-1)!");
+				SystemControlPortB |= doNMI; //Signal an error, AT-compatible style!
 			}
-
-			if (CPU_faultraised(EXCEPTION_NMI))
+			else //XT?
 			{
-				CPU_executionphase_startinterrupt(EXCEPTION_NMI,2,-1); //Return to opcode!
+				PPI62 |= doNMI; //Signal an error on a XT!
 			}
-			CPU[activeCPU].cycles_HWOP = 50; /* Normal interrupt as hardware interrupt */
+			NMIQueued = 1; //Enqueue the NMI to be executed when the CPU is ready!
 			return 0; //We're handled!
 		}
 	}
