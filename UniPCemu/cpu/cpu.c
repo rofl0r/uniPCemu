@@ -1057,6 +1057,7 @@ OPTINLINE void CPU_resetInstructionSteps()
 {
 	//Prepare for a (repeated) instruction to execute!
 	CPU[activeCPU].instructionstep = CPU[activeCPU].internalinstructionstep = CPU[activeCPU].modrmstep = CPU[activeCPU].internalmodrmstep = CPU[activeCPU].internalinterruptstep = CPU[activeCPU].stackchecked = 0; //Start the instruction-specific stage!
+	CPU[activeCPU].pushbusy = 0;
 }
 
 void CPU_interruptcomplete()
