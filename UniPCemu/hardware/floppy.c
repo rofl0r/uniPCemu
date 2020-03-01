@@ -1151,7 +1151,7 @@ void floppy_readsector() //Request a read sector command!
 	if ((!FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]) || ((FLOPPY_DOR_DRIVENUMBERR<2)?(!is_mounted(FLOPPY_DOR_DRIVENUMBERR?FLOPPY1:FLOPPY0)):1)) //Not inserted or valid?
 	{
 		FLOPPY_LOGD("FLOPPY: Error: Invalid drive!")
-		FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Abnormal termination!
+		FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x30) | FLOPPY_DOR_DRIVENUMBERR | (FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]<<2); //Abnormal termination!
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
 		floppy_erroringout(); //Erroring out!
 		FLOPPY_raiseIRQ(); //Raise an IRQ because of the error!
@@ -1160,7 +1160,7 @@ void floppy_readsector() //Request a read sector command!
 	if ((FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->DoubleDensity!=(FLOPPY.MFM&~DENSITY_IGNORE)) && (!(FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->DoubleDensity&DENSITY_IGNORE) || density_forced) && EMULATE_DENSITY) //Wrong density?
 	{
 		FLOPPY_LOGD("FLOPPY: Error: Invalid density!")
-		FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Abnormal termination!
+		FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x30) | FLOPPY_DOR_DRIVENUMBERR | (FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] << 2); //Abnormal termination!
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
 		floppy_erroringout(); //Erroring out!
 		FLOPPY_raiseIRQ(); //Raise an IRQ because of the error!
@@ -1182,7 +1182,7 @@ void floppy_readsector() //Request a read sector command!
 	{
 		FLOPPY_LOGD("FLOPPY: Error: drive motor not ON!")
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
-		FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Abnormal termination!
+		FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x30) | FLOPPY_DOR_DRIVENUMBERR | (FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] << 2); //Abnormal termination!
 		floppy_erroringout(); //Erroring out!
 		FLOPPY_raiseIRQ(); //Raise an IRQ because of the error!
 		return;
@@ -1220,7 +1220,7 @@ void floppy_readsector() //Request a read sector command!
 	{
 		if ((FLOPPY.commandbuffer[7]!=FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->GAPLength) && (FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->GAPLength!=GAPLENGTH_IGNORE) && EMULATE_GAPLENGTH) //Wrong GAP length?
 		{
-			FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Abnormal termination!
+			FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x30) | FLOPPY_DOR_DRIVENUMBERR | (FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] << 2); //Abnormal termination!
 			FLOPPY.commandstep = 0xFF; //Move to error phase!
 			floppy_erroringout(); //Erroring out!
 			FLOPPY_raiseIRQ(); //Raise an IRQ because of the error!
@@ -1263,7 +1263,7 @@ void floppy_readsector() //Request a read sector command!
 
 		floppy_errorread: //Error reading data?
 		//Plain error reading the sector!
-		FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Abnormal termination!
+		FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x30) | FLOPPY_DOR_DRIVENUMBERR | (FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] << 2); //Abnormal termination!
 		FLOPPY.commandstep = 0xFF; //Error!
 		floppy_erroringout(); //Erroring out!
 		FLOPPY_raiseIRQ(); //Raise an IRQ because of the error!
@@ -1282,7 +1282,7 @@ void FLOPPY_formatsector() //Request a read sector command!
 
 	if (!FLOPPY_supportsrate(FLOPPY_DOR_DRIVENUMBERR) || !FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]) //We don't support the rate or geometry?
 	{
-		FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Abnormal termination!
+		FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x30) | FLOPPY_DOR_DRIVENUMBERR | (FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] << 2); //Abnormal termination!
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
 		floppy_erroringout(); //Erroring out!
 		FLOPPY_raiseIRQ(); //Raise an IRQ because of the error!
@@ -1292,7 +1292,7 @@ void FLOPPY_formatsector() //Request a read sector command!
 	if ((FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->DoubleDensity!=(FLOPPY.MFM&~DENSITY_IGNORE)) && (!(FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->DoubleDensity&DENSITY_IGNORE) || density_forced) && EMULATE_DENSITY) //Wrong density?
 	{
 		FLOPPY_LOGD("FLOPPY: Error: Invalid density!")
-		FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Abnormal termination!
+		FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x30) | FLOPPY_DOR_DRIVENUMBERR | (FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] << 2); //Abnormal termination!
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
 		floppy_erroringout(); //Erroring out!
 		FLOPPY_raiseIRQ(); //Raise an IRQ because of the error!
@@ -1301,7 +1301,7 @@ void FLOPPY_formatsector() //Request a read sector command!
 
 	if ((FLOPPY.commandbuffer[5]!=FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->GAPLength) && (FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->GAPLength!=GAPLENGTH_IGNORE) && EMULATE_GAPLENGTH) //Wrong GAP length?
 	{
-		FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Abnormal termination!
+		FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x30) | FLOPPY_DOR_DRIVENUMBERR | (FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] << 2); //Abnormal termination!
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
 		floppy_erroringout(); //Erroring out!
 		FLOPPY_raiseIRQ(); //Raise an IRQ because of the error!
@@ -1379,7 +1379,7 @@ void FLOPPY_formatsector() //Request a read sector command!
 			if (FLOPPY.databuffer[0] != FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]) //Not current track?
 			{
 			floppy_errorformat:
-				FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Invalid command!
+				FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x30) | FLOPPY_DOR_DRIVENUMBERR | (FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] << 2); //Invalid command!
 				FLOPPY.commandstep = 0xFF; //Error!
 				floppy_erroringout(); //Erroring out!
 				FLOPPY_raiseIRQ(); //Raise an IRQ because of the error!
@@ -1450,7 +1450,7 @@ void floppy_writesector() //Request a write sector command!
 	if (!(FLOPPY_DOR_MOTORCONTROLR&(1 << FLOPPY_DOR_DRIVENUMBERR))) //Not motor ON?
 	{
 		FLOPPY_LOGD("FLOPPY: Error: drive motor not ON!")
-		FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Abnormal termination!
+		FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x30) | FLOPPY_DOR_DRIVENUMBERR | (FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] << 2); //Abnormal termination!
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
 		floppy_erroringout(); //Erroring out!
 		FLOPPY_raiseIRQ(); //Raise an IRQ because of the error!
@@ -1459,7 +1459,7 @@ void floppy_writesector() //Request a write sector command!
 
 	if (!FLOPPY_supportsrate(FLOPPY_DOR_DRIVENUMBERR) || !FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR] || ((FLOPPY_DOR_DRIVENUMBERR < 2) ? (!is_mounted(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0)) : 1)) //We don't support the rate or geometry?
 	{
-		FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Abnormal termination!
+		FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x30) | FLOPPY_DOR_DRIVENUMBERR | (FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] << 2); //Abnormal termination!
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
 		floppy_erroringout(); //Erroring out!
 		FLOPPY_raiseIRQ(); //Raise an IRQ because of the error!
@@ -1475,7 +1475,7 @@ void floppy_writesector() //Request a write sector command!
 
 	if (!(FLOPPY_DOR_MOTORCONTROLR&(1 << FLOPPY_DOR_DRIVENUMBERR))) //Not motor ON?
 	{
-		FLOPPY.ST0 = 0x40 | ((FLOPPY.ST0 & 0x3B) | 1) | ((FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] & 1) << 2); //Abnormal termination!
+		FLOPPY.ST0 = 0x40 | ((FLOPPY.ST0 & 0x3B) | FLOPPY_DOR_DRIVENUMBERR) | ((FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] & 1) << 2); //Abnormal termination!
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
 		floppy_erroringout(); //Erroring out!
 		FLOPPY_raiseIRQ(); //Raise an IRQ because of the error!
@@ -1494,7 +1494,7 @@ void floppy_executeWriteData()
 	if (!FLOPPY_supportsrate(FLOPPY_DOR_DRIVENUMBERR) || !FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR] || ((FLOPPY_DOR_DRIVENUMBERR < 2) ? (!is_mounted(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0)) : 1)) //We don't support the rate or geometry?
 	{
 		FLOPPY_LOGD("FLOPPY: Error: Invalid disk rate/geometry!")
-		FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Abnormal termination!
+		FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x30) | FLOPPY_DOR_DRIVENUMBERR | (FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] << 2); //Abnormal termination!
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
 		floppy_erroringout(); //Erroring out!
 		FLOPPY_raiseIRQ(); //Raise an IRQ because of the error!
@@ -1503,7 +1503,7 @@ void floppy_executeWriteData()
 	if ((FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->DoubleDensity!=(FLOPPY.MFM&~DENSITY_IGNORE)) && (!(FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->DoubleDensity&DENSITY_IGNORE) || density_forced) && EMULATE_DENSITY) //Wrong density?
 	{
 		FLOPPY_LOGD("FLOPPY: Error: Invalid density!")
-		FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Abnormal termination!
+		FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x30) | FLOPPY_DOR_DRIVENUMBERR | (FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] << 2); //Abnormal termination!
 		FLOPPY.commandstep = 0xFF; //Move to error phase!
 		floppy_erroringout(); //Erroring out!
 		FLOPPY_raiseIRQ(); //Raise an IRQ because of the error!
@@ -1563,7 +1563,7 @@ void floppy_executeWriteData()
 		{
 			FLOPPY_LOGD("FLOPPY: Finished transfer of data (readonly).") //Log the completion of the sectors written!
 			FLOPPY.resultposition = 0;
-			FLOPPY.resultbuffer[0] = FLOPPY.ST0 = 0x40|((FLOPPY.ST0 & 0x3B) | 1) | ((FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] & 1) << 2); //Abnormal termination! ST0!
+			FLOPPY.resultbuffer[0] = FLOPPY.ST0 = 0x40|((FLOPPY.ST0 & 0x3B) | FLOPPY_DOR_DRIVENUMBERR) | ((FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] & 1) << 2); //Abnormal termination! ST0!
 			FLOPPY.resultbuffer[1] = FLOPPY.ST1 = 0x27; //Drive write-protected! ST1!
 			FLOPPY.resultbuffer[2] = FLOPPY.ST2 = 0x31; //ST2!
 			FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR];
@@ -1614,7 +1614,7 @@ void floppy_executeWriteData()
 					FLOPPY_LOGD("FLOPPY: Finished transfer of data (%u sector(s)).", FLOPPY.sectorstransferred) //Log the completion of the sectors written!
 					FLOPPY_ST0_SEEKENDW(1); //Successfull write with implicit seek!
 					FLOPPY.resultposition = 0;
-					FLOPPY.resultbuffer[0] = FLOPPY.ST0 = ((FLOPPY.ST0 & 0x3B) | 1) | ((FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] & 1) << 2); //Abnormal termination! ST0!
+					FLOPPY.resultbuffer[0] = FLOPPY.ST0 = ((FLOPPY.ST0 & 0x3B) | FLOPPY_DOR_DRIVENUMBERR) | ((FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] & 1) << 2); //Abnormal termination! ST0!
 					FLOPPY.resultbuffer[1] = FLOPPY.ST1; //Drive write-protected! ST1!
 					FLOPPY.resultbuffer[2] = FLOPPY.ST2 = 0x00; //ST2!
 					//The cylinder is set by floppy_increasesector!
@@ -1628,7 +1628,7 @@ void floppy_executeWriteData()
 			}
 			didntfindsectoridwrite: //Couldn't find the sector ID!
 			//Plain error!
-			FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Invalid command!
+			FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x30) | FLOPPY_DOR_DRIVENUMBERR | (FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] << 2); //Invalid command!
 			FLOPPY.commandstep = 0xFF; //Error!
 			floppy_erroringout(); //Erroring out!
 			FLOPPY_raiseIRQ(); //Raise an IRQ because of the error!
@@ -1682,7 +1682,7 @@ void floppy_executeData() //Execute a floppy command. Data is fully filled!
 			else //Unfinished buffer? Terminate!
 			{
 				FLOPPY.resultposition = 0;
-				FLOPPY.resultbuffer[0] = FLOPPY.ST0 = ((FLOPPY.ST0 & 0x3B) | 1) | ((FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] & 1) << 2); //Abnormal termination! ST0!
+				FLOPPY.resultbuffer[0] = FLOPPY.ST0 = ((FLOPPY.ST0 & 0x3B) | FLOPPY_DOR_DRIVENUMBERR) | ((FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] & 1) << 2); //Abnormal termination! ST0!
 				FLOPPY.resultbuffer[1] = FLOPPY.ST1; //Drive write-protected! ST1!
 				FLOPPY.resultbuffer[2] = FLOPPY.ST2; //ST2!
 				FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR];
@@ -1709,7 +1709,7 @@ void floppy_executeData() //Execute a floppy command. Data is fully filled!
 			else //Unfinished buffer? Terminate!
 			{
 				FLOPPY.resultposition = 0;
-				FLOPPY.resultbuffer[0] = FLOPPY.ST0 = ((FLOPPY.ST0 & 0x3B) | 1) | ((FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] & 1) << 2); //Abnormal termination! ST0!
+				FLOPPY.resultbuffer[0] = FLOPPY.ST0 = ((FLOPPY.ST0 & 0x3B) | FLOPPY_DOR_DRIVENUMBERR) | ((FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] & 1) << 2); //Abnormal termination! ST0!
 				FLOPPY.resultbuffer[1] = FLOPPY.ST1; //Drive write-protected! ST1!
 				FLOPPY.resultbuffer[2] = FLOPPY.ST2; //ST2!
 				FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR];
@@ -1726,7 +1726,7 @@ void floppy_executeData() //Execute a floppy command. Data is fully filled!
 			break;
 		default: //Unknown command?
 			FLOPPY.commandstep = 0xFF; //Move to error phrase!
-			FLOPPY.ST0 = 0x80 | (FLOPPY.ST0&0x20); //Invalid command!
+			FLOPPY.ST0 = 0x80 | (FLOPPY.ST0&0x30) | FLOPPY_DOR_DRIVENUMBERR | (FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] << 2); //Invalid command!
 			floppy_erroringout(); //Erroring out!
 			FLOPPY_raiseIRQ(); //Raise an IRQ because of the error!
 			break;
@@ -1820,7 +1820,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			else if (!FLOPPY_hadIRQ) //Not an pending IRQ?
 			{
 				FLOPPY_LOGD("FLOPPY: Warning: Checking interrupt status without IRQ pending!")
-				FLOPPY.ST0 = 0x80 | (FLOPPY.ST0 & 0x3F); //Error!
+				FLOPPY.ST0 = 0x80 | (FLOPPY.ST0 & 0x38) | FLOPPY_DOR_DRIVENUMBERR | (FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] << 2); //Error!
 				FLOPPY.resultbuffer[0] = FLOPPY.ST0; //Give ST0!
 				FLOPPY.resultbuffer[1] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]; //Our idea of the current cylinder!
 				FLOPPY.resultposition = 0; //Start result!
@@ -1982,7 +1982,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			if (!(FLOPPY_DOR_MOTORCONTROLR&(1 << FLOPPY_DOR_DRIVENUMBERR))) //Not motor ON?
 			{
 				FLOPPY_LOGD("FLOPPY: Error: drive motor not ON!")
-				FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Invalid command!
+				FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x30) | FLOPPY_DOR_DRIVENUMBERR | (FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] << 2); //Invalid command!
 				FLOPPY.commandstep = 0xFF; //Move to error phase!
 				floppy_erroringout(); //Erroring out!
 				FLOPPY_raiseIRQ(); //Raise an IRQ because of the error!
@@ -1991,7 +1991,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 
 			if (!FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR] || ((FLOPPY_DOR_DRIVENUMBERR < 2) ? (!is_mounted(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0)) : 1)) //No geometry?
 			{
-				FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Invalid command!
+				FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x30) | FLOPPY_DOR_DRIVENUMBERR | (FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] << 2); //Invalid command!
 				FLOPPY.commandstep = 0xFF; //Error!
 				floppy_erroringout(); //Erroring out!
 				FLOPPY_raiseIRQ(); //Raise an IRQ because of the error!
@@ -2000,7 +2000,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 
 			if (FLOPPY.commandbuffer[3] != FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->SPT) //Invalid SPT?
 			{
-				FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Invalid command!
+				FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x30) | FLOPPY_DOR_DRIVENUMBERR | (FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] << 2); //Invalid command!
 				FLOPPY.commandstep = 0xFF; //Error!
 				floppy_erroringout(); //Erroring out!
 				FLOPPY_raiseIRQ(); //Raise an IRQ because of the error!
@@ -2016,7 +2016,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			{
 				if (FLOPPY.commandbuffer[2] != 0x2) //Not 512 bytes/sector?
 				{
-					FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Invalid command!
+					FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x30) | FLOPPY_DOR_DRIVENUMBERR | (FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] << 2); //Invalid command!
 					FLOPPY.commandstep = 0xFF; //Error!
 					floppy_erroringout(); //Erroring out!
 					FLOPPY_raiseIRQ(); //Raise an IRQ because of the error!
@@ -2071,13 +2071,13 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			break;
 		case PERPENDICULAR_MODE:	// * used during initialization, once, maybe
 			FLOPPY.PerpendicularMode = FLOPPY.commandbuffer[1]; //What perpendicular mode! Bits 0-3=Drives 0-3!
-			FLOPPY.ST0 = 0x00 | (FLOPPY.ST0 & 0x3F); //OK!
+			FLOPPY.ST0 = 0x00 | (FLOPPY.ST0 & 0x38) | FLOPPY_DOR_DRIVENUMBERR | (FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] << 2); //OK!
 			FLOPPY.commandstep = 0; //Ready for a new command!
 			//No interrupt!
 			break;
 		case READ_TRACK: //Read complete track!
 			FLOPPY.commandstep = 0xFF; //Move to error phrase!
-			FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x20); //Invalid command!
+			FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x30) | FLOPPY_DOR_DRIVENUMBERR | (FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] << 2); //Invalid command!
 			floppy_erroringout(); //Erroring out!
 			FLOPPY_raiseIRQ(); //Raise an IRQ because of the error!
 			break;
@@ -2231,7 +2231,7 @@ OPTINLINE void floppy_writeData(byte isDMA, byte value)
 					break;
 				default: //Invalid command
 					FLOPPY_LOGD("FLOPPY: Invalid or unsupported command: %02X",value); //Detection of invalid/unsupported command!
-					FLOPPY.ST0 = 0x80 | (FLOPPY.ST0 & 0x20); //Invalid command!
+					FLOPPY.ST0 = 0x80 | (FLOPPY.ST0 & 0x30) | FLOPPY_DOR_DRIVENUMBERR | (FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] << 2); //Invalid command!
 					FLOPPY.commandstep = 0xFF; //Error: lockup!
 					floppy_erroringout(); //Erroring out!
 					FLOPPY_raiseIRQ(); //Raise an IRQ because of the error!
@@ -2450,7 +2450,7 @@ void FLOPPY_finishrecalibrate(byte drive)
 {
 	//Execute interrupt!
 	FLOPPY.currentcylinder[drive] = 0; //Goto cylinder #0 according to the FDC!
-	FLOPPY.ST0 = 0x20|drive; //Completed command!
+	FLOPPY.ST0 = 0x20|drive|(FLOPPY.currenthead[drive] << 2); //Completed command!
 	updateST3(drive); //Update ST3 only!
 	if (((FLOPPY_DOR_MOTORCONTROLR&(1<<(drive&3)))==0) || ((drive&3)>1) || (FLOPPY.physicalcylinder[drive]!=0)) //Motor not on or invalid drive?
 	{
@@ -2545,7 +2545,7 @@ void updateFloppy(DOUBLE timepassed)
 							{
 								//invalidtrackseek:
 								//Invalid track?
-								FLOPPY.ST0 = (FLOPPY.ST0 & 0x30) | 0x00 | drive; //Valid command! Just don't report completion(invalid track to seek to)!
+								FLOPPY.ST0 = (FLOPPY.ST0 & 0x30) | 0x00 | drive | (FLOPPY.currenthead[drive]<<2); //Valid command! Just don't report completion(invalid track to seek to)!
 								FLOPPY.ST2 = 0x00; //Nothing to report! We're not completed!
 								FLOPPY_raiseIRQ(); //Finished executing phase!
 								floppytimer[drive] = 0.0; //Don't time anymore!
