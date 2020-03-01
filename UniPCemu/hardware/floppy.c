@@ -958,6 +958,7 @@ byte floppy_increasesector(byte floppy) //Increase the sector number automatical
 			if (FLOPPY.currenthead[floppy]==0) //Overflown, EOT, switching to head 0?
 			{
 				++FLOPPY.currentcylinder[floppy]; //Step down!
+				FLOPPY.RWRequestedCylinder = FLOPPY.currentcylinder[floppy]; //Continue on said cylinder instead when reading more!
 				if (FLOPPY.geometries[floppy])
 				{
 					if (FLOPPY.physicalcylinder[floppy] < FLOPPY.geometries[floppy]->tracks) ++FLOPPY.physicalcylinder[floppy]; //Increase when available!
