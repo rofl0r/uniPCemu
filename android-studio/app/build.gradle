@@ -47,6 +47,8 @@ android {
             path '../../android-project/jni_androidstudio/Android-androidstudio.mk'
         }
     }
+
+    ndkVersion "20.0.5594570"
 }
 
 dependencies {
