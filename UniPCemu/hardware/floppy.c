@@ -953,22 +953,16 @@ byte floppy_increasesector(byte floppy) //Increase the sector number automatical
 		//Apply Multi Track accordingly!
 		if (useMT) //Multi Track used?
 		{
-			FLOPPY.resultbuffer[4] = FLOPPY.currenthead[floppy]; //The head number of the last sector read!
+			FLOPPY.resultbuffer[4] = FLOPPY.currenthead[floppy]; //The head number of the last sector read by default!
 			FLOPPY.currenthead[floppy] = ((FLOPPY.currenthead[floppy]+1)&1); //Toggle the head to 1 or 0!
-			if (FLOPPY.currenthead[floppy]==0) //Overflown, EOT, switching to head 0?
+			if (FLOPPY.currenthead[floppy]==0) //Overflown, EOT, switching to head 0? We were the last sector on side 1 with MT!
 			{
-				++FLOPPY.currentcylinder[floppy]; //Step down!
-				FLOPPY.RWRequestedCylinder = FLOPPY.currentcylinder[floppy]; //Continue on said cylinder instead when reading more!
-				if (FLOPPY.geometries[floppy])
-				{
-					if (FLOPPY.physicalcylinder[floppy] < FLOPPY.geometries[floppy]->tracks) ++FLOPPY.physicalcylinder[floppy]; //Increase when available!
-				}
-				FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[floppy]; //The next cylinder number!
-				FLOPPY.resultbuffer[4] = FLOPPY.currenthead[floppy]; //The head number of the last sector read!
+				FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[floppy]+1; //Report the next cylinder number instead!
+				FLOPPY.resultbuffer[4] = FLOPPY.currenthead[floppy]; //The flipped head number of the last sector read!
 			}
 			else //Same track?
 			{
-				FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[floppy]; //The current cylinder number!
+				FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[floppy]; //The current cylinder number!x
 			}
 		}
 		else //Single track mode reached end-of-track?
