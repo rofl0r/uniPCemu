@@ -967,12 +967,7 @@ byte floppy_increasesector(byte floppy) //Increase the sector number automatical
 		}
 		else //Single track mode reached end-of-track?
 		{
-			++FLOPPY.currentcylinder[floppy]; //Step down!
-			if (FLOPPY.geometries[floppy])
-			{
-				if (FLOPPY.physicalcylinder[floppy] < FLOPPY.geometries[floppy]->tracks) ++FLOPPY.physicalcylinder[floppy]; //Increase when available!
-			}
-			FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[floppy]; //The next cylinder number!
+			FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[floppy]+1; //The next cylinder number!
 			FLOPPY.resultbuffer[4] = FLOPPY.currenthead[floppy]; //The current head number!
 		}
 
