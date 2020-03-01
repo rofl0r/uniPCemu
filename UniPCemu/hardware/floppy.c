@@ -2293,7 +2293,7 @@ OPTINLINE byte floppy_readData(byte isDMA)
 		7, //11
 		0, //12
 		0, //13
-		0, //14
+		1, //14
 		0, //15
 		7, //16
 		0, //17
@@ -2372,6 +2372,8 @@ OPTINLINE byte floppy_readData(byte isDMA)
 				case SCAN_LOW_OR_EQUAL:
 				case SCAN_HIGH_OR_EQUAL:
 				case VERIFY:
+				case DUMPREG:
+				case LOCK:
 					FLOPPY_LOGD("FLOPPY: Reading result byte %u/%u=%02X",FLOPPY.resultposition,resultlength[FLOPPY.commandbuffer[0]&0x1F],temp)
 					if (FLOPPY.resultposition>=resultlength[FLOPPY.commandbuffer[0]]) //Result finished?
 					{
