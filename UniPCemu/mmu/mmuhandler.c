@@ -612,11 +612,12 @@ void writeCompaqMMUregister(uint_32 originaladdress, byte value)
 
 BUShandler bushandler = NULL; //Remember the last access?
 
-byte index_readprecalcs[0x100]; //Read precalcs for index memory hole handling!
+byte index_readprecalcs[0x200]; //Read precalcs for index memory hole handling!
+byte index_writeprecalcs[0x200]; //Read precalcs for index memory hole handling!
 byte emulateCompaqMMURegisters = 0; //Emulate Compaq MMU registers?
 
 //Direct memory access (for the entire emulator)
-byte MMU_INTERNAL_directrb_debugger(uint_32 realaddress, byte index, byte *result) //Direct read from real memory (with real data direct)!
+byte MMU_INTERNAL_directrb_debugger(uint_32 realaddress, word index, byte *result) //Direct read from real memory (with real data direct)!
 {
 	uint_32 originaladdress = realaddress; //Original address!
 	byte precalcval;
@@ -648,7 +649,7 @@ specialreadcycledebugger:
 	return 0; //Give existant memory!
 }
 
-byte MMU_INTERNAL_directrb_nodebugger(uint_32 realaddress, byte index, byte *result) //Direct read from real memory (with real data direct)!
+byte MMU_INTERNAL_directrb_nodebugger(uint_32 realaddress, word index, byte *result) //Direct read from real memory (with real data direct)!
 {
 	uint_32 originaladdress = realaddress; //Original address!
 	byte nonexistant = 0;
@@ -693,16 +694,17 @@ void updateBUShandler()
 void MMU_calcIndexPrecalcs()
 {
 	word index;
-	for (index = 0; index < 0x100; ++index)
+	for (index = 0; index < 0x200; ++index)
 	{
-		index_readprecalcs[index] = (((index & 0x20) >> 4) | 1); //The read precalcs!
+		index_readprecalcs[index] = (((index & 0x20) >> 4) | 1) | ((index&0x100)>>6); //The read precalcs!
+		index_writeprecalcs[index] = (((index & 0x20) >> 4) | 0) | ((index & 0x100) >> 6); //The write precalcs!
 	}
 }
 
-typedef byte(*MMU_INTERNAL_directrb_handler)(uint_32 realaddress, byte index, byte *result); //A memory data read handler!
+typedef byte(*MMU_INTERNAL_directrb_handler)(uint_32 realaddress, word index, byte *result); //A memory data read handler!
 MMU_INTERNAL_directrb_handler MMU_INTERNAL_directrb_handlers[2] = { MMU_INTERNAL_directrb_nodebugger, MMU_INTERNAL_directrb_debugger }; //Debugging and non-debugging handlers to use!
 
-OPTINLINE byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index, byte *result)
+OPTINLINE byte MMU_INTERNAL_directrb(uint_32 realaddress, word index, byte *result)
 {
 	INLINEREGISTER byte is_debugging; //Are we debugging?
 #ifdef LOG_HIGH_MEMORY
@@ -718,7 +720,7 @@ OPTINLINE byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index, byte *resu
 	return 0; //Give the result that's gotten!
 }
 
-OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index) //Direct write to real memory (with real data direct)!
+OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, word index) //Direct write to real memory (with real data direct)!
 {
 	uint_32 originaladdress = realaddress; //Original address!
 	//Apply the 640K memory hole!
@@ -728,13 +730,13 @@ OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index
 		writeCompaqMMUregister(originaladdress, value); //Update the Compaq MMU register!
 		return; //Count as a memory mapped register!
 	}
-	if (unlikely((index != 0xFF) && bushandler)) //Don't ignore BUS?
+	if (unlikely(((index&0xFF) != 0xFF) && bushandler)) //Don't ignore BUS?
 	{
 		bushandler(index, value); //Update the bus handler!
 	}
-	if (unlikely(applyMemoryHoles(realaddress,0))) //Overflow/invalid location?
+	if (unlikely(applyMemoryHoles(realaddress,index_writeprecalcs[index]))) //Overflow/invalid location?
 	{
-		MMU_INTERNAL_INVMEM(originaladdress,realaddress,1,value,index,nonexistant); //Invalid memory accessed!
+		MMU_INTERNAL_INVMEM(originaladdress,realaddress,1,value,(index&0xFF),nonexistant); //Invalid memory accessed!
 		return; //Abort!
 	}
 #ifdef LOG_HIGH_MEMORY
@@ -762,7 +764,7 @@ OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index
 }
 
 //Used by the DMA controller only(rw/rdw). Result is the value only.
-word MMU_INTERNAL_directrw(uint_32 realaddress, byte index) //Direct read from real memory (with real data direct)!
+word MMU_INTERNAL_directrw(uint_32 realaddress, word index) //Direct read from real memory (with real data direct)!
 {
 	word result;
 	byte temp;
@@ -793,18 +795,18 @@ word MMU_INTERNAL_directrw(uint_32 realaddress, byte index) //Direct read from r
 	return result; //Give the result!
 }
 
-void MMU_INTERNAL_directww(uint_32 realaddress, word value, byte index) //Direct write to real memory (with real data direct)!
+void MMU_INTERNAL_directww(uint_32 realaddress, word value, word index) //Direct write to real memory (with real data direct)!
 {
 	MMU_INTERNAL_directwb(realaddress, value & 0xFF, index); //Low!
 	MMU_INTERNAL_directwb(realaddress + 1, (value >> 8) & 0xFF, index | 1); //High!
 }
 
 //Used by paging only!
-uint_32 MMU_INTERNAL_directrdw(uint_32 realaddress, byte index)
+uint_32 MMU_INTERNAL_directrdw(uint_32 realaddress, word index)
 {
 	return (MMU_INTERNAL_directrw(realaddress + 2, index | 2) << 16) | MMU_INTERNAL_directrw(realaddress, index); //Get data, wrap arround!	
 }
-void MMU_INTERNAL_directwdw(uint_32 realaddress, uint_32 value, byte index)
+void MMU_INTERNAL_directwdw(uint_32 realaddress, uint_32 value, word index)
 {
 	MMU_INTERNAL_directww(realaddress, value & 0xFFFF, index); //Low!
 	MMU_INTERNAL_directww(realaddress + 2, (value >> 16) & 0xFFFF, index | 2); //High!
@@ -951,11 +953,11 @@ void MMU_resetaddr()
 	MMU.invaddr = 0; //Reset: we're valid again!
 }
 
-//Direct memory access routines (used by DMA and Paging)!
+//Direct memory access routines (used by DMA)!
 byte memory_directrb(uint_32 realaddress) //Direct read from real memory (with real data direct)!
 {
 	byte result;
-	if (unlikely(MMU_INTERNAL_directrb(realaddress, 0, &result)))
+	if (unlikely(MMU_INTERNAL_directrb(realaddress, 0x100, &result)))
 	{
 		if (likely((is_XT == 0) || (EMULATED_CPU >= CPU_80286))) //To give NOT for detecting memory on AT only?
 		{
@@ -970,21 +972,21 @@ byte memory_directrb(uint_32 realaddress) //Direct read from real memory (with r
 }
 word memory_directrw(uint_32 realaddress) //Direct read from real memory (with real data direct)!
 {
-	return MMU_INTERNAL_directrw(realaddress, 0);
+	return MMU_INTERNAL_directrw(realaddress, 0x100);
 }
 uint_32 memory_directrdw(uint_32 realaddress) //Direct read from real memory (with real data direct)!
 {
-	return MMU_INTERNAL_directrdw(realaddress, 0);
+	return MMU_INTERNAL_directrdw(realaddress, 0x100);
 }
 void memory_directwb(uint_32 realaddress, byte value) //Direct write to real memory (with real data direct)!
 {
-	MMU_INTERNAL_directwb(realaddress, value, 0);
+	MMU_INTERNAL_directwb(realaddress, value, 0x100);
 }
 void memory_directww(uint_32 realaddress, word value) //Direct write to real memory (with real data direct)!
 {
-	MMU_INTERNAL_directww(realaddress, value, 0);
+	MMU_INTERNAL_directww(realaddress, value, 0x100);
 }
 void memory_directwdw(uint_32 realaddress, uint_32 value) //Direct write to real memory (with real data direct)!
 {
-	MMU_INTERNAL_directwdw(realaddress, value, 0);
+	MMU_INTERNAL_directwdw(realaddress, value, 0x100);
 }
