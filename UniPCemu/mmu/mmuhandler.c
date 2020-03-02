@@ -571,11 +571,11 @@ byte readCompaqMMURegister() //Read the Compaq MMU register!
 	{
 		result |= 0xC0; //Second 1MB installed, Memory expansion board installed(adding 2M).
 	}
-	else if ((MMU.size & 0xFFF00000) >= 0x400000) //3MB installed?
+	else if ((MMU.size & 0xFFF00000) >= 0x300000) //3MB installed?
 	{
 		result |= 0x80; //Memory expansion board installed(adding 2M).
 	}
-	else if ((MMU.size & 0xFFF00000) >= 0x400000) //2MB installed?
+	else if ((MMU.size & 0xFFF00000) >= 0x200000) //2MB installed?
 	{
 		result |= 0x40; //Second 1MB installed
 	}
