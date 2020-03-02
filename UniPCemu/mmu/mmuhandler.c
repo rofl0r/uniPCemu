@@ -320,7 +320,6 @@ resetmmu:
 	}
 	if ((EMULATED_CPU <= CPU_NECV30) && (MMU.size>0x100000)) MMU.size = 0x100000; //Limit unsupported sizes by the CPU!
 
-	MMU.size &= ~MMU_BLOCKALIGNMENT; //Align the memory for the block size required!
 	//dolog("zalloc","Allocating MMU memory...");
 	MMU.memory = (byte *)zalloc(MMU.size, "MMU_Memory", NULL); //Allocate the memory available for the segments
 	MMU.invaddr = 0; //Default: MMU address OK!
@@ -505,6 +504,10 @@ OPTINLINE byte applyMemoryHoles(uint_32 realaddress, byte isread)
 		}
 		//Load the new cache address now!
 		memorymapinfo[isread].cache = &MMU.memory[originaladdress]; //Cached address for the memory!
+		if (unlikely(/*(realaddress>=MMU.size) ||*/ (((originaladdress|MMU_BLOCKALIGNMENT)>=MMU.effectivemaxsize) /*&& (nonexistant!=3)*/ ) /*|| (nonexistant==1)*/ )) //Overflow/invalid location within block?
+		{
+			memorymapinfo[isread].byteaddr |= MMU_BLOCKALIGNMENT; //Make the overflow by handled properly!
+		}
 	}
 	return 0; //We're mapped!
 }
@@ -707,7 +710,7 @@ OPTINLINE byte MMU_INTERNAL_directrb(uint_32 realaddress, byte index, byte *resu
 #else
 	is_debugging = (MMU_logging == 1); //Are we debugging?
 #endif
-	is_debugging &= 1; //1-bit only to know if we´re debugging or not!
+	is_debugging &= 1; //1-bit only to know if weï¿½re debugging or not!
 	if (MMU_INTERNAL_directrb_handlers[is_debugging](realaddress, index, result)) //Give the debugger or non-debugger result!
 	{
 		return 1; //No response!
