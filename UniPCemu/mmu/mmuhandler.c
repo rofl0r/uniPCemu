@@ -506,7 +506,7 @@ OPTINLINE byte applyMemoryHoles(uint_32 realaddress, byte isread)
 		memorymapinfo[isread].cache = &MMU.memory[originaladdress]; //Cached address for the memory!
 		if (unlikely(/*(realaddress>=MMU.size) ||*/ (((originaladdress|MMU_BLOCKALIGNMENT)>=MMU.effectivemaxsize) /*&& (nonexistant!=3)*/ ) /*|| (nonexistant==1)*/ )) //Overflow/invalid location within block?
 		{
-			memorymapinfo[isread].byteaddr |= MMU_BLOCKALIGNMENT; //Make the overflow by handled properly!
+			memorymapinfo[isread].byteaddr |= MMU_BLOCKALIGNMENT; //Make the overflow proper by handling it properly checking all addresses in it!
 		}
 	}
 	return 0; //We're mapped!
