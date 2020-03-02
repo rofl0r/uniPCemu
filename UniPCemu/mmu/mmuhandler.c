@@ -35,6 +35,9 @@ extern MMU_type MMU; //MMU for direct access!
 
 #define __HW_DISABLED 0
 
+//What bits to take as a memory block to be translated and used(rounds memory down)?
+#define MMU_BLOCKALIGNMENT 7
+
 //Log invalid memory accesses?
 //#define LOG_INVALID_MEMORY
 
@@ -316,6 +319,8 @@ resetmmu:
 		}
 	}
 	if ((EMULATED_CPU <= CPU_NECV30) && (MMU.size>0x100000)) MMU.size = 0x100000; //Limit unsupported sizes by the CPU!
+
+	MMU.size &= ~MMU_BLOCKALIGNMENT; //Align the memory for the block size required!
 	//dolog("zalloc","Allocating MMU memory...");
 	MMU.memory = (byte *)zalloc(MMU.size, "MMU_Memory", NULL); //Allocate the memory available for the segments
 	MMU.invaddr = 0; //Default: MMU address OK!
@@ -415,7 +420,7 @@ struct
 //isread: 0=write, 1=read, 3=Instruction read
 OPTINLINE byte applyMemoryHoles(uint_32 realaddress, byte isread)
 {
-	INLINEREGISTER uint_32 originaladdress = (realaddress&~7), maskedaddress; //Original address!
+	INLINEREGISTER uint_32 originaladdress = (realaddress&~MMU_BLOCKALIGNMENT), maskedaddress; //Original address!
 	byte memloc; //What memory block?
 	byte memoryhole;
 	realaddress = originaladdress; //Make sure we're aligned at chunks!
@@ -628,7 +633,7 @@ byte MMU_INTERNAL_directrb_debugger(uint_32 realaddress, byte index, byte *resul
 	{
 		doDRAM_access(originaladdress); //Tick the DRAM!
 	}
-	*result = memorymapinfo[precalcval].cache[realaddress&7]; //Get data from memory!
+	*result = memorymapinfo[precalcval].cache[realaddress&MMU_BLOCKALIGNMENT]; //Get data from memory!
 	debugger_logmemoryaccess(0, ((ptrnum)&memorymapinfo[precalcval].cache[realaddress & 7]-(ptrnum)MMU.memory), *result, LOGMEMORYACCESS_RAM_LOGMMUALL | (((index & 0x20) >> 5) << LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
 	//is_debugging |= 2; //Already gotten!
 specialreadcycledebugger:
@@ -656,7 +661,7 @@ byte MMU_INTERNAL_directrb_nodebugger(uint_32 realaddress, byte index, byte *res
 		MMU_INTERNAL_INVMEM(originaladdress, realaddress, 0, 0, index, nonexistant); //Invalid memory accessed!
 		return 1; //Not mapped!
 	}
-	*result = memorymapinfo[precalcval].cache[realaddress&7]; //Get data from memory!
+	*result = memorymapinfo[precalcval].cache[realaddress&MMU_BLOCKALIGNMENT]; //Get data from memory!
 	if (unlikely(doDRAM_access)) //DRAM access?
 	{
 		doDRAM_access(originaladdress); //Tick the DRAM!
@@ -742,7 +747,7 @@ OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, byte index
 		debugger_logmemoryaccess(1, ((ptrnum)&memorymapinfo[0].cache[realaddress & 7] - (ptrnum)MMU.memory), value, LOGMEMORYACCESS_RAM_LOGMMUALL); //Log it!
 	}
 #endif
-	memorymapinfo[0].cache[realaddress & 7] = value; //Set data, full memory protection!
+	memorymapinfo[0].cache[realaddress & MMU_BLOCKALIGNMENT] = value; //Set data, full memory protection!
 	if (unlikely(doDRAM_access)) //DRAM access?
 	{
 		doDRAM_access(realaddress); //Tick the DRAM!
