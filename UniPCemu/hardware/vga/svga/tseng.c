@@ -222,7 +222,7 @@ byte Tseng34K_writeIO(word port, byte val)
 		//16-bit DAC operations!
 		et34k_updateDAC(et34kdata,val); //Update the DAC values to be compatible!
 		VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_DACMASKREGISTER); //We've been updated!
-		et34kdata->hicolorDACcmdmode = 0; //A write to any address will reset the flag that is set when the pixel read mask register is read four times.
+		//et34kdata->hicolorDACcmdmode = 0; //A write to any address will reset the flag that is set when the pixel read mask register is read four times.
 		return 1; //We're overridden!
 		break;
 	case 0x3C7: //Write: DAC Address Read Mode Register	ADDRESS? Pallette RAM read address register in the manual.
