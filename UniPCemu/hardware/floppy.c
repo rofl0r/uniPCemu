@@ -139,6 +139,7 @@ struct
 	byte RWRequestedCylinder; //Read/Write requested cylinder!
 	byte PerpendicularMode; //Perpendicular mode enabled for these drives!
 	byte readIDerror; //Error condition on read ID command?
+	byte readIDdrive; //Read ID command's drive!
 } FLOPPY; //Our floppy drive data!
 
 //DOR
@@ -761,7 +762,7 @@ OPTINLINE void FLOPPY_handlereset(byte source) //Resets the floppy disk command 
 			FLOPPY.MSR = 0; //Default to no data!
 			FLOPPY.commandposition = 0; //No command!
 			FLOPPY.commandstep = 0; //Reset step to indicate we're to read the result in ST0!
-			FLOPPY.ST0 = 0xC0; //Reset ST0 to the correct value: drive became not ready!
+			FLOPPY.ST0 = 0xC0|(FLOPPY.ST0&0x38); //Reset ST0 to the correct value: drive became not ready! Keep Seek End, Unit Check, Not Ready! Head/Unit Select are set by commands!
 			FLOPPY.ST1 = FLOPPY.ST2 = 0; //Reset the ST data!
 			pending_size = 4; //Pending full size with polling mode enabled!
 			if (FLOPPY_CONFIGURATION_DRIVEPOLLINGMODEDISABLER) pending_size = 0; //Don't pend when polling mode is off!
@@ -1144,6 +1145,12 @@ void floppy_erroringout() //Generic handling of when a floppy errors out!
 	FLOPPY.DMAPending = 0; //DMA not pending anymore, so stop handling that!
 }
 
+void FLOPPY_fillST0(byte drive)
+{
+	FLOPPY_ST0_UNITSELECTW(drive); //What unit!
+	FLOPPY_ST0_CURRENTHEADW(FLOPPY.currenthead[drive]); //What head!
+}
+
 void floppy_common_sectoraccess_nomedia()
 {
 	FLOPPY.commandstep = 0xFE; //Lock up, according to Bochs!
@@ -1312,6 +1319,7 @@ void FLOPPY_formatsector() //Request a read sector command!
 	{
 		FLOPPY_LOGD("FLOPPY: Finished transfer of data (%u sector(s)).", FLOPPY.sectorstransferred) //Log the completion of the sectors written!
 		FLOPPY.resultposition = 0;
+		FLOPPY_fillST0(FLOPPY_DOR_DRIVENUMBERR); //Setup ST0!
 		FLOPPY.resultbuffer[0] = FLOPPY.ST0;
 		FLOPPY.resultbuffer[1] = FLOPPY.ST1;
 		FLOPPY.resultbuffer[2] = FLOPPY.ST2;
@@ -1414,6 +1422,7 @@ void FLOPPY_formatsector() //Request a read sector command!
 		//Enter result phase!
 		FLOPPY.resultposition = 0; //Reset result position!
 		FLOPPY.commandstep = 3; //Enter the result phase!
+		FLOPPY_fillST0(FLOPPY_DOR_DRIVENUMBERR); //Setup ST0!
 		FLOPPY.resultbuffer[0] = FLOPPY.ST0;
 		FLOPPY.resultbuffer[1] = FLOPPY.ST1;
 		FLOPPY.resultbuffer[2] = FLOPPY.ST2;
@@ -1528,6 +1537,7 @@ void floppy_executeWriteData()
 		}
 		FLOPPY_LOGD("FLOPPY: Finished transfer of data (%u sector(s)).", FLOPPY.sectorstransferred) //Log the completion of the sectors written!
 		FLOPPY.resultposition = 0;
+		FLOPPY_fillST0(FLOPPY_DOR_DRIVENUMBERR); //Setup ST0!
 		FLOPPY.resultbuffer[0] = FLOPPY.ST0; //ST0!
 		FLOPPY.resultbuffer[1] = FLOPPY.ST1; //ST1!
 		FLOPPY.resultbuffer[2] = FLOPPY.ST2; //ST2!
@@ -1633,6 +1643,7 @@ void floppy_executeReadData()
 		break;
 	}
 	FLOPPY.resultposition = 0;
+	FLOPPY_fillST0(FLOPPY_DOR_DRIVENUMBERR); //Setup ST0!
 	FLOPPY.resultbuffer[0] = FLOPPY.ST0;
 	FLOPPY.resultbuffer[1] = FLOPPY.ST1;
 	FLOPPY.resultbuffer[2] = FLOPPY.ST2;
@@ -1796,6 +1807,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 				FLOPPY_ST0_CURRENTHEADW(FLOPPY.currenthead[reset_drive] & 1); //Set the current head of the drive!
 				FLOPPY_ST0_UNITCHECKW(0); //We're valid, because polling more is valid by default!
 				datatemp = FLOPPY.ST0; //Use the current data, not the cleared data!
+				if (FLOPPY.reset_pending==0) goto resetcompleted_irq;
 			}
 			else if (!FLOPPY_hadIRQ) //Not an pending IRQ?
 			{
@@ -1809,6 +1821,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			}
 			else //Not valid to poll more after this IRQ handling?
 			{
+				resetcompleted_irq: //Reset finished by IRQ?
 				FLOPPY_ST0_INTERRUPTCODEW(3); //Polling more is invalid!
 				//FLOPPY_ST0_SEEKENDW(0); //Not seeking anymore if we were!
 				FLOPPY_ST0_UNITCHECKW(1); //We're invalid, because polling more is invalid!
@@ -1938,11 +1951,13 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 
 			//Start the reading of the ID on the timer!
 			FLOPPY.databuffersize = 0x200; //Sector size into data buffer!
+			FLOPPY.readIDdrive = FLOPPY_DOR_DRIVENUMBERR; //Setup ST0!
 			FLOPPY.readIDerror = 0; //No error!
 			FLOPPY_startData(); //Start the data phase!
 			return; //Correct read!
 		floppy_errorReadID:
 			FLOPPY.databuffersize = 0x200; //Sector size into data buffer!
+			FLOPPY.readIDdrive = FLOPPY_DOR_DRIVENUMBERR; //Setup ST0!
 			FLOPPY.readIDerror = 1; //Error!
 			FLOPPY_startData(); //Start the data phase!
 			return; //Incorrect read!
@@ -2546,6 +2561,7 @@ void updateFloppy(DOUBLE timepassed)
 								if (FLOPPY.readIDerror == 0) //Success?
 								{
 									FLOPPY.resultposition = 0; //Start the result!
+									FLOPPY_fillST0(FLOPPY.readIDdrive); //Setup ST0!
 									FLOPPY.resultbuffer[0] = FLOPPY.ST0; //ST0!
 									FLOPPY.resultbuffer[1] = FLOPPY.ST1; //ST1!
 									FLOPPY.resultbuffer[2] = FLOPPY.ST2; //ST2!
@@ -2558,6 +2574,7 @@ void updateFloppy(DOUBLE timepassed)
 									FLOPPY_ST1_NOADDRESSMARKW(1);
 									FLOPPY_ST1_NODATAW(1); //Invalid sector!
 									FLOPPY.resultposition = 0; //Start the result!
+									FLOPPY_fillST0(FLOPPY.readIDdrive); //Setup ST0!
 									FLOPPY.resultbuffer[0] = FLOPPY.ST0; //ST0!
 									FLOPPY.resultbuffer[1] = FLOPPY.ST1; //ST1!
 									FLOPPY.resultbuffer[2] = FLOPPY.ST2; //ST2!
