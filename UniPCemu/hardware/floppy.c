@@ -1937,10 +1937,12 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			}
 
 			//Start the reading of the ID on the timer!
+			FLOPPY.databuffersize = 0x200; //Sector size into data buffer!
 			FLOPPY.readIDerror = 0; //No error!
 			FLOPPY_startData(); //Start the data phase!
 			return; //Correct read!
 		floppy_errorReadID:
+			FLOPPY.databuffersize = 0x200; //Sector size into data buffer!
 			FLOPPY.readIDerror = 1; //Error!
 			FLOPPY_startData(); //Start the data phase!
 			return; //Incorrect read!
@@ -2537,32 +2539,37 @@ void updateFloppy(DOUBLE timepassed)
 							//Continue while busy!
 							break;
 						case READ_ID: //Read ID command?
-							//Start the result phase for the command!
-							if (FLOPPY.readIDerror == 0) //Success?
+							++FLOPPY.databufferposition; //Read data!
+							if (FLOPPY.databufferposition==FLOPPY.databuffersize) //Finished?
 							{
-								FLOPPY.resultposition = 0; //Start the result!
-								FLOPPY.resultbuffer[0] = FLOPPY.ST0; //ST0!
-								FLOPPY.resultbuffer[1] = FLOPPY.ST1; //ST1!
-								FLOPPY.resultbuffer[2] = FLOPPY.ST2; //ST2!
-								FLOPPY.commandstep = 3; //Result phase!
-								FLOPPY_raiseIRQ(); //Entering result phase!
+								//Start the result phase for the command!
+								if (FLOPPY.readIDerror == 0) //Success?
+								{
+									FLOPPY.resultposition = 0; //Start the result!
+									FLOPPY.resultbuffer[0] = FLOPPY.ST0; //ST0!
+									FLOPPY.resultbuffer[1] = FLOPPY.ST1; //ST1!
+									FLOPPY.resultbuffer[2] = FLOPPY.ST2; //ST2!
+									FLOPPY.commandstep = 3; //Result phase!
+									FLOPPY_raiseIRQ(); //Entering result phase!
+								}
+								else //Error?
+								{
+									FLOPPY.ST0 |= 0x40; //Error!
+									FLOPPY_ST1_NOADDRESSMARKW(1);
+									FLOPPY_ST1_NODATAW(1); //Invalid sector!
+									FLOPPY.resultposition = 0; //Start the result!
+									FLOPPY.resultbuffer[0] = FLOPPY.ST0; //ST0!
+									FLOPPY.resultbuffer[1] = FLOPPY.ST1; //ST1!
+									FLOPPY.resultbuffer[2] = FLOPPY.ST2; //ST2!
+									FLOPPY.resultbuffer[3] = FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]; //Cylinder!
+									FLOPPY.resultbuffer[4] = FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]; //Head!
+									FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]; //Sector!
+									FLOPPY.commandstep = 3; //Result phase!
+									FLOPPY_raiseIRQ(); //Entering result phase!
+								}
+								//We're finished with this timing now!
 							}
-							else //Error?
-							{
-								FLOPPY.ST0 |= 0x40; //Error!
-								FLOPPY_ST1_NOADDRESSMARKW(1);
-								FLOPPY_ST1_NODATAW(1); //Invalid sector!
-								FLOPPY.resultposition = 0; //Start the result!
-								FLOPPY.resultbuffer[0] = FLOPPY.ST0; //ST0!
-								FLOPPY.resultbuffer[1] = FLOPPY.ST1; //ST1!
-								FLOPPY.resultbuffer[2] = FLOPPY.ST2; //ST2!
-								FLOPPY.resultbuffer[3] = FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]; //Cylinder!
-								FLOPPY.resultbuffer[4] = FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]; //Head!
-								FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]; //Sector!
-								FLOPPY.commandstep = 3; //Result phase!
-								FLOPPY_raiseIRQ(); //Entering result phase!
-							}
-							//We're finished with this timing now!
+							else break; //Still processing?
 						default: //Unsupported command?
 							if ((FLOPPY.commandstep==2) && FLOPPY_useDMA() && (FLOPPY.DMAPending&2) && (drive==FLOPPY_DOR_DRIVENUMBERR)) //DMA transfer busy on this channel?
 							{
