@@ -994,7 +994,7 @@ byte floppy_increasesector(byte floppy) //Increase the sector number automatical
 			{
 				result = 2; //Abort!
 				FLOPPY_ST0_INTERRUPTCODEW(1); //Couldn't finish correctly!
-				FLOPPY_ST0_SEEKENDW(0); //Failed!
+				//FLOPPY_ST0_SEEKENDW(0); //Failed!
 			}
 		}
 		else //Terminal count but not finished?
@@ -1203,7 +1203,7 @@ void floppy_readsector() //Request a read sector command!
 	FLOPPY_ST0_CURRENTHEADW(FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] & 1); //Current head!
 	FLOPPY_ST0_NOTREADYW(0); //We're not ready yet!
 	FLOPPY_ST0_UNITCHECKW(0); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
-	FLOPPY_ST0_SEEKENDW(0); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
+	//FLOPPY_ST0_SEEKENDW(0); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
 	FLOPPY_ST0_INTERRUPTCODEW(0); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
 
 	if (!FLOPPY_supportsrate(FLOPPY_DOR_DRIVENUMBERR) || (!FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]) ||  ((FLOPPY_DOR_DRIVENUMBERR < 2) ? (!is_mounted(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0)) : 1)) //We don't support the rate or geometry?
@@ -1234,7 +1234,7 @@ void floppy_readsector() //Request a read sector command!
 			floppy_common_sectoraccess_nomedia(); //No media!
 			return;
 		}
-		FLOPPY_ST0_SEEKENDW(1); //Successfull read with implicit seek!
+		//FLOPPY_ST0_SEEKENDW(1); //Successfull read with implicit seek!
 		FLOPPY_startData();
 	}
 	else //DSK or error?
@@ -1457,7 +1457,7 @@ void floppy_writesector() //Request a write sector command!
 	FLOPPY_ST0_CURRENTHEADW(FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] & 1); //Current head!
 	FLOPPY_ST0_NOTREADYW(0); //We're not ready yet!
 	FLOPPY_ST0_UNITCHECKW(0); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
-	FLOPPY_ST0_SEEKENDW(0); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
+	//FLOPPY_ST0_SEEKENDW(0); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
 	FLOPPY_ST0_INTERRUPTCODEW(0); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
 
 	if (!(FLOPPY_DOR_MOTORCONTROLR&(1 << FLOPPY_DOR_DRIVENUMBERR))) //Not motor ON?
@@ -1518,7 +1518,7 @@ void floppy_executeWriteData()
 		case 0: //OK?
 		default: //Unknown?
 			floppy_errorwrite:
-			FLOPPY_ST0_SEEKENDW(1); //Successfull write with implicit seek!
+			//FLOPPY_ST0_SEEKENDW(1); //Successfull write with implicit seek!
 			FLOPPY_ST0_INTERRUPTCODEW(0); //Normal termination!
 			FLOPPY_ST0_NOTREADYW(0); //We're ready!
 			break;
@@ -1584,13 +1584,13 @@ void floppy_executeWriteData()
 						break;
 					case 0: //OK?
 					default: //Unknown?
-						FLOPPY_ST0_SEEKENDW(1); //Successfull write with implicit seek!
+						//FLOPPY_ST0_SEEKENDW(1); //Successfull write with implicit seek!
 						FLOPPY_ST0_INTERRUPTCODEW(0); //Normal termination!
 						FLOPPY_ST0_NOTREADYW(0); //We're ready!
 						break;
 					}
 					FLOPPY_LOGD("FLOPPY: Finished transfer of data (%u sector(s)).", FLOPPY.sectorstransferred) //Log the completion of the sectors written!
-					FLOPPY_ST0_SEEKENDW(1); //Successfull write with implicit seek!
+					//FLOPPY_ST0_SEEKENDW(1); //Successfull write with implicit seek!
 					FLOPPY.resultposition = 0;
 					FLOPPY.resultbuffer[0] = FLOPPY.ST0 = ((FLOPPY.ST0 & 0x3B) | FLOPPY_DOR_DRIVENUMBERR) | ((FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] & 1) << 2); //Abnormal termination! ST0!
 					FLOPPY.resultbuffer[1] = FLOPPY.ST1; //Drive write-protected! ST1!
@@ -1624,7 +1624,7 @@ void floppy_executeReadData()
 		break;
 	case 0: //OK?
 	default: //Unknown?
-		FLOPPY_ST0_SEEKENDW(1); //Successfull write with implicit seek!
+		//FLOPPY_ST0_SEEKENDW(1); //Successfull write with implicit seek!
 		FLOPPY_ST0_INTERRUPTCODEW(0); //Normal termination!
 		FLOPPY_ST0_NOTREADYW(0); //We're ready!
 		break;
@@ -1805,7 +1805,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			else //Not valid to poll more after this IRQ handling?
 			{
 				FLOPPY_ST0_INTERRUPTCODEW(3); //Polling more is invalid!
-				FLOPPY_ST0_SEEKENDW(0); //Not seeking anymore if we were!
+				//FLOPPY_ST0_SEEKENDW(0); //Not seeking anymore if we were!
 				FLOPPY_ST0_UNITCHECKW(1); //We're invalid, because polling more is invalid!
 				FLOPPY_ST0_NOTREADYW(0); //We're ready again!
 			}
