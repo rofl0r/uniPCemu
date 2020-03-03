@@ -555,6 +555,12 @@ void initEMU(int full) //Init!
 	debugrow("Initialising MMU...");
 	resetMMU(); //Initialise MMU (we need the BDA from now on!)!
 
+	if (full) //Full start?
+	{
+		debugrow("Registering BIOS ROM with the MMU...");
+		BIOS_registerROM(); //Register the ROMs for usage!
+	}
+
 	EMU_update_VGA_Settings(); //Update the VGA Settings to it's default value!
 	setupVGA(); //Set the VGA up for int10&CPU usage!
 
@@ -618,7 +624,6 @@ void initEMU(int full) //Init!
 		debugrow("Starting timers...");
 		startTimers(0); //Start the timers!
 		debugrow("Loading system BIOS ROM...");
-		BIOS_registerROM(); //Register the ROMs for usage!
 		BIOS_load_systemROM(); //Load custom ROM from emulator itself, we don't know about any system ROM!
 		clearCBHandlers(); //Reset all callbacks!
 		BIOS_initStart(); //Get us ready to load our own BIOS boot sequence, so load the ROM with all required data!
