@@ -109,7 +109,7 @@ void et34k_updateDAC(SVGA_ET34K_DATA* et34kdata, byte val)
 	{
 		et34kdata->hicolorDACcommand &= ~1; //Clear!
 	}
-	et34kdata->hicolorDACcommand |= 6; //Always set bits 1-2?
+	//et34kdata->hicolorDACcommand |= 6; //Always set bits 1-2?
 	//getActiveVGA()->registers->DACMaskRegister = (getActiveVGA()->registers->DACMaskRegister&~0x18)|(et34kdata->hicolorDACcommand&0x18);
 	et34kdata->hicolorDACcommand &= ~0x18; //Ignore the shared bits for the result!
 }
