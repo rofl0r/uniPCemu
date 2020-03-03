@@ -29,6 +29,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #define __HW_DISABLED 0
 
 PIC i8259;
+byte irr3_dirty = 0; //IRR3/IRR3_a is changed?
 
 //i8259.irr is the complete status of all 8 interrupt lines at the moment. Any software having raised it's line, raises this. Otherwise, it's lowered(irr3 are all cleared)!
 //i8259.irr2 is the live status of each of the parallel interrupt lines!
@@ -53,6 +54,7 @@ void init8259()
 
 	i8259.imr[0] = 0xFF; //Mask off all interrupts to start!
 	i8259.imr[1] = 0xFF; //Mask off all interrupts to start!
+	irr3_dirty = 0; //Default: not dirty!
 }
 
 byte in8259(word portnum, byte *result)
@@ -118,6 +120,7 @@ byte out8259(word portnum, byte value)
 			memset(&i8259.irr[pic],0,sizeof(i8259.irr[pic])); //Reset IRR raised sense!
 			memset(&i8259.irr3[pic],0,sizeof(i8259.irr3[pic])); //Reset IRR shared raised sense!
 			memset(&i8259.irr3_a[pic],0,sizeof(i8259.irr3_a[pic])); //Reset IRR shared raised sense!
+			irr3_dirty = 0; //Not dirty anymore!
 			i8259.imr[pic] = 0; //clear interrupt mask register
 			i8259.icw[pic][i8259.icwstep[pic]++] = value; //Set the ICW1!
 			i8259.readmode[pic] = 0; //Default to IRR reading after a reset!
@@ -197,6 +200,9 @@ OPTINLINE byte getunprocessedinterrupt(byte PIC)
 
 void acnowledgeirrs()
 {
+	byte nonedirty; //None are dirtied?
+	if (likely(irr3_dirty == 0)) return; //Nothing to do?
+	nonedirty = 1; //None are dirty!
 	//Move IRR3 to IRR and acnowledge!
 	byte IRQ, source, PIC, IR;
 	for (PIC=0;PIC<2;++PIC)
@@ -215,10 +221,15 @@ void acnowledgeirrs()
 						}
 						i8259.irr3_a[PIC][source] |= (1 << IR); //Add the IRQ to request because of the rise!
 						i8259.irr[PIC] |= (1 << IR); //Add the IRQ to request because of the rise!
+						nonedirty = 0; //Acnowledged one!
 					}
 				}
 			}
 		}
+	if (nonedirty) //None are dirty anymore?
+	{
+		irr3_dirty = 0; //Not dirty anymore!
+	}
 }
 
 byte PICInterrupt() //We have an interrupt ready to process?
@@ -250,6 +261,7 @@ OPTINLINE void ACNIR(byte PIC, byte IR, byte source) //Acnowledge request!
 	if (__HW_DISABLED) return; //Abort!
 	i8259.irr3[PIC][source] &= ~(1 << IR); //Turn source IRR off!
 	i8259.irr3_a[PIC][source] &= ~(1 << IR); //Turn source IRR off!
+	irr3_dirty = 1; //Dirty!
 	i8259.irr[PIC] &= ~(1<<IR); //Clear the request!
 	i8259.isr[PIC] |= (1 << IR); //Turn in-service on!
 	i8259.isr2[PIC][source] |= (1 << IR); //Turn the source on!
@@ -335,6 +347,7 @@ void raiseirq(byte irqnum)
 	if (hasirr && ((hasirr^oldIRR)&1)) //The line is actually raised?
 	{
 		i8259.irr3[PIC][requestingindex] |= (1 << (irqnum & 7)); //Add the IRQ to request because of the rise! This causes us to be the reason during shared IR lines!
+		irr3_dirty = 1; //Dirty!
 	}
 }
 
@@ -350,6 +363,7 @@ void lowerirq(byte irqnum)
 	i8259.irr2[PIC][requestingindex] &= ~(1 << (irqnum & 7)); //Lower the IRQ line to request!
 	i8259.irr3[PIC][requestingindex] &= ~(1 << (irqnum & 7)); //Remove the request being used itself!
 	i8259.irr3_a[PIC][requestingindex] &= ~(1<<(irqnum&7)); //Remove the request, if any!
+	irr3_dirty = 1; //Dirty!
 	hasirr = 0; //Init IRR state!
 	for (irr2index = 0;irr2index < 0x10;++irr2index) //Verify if anything is left!
 	{
