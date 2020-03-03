@@ -304,3 +304,4 @@ __pycache__/
 #Universal git version storage is to be ignored. This is updated on commits each time!
 /gitversion2.txt
 *.psp
+*.diagsession
