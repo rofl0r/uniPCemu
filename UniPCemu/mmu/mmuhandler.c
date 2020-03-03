@@ -722,6 +722,7 @@ OPTINLINE byte MMU_INTERNAL_directrb(uint_32 realaddress, word index, byte *resu
 
 OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, word index) //Direct write to real memory (with real data direct)!
 {
+	byte precalcval;
 	uint_32 originaladdress = realaddress; //Original address!
 	//Apply the 640K memory hole!
 	byte nonexistant = 0;
@@ -734,7 +735,8 @@ OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, word index
 	{
 		bushandler(index, value); //Update the bus handler!
 	}
-	if (unlikely(applyMemoryHoles(realaddress,index_writeprecalcs[index]))) //Overflow/invalid location?
+	precalcval = index_writeprecalcs[index]; //Lookup the precalc val!
+	if (unlikely(applyMemoryHoles(realaddress,precalcval))) //Overflow/invalid location?
 	{
 		MMU_INTERNAL_INVMEM(originaladdress,realaddress,1,value,(index&0xFF),nonexistant); //Invalid memory accessed!
 		return; //Abort!
@@ -752,7 +754,7 @@ OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, word index
 		debugger_logmemoryaccess(1, ((ptrnum)&memorymapinfo[0].cache[realaddress & 7] - (ptrnum)MMU.memory), value, LOGMEMORYACCESS_RAM_LOGMMUALL); //Log it!
 	}
 #endif
-	memorymapinfo[0].cache[realaddress & MMU_BLOCKALIGNMENT] = value; //Set data, full memory protection!
+	memorymapinfo[precalcval].cache[realaddress & MMU_BLOCKALIGNMENT] = value; //Set data, full memory protection!
 	if (unlikely(doDRAM_access)) //DRAM access?
 	{
 		doDRAM_access(realaddress); //Tick the DRAM!
