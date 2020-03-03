@@ -1042,7 +1042,7 @@ OPTINLINE void FLOPPY_startData() //Start a Data transfer if needed!
 		break;
 	}
 	FLOPPY.commandstep = 2; //Move to data phrase!
-	if (FLOPPY.commandbuffer[0]==VERIFY) //Verify doesn't transfer data directly?
+	if ((FLOPPY.commandbuffer[0]==VERIFY) || (FLOPPY.commandbuffer[0]==READ_ID)) //Verify and Read ID doesn't transfer data directly?
 	{
 		FLOPPY_supportsrate(FLOPPY_DOR_DRIVENUMBERR); //Make sure we have a rate set!
 		FLOPPY.DMArate = FLOPPY.DMAratePending; //Start running at the specified speed!		
@@ -1937,21 +1937,11 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 
 			//Start the reading of the ID on the timer!
 			FLOPPY.readIDerror = 0; //No error!
-			floppytime[FLOPPY_DOR_DRIVENUMBERR] = 0.0;
-			FLOPPY_supportsrate(FLOPPY_DOR_DRIVENUMBERR); //Make sure we have a rate set!
-			FLOPPY.DMArate = FLOPPY.DMAratePending; //Start running at the specified speed!		
-			floppytimer[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY_DMA_TIMEOUT; //Time the timeout for floppy!
-			floppytiming |= (1 << FLOPPY_DOR_DRIVENUMBERR); //Make sure we're timing on the specified disk channel!
-			FLOPPY.commandstep = 2; //Data phase entered!
+			FLOPPY_startData(); //Start the data phase!
 			return; //Correct read!
 		floppy_errorReadID:
 			FLOPPY.readIDerror = 1; //Error!
-			floppytime[FLOPPY_DOR_DRIVENUMBERR] = 0.0;
-			FLOPPY_supportsrate(FLOPPY_DOR_DRIVENUMBERR); //Make sure we have a rate set!
-			FLOPPY.DMArate = FLOPPY.DMAratePending; //Start running at the specified speed!		
-			floppytimer[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY_DMA_TIMEOUT; //Time the timeout for floppy!
-			floppytiming |= (1 << FLOPPY_DOR_DRIVENUMBERR); //Make sure we're timing on the specified disk channel!
-			FLOPPY.commandstep = 2; //Data phase entered!
+			FLOPPY_startData(); //Start the data phase!
 			return; //Incorrect read!
 			break;
 		case FORMAT_TRACK: //Format sector
