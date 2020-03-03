@@ -1802,12 +1802,15 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 				FLOPPY.commandstep = 3; //Move to result phase!
 				return;
 			}
+			else //Not valid to poll more after this IRQ handling?
+			{
+				FLOPPY_ST0_INTERRUPTCODEW(3); //Polling more is invalid!
+				FLOPPY_ST0_SEEKENDW(0); //Not seeking anymore if we were!
+				FLOPPY_ST0_UNITCHECKW(1); //We're invalid, because polling more is invalid!
+				FLOPPY_ST0_NOTREADYW(0); //We're ready again!
+			}
 			
 			FLOPPY_LOGD("FLOPPY: Sense interrupt: ST0=%02X, Currentcylinder=%02X", datatemp, FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR])
-			FLOPPY_ST0_INTERRUPTCODEW(3); //Polling more is invalid!
-			FLOPPY_ST0_SEEKENDW(0); //Not seeking anymore if we were!
-			FLOPPY_ST0_UNITCHECKW(1); //We're invalid, because polling more is invalid!
-			FLOPPY_ST0_NOTREADYW(0); //We're ready again!
 			FLOPPY.resultbuffer[0] = datatemp; //Give old ST0 if changed this call!
 			FLOPPY.resultbuffer[1] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]; //Our idea of the current cylinder!
 			FLOPPY.resultposition = 0; //Start result!
