@@ -859,6 +859,7 @@ OPTINLINE void updateFloppyMSR() //Update the floppy MSR!
 			break;
 		case READ_DATA: //Read sector?
 		case READ_DELETED_DATA: //Read deleted sector?
+		case READ_ID: //Read ID?
 		case VERIFY: //Verify doesn't transfer data directly!
 			FLOPPY_MSR_HAVEDATAFORCPUW(1); //We have data for the CPU!
 			break;
