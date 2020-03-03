@@ -138,6 +138,7 @@ struct
 	DOUBLE DMArate, DMAratePending; //Current DMA transfer rate!
 	byte RWRequestedCylinder; //Read/Write requested cylinder!
 	byte PerpendicularMode; //Perpendicular mode enabled for these drives!
+	byte readIDerror; //Error condition on read ID command?
 } FLOPPY; //Our floppy drive data!
 
 //DOR
@@ -834,6 +835,7 @@ OPTINLINE void updateFloppyMSR() //Update the floppy MSR!
 			FLOPPY_MSR_RQMW(!FLOPPY_useDMA()); //Use no DMA? Then transfer data and set NonDMA! Else, clear non DMA and don't transfer!
 			FLOPPY_MSR_NONDMAW(!FLOPPY_useDMA()); //Use no DMA? Then transfer data and set NonDMA! Else, clear non DMA and don't transfer!
 			break;
+		case READ_ID: //Read ID doesn't transfer data directly!
 		case VERIFY: //Verify doesn't transfer data directly!
 			FLOPPY_MSR_RQMW(0); //Use no DMA? Then transfer data and set NonDMA! Else, clear non DMA and don't transfer!
 			FLOPPY_MSR_NONDMAW(0); //Use no DMA? Then transfer data and set NonDMA! Else, clear non DMA and don't transfer!
@@ -1766,8 +1768,10 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			FLOPPY_MSR_BUSYINPOSITIONINGMODEW(FLOPPY_DOR_DRIVENUMBERR,1); //Seeking!
 			if (!FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]) //Already there?
 			{
+				/*
 				FLOPPY_finishrecalibrate(FLOPPY_DOR_DRIVENUMBERR); //Finish the recalibration automatically(we're eating up the command)!
 				FLOPPY_checkfinishtiming(FLOPPY_DOR_DRIVENUMBERR); //Finish if required!
+				*/ //Use normal timing for the recalibration command!
 			}
 			else
 			{
@@ -1930,26 +1934,24 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 				FLOPPY.resultbuffer[4] = FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]; //Head!
 				FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]; //Sector!
 			}
-			FLOPPY.resultposition = 0; //Start the result!
-			FLOPPY.resultbuffer[0] = FLOPPY.ST0; //ST0!
-			FLOPPY.resultbuffer[1] = FLOPPY.ST1; //ST1!
-			FLOPPY.resultbuffer[2] = FLOPPY.ST2; //ST2!
-			FLOPPY.commandstep = 3; //Result phase!
-			FLOPPY_raiseIRQ(); //Entering result phase!
+
+			//Start the reading of the ID on the timer!
+			FLOPPY.readIDerror = 0; //No error!
+			floppytime[FLOPPY_DOR_DRIVENUMBERR] = 0.0;
+			FLOPPY_supportsrate(FLOPPY_DOR_DRIVENUMBERR); //Make sure we have a rate set!
+			FLOPPY.DMArate = FLOPPY.DMAratePending; //Start running at the specified speed!		
+			floppytimer[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY_DMA_TIMEOUT; //Time the timeout for floppy!
+			floppytiming |= (1 << FLOPPY_DOR_DRIVENUMBERR); //Make sure we're timing on the specified disk channel!
+			FLOPPY.commandstep = 2; //Data phase entered!
 			return; //Correct read!
-			floppy_errorReadID:
-			FLOPPY.ST0 |= 0x40; //Error!
-			FLOPPY_ST1_NOADDRESSMARKW(1);
-			FLOPPY_ST1_NODATAW(1); //Invalid sector!
-			FLOPPY.resultposition = 0; //Start the result!
-			FLOPPY.resultbuffer[0] = FLOPPY.ST0; //ST0!
-			FLOPPY.resultbuffer[1] = FLOPPY.ST1; //ST1!
-			FLOPPY.resultbuffer[2] = FLOPPY.ST2; //ST2!
-			FLOPPY.resultbuffer[3] = FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]; //Cylinder!
-			FLOPPY.resultbuffer[4] = FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]; //Head!
-			FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]; //Sector!
-			FLOPPY.commandstep = 3; //Result phase!
-			FLOPPY_raiseIRQ(); //Entering result phase!
+		floppy_errorReadID:
+			FLOPPY.readIDerror = 1; //Error!
+			floppytime[FLOPPY_DOR_DRIVENUMBERR] = 0.0;
+			FLOPPY_supportsrate(FLOPPY_DOR_DRIVENUMBERR); //Make sure we have a rate set!
+			FLOPPY.DMArate = FLOPPY.DMAratePending; //Start running at the specified speed!		
+			floppytimer[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY_DMA_TIMEOUT; //Time the timeout for floppy!
+			floppytiming |= (1 << FLOPPY_DOR_DRIVENUMBERR); //Make sure we're timing on the specified disk channel!
+			FLOPPY.commandstep = 2; //Data phase entered!
 			return; //Incorrect read!
 			break;
 		case FORMAT_TRACK: //Format sector
@@ -2543,6 +2545,33 @@ void updateFloppy(DOUBLE timepassed)
 							}
 							//Continue while busy!
 							break;
+						case READ_ID: //Read ID command?
+							//Start the result phase for the command!
+							if (FLOPPY.readIDerror == 0) //Success?
+							{
+								FLOPPY.resultposition = 0; //Start the result!
+								FLOPPY.resultbuffer[0] = FLOPPY.ST0; //ST0!
+								FLOPPY.resultbuffer[1] = FLOPPY.ST1; //ST1!
+								FLOPPY.resultbuffer[2] = FLOPPY.ST2; //ST2!
+								FLOPPY.commandstep = 3; //Result phase!
+								FLOPPY_raiseIRQ(); //Entering result phase!
+							}
+							else //Error?
+							{
+								FLOPPY.ST0 |= 0x40; //Error!
+								FLOPPY_ST1_NOADDRESSMARKW(1);
+								FLOPPY_ST1_NODATAW(1); //Invalid sector!
+								FLOPPY.resultposition = 0; //Start the result!
+								FLOPPY.resultbuffer[0] = FLOPPY.ST0; //ST0!
+								FLOPPY.resultbuffer[1] = FLOPPY.ST1; //ST1!
+								FLOPPY.resultbuffer[2] = FLOPPY.ST2; //ST2!
+								FLOPPY.resultbuffer[3] = FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]; //Cylinder!
+								FLOPPY.resultbuffer[4] = FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]; //Head!
+								FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]; //Sector!
+								FLOPPY.commandstep = 3; //Result phase!
+								FLOPPY_raiseIRQ(); //Entering result phase!
+							}
+							//We're finished with this timing now!
 						default: //Unsupported command?
 							if ((FLOPPY.commandstep==2) && FLOPPY_useDMA() && (FLOPPY.DMAPending&2) && (drive==FLOPPY_DOR_DRIVENUMBERR)) //DMA transfer busy on this channel?
 							{
