@@ -1965,6 +1965,15 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 				//Clip the sector number first!
 				if (!FLOPPY.readID_lastsectornumber) FLOPPY.readID_lastsectornumber = 1; //Sector number from 1 to SPT!
 				if (FLOPPY.readID_lastsectornumber > (FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR] ? FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->SPT : 0)) FLOPPY.readID_lastsectornumber = 1; //Limit to SPT!
+				//Simulate the sectors moving for the software to see!
+				if (FLOPPY.readID_lastsectornumber < (FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR] ? FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->SPT : 0)) //Gotten next?
+				{
+					++FLOPPY.readID_lastsectornumber; //Next sector!
+				}
+				else //First sector reached again with index hole!
+				{
+					FLOPPY.readID_lastsectornumber = 1; //Back at sector 1!
+				}
 				//Start validating the sector number!
 				if (FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR] && ((FLOPPY_DOR_DRIVENUMBERR < 2) ? (is_mounted(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0)) : 0)) //Valid geometry?
 				{
@@ -1981,16 +1990,6 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 				FLOPPY.resultbuffer[3] = FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]; //Cylinder(exception: actually give what we read from the disk)!
 				FLOPPY.resultbuffer[4] = FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]; //Head!
 				FLOPPY.resultbuffer[5] = FLOPPY.readID_lastsectornumber; //Last sector read!
-
-				//Simulate the sectors moving for the software to see!
-				if (FLOPPY.readID_lastsectornumber < (FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR] ? FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->SPT : 0)) //Gotten next?
-				{
-					++FLOPPY.readID_lastsectornumber; //Next sector!
-				}
-				else //First sector reached again with index hole!
-				{
-					FLOPPY.readID_lastsectornumber = 1; //Back at sector 1!
-				}
 			}
 
 		floppy_startReadIDresult:
