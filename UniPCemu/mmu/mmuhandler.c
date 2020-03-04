@@ -359,6 +359,7 @@ resetmmu:
 	memoryprotect_FE0000 = 0; //Don't enable memory protection on FE0000+ by default!
 	//Reset the register!
 	MMU.maxsize = -1; //Default to not using any maximum size: full memory addressable!
+	memset(&memorymapinfo, 0, sizeof(memorymapinfo)); //Initialize the memory map info properly!
 	MMU_updatemaxsize(); //updated the maximum size!
 	MMU_precalcMemoryHoles(); //Precalculate the memory hole information!
 	updateBUShandler(); //Set the new bus handler!
