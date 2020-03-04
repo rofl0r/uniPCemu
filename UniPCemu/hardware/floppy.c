@@ -1994,7 +1994,6 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 				FLOPPY.resultbuffer[5] = FLOPPY.readID_lastsectornumber; //Last sector read!
 			}
 
-		floppy_startReadIDresult:
 			//Start the reading of the ID on the timer!
 			FLOPPY.databuffersize = 0x200; //Sector size into data buffer!
 			FLOPPY.readIDdrive = FLOPPY_DOR_DRIVENUMBERR; //Setup ST0!
