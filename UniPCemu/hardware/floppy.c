@@ -2655,6 +2655,8 @@ byte PORT_IN_floppy(word port, byte *result)
 		return 1;
 	case 5: //Data?
 		//Process data!
+		FLOPPY_hadIRQ = FLOPPY.IRQPending; //Was an IRQ Pending?
+		FLOPPY_lowerIRQ(); //Lower the IRQ!
 		*result = floppy_readData(0); //Read data!
 		return 1;
 	case 7: //DIR?
