@@ -1325,6 +1325,9 @@ void FLOPPY_formatsector() //Request a read sector command!
 		FLOPPY_LOGD("FLOPPY: Finished transfer of data (%u sector(s)).", FLOPPY.sectorstransferred) //Log the completion of the sectors written!
 		FLOPPY.resultposition = 0;
 		FLOPPY_fillST0(FLOPPY_DOR_DRIVENUMBERR); //Setup ST0!
+		FLOPPY.resultbuffer[0] = FLOPPY.ST0 = 0x40 | ((FLOPPY.ST0 & 0x3B) | FLOPPY_DOR_DRIVENUMBERR) | ((FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] & 1) << 2); //Abnormal termination! ST0!
+		FLOPPY.resultbuffer[1] = FLOPPY.ST1 = 0x27; //Drive write-protected! ST1!
+		FLOPPY.resultbuffer[2] = FLOPPY.ST2 = 0x31; //ST2!
 		FLOPPY.resultbuffer[0] = FLOPPY.ST0;
 		FLOPPY.resultbuffer[1] = FLOPPY.ST1;
 		FLOPPY.resultbuffer[2] = FLOPPY.ST2;
