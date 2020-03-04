@@ -414,7 +414,7 @@ struct
 	uint_32 byteaddr; //Byte address within the block of memory(address MOD 8)!
 	byte *cache; //Cached data of the byte address in memory(only valid when not a memory hole)!
 	byte memLocHole; //Prefetched data!
-} memorymapinfo[4]; //Two for reads(code, data), one for writes!
+} memorymapinfo[8]; //Two for reads(code, data), one for writes, double the size for adding DMA mapping support!
 
 //isread: 0=write, 1=read, 3=Instruction read
 OPTINLINE byte applyMemoryHoles(uint_32 realaddress, byte isread)
@@ -533,7 +533,7 @@ void MMU_updatemaxsize() //updated the maximum size!
 		memorymapinfo[isread].memLocHole = memoryhole; //Save the memory hole to use, if any!
 		memorymapinfo[isread].memorylocpatch = MMU_memorymaplocpatch[memloc]; //The patch address to substract!
 		memorymapinfo[isread].cache = NULL; //Invalidate the cache!
-	} while (++isread < 4); //Process all caches!
+	} while (++isread < 8); //Process all caches!
 }
 
 extern DRAM_accessHandler doDRAM_access; //DRAM access?
