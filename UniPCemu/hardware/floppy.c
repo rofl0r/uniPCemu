@@ -763,10 +763,10 @@ OPTINLINE void FLOPPY_handlereset(byte source) //Resets the floppy disk command 
 			FLOPPY.MSR = 0; //Default to no data!
 			FLOPPY.commandposition = 0; //No command!
 			FLOPPY.commandstep = 0; //Reset step to indicate we're to read the result in ST0!
-			FLOPPY.ST0 = 0; //Reset ST0 to the correct value!
-			FLOPPY.ST1 = FLOPPY.ST2 = FLOPPY.ST3 =  0; //Reset the ST data!
+			FLOPPY.ST0 = FLOPPY.ST1 = FLOPPY.ST2 = FLOPPY.ST3 =  0; //Reset all ST data!
 			pending_size = 4; //Pending full size with polling mode enabled!
 			if (FLOPPY_CONFIGURATION_DRIVEPOLLINGMODEDISABLER) pending_size = 0; //Don't pend when polling mode is off!
+			if (pending_size) FLOPPY.ST0 |= 0xC0; //Top 2 bits are set when polling is enabled only!
 			FLOPPY.reset_pending_size = FLOPPY.reset_pending = pending_size; //We have a reset pending for all 4 drives, unless interrupted by an other command!
 			FLOPPY.reset_pended = 1; //We're pending a reset! Clear status once we're becoming active!
 			memset(&FLOPPY.currenthead, 0, sizeof(FLOPPY.currenthead)); //Clear the current heads!
@@ -1807,8 +1807,11 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 				FLOPPY_ST0_UNITSELECTW(reset_drive); //What drive are we giving!
 				FLOPPY_ST0_CURRENTHEADW(FLOPPY.currenthead[reset_drive] & 1); //Set the current head of the drive!
 				FLOPPY_ST0_UNITCHECKW(0); //We're valid, because polling more is valid by default!
-				datatemp = FLOPPY.ST0|0xC0; //Use the current data, not the cleared data! Polling is set here always!
-				if (FLOPPY.reset_pending==0) goto resetcompleted_irq;
+				datatemp = FLOPPY.ST0; //Use the current data, not the cleared data! Polling is set here always!
+				if (FLOPPY.reset_pending == 0) //Finished reset pending?
+				{
+					FLOPPY.ST0 &= 0x3F; //Remove the polling status and become normal from now on!
+				}
 			}
 			else if (!FLOPPY_hadIRQ) //Not an pending IRQ?
 			{
@@ -1819,14 +1822,6 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 				FLOPPY.resultposition = 0; //Start result!
 				FLOPPY.commandstep = 3; //Move to result phase!
 				return;
-			}
-			else //Not valid to poll more after this IRQ handling?
-			{
-				resetcompleted_irq: //Reset finished by IRQ?
-				FLOPPY_ST0_INTERRUPTCODEW(3); //Polling more is invalid!
-				//FLOPPY_ST0_SEEKENDW(0); //Not seeking anymore if we were!
-				FLOPPY_ST0_UNITCHECKW(1); //We're invalid, because polling more is invalid!
-				FLOPPY_ST0_NOTREADYW(0); //We're ready again!
 			}
 			
 			FLOPPY_LOGD("FLOPPY: Sense interrupt: ST0=%02X, Currentcylinder=%02X", datatemp, FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR])
