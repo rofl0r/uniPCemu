@@ -758,12 +758,13 @@ OPTINLINE void FLOPPY_handlereset(byte source) //Resets the floppy disk command 
 			{
 				FLOPPY_LOGD("FLOPPY: Reset requested by DOR!")
 			}
-			FLOPPY.DOR = 0; //Reset motors! Reset drives! IRQ channel!
+			FLOPPY.DIR = 0; //Disk changed bit?
+			FLOPPY.CCR = 0;
 			FLOPPY.MSR = 0; //Default to no data!
 			FLOPPY.commandposition = 0; //No command!
 			FLOPPY.commandstep = 0; //Reset step to indicate we're to read the result in ST0!
-			FLOPPY.ST0 = 0xC0|(FLOPPY.ST0&0x38); //Reset ST0 to the correct value: drive became not ready! Keep Seek End, Unit Check, Not Ready! Head/Unit Select are set by commands!
-			FLOPPY.ST1 = FLOPPY.ST2 = 0; //Reset the ST data!
+			FLOPPY.ST0 = 0; //Reset ST0 to the correct value!
+			FLOPPY.ST1 = FLOPPY.ST2 = FLOPPY.ST3 =  0; //Reset the ST data!
 			pending_size = 4; //Pending full size with polling mode enabled!
 			if (FLOPPY_CONFIGURATION_DRIVEPOLLINGMODEDISABLER) pending_size = 0; //Don't pend when polling mode is off!
 			FLOPPY.reset_pending_size = FLOPPY.reset_pending = pending_size; //We have a reset pending for all 4 drives, unless interrupted by an other command!
@@ -1806,7 +1807,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 				FLOPPY_ST0_UNITSELECTW(reset_drive); //What drive are we giving!
 				FLOPPY_ST0_CURRENTHEADW(FLOPPY.currenthead[reset_drive] & 1); //Set the current head of the drive!
 				FLOPPY_ST0_UNITCHECKW(0); //We're valid, because polling more is valid by default!
-				datatemp = FLOPPY.ST0; //Use the current data, not the cleared data!
+				datatemp = FLOPPY.ST0|0xC0; //Use the current data, not the cleared data! Polling is set here always!
 				if (FLOPPY.reset_pending==0) goto resetcompleted_irq;
 			}
 			else if (!FLOPPY_hadIRQ) //Not an pending IRQ?
