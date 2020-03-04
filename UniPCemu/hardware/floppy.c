@@ -1808,6 +1808,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			break;
 		case SENSE_INTERRUPT: //Check interrupt status
 			//Set result
+			FLOPPY_hadIRQ = FLOPPY.IRQPending; //Was an IRQ Pending?
 			updateFloppyWriteProtected(0,FLOPPY_DOR_DRIVENUMBERR); //Try to read with(out) protection!
 			FLOPPY.commandstep = 3; //Move to result phrase!
 			byte datatemp;
@@ -1838,7 +1839,8 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 				FLOPPY.commandstep = 3; //Move to result phase!
 				return;
 			}
-			
+			FLOPPY_lowerIRQ(); //Lower the IRQ!
+
 			FLOPPY_LOGD("FLOPPY: Sense interrupt: ST0=%02X, Currentcylinder=%02X", datatemp, FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR])
 			FLOPPY.resultbuffer[0] = datatemp; //Give old ST0 if changed this call!
 			FLOPPY.resultbuffer[1] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]; //Our idea of the current cylinder!
@@ -2279,8 +2281,14 @@ OPTINLINE void floppy_writeData(byte isDMA, byte value)
 					{
 						goto floppy_abnormalpollingwrite; //Abnormal polling used!
 					}
+					if (isDMA == 0) //Non-DMA?
+					{
+						FLOPPY_hadIRQ = FLOPPY.IRQPending; //Was an IRQ Pending?
+						FLOPPY_lowerIRQ(); //Lower the IRQ!
+					}
 					isscan = 1; //We're scanning instead!
 					floppy_scanbyte(FLOPPY.databuffer[FLOPPY.databufferposition++],value); //Execute the scanning!
+					goto skipDMAwritecheck; //Skip the below DMA check!
 				case WRITE_DATA: //Write sector
 				case WRITE_DELETED_DATA: //Write deleted sector
 				case FORMAT_TRACK: //Format track
@@ -2288,6 +2296,12 @@ OPTINLINE void floppy_writeData(byte isDMA, byte value)
 					{
 						goto floppy_abnormalpollingwrite; //Abnormal polling used!
 					}
+					if (isDMA == 0) //Non-DMA?
+					{
+						FLOPPY_hadIRQ = FLOPPY.IRQPending; //Was an IRQ Pending?
+						FLOPPY_lowerIRQ(); //Lower the IRQ!
+					}
+					skipDMAwritecheck:
 					if (likely(isscan==0)) //Not Scanning? We're writing to the buffer!
 					{
 						FLOPPY.databuffer[FLOPPY.databufferposition++] = value; //Set the command to use!
@@ -2383,6 +2397,11 @@ OPTINLINE byte floppy_readData(byte isDMA)
 					{
 						goto abnormalpollingread;
 					}
+					if (isDMA == 0) //Non-DMA?
+					{
+						FLOPPY_hadIRQ = FLOPPY.IRQPending; //Was an IRQ Pending?
+						FLOPPY_lowerIRQ(); //Lower the IRQ!
+					}
 					temp = FLOPPY.databuffer[FLOPPY.databufferposition++]; //Read data!
 					if (FLOPPY.databufferposition==FLOPPY.databuffersize) //Finished?
 					{
@@ -2414,20 +2433,23 @@ OPTINLINE byte floppy_readData(byte isDMA)
 			temp = FLOPPY.resultbuffer[FLOPPY.resultposition++]; //Read a result byte!
 			switch (FLOPPY.commandbuffer[0]) //What command?
 			{
+				//Only a few result phases generate interrupts!
 				case READ_TRACK: //Read complete track
 				case WRITE_DATA: //Write sector
 				case READ_DATA: //Read sector
 				case WRITE_DELETED_DATA: //Write deleted sector
 				case READ_DELETED_DATA: //Read deleted sector
 				case FORMAT_TRACK: //Format sector
-				case SENSE_DRIVE_STATUS: //Check drive status
-				case RECALIBRATE: //Calibrate drive
-				case SENSE_INTERRUPT: //Check interrupt status
 				case READ_ID: //Read sector ID
-				case VERSION: //Version information!
 				case SCAN_EQUAL:
 				case SCAN_LOW_OR_EQUAL:
 				case SCAN_HIGH_OR_EQUAL:
+					//Lower the interrupt for these!
+					FLOPPY_hadIRQ = FLOPPY.IRQPending; //Was an IRQ Pending?
+					FLOPPY_lowerIRQ(); //Lower the IRQ!
+				case SENSE_DRIVE_STATUS: //Check drive status
+				case SENSE_INTERRUPT: //Check interrupt status
+				case VERSION: //Version information!
 				case VERIFY:
 				case DUMPREG:
 				case LOCK:
@@ -2449,6 +2471,8 @@ OPTINLINE byte floppy_readData(byte isDMA)
 			{
 				return 0; //Error out: nothing to give until the result is fetched!
 			}
+			FLOPPY_hadIRQ = FLOPPY.IRQPending; //Was an IRQ Pending?
+			FLOPPY_lowerIRQ(); //Lower the IRQ!
 			if (FLOPPY.commandstep==0xFD) //Lock up now?
 			{
 				FLOPPY.commandstep = 0xFE; //Lockup!
@@ -2703,8 +2727,6 @@ byte PORT_IN_floppy(word port, byte *result)
 		return 1;
 	case 5: //Data?
 		//Process data!
-		FLOPPY_hadIRQ = FLOPPY.IRQPending; //Was an IRQ Pending?
-		FLOPPY_lowerIRQ(); //Lower the IRQ!
 		*result = floppy_readData(0); //Read data!
 		return 1;
 	case 7: //DIR?
@@ -2752,8 +2774,6 @@ byte PORT_OUT_floppy(word port, byte value)
 			return 1; //Finished!
 		}
 	case 5: //Data?
-		FLOPPY_hadIRQ = FLOPPY.IRQPending; //Was an IRQ Pending?
-		FLOPPY_lowerIRQ(); //Lower the IRQ!
 		floppy_writeData(0,value); //Write data!
 		return 1; //Default handler!
 	case 7: //CCR?
