@@ -301,6 +301,15 @@ void MMU_precalcMemoryHoles()
 	}
 }
 
+struct
+{
+	uint_32 maskedaddress; //Masked address to match!
+	uint_32 memorylocpatch; //How much to substract for the physical memory location?
+	uint_32 byteaddr; //Byte address within the block of memory(address MOD 8)!
+	byte* cache; //Cached data of the byte address in memory(only valid when not a memory hole)!
+	byte memLocHole; //Prefetched data!
+} memorymapinfo[8]; //Two for reads(code, data), one for writes, double the size for adding DMA mapping support!
+
 void resetMMU()
 {
 	void *memorycheckdummy;
@@ -407,15 +416,6 @@ OPTINLINE void MMU_INTERNAL_INVMEM(uint_32 originaladdress, uint_32 realaddress,
 	}
 	*/
 }
-
-struct
-{
-	uint_32 maskedaddress; //Masked address to match!
-	uint_32 memorylocpatch; //How much to substract for the physical memory location?
-	uint_32 byteaddr; //Byte address within the block of memory(address MOD 8)!
-	byte *cache; //Cached data of the byte address in memory(only valid when not a memory hole)!
-	byte memLocHole; //Prefetched data!
-} memorymapinfo[8]; //Two for reads(code, data), one for writes, double the size for adding DMA mapping support!
 
 //isread: 0=write, 1=read, 3=Instruction read
 OPTINLINE byte applyMemoryHoles(uint_32 realaddress, byte isread)
