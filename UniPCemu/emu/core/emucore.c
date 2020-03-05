@@ -1166,6 +1166,7 @@ OPTINLINE byte coreHandler()
 								CPU_exec_lastEIP = CPU_exec_EIP;
 								CPU_exec_CS = REG_CS; //Save for error handling!
 								CPU_exec_EIP = (REG_EIP & CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof); //Save for error handling!
+								CPU_prepareHWint(); //Prepares the CPU for hardware interrupts!
 								CPU_commitState(); //Save fault data to go back to when exceptions occur!
 								call_hard_inthandler(HWINT_nr); //get next interrupt from the i8259, if any!
 							}

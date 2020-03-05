@@ -989,6 +989,7 @@ char* CPU_segmentname(byte segment); //Plain segment to use!
 
 byte call_soft_inthandler(byte intnr, int_64 errorcode, byte is_interrupt); //Software interrupt handler (FROM software interrupts only (int>=0x20 for software call from Handler))!
 void call_hard_inthandler(byte intnr); //Software interrupt handler (FROM hardware only)!
+void CPU_prepareHWint(); //Prepares the CPU for hardware interrupts!
 
 
 word *CPU_segment_ptr(byte defaultsegment); //Plain segment to use, direct access!

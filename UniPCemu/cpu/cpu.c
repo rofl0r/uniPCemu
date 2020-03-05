@@ -1499,6 +1499,14 @@ extern byte hascallinterrupttaken_type; //INT gate type taken. Low 4 bits are th
 extern byte CPU_interruptraised; //Interrupt raised flag?
 extern byte custommem; //Used in some instructions!
 
+void CPU_prepareHWint() //Prepares the CPU for hardware interrupts!
+{
+	MMU_resetaddr(); //Reset invalid address for our usage!
+	protection_nextOP(); //Prepare protection for the next instruction!
+	CPU_interruptraised = 0; //Default: no interrupt raised!
+	CPU[activeCPU].faultraised = 0; //Default fault raised!
+	CPU[activeCPU].faultlevel = 0; //Default to no fault level!
+}
 
 void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 {
