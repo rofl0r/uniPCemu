@@ -1391,9 +1391,11 @@ void FLOPPY_formatsector() //Request a read sector command!
 			memset(&FLOPPY.databuffer, FLOPPY.commandbuffer[5], MIN(((size_t)1 << sectorinfo.SectorSize),sizeof(FLOPPY.databuffer))); //Clear our buffer with the fill byte!
 			if (!writeDSKSectorData(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], (FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]-1), sectorinfo.SectorSize, &FLOPPY.databuffer)) //Failed writing the formatted sector?
 			{
+				updateFloppyWriteProtected(1, FLOPPY_DOR_DRIVENUMBERR); //Tried to write!
 				goto floppy_errorformat;
 				return; //Error!
 			}
+			updateFloppyWriteProtected(1, FLOPPY_DOR_DRIVENUMBERR); //Tried to write!
 		}
 		else //Are we a normal image file?
 		{
@@ -1423,6 +1425,7 @@ void FLOPPY_formatsector() //Request a read sector command!
 			memset(&FLOPPY.databuffer, FLOPPY.commandbuffer[5], 512); //Clear our buffer with the fill byte!
 			if (!writedata(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0, &FLOPPY.databuffer, floppy_LBA(FLOPPY_DOR_DRIVENUMBERR, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]),512)) //Failed writing the formatted sector?
 			{
+				updateFloppyWriteProtected(1, FLOPPY_DOR_DRIVENUMBERR); //Tried to write!
 				if (drivewritereadonly(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0)) //Read-only after all?
 				{
 					goto format_readonlydrive; //Read-only drive formatting!
@@ -1537,6 +1540,7 @@ void floppy_executeWriteData()
 
 	if (writedata(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0, &FLOPPY.databuffer, FLOPPY.disk_startpos, FLOPPY.databuffersize)) //Written the data to disk?
 	{
+		updateFloppyWriteProtected(1, FLOPPY_DOR_DRIVENUMBERR); //Tried to write!
 		FLOPPY.readID_lastsectornumber = (FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]); //Last accessed sector!
 		switch (floppy_increasesector(FLOPPY_DOR_DRIVENUMBERR)) //Goto next sector!
 		{
@@ -1572,6 +1576,7 @@ void floppy_executeWriteData()
 	{
 		if (drivereadonly(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0) || drivewritereadonly(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0)) //Read-only drive?
 		{
+			updateFloppyWriteProtected(1, FLOPPY_DOR_DRIVENUMBERR); //Tried to write!
 			if (readdata(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0, &FLOPPY.databuffer, FLOPPY.disk_startpos, FLOPPY.databuffersize)) //Readable the data from disk?
 			{
 				FLOPPY.readID_lastsectornumber = FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]; //Last sector accessed!
@@ -1590,6 +1595,7 @@ void floppy_executeWriteData()
 		}
 		else //DSK or error?
 		{
+			updateFloppyWriteProtected(1, FLOPPY_DOR_DRIVENUMBERR); //Tried to write!
 			if ((DSKImageFile = getDSKimage((FLOPPY_DOR_DRIVENUMBERR) ? FLOPPY1 : FLOPPY0))) //Are we a DSK image file?
 			{
 				if (readDSKTrackInfo(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], &trackinfo) == 0) //Read?
@@ -1689,7 +1695,6 @@ void floppy_executeData() //Execute a floppy command. Data is fully filled!
 		case WRITE_DATA: //Write sector
 		case WRITE_DELETED_DATA: //Write deleted sector
 			//Write sector to disk!
-			updateFloppyWriteProtected(1,FLOPPY_DOR_DRIVENUMBERR); //Try to write with(out) protection!
 			if (FLOPPY.databufferposition == FLOPPY.databuffersize) //Fully buffered?
 			{
 				floppy_executeWriteData(); //Execute us for now!
@@ -1793,7 +1798,6 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			FLOPPY.DriveData[FLOPPY_DOR_DRIVENUMBERR].headunloadtime = FLOPPY_headunloadtimerate(FLOPPY_DOR_DRIVENUMBERR); //Head unload rate!
 			FLOPPY.DriveData[FLOPPY_DOR_DRIVENUMBERR].steprate = FLOPPY_steprate(FLOPPY_DOR_DRIVENUMBERR); //Step rate!
 			FLOPPY.commandstep = 0; //Reset controller command status!
-			updateFloppyWriteProtected(0,FLOPPY_DOR_DRIVENUMBERR); //Try to read with(out) protection!
 			//No interrupt, according to http://wiki.osdev.org/Floppy_Disk_Controller
 			break;
 		case RECALIBRATE: //Calibrate drive
@@ -1820,7 +1824,6 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 		case SENSE_INTERRUPT: //Check interrupt status
 			//Set result
 			FLOPPY_hadIRQ = FLOPPY.IRQPending; //Was an IRQ Pending?
-			updateFloppyWriteProtected(0,FLOPPY_DOR_DRIVENUMBERR); //Try to read with(out) protection!
 			FLOPPY.commandstep = 3; //Move to result phrase!
 			byte datatemp;
 			datatemp = FLOPPY.ST0; //Save default!
@@ -1974,7 +1977,6 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 				FLOPPY.ST1 = 0x00; //Clear ST1!
 				FLOPPY.ST2 = 0x00; //Clear ST2!
 				updateST3(FLOPPY_DOR_DRIVENUMBERR); //Update track 0!
-				updateFloppyWriteProtected(0,FLOPPY_DOR_DRIVENUMBERR); //Update write protected related flags!
 				//Clip the sector number first!
 				if (!FLOPPY.readID_lastsectornumber) FLOPPY.readID_lastsectornumber = 1; //Sector number from 1 to SPT!
 				if (FLOPPY.readID_lastsectornumber > (FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR] ? FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->SPT : 0)) FLOPPY.readID_lastsectornumber = 1; //Limit to SPT!
@@ -2509,7 +2511,6 @@ void FLOPPY_finishrecalibrate(byte drive)
 	{
 		FLOPPY.ST0 |= 0x50; //Completed command! 0x10: Unit Check, cannot find track 0 after 79 pulses.
 	}
-	updateFloppyWriteProtected(0,drive); //Try to read with(out) protection!
 	FLOPPY_raiseIRQ(); //We're finished!
 	FLOPPY_MSR_BUSYINPOSITIONINGMODEW(drive,0); //Not seeking anymore!
 	floppytimer[drive] = 0.0; //Don't time anymore!
@@ -2558,7 +2559,6 @@ void updateFloppy(DOUBLE timepassed)
 					switch (FLOPPY.activecommand[drive]) //What command is processing?
 					{
 						case SEEK: //Seek/park head
-							updateFloppyWriteProtected(0,drive); //Try to read with(out) protection!
 							if ((drive>=2) || (!FLOPPY.geometries[drive])) //Floppy not inserted?
 							{
 								FLOPPY.ST0 = 0x20 | (FLOPPY.currenthead[drive]<<2) | drive; //Error: drive not ready!
