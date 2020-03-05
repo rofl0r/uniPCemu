@@ -733,7 +733,7 @@ OPTINLINE void updateST3(byte drivenumber)
 	FLOPPY_ST3_DRIVEREADYW(1); //We're always ready on PC!
 	if (drivenumber<2) //Valid drive number?
 	{
-		FLOPPY_ST3_WRITEPROTECTIONW(drivereadonly(drivenumber ? FLOPPY1 : FLOPPY0)?1:0); //Read-only drive and tried to write?
+		FLOPPY_ST3_WRITEPROTECTIONW((drivereadonly(drivenumber ? FLOPPY1 : FLOPPY0)||drivewritereadonly(drivenumber ? FLOPPY1 : FLOPPY0))?1:0); //Read-only drive and tried to write?
 	}
 	else
 	{
@@ -932,9 +932,12 @@ OPTINLINE void clearDiskChanged(byte drive)
 OPTINLINE void updateFloppyWriteProtected(byte iswrite, byte drivenumber)
 {
 	FLOPPY.ST1 = (FLOPPY.ST1&~2); //Default: not write protected!
-	if (drivereadonly(drivenumber ? FLOPPY1 : FLOPPY0) && iswrite) //Read-only drive and tried to write?
+	if (drivenumber < 2) //Valid drive?
 	{
-		FLOPPY.ST1 |= 2; //Write protected!
+		if ((drivereadonly(drivenumber ? FLOPPY1 : FLOPPY0) || drivewritereadonly(drivenumber ? FLOPPY1 : FLOPPY0)) && iswrite) //Read-only drive and tried to write?
+		{
+			FLOPPY.ST1 |= 2; //Write protected!
+		}
 	}
 }
 
@@ -1322,6 +1325,7 @@ void FLOPPY_formatsector() //Request a read sector command!
 
 	if (drivereadonly(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0)) //Read only drive?
 	{
+		format_readonlydrive:
 		FLOPPY_LOGD("FLOPPY: Finished transfer of data (%u sector(s)).", FLOPPY.sectorstransferred) //Log the completion of the sectors written!
 		FLOPPY.resultposition = 0;
 		FLOPPY_fillST0(FLOPPY_DOR_DRIVENUMBERR); //Setup ST0!
@@ -1419,6 +1423,10 @@ void FLOPPY_formatsector() //Request a read sector command!
 			memset(&FLOPPY.databuffer, FLOPPY.commandbuffer[5], 512); //Clear our buffer with the fill byte!
 			if (!writedata(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0, &FLOPPY.databuffer, floppy_LBA(FLOPPY_DOR_DRIVENUMBERR, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]),512)) //Failed writing the formatted sector?
 			{
+				if (drivewritereadonly(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0)) //Read-only after all?
+				{
+					goto format_readonlydrive; //Read-only drive formatting!
+				}
 				goto floppy_errorformat;
 				return; //Error!
 			}
@@ -1562,7 +1570,7 @@ void floppy_executeWriteData()
 	}
 	else
 	{
-		if (drivereadonly(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0)) //Read-only drive?
+		if (drivereadonly(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0) || drivewritereadonly(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0)) //Read-only drive?
 		{
 			if (readdata(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0, &FLOPPY.databuffer, FLOPPY.disk_startpos, FLOPPY.databuffersize)) //Readable the data from disk?
 			{
