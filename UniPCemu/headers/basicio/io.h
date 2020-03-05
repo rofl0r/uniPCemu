@@ -42,6 +42,7 @@ byte cueimage; //Are we a CUE image?
 SECTORHANDLER readhandler, writehandler; //Read&write handlers!
 uint_32 selectedtrack; //The track selected for this disk!
 uint_32 selectedsubtrack; //The subtrack selected for this disk!
+byte writeErrorIsReadOnly; //Default: not written! 1=Cause of failure is R/O disk image!
 } IODISK; //I/O mounted disk info.
 
 //Basic img/ms0 input/output for BIOS I/O
@@ -64,6 +65,7 @@ byte readdata(int device, void *buffer, uint_64 startpos, uint_32 bytestoread);
 byte writedata(int device, void *buffer, uint_64 startpos, uint_32 bytestowrite);
 byte is_mounted(int drive); //Have drive?
 byte drivereadonly(int drive); //Drive is read-only?
+byte drivewritereadonly(int drive); //After a write, were we read-only?
 FILEPOS getdisksize(int device); //Retrieve a dynamic/static image size!
 byte io_getgeometry(int device, word *cylinders, word *heads, word *SPT); //Get geometry, if possible!
 uint_64 disksize(int disknumber); //Currently mounted disk size!

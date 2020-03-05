@@ -57,6 +57,20 @@ byte drivereadonly(int drive)
 	}
 }
 
+byte drivewritereadonly(int drive) //After a write, were we read-only?
+{
+	if (drive < 0 || drive>0xFF) return 1; //Readonly with unknown drives!
+	switch (drive) //What drive?
+	{
+	case CDROM0:
+	case CDROM1:
+		return 1; //CDROM always readonly!
+		break;
+	default: //Any other drive?
+		return disks[drive].writeErrorIsReadOnly; //Read only or custom disk = read only!
+	}
+}
+
 FILEPOS getdisksize(int device) //Retrieve a dynamic/static image size!
 {
 	//Retrieve the disk size!
@@ -145,6 +159,7 @@ OPTINLINE void loadDisk(int device, char *filename, uint_64 startpos, byte reado
 	disks[device].selectedsubtrack = 1; //Default to the data subtrack, subtrack 1!
 	disks[device].DSKimage = dynamicimage ? 0 : is_DSKimage(filename); //DSK image?
 	disks[device].size = (customsize>0) ? customsize : getdisksize(device); //Get sizes!
+	disks[device].writeErrorIsReadOnly = 0; //Unknown status by default: nothing is written yet!
 	if (cueimage) //CUE image?
 	{
 		disks[device].readhandler = NULL; //No read handler!
@@ -425,6 +440,7 @@ byte writedata(int device, void *buffer, uint_64 startpos, uint_32 bytestowrite)
 
 	for (; byteswritten<bytestowrite;) //Still left to read?
 	{
+		disks[device].writeErrorIsReadOnly = 0; //Default: not readable!
 		if (!readhandler(dev, (uint_32)sector, &sectorbuffer)) //Read the original sector to buffer!
 		{
 			if (disks[device].dynamicimage) //Dynamic?
@@ -439,6 +455,7 @@ byte writedata(int device, void *buffer, uint_64 startpos, uint_32 bytestowrite)
 		}
 		else //Successfully read?
 		{
+			disks[device].writeErrorIsReadOnly = 1; //Not writable or writable!
 			currentbytestowrite = 512;
 			if ((currentbytestowrite + sectorpos)>512) //Less than the 512-byte buffer?
 			{
@@ -461,6 +478,7 @@ byte writedata(int device, void *buffer, uint_64 startpos, uint_32 bytestowrite)
 				}
 				return FALSE; //Error!
 			}
+			disks[device].writeErrorIsReadOnly = 0; //OK: we're writable!
 			sectorpos = 0; //The next sector is at position 0!
 		}
 		byteswritten += currentbytestowrite; //1 (partly) sector written!
