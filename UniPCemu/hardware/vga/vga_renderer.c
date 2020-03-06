@@ -504,7 +504,7 @@ OPTINLINE void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
 	Sequencer->rowscancounter = (word)(Sequencer->charinner_y = (byte)*currowstatus); //Second is charinner_y, which is also the row scan counter!
 
 	charystart = VGA->precalcs.rowsize*row; //Calculate row start!
-	//charystart += Sequencer->startmap; //Calculate the start of the map while we're at it: it's faster this way!
+	charystart += Sequencer->startmap; //Calculate the start of the map while we're at it: it's faster this way!
 	charystart += Sequencer->bytepanning; //Apply byte panning!
 	Sequencer->memoryaddress = Sequencer->charystart = charystart; //What row to start with our pixels! Apply the line and start map to retrieve(start at the new start of the scanline to draw)!
 
