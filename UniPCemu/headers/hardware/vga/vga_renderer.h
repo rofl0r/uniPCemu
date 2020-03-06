@@ -53,6 +53,7 @@ typedef struct
 
 	byte pixelshiftcount; //Our calculated pixel shift count!
 	byte presetrowscan; //Our calculated preset row scan!
+	byte activepresetrowscan; //Our calculated preset row scan!
 
 	uint_32 rowscancounter;
 

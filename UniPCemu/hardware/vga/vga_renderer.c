@@ -247,12 +247,9 @@ void VGA_Sequencer_calcScanlineData(VGA_Type *VGA) //Recalcs all scanline data f
 
 	//Determine shifts and reset the start map if needed!
 	allow_pixelshiftcount = 1; //Allow by default!
-	if (Sequencer->Scanline>=VGA->precalcs.topwindowstart) //Top window reached?
+	if (Sequencer->is_topwindow) //Top window reached?
 	{
-		if (unlikely(Sequencer->Scanline==VGA->precalcs.topwindowstart)) //Start of the top window?
-		{
-			Sequencer->startmap = 0; //What start address to use? Start at the top of VRAM!
-		}
+		Sequencer->startmap = 0; //What start address to use? Start at the top of VRAM!
 		//Enforce start of map to beginning in VRAM for the top window!
 		if (VGA->precalcs.AttributeModeControlRegister_PixelPanningMode)
 		{
@@ -492,11 +489,17 @@ OPTINLINE void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
 		Sequencer->is_topwindow = 0; //We're not the top window!
 	}
 
+	if (row==0) //Starting a new window(both top and bottom)?
+	{
+		VGA_Sequencer_calcScanlineData(VGA);
+		Sequencer->activepresetrowscan = Sequencer->presetrowscan; //Activate!
+	}
+
 	//row is the vertical timing counter
 	row >>= VGA->precalcs.scandoubling; //Apply scan doubling to the row scan counter(inner character row and thus, by extension, the row itself)!
 	//Apply scanline division to the current row timing!
 
-	row += VGA->precalcs.presetrowscan; //Apply the preset row scan to the scanline!
+	row += VGA->precalcs.activepresetrowscan; //Apply the preset row scan to the scanline!
 
 	row <<= 1; //We're always a multiple of 2 by index into charrowstatus!
 
@@ -583,7 +586,6 @@ void VGA_VTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
 	Sequencer->Scanline = 0; //Reset for the next frame!
 	//VGA_RenderOutput(Sequencer,VGA); //Render the output to the screen!
-	VGA_Sequencer_calcScanlineData(VGA);
 	VGA_Sequencer_updateRow(VGA, Sequencer); //Scanline has been changed!
 }
 
@@ -600,7 +602,6 @@ void VGA_HTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
 	Sequencer->x = 0; //Reset for the next scanline!
 	
 	//Sequencer rendering data
-	VGA_Sequencer_calcScanlineData(VGA);
 	VGA_Sequencer_updateRow(VGA, Sequencer); //Scanline has been changed!
 	Sequencer->DACcounter = 0; //Reset the DAC counter!
 	Sequencer->lastDACcolor = 0; //Reset the last DAC color!
