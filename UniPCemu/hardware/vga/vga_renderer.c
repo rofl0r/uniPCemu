@@ -260,6 +260,11 @@ void VGA_Sequencer_calcScanlineData(VGA_Type *VGA) //Recalcs all scanline data f
 		}
 	}
 
+	if (presetrowscan > VGA->precalcs.characterheight) //More than the character height?
+	{
+		presetrowscan = 0; //No row scan preset to apply past the character height!
+	}
+
 	//Apply the byte panning and pixel shift count!
 	Sequencer->bytepanning = bytepanning; //Effective byte panning!
 	Sequencer->presetrowscan = presetrowscan; //Effective preset row scan!
