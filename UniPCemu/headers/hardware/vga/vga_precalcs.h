@@ -96,7 +96,7 @@ typedef struct //Contains the precalculated values!
 	byte textcharacterwidth; //Text mode character width(can be extended past 8/9 pixels/char).
 	byte characterheight; //Character height!
 
-	uint_32 startaddress[2]; //Combination of start address high&low register for normal and top screen (reset) operations!
+	uint_32 startaddress; //Combination of start address high&low register for normal and top screen (reset) operations!
 	uint_32 VGAstartaddress; //The start address as specified for the VGA!
 	
 	//CRT Controller registers:

@@ -890,7 +890,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			startaddress = VGA->registers->CRTControllerRegisters.REGISTERS.STARTADDRESSHIGHREGISTER;
 			startaddress <<= 8;
 			startaddress |= VGA->registers->CRTControllerRegisters.REGISTERS.STARTADDRESSLOWREGISTER;
-			VGA->precalcs.VGAstartaddress = VGA->precalcs.startaddress[0] = startaddress; //Updated start address for the VGA!
+			VGA->precalcs.VGAstartaddress = VGA->precalcs.startaddress = startaddress; //Updated start address for the VGA!
 			recalcScanline = 1; //Recalc scanline data!
 			//dolog("VGA","VTotal after startaddress: %u",VGA->precalcs.verticaltotal); //Log it!
 		}

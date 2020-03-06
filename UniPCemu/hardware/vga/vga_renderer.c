@@ -587,7 +587,7 @@ void VGA_VTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
 void VGA_VTotalEnd(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
 	//The end of vertical total has been reached, reload start address!
-	Sequencer->startmap = VGA->precalcs.startaddress[0]; //What start address to use for the next frame?
+	Sequencer->startmap = VGA->precalcs.startaddress; //What start address to use for the next frame?
 }
 
 void VGA_HTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)

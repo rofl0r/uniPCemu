@@ -977,7 +977,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		#ifdef LOG_UNHANDLED_SVGA_ACCESSES
 		handled = 1;
 		#endif
-		VGA->precalcs.startaddress[0] = (((VGA->precalcs.VGAstartaddress+et34k(VGA)->display_start_high))<<et34kdata->doublehorizontaltimings); //Double the horizontal timings if needed!
+		VGA->precalcs.startaddress = (((VGA->precalcs.VGAstartaddress+et34k(VGA)->display_start_high))<<et34kdata->doublehorizontaltimings); //Double the horizontal timings if needed!
 	}
 
 	//ET3000/ET4000 Cursor Location register
