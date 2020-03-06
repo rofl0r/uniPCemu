@@ -236,41 +236,36 @@ OPTINLINE void drawCGALine(VGA_Type *VGA) //Draw the current CGA line to display
 void VGA_Sequencer_calcScanlineData(VGA_Type *VGA) //Recalcs all scanline data for the sequencer!
 {
 	//First, all our variables!
-	uint_32 bytepanning;
-	byte allow_pixelshiftcount;
-	
+	byte bytepanning; //Effective value!
+	byte pixelshiftcount; //Effective value!
+	byte presetrowscan; //Effective value!
 	SEQ_DATA *Sequencer;
 	Sequencer = GETSEQUENCER(VGA); //Our sequencer!
 
 	//Determine panning
 	bytepanning = VGA->precalcs.PresetRowScanRegister_BytePanning; //Byte panning for Start Address Register for characters or 0,0 pixel!
+	presetrowscan = VGA->precalcs.presetrowscan; //Preset row scan!
+	pixelshiftcount = VGA->precalcs.pixelshiftcount; //Allowable pixel shift count!
 
 	//Determine shifts and reset the start map if needed!
-	allow_pixelshiftcount = 1; //Allow by default!
 	if (Sequencer->is_topwindow) //Top window reached?
 	{
-		Sequencer->startmap = 0; //What start address to use? Start at the top of VRAM!
+		Sequencer->startmap = 0; //The current scanline address is reset!
+		presetrowscan = 0; //Preset row scan is presumed to be 0!
 		//Enforce start of map to beginning in VRAM for the top window!
-		if (VGA->precalcs.AttributeModeControlRegister_PixelPanningMode)
+		if (VGA->precalcs.AttributeModeControlRegister_PixelPanningMode) //Pixel panning mode enabled?
 		{
-			bytepanning = 0; //Act like no byte panning is enabled!
-			allow_pixelshiftcount = 0; //Don't allow it anymore!
+			pixelshiftcount = 0; //Reset to 0 for the remainder of the display!
+			bytepanning = 0; //Reset to 0 for the remainder of the display!
 		}
 	}
 
-	//Determine byte panning and pixel shift count!
-	Sequencer->bytepanning = bytepanning; //Pass!
-
-	if (allow_pixelshiftcount) //Allow pixel shift count to be applied?
-	{
-		Sequencer->pixelshiftcount = VGA->precalcs.pixelshiftcount; //Allowable pixel shift count!
-		Sequencer->presetrowscan = VGA->precalcs.presetrowscan; //Preset row scan!
-	}
-	else
-	{
-		Sequencer->pixelshiftcount = Sequencer->presetrowscan = 0; //Nothing to shift!
-	}
+	//Apply the byte panning and pixel shift count!
+	Sequencer->bytepanning = bytepanning; //Effective byte panning!
+	Sequencer->presetrowscan = presetrowscan; //Effective preset row scan!
+	Sequencer->pixelshiftcount = pixelshiftcount; //Effective pixel shift count!
 }
+	
 
 typedef void (*Sequencer_pixelhandler)(VGA_Type *VGA,VGA_AttributeInfo *Sequencer_Attributeinfo, word tempx,word tempy,word x,word Scanline,uint_32 bytepanning); //Pixel(s) handler!
 
@@ -509,7 +504,7 @@ OPTINLINE void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
 	Sequencer->rowscancounter = (word)(Sequencer->charinner_y = (byte)*currowstatus); //Second is charinner_y, which is also the row scan counter!
 
 	charystart = VGA->precalcs.rowsize*row; //Calculate row start!
-	charystart += Sequencer->startmap; //Calculate the start of the map while we're at it: it's faster this way!
+	//charystart += Sequencer->startmap; //Calculate the start of the map while we're at it: it's faster this way!
 	charystart += Sequencer->bytepanning; //Apply byte panning!
 	Sequencer->memoryaddress = Sequencer->charystart = charystart; //What row to start with our pixels! Apply the line and start map to retrieve(start at the new start of the scanline to draw)!
 
