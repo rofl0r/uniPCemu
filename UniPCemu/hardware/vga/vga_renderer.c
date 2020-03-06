@@ -523,7 +523,7 @@ OPTINLINE void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
 	//Process any horizontal pixel shift count!
 	if (VGA->precalcs.textmode) //Text mode?
 	{
-		for (x = 0;x < VGA->precalcs.pixelshiftcount;++x) //Process pixel shift count!
+		for (x = 0;x < Sequencer->pixelshiftcount;++x) //Process pixel shift count!
 		{
 			if (VGA_ActiveDisplay_timing(Sequencer, VGA)) //Render the next pixel?
 			{
@@ -534,7 +534,7 @@ OPTINLINE void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
 	}
 	else //Graphics mode?
 	{
-		for (x = 0;x < VGA->precalcs.pixelshiftcount;++x) //Process pixel shift count!
+		for (x = 0;x < Sequencer->pixelshiftcount;++x) //Process pixel shift count!
 		{
 			if (VGA_ActiveDisplay_timing(Sequencer, VGA)) //Render the next pixel?
 			{
