@@ -499,7 +499,7 @@ OPTINLINE void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
 	row >>= VGA->precalcs.scandoubling; //Apply scan doubling to the row scan counter(inner character row and thus, by extension, the row itself)!
 	//Apply scanline division to the current row timing!
 
-	row += VGA->precalcs.activepresetrowscan; //Apply the preset row scan to the scanline!
+	row += Sequencer->activepresetrowscan; //Apply the preset row scan to the scanline!
 
 	row <<= 1; //We're always a multiple of 2 by index into charrowstatus!
 
