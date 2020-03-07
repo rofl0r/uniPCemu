@@ -238,7 +238,7 @@ VGA_Type *VGAalloc(uint_32 custom_vram_size, int update_bios, byte extension) //
 			break;
 	}
 
-	getActiveVGA()->registers->ColorRegisters.DAC_STATE_REGISTER = 1; //This starts out as being 01h, which is an unset DAC setting!
+	VGA->registers->ColorRegisters.DAC_STATE_REGISTER = 1; //This starts out as being 01h, which is an unset DAC setting!
 
 	debugrow("VGA: Executing initial precalculations...");
 	VGA_calcprecalcs(VGA,WHEREUPDATED_ALL); //Init all values to be working with!
