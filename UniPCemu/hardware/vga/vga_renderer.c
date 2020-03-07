@@ -602,10 +602,10 @@ void VGA_HTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
 	Sequencer->x = 0; //Reset for the next scanline!
 	
 	//Sequencer rendering data
-	VGA_Sequencer_updateRow(VGA, Sequencer); //Scanline has been changed!
 	Sequencer->DACcounter = 0; //Reset the DAC counter!
 	Sequencer->lastDACcolor = 0; //Reset the last DAC color!
 	Sequencer->currentpixelclock = 0; //Reset the pixel clock we're dividing!
+	VGA_Sequencer_updateRow(VGA, Sequencer); //Scanline has been changed!
 }
 
 //Retrace handlers!
