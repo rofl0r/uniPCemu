@@ -961,8 +961,12 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 				}
 				else //Invalid?
 				{
-					possibleboost = 0;
+					possibleboost &= 0x7; //Repeat the low values!
 				}
+			}
+			else //Only 3 bits?
+			{
+				possibleboost &= 0x7; //Repeat the low values!
 			}
 			pixelboost = possibleboost; //Enable normally!
 			//dolog("VGA","VTotal after pixelboost: %u",VGA->precalcs.verticaltotal); //Log it!
