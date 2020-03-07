@@ -695,8 +695,9 @@ byte Tseng34K_readIO(word port, byte *result)
 		}
 		else //Feature code!
 		{
-			SETBITS(*result, 4, 3, (getActiveVGA()->registers->ExternalRegisters.FEATURECONTROLREGISTER & 3)); //Feature bits 0&1!
+			SETBITS(*result, 5, 3, (getActiveVGA()->registers->ExternalRegisters.FEATURECONTROLREGISTER & 3)); //Feature bits 0&1!
 		}
+		SETBITS(*result, 7, 1, GETBITS(getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER, 4, 1)); //Vertical retrace interrupt pending?
 		return 1;
 		break;
 	case 0x3CA: //Read: Feature Control Register		DATA
