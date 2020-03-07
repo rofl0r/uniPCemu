@@ -591,8 +591,11 @@ void VGA_VTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
 
 void VGA_VTotalEnd(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
-	//The end of vertical total has been reached, reload start address!
-	Sequencer->startmap = VGA->precalcs.startaddress; //What start address to use for the next frame?
+	if (VGA->enable_SVGA==4) //CGA/MDA?
+	{
+		//The end of vertical total has been reached, reload start address!
+		Sequencer->startmap = VGA->precalcs.startaddress; //What start address to use for the next frame?
+	}
 }
 
 void VGA_HTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
@@ -617,6 +620,11 @@ void VGA_VRetrace(SEQ_DATA *Sequencer, VGA_Type *VGA)
 	}
 	VGA->CRTC.y = 0; //Reset destination row!
 	VGA_RenderOutput(Sequencer,VGA); //Render the output to the screen!
+	if (VGA->enable_SVGA != 4) //Not CGA/MDA?
+	{
+		//The end of vertical retrace has been reached, reload start address!
+		Sequencer->startmap = VGA->precalcs.startaddress; //What start address to use for the next frame?
+	}
 }
 
 void VGA_VRetracePending(SEQ_DATA *Sequencer, VGA_Type *VGA)
