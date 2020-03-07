@@ -578,7 +578,7 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 		if (getActiveVGA()->registers->SequencerRegisters_Index>=VGA_RegisterWriteLimits_Sequencer[(getActiveVGA()->enable_SVGA==3)?1:0]) break; //Invalid data!
 		if (getActiveVGA()->registers->SequencerRegisters_Index==7) //Disable display till write to sequencer registers 0-6?
 		{
-			getActiveVGA()->registers->CRTControllerDontRender = 0xFF; //Force to 0xFF indicating display disabled!
+			getActiveVGA()->registers->CRTControllerDontRender = 1; //Force to 1 indicating display disabled!
 		}
 		else if ((getActiveVGA()->registers->SequencerRegisters_Index<7) && (getActiveVGA()->registers->CRTControllerDontRender)) //Disabled and enabled again?
 		{

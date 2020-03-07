@@ -1342,6 +1342,7 @@ recalcsignal: //Recalculate the signal to process!
 	//Screen disable applies blanking permanently!
 	blanking |= GETBITS(VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER,5,1); //Use disabled output when asked to!
 	blanking |= (VGA_3C0_PALR^1); //Clearing the Attribute disables the display signal, blanking it!
+	blanking |= VGA->registers->CRTControllerDontRender; //Disable rendering?
 
 	//Process resetting the HSync/VSync counters!
 
