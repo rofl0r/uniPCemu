@@ -528,7 +528,7 @@ OPTINLINE void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
 			if (VGA_ActiveDisplay_timing(Sequencer, VGA)) //Render the next pixel?
 			{
 				VGA_Sequencer_TextMode(VGA, Sequencer, &currentattributeinfo); //Get the color to render!
-				VGA_AttributeController(&currentattributeinfo, VGA); //Ignore the nibbled/not nibbled result!
+				//VGA_AttributeController(&currentattributeinfo, VGA); //Ignore the nibbled/not nibbled result!
 			}
 		}
 	}
@@ -539,7 +539,7 @@ OPTINLINE void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
 			if (VGA_ActiveDisplay_timing(Sequencer, VGA)) //Render the next pixel?
 			{
 				VGA_Sequencer_GraphicsMode(VGA, Sequencer, &currentattributeinfo); //Get the color to render!
-				VGA_AttributeController(&currentattributeinfo, VGA); //Ignore the nibbled/not nibbled result!
+				//VGA_AttributeController(&currentattributeinfo, VGA); //Ignore the nibbled/not nibbled result!
 			}
 		}
 	}
