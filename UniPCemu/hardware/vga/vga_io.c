@@ -262,6 +262,10 @@ void PORT_write_MISC_3C2(byte value) //Misc Output register!
 
 OPTINLINE byte PORT_read_DAC_3C9() //DAC Data register!
 {
+	if (GETBITS(getActiveVGA()->registers->ColorRegisters.DAC_STATE_REGISTER, 0, 3) != 3) //Not ready for reads?
+	{
+		return 0x3F; //According to Dosbox it gives this value when not ready yet!
+	}
 	word index = getActiveVGA()->registers->ColorRegisters.DAC_ADDRESS_READ_MODE_REGISTER; //Load current DAC index!
 	index <<= 2; //Multiply for the index!
 	index |= getActiveVGA()->registers->current_3C9; //Current index!
@@ -602,7 +606,7 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 		if (getActiveVGA()->enable_SVGA!=3) //Not EGA?
 		{
 			getActiveVGA()->registers->ColorRegisters.DAC_ADDRESS_READ_MODE_REGISTER = value; //Set!
-			SETBITS(getActiveVGA()->registers->ColorRegisters.DAC_STATE_REGISTER,0,3,0); //Prepared for reads!
+			SETBITS(getActiveVGA()->registers->ColorRegisters.DAC_STATE_REGISTER,0,3,3); //Prepared for reads!
 			getActiveVGA()->registers->current_3C9 = 0; //Reset!
 			//VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_INDEX|INDEX_DACREAD); //Updated index!
 			ok = 1;
@@ -612,7 +616,7 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 		if (getActiveVGA()->enable_SVGA!=3) //Not EGA?
 		{
 			getActiveVGA()->registers->ColorRegisters.DAC_ADDRESS_WRITE_MODE_REGISTER = value; //Set index!
-			SETBITS(getActiveVGA()->registers->ColorRegisters.DAC_STATE_REGISTER,0,3,3); //Prepared for writes!
+			SETBITS(getActiveVGA()->registers->ColorRegisters.DAC_STATE_REGISTER,0,3,0); //Prepared for writes!
 			getActiveVGA()->registers->current_3C9 = 0; //Reset!
 			//VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_INDEX|INDEX_DACWRITE); //Updated index!
 			ok = 1;
