@@ -941,7 +941,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		}
 
 		if (AttrUpdated || (whereupdated==(WHEREUPDATED_ATTRIBUTECONTROLLER|0x13))
-			|| (whereupdated==(WHEREUPDATED_ATTRIBUTECONTROLLER|0x10))
+			|| (whereupdated==(WHEREUPDATED_GRAPHICSCONTROLLER|0x06))
 			|| charwidthupdated) //Updated?
 		{
 			//Precalculate horizontal pixel panning:
@@ -949,7 +949,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			pixelboost = 0; //Default: no boost!
 			byte possibleboost; //Possible value!
 			possibleboost = GETBITS(VGA->registers->AttributeControllerRegisters.REGISTERS.HORIZONTALPIXELPANNINGREGISTER,0,0xF); //Possible value, to be determined!
-			if (GETBITS(VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER, 0, 1) == 0) //Different behaviour with 9 pixel modes?
+			if ((GETBITS(VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER, 0, 1) == 0) && (VGA->precalcs.graphicsmode==0)) //Different behaviour with 9 pixel text modes?
 			{
 				if (possibleboost == 8) //No shift?
 				{
@@ -961,7 +961,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 				}
 				else //Invalid?
 				{
-					possibleboost &= 0x7; //Repeat the low values!
+					possibleboost = 0; //Invalid!
 				}
 			}
 			else //Only 3 bits?

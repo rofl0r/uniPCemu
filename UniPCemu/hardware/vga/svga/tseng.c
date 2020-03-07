@@ -927,11 +927,10 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		updateVGAGraphics_Mode(VGA);
 	}
 
-	if (AttrUpdated || (whereupdated==(WHEREUPDATED_ATTRIBUTECONTROLLER|0x13))
-		|| (whereupdated==(WHEREUPDATED_ATTRIBUTECONTROLLER|0x10))
-		|| charwidthupdated
-		|| (AttrUpdated || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_ATTRIBUTECONTROLLER | 0x16)) //16-bit DAC has been updated?
-			)) //Updated?
+	if (AttrUpdated || (whereupdated==(WHEREUPDATED_ATTRIBUTECONTROLLER|0x13)) //Updated horizontal panning?
+			|| (whereupdated == (WHEREUPDATED_GRAPHICSCONTROLLER | 0x06)) //Updated text mode?
+			|| charwidthupdated //Char width updated?
+			) //Horizontal pixel panning is to be updated?
 	{
 		#ifdef LOG_UNHANDLED_SVGA_ACCESSES
 		handled = 1;
@@ -940,7 +939,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		byte pixelboost = 0; //Actual pixel boost!
 		byte possibleboost; //Possible value!
 		possibleboost = GETBITS(VGA->registers->AttributeControllerRegisters.REGISTERS.HORIZONTALPIXELPANNINGREGISTER,0,0xF); //Possible value, to be determined!
-		if (GETBITS(VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER, 0, 1) == 0) //Different behaviour with 9 pixel modes?
+		if ((GETBITS(VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER, 0, 1) == 0) && (VGA->precalcs.graphicsmode)) //Different behaviour with 9 pixel modes?
 		{
 			if (possibleboost == 8) //No shift?
 			{
@@ -952,7 +951,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 			}
 			else //Invalid?
 			{
-				possibleboost &= 0x7; //Repeat the low values!
+				possibleboost = 0; //Invalid!
 			}
 		}
 		else //Only 3 bits?
