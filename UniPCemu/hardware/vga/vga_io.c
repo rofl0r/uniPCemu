@@ -233,20 +233,22 @@ OPTINLINE void PORT_write_ATTR_3C0(byte value) //Attribute controller registers!
 		VGA_3C0_PALW((value&0x20)>>5); //Palette Address Source!
 		VGA_3C0_INDEXW(value&0x1F); //Which index?
 		VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_INDEX|INDEX_ATTRIBUTECONTROLLER); //Updated index!
-		VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CRTCONTROLLER|VGA_CRTC_ATTRIBUTECONTROLLERTOGGLEREGISTER); //Our actual location!
 	}
 	else //Data mode?
 	{
-		if (VGA_3C0_INDEXR<VGA_RegisterWriteLimits_Attribute[(getActiveVGA()->enable_SVGA==3)?1:0]) //Within range?
+		if ((VGA_3C0_INDEXR >= 0x10) || (VGA_3C0_PALR == 0)) //Palette writable or not palette?
 		{
-			value &= VGA_RegisterWriteMasks_Attribute[(getActiveVGA()->enable_SVGA==3)?1:0][VGA_3C0_INDEXR]; //Apply the write mask to the data written to the register!		
-			getActiveVGA()->registers->AttributeControllerRegisters.DATA[VGA_3C0_INDEXR] = value; //Set!
+			if (VGA_3C0_INDEXR < VGA_RegisterWriteLimits_Attribute[(getActiveVGA()->enable_SVGA == 3) ? 1 : 0]) //Within range?
+			{
+				value &= VGA_RegisterWriteMasks_Attribute[(getActiveVGA()->enable_SVGA == 3) ? 1 : 0][VGA_3C0_INDEXR]; //Apply the write mask to the data written to the register!		
+				getActiveVGA()->registers->AttributeControllerRegisters.DATA[VGA_3C0_INDEXR] = value; //Set!
+				VGA_calcprecalcs(getActiveVGA(), WHEREUPDATED_ATTRIBUTECONTROLLER | VGA_3C0_INDEXR); //We have been updated!
+			}
 		}
-		VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_ATTRIBUTECONTROLLER|VGA_3C0_INDEXR); //We have been updated!
-		VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CRTCONTROLLER|VGA_CRTC_ATTRIBUTECONTROLLERTOGGLEREGISTER); //Our actual location!
 	}
 
 	VGA_3C0_FLIPFLOPW(!VGA_3C0_FLIPFLOPR); //Flipflop!
+	VGA_calcprecalcs(getActiveVGA(), WHEREUPDATED_CRTCONTROLLER | VGA_CRTC_ATTRIBUTECONTROLLERTOGGLEREGISTER); //Our actual location!
 }
 
 //MISC
