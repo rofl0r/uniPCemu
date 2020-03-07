@@ -955,17 +955,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 				possibleboost = 0;
 			}
 		}
-		if ((VGA->precalcs.AttributeModeControlRegister_ColorEnable8Bit && (VGA->precalcs.AttributeController_16bitDAC==0)) || (VGA->precalcs.AttributeController_16bitDAC==1) || (VGA->precalcs.AttributeController_16bitDAC==2)) //8-bit colors?
-		{
-			if ((possibleboost&1)==0) //Enabled?
-			{
-				pixelboost = possibleboost; //Use this boost!
-			}
-		}
-		else //Determine by character width!
-		{
-			pixelboost = possibleboost; //Enable normally!
-		}
+		pixelboost = possibleboost; //Enable normally!
 		//dolog("VGA","VTotal after pixelboost: %u",VGA->precalcs.verticaltotal); //Log it!
 		VGA->precalcs.recalcScanline |= (VGA->precalcs.pixelshiftcount!=pixelboost); //Recalc scanline data when needed!
 		VGA->precalcs.pixelshiftcount = pixelboost; //Save our precalculated value!
