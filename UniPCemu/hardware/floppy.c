@@ -2507,7 +2507,7 @@ void FLOPPY_finishrecalibrate(byte drive)
 	FLOPPY.currentcylinder[drive] = 0; //Goto cylinder #0 according to the FDC!
 	FLOPPY.ST0 = 0x20|drive|(FLOPPY.currenthead[drive] << 2); //Completed command!
 	updateST3(drive); //Update ST3 only!
-	if (((FLOPPY_DOR_MOTORCONTROLR&(1<<(drive&3)))==0) || ((drive&3)>1) || (FLOPPY.physicalcylinder[drive]!=0) || (!((drive<2)?is_mounted(drive?FLOPPY1:FLOPPY0):1))) //Motor not on or invalid drive?
+	if (((FLOPPY_DOR_MOTORCONTROLR&(1<<(drive&3)))==0) || ((drive&3)>1) || (FLOPPY.physicalcylinder[drive]!=0)) //Motor not on or invalid drive?
 	{
 		FLOPPY.ST0 |= 0x50; //Completed command! 0x10: Unit Check, cannot find track 0 after 79 pulses.
 	}
