@@ -200,7 +200,7 @@ OPTINLINE void PORT_write_CRTC_3B5(byte value)
 	{
 		value &= VGA_RegisterWriteMasks_CRTC[(getActiveVGA()->enable_SVGA==3)?1:0][index]; //Apply the write mask to the data written to the register!
 		//Normal register update?
-		if (!(((index == 0x10) || (index == 0x11) && (getActiveVGA()->enable_SVGA == 3) && ((!GETBITS(getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.ENDHORIZONTALBLANKINGREGISTER, 7, 1)))))) //Not the light pen registers on EGA?
+		if (!(((index == 0x10) || (index == 0x11)) && (getActiveVGA()->enable_SVGA == 3) && ((!GETBITS(getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.ENDHORIZONTALBLANKINGREGISTER, 7, 1))))) //Not the light pen registers on EGA?
 		{
 			getActiveVGA()->registers->CRTControllerRegisters.DATA[index] = value; //Set!
 		}
@@ -213,7 +213,7 @@ OPTINLINE void PORT_write_CRTC_3B5(byte value)
 				acnowledgeIRQrequest(is_XT?VGA_IRQ_XT:VGA_IRQ_AT); //Acnowledge us!
 			}
 		}
-		if (!GETBITS(getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.ENDHORIZONTALBLANKINGREGISTER,7,1)) //Force to 1?
+		if ((!GETBITS(getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.ENDHORIZONTALBLANKINGREGISTER,7,1)) && (getActiveVGA()->enable_SVGA!=3)) //Force to 1?
 		{
 			SETBITS(getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.ENDHORIZONTALBLANKINGREGISTER,7,1,1); //Force to 1!
 			if (index!=3) //We've been updated too?
