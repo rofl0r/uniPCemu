@@ -144,7 +144,7 @@ byte VGA_RegisterWriteMask_GraphicsIndex[2] = {0xFF,0x0F}; //A.k.a. Graphics 1 a
 
 OPTINLINE byte PORT_readCRTC_3B5() //Read CRTC registers!
 {
-	if ((getActiveVGA()->registers->CRTControllerRegisters_Index>0xF) && (getActiveVGA()->registers->CRTControllerRegisters_Index<0x12) && ((!GETBITS(getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.ENDHORIZONTALBLANKINGREGISTER,7,1) || (getActiveVGA()->enable_SVGA==3)))) //Reading from light pen location registers?
+	if ((getActiveVGA()->registers->CRTControllerRegisters_Index>0xF) && (getActiveVGA()->registers->CRTControllerRegisters_Index<0x12) && ((!GETBITS(getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.ENDHORIZONTALBLANKINGREGISTER,7,1)) && (getActiveVGA()->enable_SVGA==3))) //Reading from light pen location registers?
 	{
 		switch (getActiveVGA()->registers->CRTControllerRegisters_Index) //What index?
 		{
@@ -333,7 +333,7 @@ byte PORT_readVGA(word port, byte *result) //Read from a port/register!
 		readcrtaddress:
 		if (getActiveVGA()->enable_SVGA!=3) //Not EGA?
 		{
-			*result = getActiveVGA()->registers->CRTControllerRegisters_Index; //Give!
+			*result = getActiveVGA()->registers->CRTControllerRegisters_IndexRegister; //Give!
 			ok = 1;
 		}
 		break;
@@ -346,7 +346,7 @@ byte PORT_readVGA(word port, byte *result) //Read from a port/register!
 	case 0x3D5: //CRTC Controller Data Register		DATA
 		if (!GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,0,1)) goto finishinput; //Block: we're a mono mode addressing as color!
 		readcrtvalue:
-		if ((getActiveVGA()->enable_SVGA!=3) || (((getActiveVGA()->registers->CRTControllerRegisters_Index==0x11) || (getActiveVGA()->registers->CRTControllerRegisters_Index==0x12)) && (getActiveVGA()->enable_SVGA==3))) //Not EGA or EGA light pen registers?
+		if ((getActiveVGA()->enable_SVGA!=3) || (((getActiveVGA()->registers->CRTControllerRegisters_Index==0x10) || (getActiveVGA()->registers->CRTControllerRegisters_Index==0x11)) && (getActiveVGA()->enable_SVGA==3))) //Not EGA or EGA light pen registers?
 		{
 			*result = PORT_readCRTC_3B5(); //Read port 3B5!
 			ok = 1;
@@ -387,7 +387,7 @@ byte PORT_readVGA(word port, byte *result) //Read from a port/register!
 		}
 		break;
 	case 0x3C4: //Sequencer Address Register		ADDRESS
-		*result = getActiveVGA()->registers->SequencerRegisters_Index; //Give the index!
+		*result = getActiveVGA()->registers->SequencerRegisters_IndexRegister; //Give the index!
 		ok = 1;
 		break;
 	case 0x3C5: //Sequencer Data Register			DATA
@@ -446,7 +446,7 @@ byte PORT_readVGA(word port, byte *result) //Read from a port/register!
 		}
 		break;
 	case 0x3CE: //Graphics Controller Address Register	ADDRESS
-		*result = getActiveVGA()->registers->GraphicsRegisters_Index; //Give!
+		*result = getActiveVGA()->registers->GraphicsRegisters_IndexRegister; //Give!
 		ok = 1;
 		break;
 	case 0x3CF: //Graphics Controller Data Register		DATA
@@ -518,7 +518,8 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 		if (!GETBITS(getActiveVGA()->registers->ExternalRegisters.MISCOUTPUTREGISTER,0,1)) goto finishoutput; //Block: we're a mono mode addressing as color!
 		accesscrtaddress:
 		value &= VGA_RegisterWriteMask_CRTCIndex[(getActiveVGA()->enable_SVGA==3)?1:0]; //Apply the write mask to the data written to the register!
-		getActiveVGA()->registers->CRTControllerRegisters_Index = value; //Set!
+		getActiveVGA()->registers->CRTControllerRegisters_IndexRegister = value; //Set!
+		getActiveVGA()->registers->CRTControllerRegisters_Index = (value&0x3F); //Set!
 		//VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_INDEX|INDEX_CRTCONTROLLER); //Updated index!
 		ok = 1;
 		break;
@@ -570,7 +571,8 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 		break;
 	case 0x3C4: //Sequencer Address Register		ADDRESS
 		value &= VGA_RegisterWriteMask_SequencerIndex[(getActiveVGA()->enable_SVGA==3)?1:0]; //Apply the write mask to the data written to the register!
-		getActiveVGA()->registers->SequencerRegisters_Index = value; //Set!
+		getActiveVGA()->registers->SequencerRegisters_IndexRegister = value; //Set!
+		getActiveVGA()->registers->SequencerRegisters_Index = (value&7); //Set!
 		//VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_INDEX|INDEX_SEQUENCER); //Updated index!
 		ok = 1;
 		break;
@@ -633,7 +635,8 @@ byte PORT_writeVGA(word port, byte value) //Write to a port/register!
 		break;
 	case 0x3CE: //Graphics Controller Address Register	ADDRESS
 		value &= VGA_RegisterWriteMask_GraphicsIndex[(getActiveVGA()->enable_SVGA==3)?1:0]; //Apply the write mask to the data written to the register!
-		getActiveVGA()->registers->GraphicsRegisters_Index = value; //Set index!
+		getActiveVGA()->registers->GraphicsRegisters_IndexRegister = value; //Set index!
+		getActiveVGA()->registers->GraphicsRegisters_Index = (value&0xF); //Set index!
 		//VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_INDEX|INDEX_GRAPHICSCONTROLLER); //Updated index!
 		ok = 1;
 		break;

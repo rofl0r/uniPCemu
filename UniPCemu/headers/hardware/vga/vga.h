@@ -290,15 +290,18 @@ typedef struct PACKED
 //First, the indexed registers:
 	GRAPHREGS GraphicsRegisters; //Graphics registers!
 	byte GraphicsRegisters_Index; //Current index!
+	byte GraphicsRegisters_IndexRegister; //Index register!
 
 	SEQUENCERREGS SequencerRegisters; //Sequencer registers!
 	byte SequencerRegisters_Index; //Current index!
+	byte SequencerRegisters_IndexRegister; //Index register!
 
 	ATTRIBUTECONTROLLERREGS AttributeControllerRegisters; //Attribute controller registers!
 
 	CRTCONTROLLERREGS CRTControllerRegisters; //CRT Controller registers!
 	byte CRTControllerDontRender; //No rendering?
 	byte CRTControllerRegisters_Index; //Current index!
+	byte CRTControllerRegisters_IndexRegister; //Index register!
 
 //Now the normal registers, by group:
 
