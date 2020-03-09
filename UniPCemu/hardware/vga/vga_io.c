@@ -209,8 +209,12 @@ OPTINLINE void PORT_write_CRTC_3B5(byte value)
 			//Bit 5: Input status Register 0, bit 7 needs to be updated with Bit 5?
 			if (!GETBITS(getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER,4,1)) //Vertical interrupt cleared?
 			{
-				lowerirq(is_XT?VGA_IRQ_XT:VGA_IRQ_AT); //Lower our IRQ if present!
-				acnowledgeIRQrequest(is_XT?VGA_IRQ_XT:VGA_IRQ_AT); //Acnowledge us!
+				if (getActiveVGA()->registers->verticalinterruptflipflop) //Set the flipflop to raise the IRQ?
+				{
+					getActiveVGA()->registers->verticalinterruptflipflop = 0; //We're handling the flipflop lowering now!
+					lowerirq(is_XT ? VGA_IRQ_XT : VGA_IRQ_AT); //Lower our IRQ if present!
+					acnowledgeIRQrequest(is_XT ? VGA_IRQ_XT : VGA_IRQ_AT); //Acnowledge us!
+				}
 			}
 		}
 		if ((!GETBITS(getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.ENDHORIZONTALBLANKINGREGISTER,7,1)) && (getActiveVGA()->enable_SVGA!=3)) //Force to 1?
@@ -378,7 +382,7 @@ byte PORT_readVGA(word port, byte *result) //Read from a port/register!
 		SETBITS(getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS0REGISTER,4,1,(switchval&1)); //Depends on the switches. This is the reverse of the actual switches used! Originally stuck to 1s, but reported as 0110!
 		*result = getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS0REGISTER; //Give the register!
 		SETBITS(*result, 5, 3, (getActiveVGA()->registers->ExternalRegisters.FEATURECONTROLREGISTER & 3)); //Feature bits 0&1!
-		SETBITS(*result, 7, 1, GETBITS(getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER, 4, 1)); //Vertical retrace interrupt pending?
+		SETBITS(*result, 7, 1, getActiveVGA()->registers->verticalinterruptflipflop); //Vertical retrace interrupt pending?
 		*result &= VGA_RegisterWriteMasks_InputStatus0[(getActiveVGA()->enable_SVGA==3)?1:0]; //Apply the write mask to the data written to the register!
 		ok = 1;
 		break;

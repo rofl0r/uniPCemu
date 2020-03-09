@@ -335,6 +335,7 @@ typedef struct PACKED
 	byte CGARegisters[18]; //18 CGA registers!
 	byte CGARegistersMasked[18]; //18 Masked CGA registers!
 	byte EGA_lightpenstrobeswitch; //Strobe/switch status of the light pen! Bit0=1: Light pen trigger has been set and is pending. Bit1=Light pen has been triggered and stopped pending(light pen register contents are valid). Bit2=1: Light pen switch is open(button on the light pen has been pressed).
+	byte verticalinterruptflipflop; //Current vertical interrupt flipflop!
 } VGA_REGISTERS;
 #include "headers/endpacked.h" //We're packed!
 
