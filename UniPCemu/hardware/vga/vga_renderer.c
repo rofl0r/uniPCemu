@@ -1286,9 +1286,9 @@ recalcsignal: //Recalculate the signal to process!
 				VGA_VRetrace(Sequencer, VGA); //Execute the handler!
 
 				//EGA/VGA vertical retrace interrupt support!
-				if (!GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER,4,1)) //Enabled vertical retrace interrupt?
+				if (GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER,4,1)) //Enabled vertical retrace interrupt?
 				{
-					if (GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER,5,1)) //Generate vertical retrace interrupts?
+					if (!GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER,5,1)) //Generate vertical retrace interrupts? When set, disables the interrupt from happening!
 					{
 						if (VGA->registers->verticalinterruptflipflop == 0) //Not set yet?
 						{
