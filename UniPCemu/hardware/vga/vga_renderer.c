@@ -1291,7 +1291,7 @@ recalcsignal: //Recalculate the signal to process!
 					if (!GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER,5,1)) //Generate vertical retrace interrupts?
 					{
 						raiseirq(is_XT?VGA_IRQ_XT:VGA_IRQ_AT); //Execute the CRT interrupt when possible!
-						SETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER,4,1,0); //We're pending an CRT interrupt!
+						SETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.VERTICALRETRACEENDREGISTER,4,1,1); //We're pending an CRT interrupt!
 					}
 				}
 			}
