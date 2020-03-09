@@ -720,10 +720,7 @@ void VGA_Blank_CGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attrib
 		CGALineBuffer[VGA->CRTC.x] = 0; //Take the literal pixel color of the CGA for later NTSC conversion!
 	}
 	video_updateLightPen(VGA,1); //Update the light pen!
-	if ((++Sequencer->currentpixelclock & Sequencer->pixelclockdivider) == 0) //Are we to tick the CRTC pixel clock?
-	{
-		++VGA->CRTC.x; //Next x!
-	}
+	++VGA->CRTC.x; //Next x!
 }
 
 void VGA_ActiveDisplay_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
@@ -816,10 +813,7 @@ void VGA_ActiveDisplay_noblanking_CGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_At
 		CGALineBuffer[VGA->CRTC.x] = (byte)attributeinfo->attribute; //Take the literal pixel color of the CGA for later NTSC conversion!
 	}
 	video_updateLightPen(VGA,1); //Update the light pen!
-	if ((++Sequencer->currentpixelclock & Sequencer->pixelclockdivider) == 0) //Are we to tick the CRTC pixel clock?
-	{
-		++VGA->CRTC.x; //Next x!
-	}
+	++VGA->CRTC.x; //Next x!
 }
 
 void VGA_Overscan_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
@@ -863,10 +857,7 @@ void VGA_Overscan_noblanking_CGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_Attribu
 		CGALineBuffer[VGA->CRTC.x] = VGA->precalcs.overscancolor; //Take the literal pixel color of the CGA for later NTSC conversion!
 	}
 	video_updateLightPen(VGA,1); //Update the light pen!
-	if ((++Sequencer->currentpixelclock & Sequencer->pixelclockdivider) == 0) //Are we to tick the CRTC pixel clock?
-	{
-		++VGA->CRTC.x; //Next x!
-	}
+	++VGA->CRTC.x; //Next x!
 }
 
 void updateVGASequencer_Mode(VGA_Type *VGA)
@@ -903,7 +894,7 @@ void VGA_ActiveDisplay_Text(SEQ_DATA *Sequencer, VGA_Type *VGA)
 			return; //Nibbled!
 		}
 	}
-	else return; //Don't render when not ticking!
+	else if (!CGAMDARenderer) return; //Don't render when not ticking!
 
 	activedisplay_noblanking_handler(VGA, Sequencer, &currentattributeinfo); //Blank or active display!
 }
@@ -919,7 +910,7 @@ void VGA_ActiveDisplay_Text_blanking(SEQ_DATA *Sequencer, VGA_Type *VGA)
 			return; //Nibbled!
 		}
 	}
-	else return; //Don't render when not ticking!
+	else if (!CGAMDARenderer) return; //Don't render when not ticking!
 
 	activedisplay_blank_handler(VGA, Sequencer, &currentattributeinfo); //Blank or active display!
 }
@@ -935,7 +926,7 @@ void VGA_ActiveDisplay_Graphics(SEQ_DATA *Sequencer, VGA_Type *VGA)
 			return; //Nibbled!
 		}
 	}
-	else return; //Don't render when not ticking!
+	else if (!CGAMDARenderer) return; //Don't render when not ticking!
 
 	activedisplay_noblanking_handler(VGA, Sequencer, &currentattributeinfo); //Blank or active display!
 }
@@ -951,7 +942,7 @@ void VGA_ActiveDisplay_Graphics_blanking(SEQ_DATA *Sequencer, VGA_Type *VGA)
 			return; //Nibbled!
 		}
 	}
-	else return; //Don't render when not ticking!
+	else if (!CGAMDARenderer) return; //Don't render when not ticking!
 
 	activedisplay_blank_handler(VGA, Sequencer, &currentattributeinfo); //Blank or active display!
 }
@@ -1131,7 +1122,7 @@ extern byte vblank, vretrace; //Vertical blanking/retrace?
 byte hblankendpending = 0; //Ending blank/retrace pending? bits set for any of them!
 byte vblankendpending = 0; //Ending blank/retrace pending? bits set for any of them!
 
-byte vtotal = 0; //VTotal busy?
+byte vtotal = 0, htotal = 0; //V/HTotal busy?
 
 byte VGA_hblankstart = 0; //HBlank started?
 extern byte CGAMDARenderer; //CGA/MDA renderer?
@@ -1257,8 +1248,10 @@ OPTINLINE void VGA_SIGNAL_HANDLER(SEQ_DATA *Sequencer, VGA_Type *VGA, byte *tota
 {
 	const static byte retracemasks[4] = { 0xFF,0x00,0x00,0x00 }; //Disable display when retracing!
 	const static hblankretraceHandler hblankretracehandlers[2] = { nohblankretrace,exechblankretrace }; //The handlers!
+	byte totalcheckpending;
 
 	INLINEREGISTER word tempsignalbackup, tempsignal; //Our signal backup and signal itself!
+	totalcheckpending = 0; //Default: total check isn't pending!
 recalcsignal: //Recalculate the signal to process!
 	tempsignal = tempsignalbackup = displaystate; //The back-up of the signal!
 	//Blankings
@@ -1359,29 +1352,35 @@ recalcsignal: //Recalculate the signal to process!
 		VGA_HTotal(Sequencer,VGA); //Process HTotal!
 		//currenttotalling = 1; //Total reached!
 		displaystate = get_display(getActiveVGA(), Sequencer->Scanline, Sequencer->x++); //Current display state!
-		if (likely((displaystate&VGA_SIGNAL_HTOTAL)==0)) //Not infinitely looping?
-		{
-			hblankretrace = (displaystate&VGA_HBLANKRETRACEMASK)?1:0; //Check for blanking/retracing!
-			goto recalcsignal; //Execute immediately!
-		}
+		tempsignal = tempsignalbackup = displaystate; //The back-up of the signal!
+		htotal = 1; //Triggered horizontal total!
+	}
+	else if (unlikely(htotal)) //HTotal ended?
+	{
+		htotal = 0; //Not horizontal total anymore!
 	}
 	if (unlikely(tempsignal&VGA_SIGNAL_VTOTAL)) //VTotal?
 	{
 		VGA_VTotal(Sequencer,VGA); //Process VTotal!
 		/*currenttotalling =*/ vtotal = 1; //Total reached!
-		displaystate = get_display(getActiveVGA(), Sequencer->Scanline, Sequencer->x++); //Current display state!
-		if (likely((displaystate&VGA_SIGNAL_VTOTAL)==0)) //Not infinitely looping(VTotal ended)?
-		{
-			VGA_VTotalEnd(Sequencer, VGA); //Signal end of vertical total!
-			vtotal = 0; //Not vertical total anymore!
-			hblankretrace = (displaystate&VGA_HBLANKRETRACEMASK)?1:0; //Check for blanking/retracing!
-			goto recalcsignal; //Execute immediately!
-		}
+		displaystate = get_display(getActiveVGA(), Sequencer->Scanline, Sequencer->x); //Current display state, keep x coordinate(retain x coordinate on the next frame)!
+		tempsignal = tempsignalbackup = displaystate; //The back-up of the signal!
+		vtotal = 1;
 	}
 	else if (unlikely(vtotal)) //VTotal ended?
 	{
 		VGA_VTotalEnd(Sequencer,VGA); //Signal end of vertical total!
 		vtotal = 0; //Not vertical total anymore!
+	}
+
+	if (unlikely(htotal|vtotal)) //Not infinitely looping(V/HTotal pending)?
+	{
+		hblankretrace = (displaystate & VGA_HBLANKRETRACEMASK) ? 1 : 0; //Check for blanking/retracing!
+		if (likely(totalcheckpending<3)) //Not an infinite loop?
+		{
+			++totalcheckpending; //We're rechecking, don't check again!
+			goto recalcsignal;
+		}
 	}
 
 	tempsignal &= VGA_DISPLAYMASK; //Check the display now!

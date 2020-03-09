@@ -110,10 +110,6 @@ void VGA_calcprecalcs_CRTC(void *useVGA) //Precalculate CRTC precalcs!
 		{
 			extrastatus |= 1; //Always render like we are asked, at full resolution single pixels!
 			pixelticked = 1; //A pixel has been ticked!
-			if (innerpixel == 0) //First pixel of a character(loading)?
-			{
-				fetchrate = 0; //Reset fetching for the new character!
-			}
 		}
 		else //Normal VGA?
 		{
