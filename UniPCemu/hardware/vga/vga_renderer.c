@@ -586,16 +586,12 @@ void VGA_VTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
 	Sequencer->Scanline = 0; //Reset for the next frame!
 	//VGA_RenderOutput(Sequencer,VGA); //Render the output to the screen!
-	VGA_Sequencer_updateRow(VGA, Sequencer); //Scanline has been changed!
-}
-
-void VGA_VTotalEnd(SEQ_DATA *Sequencer, VGA_Type *VGA)
-{
-	if (VGA->enable_SVGA==4) //CGA/MDA?
+	if (VGA->enable_SVGA == 4) //CGA/MDA?
 	{
 		//The end of vertical total has been reached, reload start address!
 		Sequencer->startmap = VGA->precalcs.startaddress; //What start address to use for the next frame?
 	}
+	VGA_Sequencer_updateRow(VGA, Sequencer); //Scanline has been changed!
 }
 
 void VGA_HTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
@@ -1369,7 +1365,6 @@ recalcsignal: //Recalculate the signal to process!
 	}
 	else if (unlikely(vtotal)) //VTotal ended?
 	{
-		VGA_VTotalEnd(Sequencer,VGA); //Signal end of vertical total!
 		vtotal = 0; //Not vertical total anymore!
 	}
 
