@@ -264,7 +264,7 @@ byte Tseng34K_writeIO(word port, byte val)
 			// 0-1 Display Start Address bits 16-17
 			// 2-3 Cursor start address bits 16-17
 			// Used by standard Tseng ID scheme
-			et34kdata->store_et4k_3d4_33 = val;
+			et34kdata->store_et4k_3d4_33 = (val&0xF); //According to Windows NT 4, this only stores the low 4 bits!
 			et34kdata->display_start_high = ((val & 0x03)<<16);
 			et34kdata->cursor_start_high = ((val & 0x0c)<<14);
 			VGA_calcprecalcs(getActiveVGA(),WHEREUPDATED_CRTCONTROLLER|0x33); //Update all precalcs!
