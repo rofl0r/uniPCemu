@@ -608,6 +608,7 @@ void VGA_HTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
 	Sequencer->DACcounter = 0; //Reset the DAC counter!
 	Sequencer->lastDACcolor = 0; //Reset the last DAC color!
 	Sequencer->currentpixelclock = 0; //Reset the pixel clock we're dividing!
+	++Sequencer->Scanline; //Next scanline to process!
 	VGA_Sequencer_updateRow(VGA, Sequencer); //Scanline has been changed!
 }
 
@@ -651,7 +652,6 @@ void VGA_HRetrace(SEQ_DATA *Sequencer, VGA_Type *VGA)
 			Sequencer->topwindowCRTbase = VGA->CRTC.y; //Save bottom resolution!
 		}
 	}
-	++Sequencer->Scanline; //Next scanline to process!
 }
 
 void VGA_HRetracePending(SEQ_DATA *Sequencer, VGA_Type *VGA)
@@ -1362,8 +1362,8 @@ recalcsignal: //Recalculate the signal to process!
 	if (unlikely(tempsignal&VGA_SIGNAL_VTOTAL)) //VTotal?
 	{
 		VGA_VTotal(Sequencer,VGA); //Process VTotal!
-		/*currenttotalling =*/ vtotal = 1; //Total reached!
-		displaystate = get_display(getActiveVGA(), Sequencer->Scanline, Sequencer->x); //Current display state, keep x coordinate(retain x coordinate on the next frame)!
+		//currenttotalling = 1; //Total reached!
+		displaystate = get_display(getActiveVGA(), Sequencer->Scanline, Sequencer->x++); //Current display state, keep x coordinate(retain x coordinate on the next frame)!
 		tempsignal = tempsignalbackup = displaystate; //The back-up of the signal!
 		vtotal = 1;
 	}
