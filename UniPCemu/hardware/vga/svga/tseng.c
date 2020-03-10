@@ -848,6 +848,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 	byte newcharwidth, newtextwidth; //Change detection!
 	byte newfontwidth; //Change detection!
 	uint_32 tempdata; //Saved data!
+	byte tempval;
 	if (!et34k(VGA)) return; //No extension registered?
 
 	byte FullUpdate = (whereupdated == 0); //Fully updated?
@@ -856,6 +857,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 	byte CRTUpdatedCharwidth = CRTUpdated || charwidthupdated; //Character width has been updated, for following registers using those?
 	byte AttrUpdated = UPDATE_SECTIONFULL(whereupdated,WHEREUPDATED_ATTRIBUTECONTROLLER,FullUpdate); //Fully updated?
 	byte SequencerUpdated = UPDATE_SECTIONFULL(whereupdated, WHEREUPDATED_SEQUENCER, FullUpdate); //Fully updated?
+	byte linearmodeupdated = 0; //Linear mode has been updated?
 
 
 	#ifdef LOG_UNHANDLED_SVGA_ACCESSES
@@ -1225,6 +1227,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		handled = 1;
 		#endif
 		et34k_tempreg = et4k_reg(et34kdata, 3d4, 36); //The overflow register!
+		tempval = VGA->precalcs.linearmode; //Old val!
 		if (VGA->enable_SVGA==2) //Special ET3000 mapping?
 		{
 			VGA->precalcs.linearmode &= ~3; //Use normal Bank Select Register with VGA method of access!
@@ -1271,6 +1274,8 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 			}
 			VGA->precalcs.linearmode |= 4; //Enable the new linear and contiguous modes to affect memory!
 		}
+
+		linearmodeupdated = (tempval!=VGA->precalcs.linearmode); //Linear mode has been updated!
 
 		if ((VGA->precalcs.linearmode&5)==5) //Special ET3K/ET4K linear graphics memory mode?
 		{
@@ -1345,19 +1350,21 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		updateVGAAttributeController_Mode(VGA); //Update the attribute mode!
 	}
 
-	if (SequencerUpdated || AttrUpdated || (whereupdated==(WHEREUPDATED_ATTRIBUTECONTROLLER|0x10)) || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_SEQUENCER | 0x04))
+	if (SequencerUpdated || AttrUpdated || (whereupdated==(WHEREUPDATED_ATTRIBUTECONTROLLER|0x10)) || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_GRAPHICSCONTROLLER | 0x05)) || (whereupdated == (WHEREUPDATED_SEQUENCER | 0x04)) || linearmodeupdated
 		) //Attribute misc. register?
 	{
 		et34k_tempreg = VGA->precalcs.linearmode; //Save the old mode for reference!
-		VGA->precalcs.linearmode = ((VGA->precalcs.linearmode&~8) | (VGA->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER & 8)); //Linear graphics mode special actions enabled? Ignore Read Plane Select and Write Plane mask if set!
-		if (VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER & 0x40) //8-bit mode?
+		VGA->precalcs.linearmode = ((VGA->precalcs.linearmode&~8) | (VGA->registers->SequencerRegisters.REGISTERS.SEQUENCERMEMORYMODEREGISTER&8)); //Linear graphics mode special actions enabled? Ignore Read Plane Select and Write Plane mask if set!
+		VGA->precalcs.linearmode = ((VGA->precalcs.linearmode&~0x10) | ((VGA->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER&0x40)>>2)); //Linear graphics mode for the renderer enabled?
+		if (VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER & 0x40) //8-bit mode is setup?
 		{
-			VGA->precalcs.linearmode &= ~8; //Disable the linear mode override!
+			VGA->precalcs.linearmode &= ~0x18; //Disable the linear mode override and use compatibility with the VGA!
 		}
 
+		linearmodeupdated = (VGA->precalcs.linearmode != et34k_tempreg); //Are we updating the mode?
 		updateCRTC |= (VGA->precalcs.linearmode != et34k_tempreg); //Are we to update modes?
 
-		if ((VGA->precalcs.linearmode & 8) || GETBITS(VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER, 6, 1)) //8-bit rendering has been enabled either through the Attribute Controller or mode set?
+		if ((VGA->precalcs.linearmode & 0x10) || GETBITS(VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER, 6, 1)) //8-bit rendering has been enabled either through the Attribute Controller or mode set?
 		{
 			VGA->precalcs.AttributeModeControlRegister_ColorEnable8Bit = 1; //Enable 8-bit graphics!
 			updateVGAAttributeController_Mode(VGA); //Update the attribute controller!
@@ -1371,7 +1378,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 
 	if (CRTUpdated || charwidthupdated || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x14))
 		|| (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x17))
-		|| SequencerUpdated || AttrUpdated || (whereupdated==(WHEREUPDATED_ATTRIBUTECONTROLLER|0x10)) || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_SEQUENCER | 0x04))
+		|| SequencerUpdated || AttrUpdated || (whereupdated==(WHEREUPDATED_ATTRIBUTECONTROLLER|0x10)) || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_GRAPHICSCONTROLLER | 0x05)) || linearmodeupdated
 		) //Updated?
 	{
 		//This applies to the Frame buffer:
@@ -1407,7 +1414,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 			characterclockshift = 1; //Reload every whole clock(8 pixels)!
 		}
 
-		if (VGA->precalcs.linearmode&8) //Linear mode is different on Tseng chipsets? This activates byte mode!
+		if (VGA->precalcs.linearmode&0x10) //Linear mode is different on Tseng chipsets? This activates byte mode!
 		{
 			BWDModeShift = 0; //Byte mode always! We're linear memory, so act that way!
 			characterclockshift = ((characterclockshift << 1) | 1); //Double the programmed character clock: two times the normal data is processed!
@@ -1429,10 +1436,11 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		|| (CRTUpdated || (whereupdated == WHEREUPDATED_ALL) || (whereupdated == (WHEREUPDATED_CRTCONTROLLER | 0x36))
 			|| (whereupdated == (WHEREUPDATED_GRAPHICSCONTROLLER | 0x5)) //Memory address
 			)
+		|| linearmodeupdated
 		)
 	{
 		if (VGA->precalcs.ClockingModeRegister_DCR != et34k_tempreg) adjustVGASpeed(); //Auto-adjust our VGA speed!
-		et34k_tempreg = (GETBITS(VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER,3,1))|((VGA->precalcs.linearmode&8)>>2); //Dot Clock Rate!
+		et34k_tempreg = (GETBITS(VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER,3,1))|((VGA->precalcs.linearmode&0x10)>>3); //Dot Clock Rate!
 		if (VGA->enable_SVGA == 2) //ET3000 seems to oddly provide the DCR in bit 2 sometimes?
 		{
 			et34k_tempreg |= GETBITS(VGA->registers->SequencerRegisters.REGISTERS.CLOCKINGMODEREGISTER, 1, 1); //Use bit 1 as well!
