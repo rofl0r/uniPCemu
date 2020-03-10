@@ -789,7 +789,10 @@ OPTINLINE void FLOPPY_handlereset(byte source) //Resets the floppy disk command 
 	}
 	else if (FLOPPY.floppy_resetted) //We were resetted and are activated?
 	{
-		FLOPPY_raiseIRQ(); //Raise the IRQ: We're reset and have been activated!
+		if (!FLOPPY_CONFIGURATION_DRIVEPOLLINGMODEDISABLER) //No interrupt when not in polling mode!
+		{
+			FLOPPY_raiseIRQ(); //Raise the IRQ: We're reset and have been activated!
+		}
 		FLOPPY.floppy_resetted = 0; //Not resetted anymore!
 		if (source==1)
 		{
