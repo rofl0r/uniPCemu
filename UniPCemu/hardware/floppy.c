@@ -1863,6 +1863,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			break;
 		case SEEK: //Seek/park head
 			FLOPPY.commandstep = 0; //Start our timed execution!
+			FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] = ((FLOPPY.commandbuffer[1] & 4) >> 2); //The selected head!
 			FLOPPY.activecommand[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[0]; //Our command to execute!
 			FLOPPY.seekdestination[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[2]; //Our destination!
 			FLOPPY.seekrel[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.MT; //Seek relative?
