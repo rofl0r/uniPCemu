@@ -1755,6 +1755,7 @@ void floppy_executeData() //Execute a floppy command. Data is fully filled!
 
 void floppy_executeCommand() //Execute a floppy command. Buffers are fully filled!
 {
+	byte drive;
 	char *DSKImageFile = NULL; //DSK image file to use?
 	SECTORINFORMATIONBLOCK sectorinfo; //Information about the sector!
 	TRACKINFORMATIONBLOCK trackinfo;
@@ -1802,14 +1803,14 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			break;
 		case RECALIBRATE: //Calibrate drive
 			FLOPPY.commandstep = 0; //Start our timed execution!
-			FLOPPY.activecommand[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[0]; //Our command to execute timing!
+			FLOPPY.activecommand[FLOPPY.commandbuffer[1]&3] = FLOPPY.commandbuffer[0]; //Our command to execute timing!
 			FLOPPY.ST0 &= ~0x20; //We start to seek!
-			floppytime[FLOPPY_DOR_DRIVENUMBERR] = 0.0;
-			floppytimer[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.DriveData[FLOPPY.commandbuffer[1]&3].steprate; //Step rate!
-			floppytiming |= (1<<FLOPPY_DOR_DRIVENUMBERR); //Timing!
-			FLOPPY.recalibratestepsleft[FLOPPY_DOR_DRIVENUMBERR] = 79; //Up to 79 pulses!
-			FLOPPY_MSR_BUSYINPOSITIONINGMODEW(FLOPPY_DOR_DRIVENUMBERR,1); //Seeking!
-			if (!FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]) //Already there?
+			floppytime[FLOPPY.commandbuffer[1] & 3] = 0.0;
+			floppytimer[FLOPPY.commandbuffer[1] & 3] = FLOPPY.DriveData[FLOPPY.commandbuffer[1]&3].steprate; //Step rate!
+			floppytiming |= (1<<(FLOPPY.commandbuffer[1] & 3)); //Timing!
+			FLOPPY.recalibratestepsleft[FLOPPY.commandbuffer[1] & 3] = 79; //Up to 79 pulses!
+			FLOPPY_MSR_BUSYINPOSITIONINGMODEW((FLOPPY.commandbuffer[1] & 3),1); //Seeking!
+			if (!FLOPPY.physicalcylinder[FLOPPY.commandbuffer[1] & 3]) //Already there?
 			{
 				/*
 				FLOPPY_finishrecalibrate(FLOPPY_DOR_DRIVENUMBERR); //Finish the recalibration automatically(we're eating up the command)!
@@ -1818,7 +1819,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			}
 			else
 			{
-				clearDiskChanged(FLOPPY_DOR_DRIVENUMBERR); //Clear the disk changed flag for the new command!
+				clearDiskChanged(FLOPPY.commandbuffer[1] & 3); //Clear the disk changed flag for the new command!
 			}
 			break;
 		case SENSE_INTERRUPT: //Check interrupt status
@@ -1863,24 +1864,24 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			break;
 		case SEEK: //Seek/park head
 			FLOPPY.commandstep = 0; //Start our timed execution!
-			FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] = ((FLOPPY.commandbuffer[1] & 4) >> 2); //The selected head!
-			FLOPPY.activecommand[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[0]; //Our command to execute!
-			FLOPPY.seekdestination[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[2]; //Our destination!
-			FLOPPY.seekrel[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.MT; //Seek relative?
-			FLOPPY.seekrelup[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.MFM; //Seek relative up(when seeking relatively)
+			FLOPPY.currenthead[FLOPPY.commandbuffer[1] & 3] = ((FLOPPY.commandbuffer[1] & 4) >> 2); //The selected head!
+			FLOPPY.activecommand[FLOPPY.commandbuffer[1] & 3] = FLOPPY.commandbuffer[0]; //Our command to execute!
+			FLOPPY.seekdestination[FLOPPY.commandbuffer[1] & 3] = FLOPPY.commandbuffer[2]; //Our destination!
+			FLOPPY.seekrel[FLOPPY.commandbuffer[1] & 3] = FLOPPY.MT; //Seek relative?
+			FLOPPY.seekrelup[FLOPPY.commandbuffer[1] & 3] = FLOPPY.MFM; //Seek relative up(when seeking relatively)
 			FLOPPY.ST0 &= ~0x20; //We start to seek!
-			floppytime[FLOPPY_DOR_DRIVENUMBERR] = 0.0;
-			floppytiming |= (1<<FLOPPY_DOR_DRIVENUMBERR); //Timing!
-			floppytimer[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.DriveData[FLOPPY_DOR_DRIVENUMBERR&3].steprate; //Step rate!
-			FLOPPY_MSR_BUSYINPOSITIONINGMODEW(FLOPPY_DOR_DRIVENUMBERR,1); //Seeking!
-			if ((FLOPPY_DOR_DRIVENUMBERR<2) && (((FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]==FLOPPY.seekdestination[FLOPPY_DOR_DRIVENUMBERR]) && (FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR] < FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->tracks) && (FLOPPY.seekrel[FLOPPY_DOR_DRIVENUMBERR]==0)) || (FLOPPY.seekrel[FLOPPY_DOR_DRIVENUMBERR] && (FLOPPY.seekdestination[FLOPPY_DOR_DRIVENUMBERR]==0)))) //Found and existant?
+			floppytime[FLOPPY.commandbuffer[1] & 3] = 0.0;
+			floppytiming |= (1<<(FLOPPY.commandbuffer[1] & 3)); //Timing!
+			floppytimer[FLOPPY.commandbuffer[1] & 3] = FLOPPY.DriveData[FLOPPY.commandbuffer[1] & 3].steprate; //Step rate!
+			FLOPPY_MSR_BUSYINPOSITIONINGMODEW(FLOPPY.commandbuffer[1] & 3,1); //Seeking!
+			if (((FLOPPY.commandbuffer[1] & 3)<2) && (((FLOPPY.currentcylinder[FLOPPY.commandbuffer[1] & 3]==FLOPPY.seekdestination[FLOPPY.commandbuffer[1] & 3]) && (FLOPPY.currentcylinder[FLOPPY.commandbuffer[1] & 3] < FLOPPY.geometries[FLOPPY.commandbuffer[1] & 3]->tracks) && (FLOPPY.seekrel[FLOPPY.commandbuffer[1] & 3]==0)) || (FLOPPY.seekrel[FLOPPY.commandbuffer[1] & 3] && (FLOPPY.seekdestination[FLOPPY.commandbuffer[1] & 3]==0)))) //Found and existant?
 			{
-				FLOPPY_finishseek(FLOPPY_DOR_DRIVENUMBERR,1); //Finish the recalibration automatically(we're eating up the command)!
-				FLOPPY_checkfinishtiming(FLOPPY_DOR_DRIVENUMBERR); //Finish if required!
+				FLOPPY_finishseek(FLOPPY.commandbuffer[1] & 3,1); //Finish the recalibration automatically(we're eating up the command)!
+				FLOPPY_checkfinishtiming(FLOPPY.commandbuffer[1] & 3); //Finish if required!
 			}
 			else
 			{
-				clearDiskChanged(FLOPPY_DOR_DRIVENUMBERR); //Clear the disk changed flag for the new command!
+				clearDiskChanged(FLOPPY.commandbuffer[1] & 3); //Clear the disk changed flag for the new command!
 			}
 			break;
 		case SENSE_DRIVE_STATUS: //Check drive status
@@ -1891,36 +1892,37 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			FLOPPY.commandstep = 3; //Result phase!
 			break;
 		case READ_ID: //Read sector ID
-			FLOPPY.activecommand[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[0]; //Our command to execute!
-			FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] = ((FLOPPY.commandbuffer[1] & 4) >> 2); //The head to use!
+			drive = FLOPPY.commandbuffer[1] & 3; //What drive!
+			FLOPPY.activecommand[drive] = FLOPPY.commandbuffer[0]; //Our command to execute!
+			FLOPPY.currenthead[drive] = ((FLOPPY.commandbuffer[1] & 4) >> 2); //The head to use!
 			FLOPPY.ST0 &= 0x20; //Clear ST0 by default! Keep the Seek End flag intact!
-			if (!FLOPPY_supportsrate(FLOPPY_DOR_DRIVENUMBERR)) //We don't support the rate?
+			if (!FLOPPY_supportsrate(drive)) //We don't support the rate?
 			{
 				goto floppy_errorReadID; //Error out!
 			}
-			FLOPPY.RWRequestedCylinder = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]; //Cylinder to access?
-			if (FLOPPY.RWRequestedCylinder != FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]) //Wrong cylinder?
+			FLOPPY.RWRequestedCylinder = FLOPPY.currentcylinder[drive]; //Cylinder to access?
+			if (FLOPPY.RWRequestedCylinder != FLOPPY.physicalcylinder[drive]) //Wrong cylinder?
 			{
 				goto floppy_errorReadID; //Error out!
 			}
 			if (FLOPPY_IMPLIEDSEEKENABLER) //Implied seek?
 			{
-				if ((FLOPPY_MSR_BUSYINPOSITIONINGMODER(FLOPPY_DOR_DRIVENUMBERR) == 0) && ((FLOPPY.ST0 & 0x20) == 0)) //Not in positioning mode and not finished seeking according to status?
+				if ((FLOPPY_MSR_BUSYINPOSITIONINGMODER(drive) == 0) && ((FLOPPY.ST0 & 0x20) == 0)) //Not in positioning mode and not finished seeking according to status?
 				{
-					clearDiskChanged(FLOPPY_DOR_DRIVENUMBERR); //Clear the disk changed flag for the new command!
-					FLOPPY_finishseek(FLOPPY_DOR_DRIVENUMBERR,0); //Simulate seek complete!
-					FLOPPY_checkfinishtiming(FLOPPY_DOR_DRIVENUMBERR); //Seek is completed!
+					clearDiskChanged(drive); //Clear the disk changed flag for the new command!
+					FLOPPY_finishseek(drive,0); //Simulate seek complete!
+					FLOPPY_checkfinishtiming(drive); //Seek is completed!
 				}
 			}
-			updateFloppyGeometries(FLOPPY_DOR_DRIVENUMBERR, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]); //Update our geometry to use!
+			updateFloppyGeometries(drive, FLOPPY.currenthead[drive], FLOPPY.physicalcylinder[drive]); //Update our geometry to use!
 			FLOPPY_ST0_UNITCHECKW(0); //Not faulted!
 			FLOPPY_ST0_NOTREADYW(0); //Ready!
 			FLOPPY_ST0_INTERRUPTCODEW(0); //OK! Correctly executed!
-			FLOPPY_ST0_CURRENTHEADW(FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]&1); //Head!
-			FLOPPY_ST0_UNITSELECTW(FLOPPY_DOR_DRIVENUMBERR); //Unit selected!
-			if ((DSKImageFile = getDSKimage((FLOPPY_DOR_DRIVENUMBERR) ? FLOPPY1 : FLOPPY0))) //Are we a DSK image file?
+			FLOPPY_ST0_CURRENTHEADW(FLOPPY.currenthead[drive]&1); //Head!
+			FLOPPY_ST0_UNITSELECTW(drive); //Unit selected!
+			if ((DSKImageFile = getDSKimage((drive) ? FLOPPY1 : FLOPPY0))) //Are we a DSK image file?
 			{
-				if (readDSKTrackInfo(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], &trackinfo) == 0) //Read?
+				if (readDSKTrackInfo(DSKImageFile, FLOPPY.currenthead[drive], FLOPPY.physicalcylinder[drive], &trackinfo) == 0) //Read?
 				{
 					goto didntfindsectoridreadid;
 				}
@@ -1938,9 +1940,9 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 				for (sectornr = (FLOPPY.readID_lastsectornumber+1); sectornr < (word)trackinfo.numberofsectors; ++sectornr) //Find the next sector that's to be requested!
 				{
 					tryReadIDnewsector: //Try to read a new sector number!
-					if (readDSKSectorInfo(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], sectornr, &sectorinfo)) //Read?
+					if (readDSKSectorInfo(DSKImageFile, FLOPPY.currenthead[drive], FLOPPY.physicalcylinder[drive], sectornr, &sectorinfo)) //Read?
 					{
-						//if ((sectorinfo.SectorID == FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]) && (sectorinfo.side==FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]) && (sectorinfo.track==FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR])) //Found the requested sector as indicated?
+						//if ((sectorinfo.SectorID == FLOPPY.currentsector[drive]) && (sectorinfo.side==FLOPPY.currenthead[drive]) && (sectorinfo.track==FLOPPY.currentcylinder[drive])) //Found the requested sector as indicated?
 						{
 							FLOPPY.readID_lastsectornumber = sectornr; //This was the last sector we've read!
 							goto foundsectorIDreadid; //Found it!
@@ -1954,7 +1956,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 				}
 				goto didntfindsectoridreadid; //Couldn't find a sector to give!
 				foundsectorIDreadid: //Found the sector ID for the write!
-				if (readDSKSectorInfo(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], sectornr, &sectorinfo)) //Read the sector information too!
+				if (readDSKSectorInfo(DSKImageFile, FLOPPY.currenthead[drive], FLOPPY.physicalcylinder[drive], sectornr, &sectorinfo)) //Read the sector information too!
 				{
 					FLOPPY.readID_lastsectornumber = sectornr; //This was the last sector we've read!
 					FLOPPY.ST1 = sectorinfo.ST1; //Load ST1!
@@ -1977,12 +1979,12 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			{
 				FLOPPY.ST1 = 0x00; //Clear ST1!
 				FLOPPY.ST2 = 0x00; //Clear ST2!
-				updateST3(FLOPPY_DOR_DRIVENUMBERR); //Update track 0!
+				updateST3(drive); //Update track 0!
 				//Clip the sector number first!
 				if (!FLOPPY.readID_lastsectornumber) FLOPPY.readID_lastsectornumber = 1; //Sector number from 1 to SPT!
-				if (FLOPPY.readID_lastsectornumber > (FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR] ? FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->SPT : 0)) FLOPPY.readID_lastsectornumber = 1; //Limit to SPT!
+				if (FLOPPY.readID_lastsectornumber > (FLOPPY.geometries[drive] ? FLOPPY.geometries[drive]->SPT : 0)) FLOPPY.readID_lastsectornumber = 1; //Limit to SPT!
 				//Simulate the sectors moving for the software to see!
-				if (FLOPPY.readID_lastsectornumber < (FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR] ? FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->SPT : 0)) //Gotten next?
+				if (FLOPPY.readID_lastsectornumber < (FLOPPY.geometries[drive] ? FLOPPY.geometries[drive]->SPT : 0)) //Gotten next?
 				{
 					++FLOPPY.readID_lastsectornumber; //Next sector!
 				}
@@ -1991,9 +1993,9 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 					FLOPPY.readID_lastsectornumber = 1; //Back at sector 1!
 				}
 				//Start validating the sector number!
-				if (FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR] && ((FLOPPY_DOR_DRIVENUMBERR < 2) ? (is_mounted(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0)) : 0)) //Valid geometry?
+				if (FLOPPY.geometries[drive] && ((drive < 2) ? (is_mounted(drive ? FLOPPY1 : FLOPPY0)) : 0)) //Valid geometry?
 				{
-					if ((int_32)floppy_LBA(FLOPPY_DOR_DRIVENUMBERR, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.readID_lastsectornumber) >= (int_32)(FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->KB * 1024)) //Invalid address within our image!
+					if ((int_32)floppy_LBA(drive, FLOPPY.currenthead[drive], FLOPPY.physicalcylinder[drive], FLOPPY.readID_lastsectornumber) >= (int_32)(FLOPPY.geometries[drive]->KB * 1024)) //Invalid address within our image!
 					{
 						goto floppy_errorReadID; //Error out!
 					}
@@ -2003,49 +2005,50 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 					goto floppy_errorReadID; //Error out!
 				}
 				FLOPPY.resultbuffer[6] = 2; //Always 512 byte sectors!
-				FLOPPY.resultbuffer[3] = FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]; //Cylinder(exception: actually give what we read from the disk)!
-				FLOPPY.resultbuffer[4] = FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]; //Head!
+				FLOPPY.resultbuffer[3] = FLOPPY.physicalcylinder[drive]; //Cylinder(exception: actually give what we read from the disk)!
+				FLOPPY.resultbuffer[4] = FLOPPY.currenthead[drive]; //Head!
 				FLOPPY.resultbuffer[5] = FLOPPY.readID_lastsectornumber; //Last sector read!
 			}
 
 			//Start the reading of the ID on the timer!
 			FLOPPY.databuffersize = 0x200; //Sector size into data buffer!
-			FLOPPY.readIDdrive = FLOPPY_DOR_DRIVENUMBERR; //Setup ST0!
+			FLOPPY.readIDdrive = drive; //Setup ST0!
 			FLOPPY.readIDerror = 0; //No error!
 			FLOPPY_startData(); //Start the data phase!
 			return; //Correct read!
 		floppy_errorReadID:
 			FLOPPY.databuffersize = 0x200; //Sector size into data buffer!
-			FLOPPY.readIDdrive = FLOPPY_DOR_DRIVENUMBERR; //Setup ST0!
+			FLOPPY.readIDdrive = drive; //Setup ST0!
 			FLOPPY.readIDerror = 1; //Error!
 			FLOPPY_startData(); //Start the data phase!
 			return; //Incorrect read!
 			break;
 		case FORMAT_TRACK: //Format sector
-			FLOPPY.activecommand[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[0]; //Our command to execute!
-			FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] = (FLOPPY.commandbuffer[1] & 4) >> 2; //Set the new head from the parameters!
-			FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR] = 1; //Start out with sector #1(first sector of the track on DSK images)!
-			updateFloppyGeometries(FLOPPY_DOR_DRIVENUMBERR, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]); //Update our geometry to use!
-			if (!(FLOPPY_DOR_MOTORCONTROLR&(1 << FLOPPY_DOR_DRIVENUMBERR))) //Not motor ON?
+			drive = (FLOPPY.commandbuffer[1] & 3); //What drive!
+			FLOPPY.activecommand[drive] = FLOPPY.commandbuffer[0]; //Our command to execute!
+			FLOPPY.currenthead[drive] = (FLOPPY.commandbuffer[1] & 4) >> 2; //Set the new head from the parameters!
+			FLOPPY.currentsector[drive] = 1; //Start out with sector #1(first sector of the track on DSK images)!
+			updateFloppyGeometries(drive, FLOPPY.currenthead[drive], FLOPPY.physicalcylinder[drive]); //Update our geometry to use!
+			if (!(FLOPPY_DOR_MOTORCONTROLR&(1 << drive))) //Not motor ON?
 			{
 				FLOPPY_LOGD("FLOPPY: Error: drive motor not ON!")
 				floppy_common_sectoraccess_nomedia(); //No media!
 				return;
 			}
 
-			if (!FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR] || ((FLOPPY_DOR_DRIVENUMBERR < 2) ? (!is_mounted(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0)) : 1)) //No geometry?
+			if (!FLOPPY.geometries[drive] || ((drive < 2) ? (!is_mounted(drive ? FLOPPY1 : FLOPPY0)) : 1)) //No geometry?
 			{
 				floppy_common_sectoraccess_nomedia(); //No media!
 				return;
 			}
 
-			if (FLOPPY.commandbuffer[3] != FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->SPT) //Invalid SPT?
+			if (FLOPPY.commandbuffer[3] != FLOPPY.geometries[drive]->SPT) //Invalid SPT?
 			{
 				floppy_common_sectoraccess_nomedia(); //No media!
 				return;
 			}
 
-			if ((DSKImageFile = getDSKimage((FLOPPY_DOR_DRIVENUMBERR) ? FLOPPY1 : FLOPPY0))) //Are we a DSK image file?
+			if ((DSKImageFile = getDSKimage((drive) ? FLOPPY1 : FLOPPY0))) //Are we a DSK image file?
 			{
 				FLOPPY.databuffersize = 4; //We're 4 bytes per sector!
 				FLOPPY_startData(); //Start the data transfer!
@@ -2657,9 +2660,9 @@ void updateFloppy(DOUBLE timepassed)
 									FLOPPY.resultbuffer[0] = FLOPPY.ST0; //ST0!
 									FLOPPY.resultbuffer[1] = FLOPPY.ST1; //ST1!
 									FLOPPY.resultbuffer[2] = FLOPPY.ST2; //ST2!
-									FLOPPY.resultbuffer[3] = FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]; //Cylinder!
-									FLOPPY.resultbuffer[4] = FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]; //Head!
-									FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]; //Sector!
+									FLOPPY.resultbuffer[3] = FLOPPY.physicalcylinder[drive]; //Cylinder!
+									FLOPPY.resultbuffer[4] = FLOPPY.currenthead[drive]; //Head!
+									FLOPPY.resultbuffer[5] = FLOPPY.currentsector[drive]; //Sector!
 									FLOPPY.commandstep = 3; //Result phase!
 									FLOPPY_raiseIRQ(); //Entering result phase!
 								}
