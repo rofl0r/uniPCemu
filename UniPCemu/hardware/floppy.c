@@ -1815,10 +1815,8 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			FLOPPY_MSR_BUSYINPOSITIONINGMODEW((FLOPPY.commandbuffer[1] & 3),1); //Seeking!
 			if (!FLOPPY.physicalcylinder[FLOPPY.commandbuffer[1] & 3]) //Already there?
 			{
-				/*
 				FLOPPY_finishrecalibrate(FLOPPY_DOR_DRIVENUMBERR); //Finish the recalibration automatically(we're eating up the command)!
 				FLOPPY_checkfinishtiming(FLOPPY_DOR_DRIVENUMBERR); //Finish if required!
-				*/ //Use normal timing for the recalibration command!
 			}
 			else
 			{
