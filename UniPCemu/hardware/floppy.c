@@ -1924,6 +1924,14 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 				}
 			}
 			updateFloppyGeometries(drive, FLOPPY.currenthead[drive], FLOPPY.physicalcylinder[drive]); //Update our geometry to use!
+
+			if ((FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->DoubleDensity != (FLOPPY.MFM & ~DENSITY_IGNORE)) && (!(FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->DoubleDensity & DENSITY_IGNORE) || density_forced) && EMULATE_DENSITY) //Wrong density?
+			{
+				FLOPPY_LOGD("FLOPPY: Error: Invalid density!")
+				floppy_common_sectoraccess_nomedia(); //No media!
+				return;
+			}
+
 			FLOPPY_ST0_UNITCHECKW(0); //Not faulted!
 			FLOPPY_ST0_NOTREADYW(0); //Ready!
 			FLOPPY_ST0_INTERRUPTCODEW(0); //OK! Correctly executed!
