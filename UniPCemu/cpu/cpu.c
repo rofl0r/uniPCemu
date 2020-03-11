@@ -1824,6 +1824,8 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	
 	didRepeating = CPU[activeCPU].repeating; //Were we doing REP?
 	didNewREP = newREP; //Were we doing a REP for the first time?
+	CPU[activeCPU].executed = 0; //Not executing it yet, wait for the BIU to catch up if required!
+	goto fetchinginstruction; //Just update the BIU until it's ready to start executing the instruction!
 	executionphase_running:
 	CPU[activeCPU].executed = 1; //Executed by default!
 	CPU_OP(); //Now go execute the OPcode once!
