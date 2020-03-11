@@ -70,6 +70,10 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #define REQUEST_SUB2 0x40
 #define REQUEST_SUB3 0x60
 
+
+//80X86 bus waitstate for XT!
+#define CPU80X86_XTBUSWAITSTATE_DELAY 1
+
 #define CPU286_WAITSTATE_DELAY 1
 //BUS delay is supposed to be 4 waitstates?
 #define CPU286_BUSWAITSTATE_DELAY 1
@@ -1345,7 +1349,7 @@ void BIU_cycle_active486()
 
 void BIU_detectCycle() //Detect the cycle to execute!
 {
-	if (unlikely(cycleinfo->cycles_stallBUS)) //Stall the BUS?
+	if (unlikely(cycleinfo->cycles_stallBUS && (CPU[activeCPU].BUSactive!=1))) //Stall the BUS? This happens only while the BUS is released by CPU or DMA!
 	{
 		cycleinfo->currentTimingHandler = &BIU_cycle_StallingBUS; //We're stalling the BUS!
 	}
@@ -1369,6 +1373,8 @@ void detectBIUactiveCycleHandler()
 	BIU_handleRequests = (useIPSclock) ? &BIU_handleRequestsIPS : &BIU_handleRequestsNOP; //Either NOP variant or IPS clocking version!
 }
 
+extern byte is_XT; //Are we emulating an XT architecture?
+
 void CPU_tickBIU()
 {
 	if (likely(useIPSclock == 0)) //Not using IPS clocking?
@@ -1387,6 +1393,10 @@ void CPU_tickBIU()
 		else if (EMULATED_CPU==CPU_80386) //Waitstate memory to add?
 		{
 			memory_waitstates += CPU386_WAITSTATE_DELAY; //One waitstate RAM!
+		}
+		if (is_XT && ((EMULATED_CPU!=CPU_80286) && (EMULATED_CPU!=CPU_80386))) //XT 80(1)86 has 1 bus waitstate!
+		{
+			bus_waitstates = CPU80X86_XTBUSWAITSTATE_DELAY; //One waitstate on bus cycles!
 		}
 
 		//Now, normal processing!
@@ -1416,7 +1426,7 @@ void CPU_tickBIU()
 
 byte BIU_Ready() //Are we ready to continue execution?
 {
-	return ((BIU[activeCPU].cycleinfo.cycles==0) && (BIU[activeCPU].cycleinfo.cycles_stallBUS==0)); //We're ready to execute the next instruction (or instruction step) when all cycles are handled(no hardware interrupts are busy)!
+	return ((BIU[activeCPU].cycleinfo.cycles==0) && (BIU[activeCPU].cycleinfo.cycles_stallBUS==0) && (BIU[activeCPU].cycleinfo.prefetchcycles==0)); //We're ready to execute the next instruction (or instruction step) when all cycles are handled(no hardware interrupts are busy)!
 }
 
 byte BIU_resetRequested()
