@@ -785,6 +785,17 @@ OPTINLINE void FLOPPY_handlereset(byte source) //Resets the floppy disk command 
 			//Make sure
 			FLOPPY_hadIRQ = 0; //Was an IRQ Pending? Nope, we're resetting!
 			FLOPPY_lowerIRQ(); //Lower the IRQ!
+
+			//Terminate running commands timing and DMA transfers running!
+			floppytimer[0] = (DOUBLE)0;
+			floppytimer[1] = (DOUBLE)0;
+			floppytimer[2] = (DOUBLE)0;
+			floppytimer[3] = (DOUBLE)0;
+			FLOPPY_checkfinishtiming(0); //Check for finished timing!
+			FLOPPY_checkfinishtiming(1); //Check for finished timing!
+			FLOPPY_checkfinishtiming(2); //Check for finished timing!
+			FLOPPY_checkfinishtiming(3); //Check for finished timing!
+			FLOPPY.DMAPending = 0; //No DMA transfer busy!
 		}
 	}
 	else if (FLOPPY.floppy_resetted) //We were resetted and are activated?
