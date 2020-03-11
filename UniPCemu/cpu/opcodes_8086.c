@@ -5968,10 +5968,15 @@ void CPU8086_OPE4()
 {
 	INLINEREGISTER byte theimm = immb;
 	modrm_generateInstructionTEXT("IN AL,",0,theimm,PARAM_IMM8_PARAM);
+	if (EMULATED_CPU <= CPU_NECV30) //Valid CPU to apply?
+	{
+		if (CPU8086_instructionstepdelayBIU(0, 1)) return; //1 cycles before we start, active cycles only, wait for it to finish!
+		if (CPU8086_instructionstepdelayBIUidle(2, 2)) return; //2 cycles before we start, active cycles only!
+	}
 	if (CPU_PORT_IN_B(0,theimm,&REG_AL)) return;
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
-		CPU[activeCPU].cycles_OP += 2;
+		//CPU[activeCPU].cycles_OP += 2;
 	}
 	/*Timings!*/
 }
@@ -5979,20 +5984,30 @@ void CPU8086_OPE5()
 {
 	INLINEREGISTER byte theimm = immb;
 	modrm_generateInstructionTEXT("IN AX,",0,theimm,PARAM_IMM8_PARAM);
+	if (EMULATED_CPU <= CPU_NECV30) //Valid CPU to apply?
+	{
+		if (CPU8086_instructionstepdelayBIU(0, 1)) return; //1 cycles before we start, active cycles only, wait for it to finish!
+		if (CPU8086_instructionstepdelayBIUidle(2, 2)) return; //2 cycles before we start, active cycles only!
+	}
 	if (CPU_PORT_IN_W(0,theimm,&REG_AX)) return;
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
-		CPU[activeCPU].cycles_OP += 2; /*Timings!*/
+		//CPU[activeCPU].cycles_OP += 2; /*Timings!*/
 	}
 }
 void CPU8086_OPE6()
 {
 	INLINEREGISTER byte theimm = immb;
 	debugger_setcommand("OUT %02X,AL",theimm);
+	if (EMULATED_CPU <= CPU_NECV30) //Valid CPU to apply?
+	{
+		if (CPU8086_instructionstepdelayBIU(0, 1)) return; //1 cycles before we start, active cycles only, wait for it to finish!
+		if (CPU8086_instructionstepdelayBIUidle(2, 2)) return; //2 cycles before we start, active cycles only!
+	}
 	if(CPU_PORT_OUT_B(0,theimm,REG_AL)) return;
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
-		CPU[activeCPU].cycles_OP += 1;
+		//CPU[activeCPU].cycles_OP += 1;
 	}
 	/*Timings!*/
 }
@@ -6000,10 +6015,15 @@ void CPU8086_OPE7()
 {
 	INLINEREGISTER byte theimm = immb;
 	debugger_setcommand("OUT %02X,AX",theimm);
+	if (EMULATED_CPU <= CPU_NECV30) //Valid CPU to apply?
+	{
+		if (CPU8086_instructionstepdelayBIU(0, 1)) return; //1 cycles before we start, active cycles only, wait for it to finish!
+		if (CPU8086_instructionstepdelayBIUidle(2, 2)) return; //2 cycles before we start, active cycles only!
+	}
 	if (CPU_PORT_OUT_W(0,theimm,REG_AX)) return;
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
-		CPU[activeCPU].cycles_OP += 1; /*Timings!*/
+		//CPU[activeCPU].cycles_OP += 1; /*Timings!*/
 	}
 }
 void CPU8086_OPE8()
@@ -6066,39 +6086,55 @@ void CPU8086_OPEB()
 void CPU8086_OPEC()
 {
 	modrm_generateInstructionTEXT("IN AL,DX",0,0,PARAM_NONE);
+	if (EMULATED_CPU <= CPU_NECV30) //Valid CPU to apply?
+	{
+		if (CPU8086_instructionstepdelayBIU(0, 1)) return; //1 cycles before we start, active cycles only, wait for it to finish!
+	}
 	if (CPU_PORT_IN_B(0,REG_DX,&REG_AL)) return;
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
-		CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD;
+		//CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD;
 	}
 	/*Timings!*/
 }
 void CPU8086_OPED()
 {
 	modrm_generateInstructionTEXT("IN AX,DX",0,0,PARAM_NONE);
+	if (EMULATED_CPU <= CPU_NECV30) //Valid CPU to apply?
+	{
+		if (CPU8086_instructionstepdelayBIU(0, 1)) return; //1 cycles before we start, active cycles only, wait for it to finish!
+	}
 	if (CPU_PORT_IN_W(0,REG_DX,&REG_AX)) return;
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
-		CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*Timings!*/
+		//CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*Timings!*/
 	}
 }
 void CPU8086_OPEE()
 {
 	modrm_generateInstructionTEXT("OUT DX,AL",0,0,PARAM_NONE);
+	if (EMULATED_CPU <= CPU_NECV30) //Valid CPU to apply?
+	{
+		if (CPU8086_instructionstepdelayBIU(0, 1)) return; //1 cycles before we start, active cycles only, wait for it to finish!
+	}
 	if (CPU_PORT_OUT_B(0,REG_DX,REG_AL)) return;
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
-		CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSWRITE;
+		//CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSWRITE;
 	}
 	/*Timings!*/
 }
 void CPU8086_OPEF()
 {
 	modrm_generateInstructionTEXT("OUT DX,AX",0,0,PARAM_NONE);
+	if (EMULATED_CPU <= CPU_NECV30) //Valid CPU to apply?
+	{
+		if (CPU8086_instructionstepdelayBIU(0, 1)) return; //1 cycles before we start, active cycles only, wait for it to finish!
+	}
 	if (CPU_PORT_OUT_W(0,REG_DX,REG_AX)) return;
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
-		CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSWRITE; /*Timings!*/
+		//CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSWRITE; /*Timings!*/
 	}
 	/*To memory?*/
 }
