@@ -400,14 +400,14 @@ uint_32 realoffset; //What offset to affect!
 
 extern byte useIPSclock; //Are we using the IPS clock instead of cycle accurate clock?
 
-void applyCGAMDAOffset(uint_32 *offset)
+void applyCGAMDAOffset(byte CPUtiming, uint_32 *offset)
 {
 	if (CGAEMULATION_ENABLED(getActiveVGA())) //CGA?
 	{
 		*offset &= 0x3FFF; //Wrap around 16KB!
 
 		//Apply wait states(except when using the IPS clock)!
-		if ((CPU[activeCPU].running==1) && (useIPSclock==0)) //Are we running? Introduce wait states! Don't allow wait states when using the IPS clock: it will crash because the instruction is never finished, thus never allowing the video adapter emulation to finish the wait state!
+		if ((CPU[activeCPU].running==1) && (useIPSclock==0) && CPUtiming) //Are we running? Introduce wait states! Don't allow wait states when using the IPS clock: it will crash because the instruction is never finished, thus never allowing the video adapter emulation to finish the wait state!
 		{
 			getActiveVGA()->WaitState = 1; //Start our waitstate for CGA memory access!
 			getActiveVGA()->WaitStateCounter = 8; //Reset our counter for the 8 hdots to wait!
@@ -426,7 +426,7 @@ byte VGAmemIO_rb(uint_32 offset, byte *value)
 	if (unlikely(is_A000VRAM(offset))) //VRAM and within range?
 	{
 		offset -= VGA_VRAM_START; //Calculate start offset into VRAM!
-		applyCGAMDAOffset(&offset); //Apply CGA/MDA offset if needed!
+		applyCGAMDAOffset(1,&offset); //Apply CGA/MDA offset if needed!
 		decodeCPUaddress(0, offset, &planes, &realoffset); //Our VRAM offset starting from the 32-bit offset (A0000 etc.)!
 		*value = VGA_ReadModeOperation(planes, realoffset); //Apply the operation on read mode!
 		if (CGAEMULATION_ENABLED(getActiveVGA())||MDAEMULATION_ENABLED(getActiveVGA())) //Unchanged mapping?
@@ -438,12 +438,19 @@ byte VGAmemIO_rb(uint_32 offset, byte *value)
 	return 0; //Not read!
 }
 
+void CGAMDA_doWriteRAMrefresh(uint_32 offset)
+{
+	applyCGAMDAOffset(0,&offset); //Apply CGA/MDA offset if needed!
+	decodeCPUaddress(1, offset, &planes, &realoffset); //Our VRAM offset starting from the 32-bit offset (A0000 etc.)!
+	VGA_WriteModeOperation(planes, realoffset, getActiveVGA()->CGAMDAShadowRAM[offset]); //Apply the operation on write mode!
+}
+
 byte VGAmemIO_wb(uint_32 offset, byte value)
 {
 	if (unlikely(is_A000VRAM(offset))) //VRAM and within range?
 	{
 		offset -= VGA_VRAM_START; //Calculate start offset into VRAM!
-		applyCGAMDAOffset(&offset); //Apply CGA/MDA offset if needed!
+		applyCGAMDAOffset(1,&offset); //Apply CGA/MDA offset if needed!
 		decodeCPUaddress(1, offset, &planes, &realoffset); //Our VRAM offset starting from the 32-bit offset (A0000 etc.)!
 		VGA_WriteModeOperation(planes, realoffset, value); //Apply the operation on write mode!
 		if (CGAEMULATION_ENABLED(getActiveVGA())||MDAEMULATION_ENABLED(getActiveVGA())) //Unchanged mapping?

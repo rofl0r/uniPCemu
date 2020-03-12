@@ -483,5 +483,6 @@ void VGA_setupEGAPalette(VGA_Type *VGA); //Setup the EGA palette for the EGA emu
 
 //Support for adapters using unmapped memory!
 byte VGAmemIO_wb(uint_32 offset, byte value);
+void CGAMDA_doWriteRAMrefresh(uint_32 offset);
 
 #endif

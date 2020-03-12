@@ -1238,10 +1238,10 @@ OPTINLINE void applyCGAMemoryMap(byte useGraphics, byte GraphicsMode) //Apply th
 		getActiveVGA()->CGAMDAMemoryMode = memorymode; //Updating memory!
 		bytesleft = CGAEMULATION_ENABLED(getActiveVGA())?0x4000:0x1000; //How much to copy(CGA vs MDA)!
 		shadowaddr = 0; //Init shadow RAM address!
-		memaddr = VGA_VRAM_START; //Start of address to write!
+		memaddr = 0; //Start of address to write!
 		for (;bytesleft--;) //Process all RAM!
 		{
-			VGAmemIO_wb(memaddr++,getActiveVGA()->CGAMDAShadowRAM[shadowaddr++]); //Copy shadow RAM to VRAM, keeping the layout identical(like we're using normal CGA VRAM)!
+			CGAMDA_doWriteRAMrefresh(memaddr++); //Copy shadow RAM to VRAM, keeping the layout identical(like we're using normal CGA VRAM)!
 		}
 	}
 }
