@@ -87,6 +87,7 @@ byte CPU_databussize = 0; //0=16/32-bit bus! 1=8-bit bus when possible (8088/801
 byte CPU_databusmask = 0; //The mask from the BUSmasks lookup table!
 Handler BIU_activeCycleHandler = NULL;
 byte BIU_is_486 = 0;
+byte BIU_numcyclesmask;
 
 extern byte cpudebugger; //To debug the CPU?
 
@@ -118,6 +119,7 @@ void CPU_initBIU()
 	BIU[activeCPU].ready = 1; //We're ready to be used!
 	BIU[activeCPU].PIQ_checked = 0; //Reset to not checked!
 	CPU_flushPIQ(-1); //Init us to start!
+	BIU_numcyclesmask = (1 | ((((EMULATED_CPU > CPU_NECV30) & 1) ^ 1) << 1)); //1(80286+) or 3(80(1)86)!
 }
 
 void CPU_doneBIU()
@@ -1057,7 +1059,6 @@ byte memory_waitstates, bus_waitstates;
 CPU_CycleTimingInfo *cycleinfo;
 byte PIQ_RequiredSize,PIQ_CurrentBlockSize; //The required size for PIQ transfers!
 byte BIU_active; //Are we counted as active cycles?
-byte BIU_numcyclesmask;
 
 OPTINLINE void BIU_WaitState() //General Waitstate handler!
 {
@@ -1414,14 +1415,17 @@ void CPU_tickBIU()
 			BIU_detectCycle(); //Detect the current cycle to execute!
 		}
 
-		BIU_numcyclesmask = (1|((((EMULATED_CPU>CPU_NECV30)&1)^1)<<1)); //1(80286+) or 3(80(1)86)!
-
 		//Now we have the amount of cycles we're idling.
 		BIU[activeCPU].TState = ((BIU[activeCPU].prefetchclock&BIU_numcyclesmask)); //Currently emulated T-state!
 		cycleinfo->currentTimingHandler(); //Run the current handler!
 	}
 
 	CPU[activeCPU].cycles = 1; //Only take 1 cycle: we're cycle-accurate emulation of the BIU(and EU by extension, since we handle that part indirectly as well in our timings, resulting in the full CPU timings)!
+}
+
+byte BIU_Busy() //Is the BIU busy on something? It's not ready at T1 state?
+{
+	return ((BIU[activeCPU].requestready == 0) || (BIU[activeCPU].cycleinfo.currentTimingHandler != BIU_activeCycleHandler) || (BIU[activeCPU].cycleinfo.cycles_stallBIU) || ((BIU[activeCPU].prefetchclock & BIU_numcyclesmask))); //Not ready for anything new?
 }
 
 byte BIU_Ready() //Are we ready to continue execution?

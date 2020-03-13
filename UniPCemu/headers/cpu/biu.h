@@ -66,6 +66,7 @@ void BIU_instructionStart(); //Handle all when instructions are starting!
 void BIU_recheckmemory(); //Recheck any memory that's preloaded and/or validated for the BIU!
 
 byte BIU_Ready(); //Are we ready to continue execution?
+byte BIU_Busy(); //Is the BIU busy on something? It's not ready at T1 state?
 
 //Opcode read support for ModR/M!
 byte CPU_readOP(byte *result, byte singlefetch); //Reads the operation (byte) at CS:EIP
