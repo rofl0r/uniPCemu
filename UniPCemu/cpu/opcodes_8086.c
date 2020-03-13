@@ -527,6 +527,36 @@ byte CPU8086_internal_delayBIU(word base, byte cycles)
 	return 0; //Ready to process further! We're loaded!
 }
 
+byte CPU8086_instructionstepwaitBIUready(word base)
+{
+	if (CPU[activeCPU].instructionstep == base) //First step? Request!
+	{
+		if (BIU_Busy()) //Still busy?
+		{
+			++CPU[activeCPU].cycles_OP; //1 cycle delay!
+			CPU[activeCPU].executed = 0; //Wait to become ready!
+			return 1; //Still busy!
+		}
+		CPU[activeCPU].instructionstep += 2; //Next step!
+	}
+	return 0; //Ready to process!
+}
+
+byte CPU8086_internal_waitBIUready(word base)
+{
+	if (CPU[activeCPU].instructionstep == base) //First step? Request!
+	{
+		if (BIU_Busy()) //Still busy?
+		{
+			++CPU[activeCPU].cycles_OP; //1 cycle delay!
+			CPU[activeCPU].executed = 0; //Wait to become ready!
+			return 1; //Still busy!
+		}
+		CPU[activeCPU].instructionstep += 2; //Next step!
+	}
+	return 0; //Ready to process!
+}
+
 //BUS --- state delay!
 byte CPU8086_instructionstepdelayBIUidle(word base, byte cycles)
 {
@@ -1206,7 +1236,7 @@ OPTINLINE byte CPU8086_internal_INC16(word *reg)
 		*reg = res16;
 		if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
 		{
-			CPU[activeCPU].cycles_OP += 2; //16-bit reg!
+			CPU[activeCPU].cycles_OP += 1 + (params.notdecoded ? 0 : 1); //16-bit reg!
 		}
 	}
 	else //Memory?
@@ -1261,7 +1291,7 @@ OPTINLINE byte CPU8086_internal_DEC16(word *reg)
 		*reg = res16;
 		if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
 		{
-			CPU[activeCPU].cycles_OP += 2; //16-bit reg!
+			CPU[activeCPU].cycles_OP += 1 + (params.notdecoded ? 0 : 1); //16-bit reg!
 		}
 	}
 	else //Memory?
@@ -4922,14 +4952,16 @@ void CPU8086_OP70()
 	modrm_generateInstructionTEXT("JO",0,((REG_EIP + rel8)&CPU_EIPmask(0)),CPU_EIPSize(0)); /* JUMP to destination? */
 	if (FLAG_OF)
 	{
-		CPU_JMPrel((int_32)rel8,0); /* JUMP to destination? */
-		CPU_flushPIQ(-1); /*We're jumping to another address*/
-		didJump = 1;
 		if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 		{
-			CPU[activeCPU].cycles_OP += 6;
-			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
+			if (CPU8086_instructionstepdelayBIU(0, 2)) return; //First, 3 cycles NOP!
+			if (CPU8086_instructionstepdelayBIU(2, 3)) return; //First, 3 cycles NOP!
+			if (CPU8086_instructionstepwaitBIUready(4)) return; //Wait to become ready!
+			if (CPU8086_instructionstepdelayBIU(6, 2)) return; //2 more cycles here!
 		}
+		CPU_JMPrel((int_32)rel8, 0); /* JUMP to destination? */
+		CPU_flushPIQ(-1); /*We're jumping to another address*/
+		didJump = 1;
 		/* Branch taken */
 	}
 	else
@@ -4947,14 +4979,16 @@ void CPU8086_OP71()
 	modrm_generateInstructionTEXT("JNO",0, ((REG_EIP + rel8)&CPU_EIPmask(0)),CPU_EIPSize(0)); /* JUMP to destination? */
 	if (!FLAG_OF)
 	{
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			if (CPU8086_instructionstepdelayBIU(0, 2)) return; //First, 3 cycles NOP!
+			if (CPU8086_instructionstepdelayBIU(2, 3)) return; //First, 3 cycles NOP!
+			if (CPU8086_instructionstepwaitBIUready(4)) return; //Wait to become ready!
+			if (CPU8086_instructionstepdelayBIU(6, 2)) return; //2 more cycles here!
+		}
 		CPU_JMPrel((int_32)rel8,0); /* JUMP to destination? */
 		CPU_flushPIQ(-1); /*We're jumping to another address*/
 		didJump = 1;
-		if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
-		{
-			CPU[activeCPU].cycles_OP += 6;
-			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
-		}
 		/* Branch taken */
 	}
 	else
@@ -4972,14 +5006,16 @@ void CPU8086_OP72()
 	modrm_generateInstructionTEXT("JC",0, ((REG_EIP + rel8)&CPU_EIPmask(0)),CPU_EIPSize(0)); /* JUMP to destination? */
 	if (FLAG_CF)
 	{
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			if (CPU8086_instructionstepdelayBIU(0, 2)) return; //First, 3 cycles NOP!
+			if (CPU8086_instructionstepdelayBIU(2, 3)) return; //First, 3 cycles NOP!
+			if (CPU8086_instructionstepwaitBIUready(4)) return; //Wait to become ready!
+			if (CPU8086_instructionstepdelayBIU(6, 2)) return; //2 more cycles here!
+		}
 		CPU_JMPrel((int_32)rel8,0); /* JUMP to destination? */
 		CPU_flushPIQ(-1); /*We're jumping to another address*/
 		didJump = 1;
-		if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
-		{
-			CPU[activeCPU].cycles_OP += 6;
-			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
-		}
 		/* Branch taken */
 	}
 	else
@@ -4997,14 +5033,16 @@ void CPU8086_OP73()
 	modrm_generateInstructionTEXT("JNC",0, ((REG_EIP + rel8)&CPU_EIPmask(0)),CPU_EIPSize(0)); /* JUMP to destination? */
 	if (!FLAG_CF)
 	{
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			if (CPU8086_instructionstepdelayBIU(0, 2)) return; //First, 3 cycles NOP!
+			if (CPU8086_instructionstepdelayBIU(2, 3)) return; //First, 3 cycles NOP!
+			if (CPU8086_instructionstepwaitBIUready(4)) return; //Wait to become ready!
+			if (CPU8086_instructionstepdelayBIU(6, 2)) return; //2 more cycles here!
+		}
 		CPU_JMPrel((int_32)rel8,0); /* JUMP to destination? */
 		CPU_flushPIQ(-1); /*We're jumping to another address*/
 		didJump = 1;
-		if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
-		{
-			CPU[activeCPU].cycles_OP += 6;
-			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
-		}
 		/* Branch taken */
 	}
 	else
@@ -5022,14 +5060,16 @@ void CPU8086_OP74()
 	modrm_generateInstructionTEXT("JZ",0, ((REG_EIP + rel8)&CPU_EIPmask(0)),CPU_EIPSize(0)); /* JUMP to destination? */
 	if (FLAG_ZF)
 	{
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			if (CPU8086_instructionstepdelayBIU(0, 2)) return; //First, 3 cycles NOP!
+			if (CPU8086_instructionstepdelayBIU(2, 3)) return; //First, 3 cycles NOP!
+			if (CPU8086_instructionstepwaitBIUready(4)) return; //Wait to become ready!
+			if (CPU8086_instructionstepdelayBIU(6, 2)) return; //2 more cycles here!
+		}
 		CPU_JMPrel((int_32)rel8,0); /* JUMP to destination? */
 		CPU_flushPIQ(-1); /*We're jumping to another address*/
 		didJump = 1;
-		if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
-		{
-			CPU[activeCPU].cycles_OP += 6;
-			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
-		}
 		/* Branch taken */
 	}
 	else
@@ -5047,14 +5087,16 @@ void CPU8086_OP75()
 	modrm_generateInstructionTEXT("JNZ",0, ((REG_EIP + rel8)&CPU_EIPmask(0)),CPU_EIPSize(0)); /* JUMP to destination? */
 	if (!FLAG_ZF)
 	{
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			if (CPU8086_instructionstepdelayBIU(0, 2)) return; //First, 3 cycles NOP!
+			if (CPU8086_instructionstepdelayBIU(2, 3)) return; //First, 3 cycles NOP!
+			if (CPU8086_instructionstepwaitBIUready(4)) return; //Wait to become ready!
+			if (CPU8086_instructionstepdelayBIU(6, 2)) return; //2 more cycles here!
+		}
 		CPU_JMPrel((int_32)rel8,0); /* JUMP to destination? */
 		CPU_flushPIQ(-1); /*We're jumping to another address*/
 		didJump = 1;
-		if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
-		{
-			CPU[activeCPU].cycles_OP += 6;
-			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
-		}
 		/* Branch taken */
 	}
 	else
@@ -5072,14 +5114,16 @@ void CPU8086_OP76()
 	modrm_generateInstructionTEXT("JBE",0, ((REG_EIP + rel8)&CPU_EIPmask(0)),CPU_EIPSize(0)); /* JUMP to destination? */
 	if (FLAG_CF||FLAG_ZF)
 	{
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			if (CPU8086_instructionstepdelayBIU(0, 2)) return; //First, 3 cycles NOP!
+			if (CPU8086_instructionstepdelayBIU(2, 3)) return; //First, 3 cycles NOP!
+			if (CPU8086_instructionstepwaitBIUready(4)) return; //Wait to become ready!
+			if (CPU8086_instructionstepdelayBIU(6, 2)) return; //2 more cycles here!
+		}
 		CPU_JMPrel((int_32)rel8,0); /* JUMP to destination? */
 		CPU_flushPIQ(-1); /*We're jumping to another address*/
 		didJump = 1;
-		if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
-		{
-			CPU[activeCPU].cycles_OP += 6;
-			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
-		}
 		/* Branch taken */
 	}
 	else
@@ -5097,14 +5141,17 @@ void CPU8086_OP77()
 	modrm_generateInstructionTEXT("JNBE",0, ((REG_EIP + rel8)&CPU_EIPmask(0)),CPU_EIPSize(0)); /* JUMP to destination? */
 	if (!(FLAG_CF|FLAG_ZF))
 	{
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			if (CPU8086_instructionstepdelayBIU(0, 2)) return; //First, 3 cycles NOP!
+			if (CPU8086_instructionstepdelayBIU(2, 3)) return; //First, 3 cycles NOP!
+			if (CPU8086_instructionstepwaitBIUready(4)) return; //Wait to become ready!
+			if (CPU8086_instructionstepdelayBIU(6, 2)) return; //2 more cycles here!
+		}
 		CPU_JMPrel((int_32)rel8,0); /* JUMP to destination? */
 		CPU_flushPIQ(-1); /*We're jumping to another address*/
 		didJump = 1;
-		if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
-		{
-			CPU[activeCPU].cycles_OP += 6;
-			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
-		} /* Branch taken */
+		/* Branch taken */
 	}
 	else
 	{
@@ -5121,14 +5168,16 @@ void CPU8086_OP78()
 	modrm_generateInstructionTEXT("JS",0, ((REG_EIP + rel8)&CPU_EIPmask(0)),CPU_EIPSize(0)); /* JUMP to destination? */
 	if (FLAG_SF)
 	{
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			if (CPU8086_instructionstepdelayBIU(0, 2)) return; //First, 3 cycles NOP!
+			if (CPU8086_instructionstepdelayBIU(2, 3)) return; //First, 3 cycles NOP!
+			if (CPU8086_instructionstepwaitBIUready(4)) return; //Wait to become ready!
+			if (CPU8086_instructionstepdelayBIU(6, 2)) return; //2 more cycles here!
+		}
 		CPU_JMPrel((int_32)rel8,0); /* JUMP to destination? */
 		CPU_flushPIQ(-1); /*We're jumping to another address*/
 		didJump = 1;
-		if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
-		{
-			CPU[activeCPU].cycles_OP += 6;
-			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
-		}
 		/* Branch taken */
 	}
 	else
@@ -5146,14 +5195,16 @@ void CPU8086_OP79()
 	modrm_generateInstructionTEXT("JNS",0, ((REG_EIP + rel8)&CPU_EIPmask(0)),CPU_EIPSize(0)); /* JUMP to destination? */
 	if (!FLAG_SF)
 	{
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			if (CPU8086_instructionstepdelayBIU(0, 2)) return; //First, 3 cycles NOP!
+			if (CPU8086_instructionstepdelayBIU(2, 3)) return; //First, 3 cycles NOP!
+			if (CPU8086_instructionstepwaitBIUready(4)) return; //Wait to become ready!
+			if (CPU8086_instructionstepdelayBIU(6, 2)) return; //2 more cycles here!
+		}
 		CPU_JMPrel((int_32)rel8,0); /* JUMP to destination? */
 		CPU_flushPIQ(-1); /*We're jumping to another address*/
 		didJump = 1;
-		if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
-		{
-			CPU[activeCPU].cycles_OP += 6;
-			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
-		}
 		/* Branch taken */
 	}
 	else
@@ -5171,14 +5222,16 @@ void CPU8086_OP7A()
 	modrm_generateInstructionTEXT("JP",0, ((REG_EIP + rel8)&CPU_EIPmask(0)),CPU_EIPSize(0)); /* JUMP to destination? */
 	if (FLAG_PF)
 	{
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			if (CPU8086_instructionstepdelayBIU(0, 2)) return; //First, 3 cycles NOP!
+			if (CPU8086_instructionstepdelayBIU(2, 3)) return; //First, 3 cycles NOP!
+			if (CPU8086_instructionstepwaitBIUready(4)) return; //Wait to become ready!
+			if (CPU8086_instructionstepdelayBIU(6, 2)) return; //2 more cycles here!
+		}
 		CPU_JMPrel((int_32)rel8,0); /* JUMP to destination? */
 		CPU_flushPIQ(-1); /*We're jumping to another address*/
 		didJump = 1;
-		if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
-		{
-			CPU[activeCPU].cycles_OP += 6;
-			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
-		}
 		/* Branch taken */
 	}
 	else
@@ -5196,14 +5249,16 @@ void CPU8086_OP7B()
 	modrm_generateInstructionTEXT("JNP",0, ((REG_EIP + rel8)&CPU_EIPmask(0)),CPU_EIPSize(0)); /* JUMP to destination? */
 	if (!FLAG_PF)
 	{
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			if (CPU8086_instructionstepdelayBIU(0, 2)) return; //First, 3 cycles NOP!
+			if (CPU8086_instructionstepdelayBIU(2, 3)) return; //First, 3 cycles NOP!
+			if (CPU8086_instructionstepwaitBIUready(4)) return; //Wait to become ready!
+			if (CPU8086_instructionstepdelayBIU(6, 2)) return; //2 more cycles here!
+		}
 		CPU_JMPrel((int_32)rel8,0); /* JUMP to destination? */
 		CPU_flushPIQ(-1); /*We're jumping to another address*/
 		didJump = 1;
-		if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
-		{
-			CPU[activeCPU].cycles_OP += 6;
-			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
-		}
 		/* Branch taken */
 	}
 	else
@@ -5221,15 +5276,17 @@ void CPU8086_OP7C()
 	modrm_generateInstructionTEXT("JL",0, ((REG_EIP + rel8)&CPU_EIPmask(0)),CPU_EIPSize(0)); /* JUMP to destination? */
 	if (FLAG_SF!=FLAG_OF)
 	{
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			if (CPU8086_instructionstepdelayBIU(0, 2)) return; //First, 3 cycles NOP!
+			if (CPU8086_instructionstepdelayBIU(2, 3)) return; //First, 3 cycles NOP!
+			if (CPU8086_instructionstepwaitBIUready(4)) return; //Wait to become ready!
+			if (CPU8086_instructionstepdelayBIU(6, 2)) return; //2 more cycles here!
+		}
 		CPU_JMPrel((int_32)rel8,0);
 		/* JUMP to destination? */
 		CPU_flushPIQ(-1); /*We're jumping to another address*/
 		didJump = 1;
-		if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
-		{
-			CPU[activeCPU].cycles_OP += 6;
-			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
-		}
 		/* Branch taken */
 	}
 	else
@@ -5247,14 +5304,16 @@ void CPU8086_OP7D()
 	modrm_generateInstructionTEXT("JGE",0, ((REG_EIP + rel8)&CPU_EIPmask(0)),CPU_EIPSize(0)); /* JUMP to destination? */
 	if (FLAG_SF==FLAG_OF)
 	{
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			if (CPU8086_instructionstepdelayBIU(0, 2)) return; //First, 3 cycles NOP!
+			if (CPU8086_instructionstepdelayBIU(2, 3)) return; //First, 3 cycles NOP!
+			if (CPU8086_instructionstepwaitBIUready(4)) return; //Wait to become ready!
+			if (CPU8086_instructionstepdelayBIU(6, 2)) return; //2 more cycles here!
+		}
 		CPU_JMPrel((int_32)rel8,0); /* JUMP to destination? */
 		CPU_flushPIQ(-1); /*We're jumping to another address*/
 		didJump = 1;
-		if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
-		{
-			CPU[activeCPU].cycles_OP += 6;
-			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
-		}
 		/* Branch taken */
 	}
 	else
@@ -5272,14 +5331,16 @@ void CPU8086_OP7E()
 	modrm_generateInstructionTEXT("JLE",0, ((REG_EIP + rel8)&CPU_EIPmask(0)),CPU_EIPSize(0)); /* JUMP to destination? */
 	if ((FLAG_SF!=FLAG_OF) || FLAG_ZF)
 	{
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			if (CPU8086_instructionstepdelayBIU(0, 2)) return; //First, 3 cycles NOP!
+			if (CPU8086_instructionstepdelayBIU(2, 3)) return; //First, 3 cycles NOP!
+			if (CPU8086_instructionstepwaitBIUready(4)) return; //Wait to become ready!
+			if (CPU8086_instructionstepdelayBIU(6, 2)) return; //2 more cycles here!
+		}
 		CPU_JMPrel((int_32)rel8,0); /* JUMP to destination? */
 		CPU_flushPIQ(-1); /*We're jumping to another address*/
 		didJump = 1;
-		if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
-		{
-			CPU[activeCPU].cycles_OP += 6;
-			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
-		}
 		/* Branch taken */
 	}
 	else
@@ -5297,14 +5358,16 @@ void CPU8086_OP7F()
 	modrm_generateInstructionTEXT("JG",0, ((REG_EIP + rel8)&CPU_EIPmask(0)),CPU_EIPSize(0)); /* JUMP to destination? */
 	if ((!FLAG_ZF) && (FLAG_SF==FLAG_OF))
 	{
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			if (CPU8086_instructionstepdelayBIU(0, 2)) return; //First, 3 cycles NOP!
+			if (CPU8086_instructionstepdelayBIU(2, 3)) return; //First, 3 cycles NOP!
+			if (CPU8086_instructionstepwaitBIUready(4)) return; //Wait to become ready!
+			if (CPU8086_instructionstepdelayBIU(6, 2)) return; //2 more cycles here!
+		}
 		CPU_JMPrel((int_32)rel8,0); /* JUMP to destination? */
 		CPU_flushPIQ(-1); /*We're jumping to another address*/
 		didJump = 1;
-		if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
-		{
-			CPU[activeCPU].cycles_OP += 6;
-			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
-		}
 		/* Branch taken */
 	}
 	else
@@ -6035,27 +6098,35 @@ void CPU8086_OPE8()
 		if (checkStackAccess(1, 1, 0)) return;
 		++CPU[activeCPU].stackchecked;
 	}
-	if (CPU8086_PUSHw(0, &REG_IP, 0)) return;
-	CPU_JMPrel((int_32)reloffset,0);
-	CPU_flushPIQ(-1); /*We're jumping to another address*/
 	if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
 	{
-		CPU[activeCPU].cycles_OP += 6;
-		CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
+		if (CPU8086_instructionstepdelayBIU(0, 1)) return; //First, 3 cycles NOP!
+		if (CPU8086_instructionstepdelayBIU(2, 3)) return; //First, 3 cycles NOP!
+		if (CPU8086_instructionstepwaitBIUready(4)) return; //Wait to become ready!
+		if (CPU8086_instructionstepdelayBIU(6, 2)) return; //2 more cycles here!
+		if (CPU8086_PUSHw(8, &REG_IP, 0)) return;
 	}
+	else
+	{
+		if (CPU8086_PUSHw(0, &REG_IP, 0)) return;
+	}
+	CPU_JMPrel((int_32)reloffset,0);
+	CPU_flushPIQ(-1); /*We're jumping to another address*/
 	/* Intrasegment direct */
 }
 void CPU8086_OPE9()
 {
 	INLINEREGISTER sword reloffset = imm16();
 	modrm_generateInstructionTEXT("JMP",0,((REG_EIP + reloffset)&CPU_EIPmask(0)),CPU_EIPSize(0));
+	if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+	{
+		if (CPU8086_instructionstepdelayBIU(0, 1)) return; //First, 3 cycles NOP!
+		if (CPU8086_instructionstepdelayBIU(2, 3)) return; //First, 3 cycles NOP!
+		if (CPU8086_instructionstepwaitBIUready(4)) return; //Wait to become ready!
+		if (CPU8086_instructionstepdelayBIU(6, 2)) return; //2 more cycles here!
+	}
 	CPU_JMPrel((int_32)reloffset,0);
 	CPU_flushPIQ(-1); /*We're jumping to another address*/
-	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
-	{
-		CPU[activeCPU].cycles_OP += 6;
-		CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
-	}
 	/* Intrasegment direct */
 }
 void CPU8086_OPEA()
