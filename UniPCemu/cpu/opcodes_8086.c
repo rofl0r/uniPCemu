@@ -544,7 +544,7 @@ byte CPU8086_instructionstepwaitBIUready(word base)
 
 byte CPU8086_internal_waitBIUready(word base)
 {
-	if (CPU[activeCPU].instructionstep == base) //First step? Request!
+	if (CPU[activeCPU].internalinstructionstep == base) //First step? Request!
 	{
 		if (BIU_Busy()) //Still busy?
 		{
@@ -552,7 +552,37 @@ byte CPU8086_internal_waitBIUready(word base)
 			CPU[activeCPU].executed = 0; //Wait to become ready!
 			return 1; //Still busy!
 		}
-		CPU[activeCPU].instructionstep += 2; //Next step!
+		CPU[activeCPU].internalinstructionstep += 2; //Next step!
+	}
+	return 0; //Ready to process!
+}
+
+byte CPU8086_instructionstepwaitBIUfinished(word base)
+{
+	if (CPU[activeCPU].instructionstep == base) //First step? Request!
+	{
+		if (CPU[activeCPU].cycles_OP) //Any pending?
+		{
+			CPU[activeCPU].instructionstep += 2; //Next step!
+			++CPU[activeCPU].cycles_OP; //1 cycle delay!
+			CPU[activeCPU].executed = 0; //Wait to become ready!
+			return 1; //Still busy!
+		}
+	}
+	return 0; //Ready to process!
+}
+
+byte CPU8086_internal_waitBIUfinished(word base)
+{
+	if (CPU[activeCPU].internalinstructionstep == base) //First step? Request!
+	{
+		CPU[activeCPU].internalinstructionstep += 2; //Next step!
+		if (CPU[activeCPU].cycles_OP) //Any pending?
+		{
+			++CPU[activeCPU].cycles_OP; //1 cycle delay!
+			CPU[activeCPU].executed = 0; //Wait to become ready!
+			return 1; //Still busy!
+		}
 	}
 	return 0; //Ready to process!
 }
@@ -1117,11 +1147,11 @@ OPTINLINE void CMP_w(word a, word b, byte flags) //Compare instruction!
 	case 2: //Determined by ModR/M?
 		if (params.EA_cycles) //Memory is used?
 		{
-			CPU[activeCPU].cycles_OP += 4; //Mem->Reg!
+			CPU[activeCPU].cycles_OP += 1; //Mem->Reg!
 		}
 		else //Reg->Reg?
 		{
-			CPU[activeCPU].cycles_OP += 2; //Reg->Reg!
+			CPU[activeCPU].cycles_OP += 1; //Reg->Reg!
 		}
 		break;
 	case 3: //ModR/M+imm?
@@ -1158,11 +1188,11 @@ OPTINLINE void CMP_b(byte a, byte b, byte flags)
 	case 2: //Determined by ModR/M?
 		if (params.EA_cycles) //Memory is used?
 		{
-			CPU[activeCPU].cycles_OP += 4; //Mem->Reg!
+			CPU[activeCPU].cycles_OP += 1; //Mem->Reg!
 		}
 		else //Reg->Reg?
 		{
-			CPU[activeCPU].cycles_OP += 2; //Reg->Reg!
+			CPU[activeCPU].cycles_OP += 1; //Reg->Reg!
 		}
 		break;
 	case 3: //ModR/M+imm?
@@ -1425,14 +1455,14 @@ OPTINLINE void timing_AND_OR_XOR_ADD_SUB8(byte *dest, byte flags)
 		CPU[activeCPU].cycles_OP += 3; //Reg->Reg!
 		break;
 	case 1: //Reg+imm?
-		CPU[activeCPU].cycles_OP += 1; //Accumulator!
+		CPU[activeCPU].cycles_OP += 2; //Accumulator!
 		break;
 	case 2: //Determined by ModR/M?
 		if (params.EA_cycles) //Memory is used?
 		{
 			if (dest) //Mem->Reg?
 			{
-				CPU[activeCPU].cycles_OP += 4; //Mem->Reg!
+				CPU[activeCPU].cycles_OP += 3; //Mem->Reg!
 			}
 			else //Reg->Mem?
 			{
@@ -1441,7 +1471,7 @@ OPTINLINE void timing_AND_OR_XOR_ADD_SUB8(byte *dest, byte flags)
 		}
 		else //Reg->Reg?
 		{
-			CPU[activeCPU].cycles_OP += 3; //Reg->Reg!
+			CPU[activeCPU].cycles_OP += 1; //Reg->Reg!
 		}
 		break;
 	case 3: //ModR/M+imm?
@@ -1475,7 +1505,7 @@ OPTINLINE void timing_AND_OR_XOR_ADD_SUB16(word *dest, byte flags)
 		CPU[activeCPU].cycles_OP += 3; //Reg->Reg!
 		break;
 	case 1: //Reg+imm?
-		CPU[activeCPU].cycles_OP += 1; //Accumulator!
+		CPU[activeCPU].cycles_OP += 2; //Accumulator!
 		break;
 	case 2: //Determined by ModR/M?
 		if (params.EA_cycles) //Memory is used?
@@ -4249,6 +4279,7 @@ void CPU8086_execute_ADD_modrmmodrm8()
 	if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src1,1)) return;
 	if (CPU8086_instructionstepreadmodrmb(0,&instructionbufferb,MODRM_src1)) return;
 	CPU8086_internal_ADD8(modrm_addr8(&params,MODRM_src0,0),instructionbufferb,2);
+	if (CPU8086_instructionstepdelayBIU(2, 2 + (MODRM_EA(params) ? 0 : 1))) return; //2 more cycles + 1 for non-memory!
 }
 void CPU8086_execute_ADD_modrmmodrm16()
 {
@@ -4260,6 +4291,7 @@ void CPU8086_execute_ADD_modrmmodrm16()
 	}
 	if (CPU8086_instructionstepreadmodrmw(0, &instructionbufferw, MODRM_src1)) return;
 	CPU8086_internal_ADD16(modrm_addr16(&params, MODRM_src0, 0), instructionbufferw, 2);
+	if (CPU8086_instructionstepdelayBIU(2, 2 + (MODRM_EA(params) ? 0 : 1))) return; //2 more cycles + 1 for non-memory!
 }
 void CPU8086_OP04()
 {
@@ -4309,6 +4341,7 @@ void CPU8086_execute_OR_modrmmodrm8()
 	if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src1,1)) return;
 	if (CPU8086_instructionstepreadmodrmb(0,&instructionbufferb,MODRM_src1)) return;
 	CPU8086_internal_OR8(modrm_addr8(&params,MODRM_src0,0),instructionbufferb,2);
+	if (CPU8086_instructionstepdelayBIU(2, 2 + (MODRM_EA(params) ? 0 : 1))) return; //2 more cycles + 1 for non-memory!
 }
 void CPU8086_execute_OR_modrmmodrm16()
 {
@@ -4320,6 +4353,7 @@ void CPU8086_execute_OR_modrmmodrm16()
 	}
 	if (CPU8086_instructionstepreadmodrmw(0, &instructionbufferw, MODRM_src1)) return;
 	CPU8086_internal_OR16(modrm_addr16(&params, MODRM_src0, 0), instructionbufferw, 2);
+	if (CPU8086_instructionstepdelayBIU(2, 2 + (MODRM_EA(params) ? 0 : 1))) return; //2 more cycles + 1 for non-memory!
 }
 void CPU8086_OP0C()
 {
@@ -4365,6 +4399,7 @@ void CPU8086_execute_ADC_modrmmodrm8()
 	if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src1,1)) return;
 	if (CPU8086_instructionstepreadmodrmb(0,&instructionbufferb,MODRM_src1)) return;
 	CPU8086_internal_ADC8(modrm_addr8(&params,MODRM_src0,0),instructionbufferb,2);
+	if (CPU8086_instructionstepdelayBIU(2, 2 + (MODRM_EA(params) ? 0 : 1))) return; //2 more cycles + 1 for non-memory!
 }
 void CPU8086_execute_ADC_modrmmodrm16()
 {
@@ -4376,6 +4411,7 @@ void CPU8086_execute_ADC_modrmmodrm16()
 	}
 	if (CPU8086_instructionstepreadmodrmw(0, &instructionbufferw, MODRM_src1)) return;
 	CPU8086_internal_ADC16(modrm_addr16(&params, MODRM_src0, 0), instructionbufferw, 2);
+	if (CPU8086_instructionstepdelayBIU(2, 2 + (MODRM_EA(params) ? 0 : 1))) return; //2 more cycles + 1 for non-memory!
 }
 void CPU8086_OP14()
 {
@@ -4429,6 +4465,7 @@ void CPU8086_execute_SBB_modrmmodrm8()
 	if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src1,1)) return;
 	if (CPU8086_instructionstepreadmodrmb(0,&instructionbufferb,MODRM_src1)) return;
 	CPU8086_internal_SBB8(modrm_addr8(&params,MODRM_src0,0),instructionbufferb,2);
+	if (CPU8086_instructionstepdelayBIU(2, 2 + (MODRM_EA(params) ? 0 : 1))) return; //2 more cycles + 1 for non-memory!
 }
 void CPU8086_execute_SBB_modrmmodrm16()
 {
@@ -4440,6 +4477,7 @@ void CPU8086_execute_SBB_modrmmodrm16()
 	}
 	if (CPU8086_instructionstepreadmodrmw(0, &instructionbufferw, MODRM_src1)) return;
 	CPU8086_internal_SBB16(modrm_addr16(&params, MODRM_src0, 0), instructionbufferw, 2);
+	if (CPU8086_instructionstepdelayBIU(2, 2 + (MODRM_EA(params) ? 0 : 1))) return; //2 more cycles + 1 for non-memory!
 }
 void CPU8086_OP1C()
 {
@@ -4489,6 +4527,7 @@ void CPU8086_execute_AND_modrmmodrm8()
 	if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src1,1)) return;
 	if (CPU8086_instructionstepreadmodrmb(0,&instructionbufferb,MODRM_src1)) return;
 	CPU8086_internal_AND8(modrm_addr8(&params,MODRM_src0,0),instructionbufferb,2);
+	if (CPU8086_instructionstepdelayBIU(2, 2 + (MODRM_EA(params) ? 0 : 1))) return; //2 more cycles + 1 for non-memory!
 }
 void CPU8086_execute_AND_modrmmodrm16()
 {
@@ -4500,6 +4539,7 @@ void CPU8086_execute_AND_modrmmodrm16()
 	}
 	if (CPU8086_instructionstepreadmodrmw(0, &instructionbufferw, MODRM_src1)) return;
 	CPU8086_internal_AND16(modrm_addr16(&params, MODRM_src0, 0), instructionbufferw, 2);
+	if (CPU8086_instructionstepdelayBIU(2, 2 + (MODRM_EA(params) ? 0 : 1))) return; //2 more cycles + 1 for non-memory!
 }
 void CPU8086_OP24()
 {
@@ -4524,6 +4564,7 @@ void CPU8086_execute_SUB_modrmmodrm8()
 	if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src1,1)) return;
 	if (CPU8086_instructionstepreadmodrmb(0,&instructionbufferb,MODRM_src1)) return;
 	CPU8086_internal_SUB8(modrm_addr8(&params,MODRM_src0,0),instructionbufferb,2);
+	if (CPU8086_instructionstepdelayBIU(2, 2 + (MODRM_EA(params) ? 0 : 1))) return; //2 more cycles + 1 for non-memory!
 }
 void CPU8086_execute_SUB_modrmmodrm16()
 {
@@ -4535,6 +4576,7 @@ void CPU8086_execute_SUB_modrmmodrm16()
 	}
 	if (CPU8086_instructionstepreadmodrmw(0, &instructionbufferw, MODRM_src1)) return;
 	CPU8086_internal_SUB16(modrm_addr16(&params, MODRM_src0, 0), instructionbufferw, 2);
+	if (CPU8086_instructionstepdelayBIU(2, 2 + (MODRM_EA(params) ? 0 : 1))) return; //2 more cycles + 1 for non-memory!
 }
 void CPU8086_OP2C()
 {
@@ -4559,6 +4601,7 @@ void CPU8086_execute_XOR_modrmmodrm8()
 	if (unlikely(CPU[activeCPU].modrmstep==0)) if (modrm_check8(&params,MODRM_src1,1)) return;
 	if (CPU8086_instructionstepreadmodrmb(0,&instructionbufferb,MODRM_src1)) return;
 	CPU8086_internal_XOR8(modrm_addr8(&params,MODRM_src0,0),instructionbufferb,2);
+	if (CPU8086_instructionstepdelayBIU(2, 2 + (MODRM_EA(params) ? 0 : 1))) return; //2 more cycles + 1 for non-memory!
 }
 void CPU8086_execute_XOR_modrmmodrm16()
 {
@@ -4570,6 +4613,7 @@ void CPU8086_execute_XOR_modrmmodrm16()
 	}
 	if (CPU8086_instructionstepreadmodrmw(0, &instructionbufferw, MODRM_src1)) return;
 	CPU8086_internal_XOR16(modrm_addr16(&params, MODRM_src0, 0), instructionbufferw, 2);
+	if (CPU8086_instructionstepdelayBIU(2, 2 + (MODRM_EA(params) ? 0 : 1))) return; //2 more cycles + 1 for non-memory!
 }
 void CPU8086_OP34()
 {
@@ -4601,6 +4645,8 @@ void CPU8086_execute_CMP_modrmmodrm8()
 	if (CPU8086_instructionstepreadmodrmb(0,&instructionbufferb,MODRM_src0)) return;
 	if (CPU8086_instructionstepreadmodrmb(2,&instructionbufferb2,MODRM_src1)) return;
 	CMP_b(instructionbufferb,instructionbufferb2,2);
+	if (CPU8086_instructionstepwaitBIUfinished(4)) return; //Wait for the BIU to finish it's timing!
+	if (CPU8086_instructionstepdelayBIU(6, 3)) return; //2 more cycles + 1 for CMP!
 }
 void CPU8086_execute_CMP_modrmmodrm16()
 {
@@ -4615,6 +4661,8 @@ void CPU8086_execute_CMP_modrmmodrm16()
 	if (CPU8086_instructionstepreadmodrmw(0,&instructionbufferw,MODRM_src0)) return;
 	if (CPU8086_instructionstepreadmodrmw(2,&instructionbufferw2,MODRM_src1)) return;
 	CMP_w(instructionbufferw,instructionbufferw2,2);
+	if (CPU8086_instructionstepwaitBIUfinished(4)) return; //Wait for the BIU to finish it's timing!
+	if (CPU8086_instructionstepdelayBIU(6, 3)) return; //2 more cycles + 1 for CMP!
 }
 void CPU8086_OP3C()
 {

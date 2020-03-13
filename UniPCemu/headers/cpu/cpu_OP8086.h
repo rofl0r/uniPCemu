@@ -301,6 +301,13 @@ byte CPU8086_internal_delayBIU(word base, byte cycles);
 byte CPU8086_instructionstepdelayBIUidle(word base, byte cycles);
 byte CPU8086_internal_delayBIUidle(word base, byte cycles);
 
+//Wait for the BIU to become ready!
+byte CPU8086_instructionstepwaitBIUready(word base);
+byte CPU8086_internal_waitBIUready(word base);
+//Wait for the BIU to become finished for the current instruction timing!
+byte CPU8086_instructionstepwaitBIUfinished(word base);
+byte CPU8086_internal_waitBIUfinished(word base);
+
 
 /*
 
