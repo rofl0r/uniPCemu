@@ -1214,16 +1214,6 @@ OPTINLINE void applyCGAMemoryMap(byte useGraphics, byte GraphicsMode) //Apply th
 	}
 	else //Revert to normal memory mode!
 	{
-		if (GETBITS(getActiveVGA()->registers->CRTControllerRegisters.REGISTERS.CRTCMODECONTROLREGISTER,6,1)) //We were using data that now becomes junk data?
-		{
-			uint_32 x;
-			for (x=1;x<0x10000;) //Clear all odd data we've used in monochrome mode!
-			{
-				writeVRAMplane(getActiveVGA(),0,x,0,0); //Clear the byte of data at byte offsets only!
-				++x; //Next byte is skipped(even plane)!
-				++x; //We skip 2 bytes for the next offset to use!
-			}
-		}
 		SETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.GRAPHICSMODEREGISTER,4,1,1); //Force odd/even mode!
 		SETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.READMAPSELECTREGISTER,0,3,0); //Only read map #0!
 		SETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.COLORDONTCAREREGISTER,0,0xF,0xF); //Care about this only!
@@ -1237,6 +1227,7 @@ OPTINLINE void applyCGAMemoryMap(byte useGraphics, byte GraphicsMode) //Apply th
 	{
 		getActiveVGA()->CGAMDAMemoryMode = memorymode; //Updating memory!
 		bytesleft = CGAEMULATION_ENABLED(getActiveVGA())?0x4000:0x1000; //How much to copy(CGA vs MDA)!
+		memset(getActiveVGA()->VRAM, 0, getActiveVGA()->VRAM_size); //Clear all VRAM addresses for the new mode to fill!
 		shadowaddr = 0; //Init shadow RAM address!
 		memaddr = 0; //Start of address to write!
 		for (;bytesleft--;) //Process all RAM!
