@@ -99,7 +99,7 @@ void VGA_calcprecalcs_CRTC(void *useVGA) //Precalculate CRTC precalcs!
 		if (usegraphicsrate) //Graphics mode is used? Don't use the extended text-mode sizes!
 		{
 			VGA->CRTC.textcharcolstatus[current << 1] = VGA->CRTC.charcolstatus[current << 1];
-			VGA->CRTC.textcharcolstatus[(current << 1) | 1] = innerpixel = VGA->CRTC.charcolstatus[(current << 1) | 1];
+			innerpixel = (byte)(VGA->CRTC.textcharcolstatus[(current << 1) | 1] = VGA->CRTC.charcolstatus[(current << 1) | 1]);
 		}
 		VGA->CRTC.colstatus[current] = get_display_x(VGA,((current>>theshift))); //Translate to display rate!
 

@@ -103,7 +103,7 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 	}
 
 	emufseek64(f,0,SEEK_END); //Goto EOF!
-	int fsize;
+	FILEPOS fsize;
 	fsize = emuftell64(f); //Size!
 	emufseek64(f,0,SEEK_SET); //Goto BOF!		
 

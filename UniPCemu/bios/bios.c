@@ -774,11 +774,11 @@ void BIOS_LoadDefaults(int tosave) //Load BIOS defaults, but not memory size!
 	}
 }
 
-int telleof(BIGFILE *f) //Are we @eof?
+byte telleof(BIGFILE *f) //Are we @eof?
 {
-	int curpos = 0; //Cur pos!
-	int endpos = 0; //End pos!
-	int result = 0; //Result!
+	FILEPOS curpos = 0; //Cur pos!
+	FILEPOS endpos = 0; //End pos!
+	byte result = 0; //Result!
 	curpos = emuftell64(f); //Cur position!
 	emufseek64(f,0,SEEK_END); //Goto EOF!
 	endpos = emuftell64(f); //End position!
@@ -988,7 +988,7 @@ void BIOS_LoadData() //Load BIOS settings!
 	BIOS_Settings.input_settings.DirectInput_Disable_RALT = (byte)get_private_profile_uint64("input","DirectInput_disable_RALT",0,BIOS_Settings_file); //Disable RALT?
 	for (c=0;c<6;++c) //Validate colors and set default colors when invalid!
 	{
-		if (BIOS_Settings.input_settings.colors[c]>0xF) keyboard_loadDefaultColor(c); //Set default color when invalid!
+		if (BIOS_Settings.input_settings.colors[c]>0xF) keyboard_loadDefaultColor((byte)c); //Set default color when invalid!
 	}
 
 	//Gamingmode

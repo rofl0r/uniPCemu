@@ -246,7 +246,7 @@ byte dynamicimage_getgeometry(char *filename, word *cylinders, word *heads, word
 		case 3: //Bochs CHS?
 			*heads = 16;
 			*SPT = 63;
-			*cylinders = MAX(MIN((disk_size/(63*16)),0xFFFF),1);
+			*cylinders = (word)(MAX(MIN((disk_size/(63*16)),0xFFFF),1));
 			return 1; //OK!
 			break;
 		default:

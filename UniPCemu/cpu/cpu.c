@@ -1539,7 +1539,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 			BIU_instructionStart(); //Handle all when instructions are starting!
 		}
 
-		previousCSstart = CPU_MMU_start(CPU_SEGMENT_CS,REG_CS); //Save the used CS start address!
+		previousCSstart = (uint_32)CPU_MMU_start(CPU_SEGMENT_CS,REG_CS); //Save the used CS start address!
 
 		if (CPU[activeCPU].permanentreset) //We've entered a permanent reset?
 		{

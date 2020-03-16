@@ -1274,7 +1274,7 @@ void floppy_readsector() //Request a read sector command!
 			}
 			for (sectornr = 0; sectornr < (word)trackinfo.numberofsectors; ++sectornr) //Find the sector that's to be requested!
 			{
-				if (readDSKSectorInfo(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], sectornr, &sectorinfo)) //Read?
+				if (readDSKSectorInfo(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], (byte)sectornr, &sectorinfo)) //Read?
 				{
 					if ((sectorinfo.SectorID == FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]) && (sectorinfo.side == FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]) && (sectorinfo.track == FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR])) //Found the requested sector as indicated?
 					{
@@ -1285,11 +1285,11 @@ void floppy_readsector() //Request a read sector command!
 			FLOPPY.readID_lastsectornumber = (trackinfo.numberofsectors-1); //Last sector reached, go back to the first one!
 			goto floppy_errorread;
 			foundsectorIDread: //Found the sector ID for the write!
-			if (readDSKSectorData(DSKImageFile,FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], sectornr, FLOPPY.commandbuffer[5], &FLOPPY.databuffersize)) //Read the data into memory?
+			if (readDSKSectorData(DSKImageFile,FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], (byte)sectornr, FLOPPY.commandbuffer[5], &FLOPPY.databuffersize)) //Read the data into memory?
 			{
-				if (readDSKSectorInfo(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], sectornr, &sectorinfo)) //Read the sector information too!
+				if (readDSKSectorInfo(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], (byte)sectornr, &sectorinfo)) //Read the sector information too!
 				{
-					FLOPPY.readID_lastsectornumber = sectornr; //This was the last sector we've read!
+					FLOPPY.readID_lastsectornumber = (byte)sectornr; //This was the last sector we've read!
 					FLOPPY.ST1 = sectorinfo.ST1; //Load ST1!
 					FLOPPY.ST2 = sectorinfo.ST2; //Load ST2!
 				}
@@ -1615,7 +1615,7 @@ void floppy_executeWriteData()
 				}
 				for (sectornr = 0; sectornr < (word)trackinfo.numberofsectors; ++sectornr) //Find the sector that's to be requested!
 				{
-					if (readDSKSectorInfo(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], sectornr, &sectorinfo)) //Read?
+					if (readDSKSectorInfo(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], (byte)sectornr, &sectorinfo)) //Read?
 					{
 						if ((sectorinfo.SectorID == FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]) && (sectorinfo.side == FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]) && (sectorinfo.track == FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR])) //Found the requested sector as indicated?
 						{
@@ -1626,8 +1626,8 @@ void floppy_executeWriteData()
 				FLOPPY.readID_lastsectornumber = (trackinfo.numberofsectors - 1); //Last sector reached, go back to the first one!
 				goto didntfindsectoridwrite;
 				foundsectorIDwrite: //Found the sector ID for the write!
-				FLOPPY.readID_lastsectornumber = sectornr; //This was the last sector we've read!
-				if (writeDSKSectorData(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], sectornr, FLOPPY.commandbuffer[5], &FLOPPY.databuffersize)) //Read the data into memory?
+				FLOPPY.readID_lastsectornumber = (byte)sectornr; //This was the last sector we've read!
+				if (writeDSKSectorData(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], (byte)sectornr, FLOPPY.commandbuffer[5], &FLOPPY.databuffersize)) //Read the data into memory?
 				{
 					switch (floppy_increasesector(FLOPPY_DOR_DRIVENUMBERR)) //Goto next sector!
 					{
@@ -1957,11 +1957,11 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 				for (sectornr = (FLOPPY.readID_lastsectornumber+1); sectornr < (word)trackinfo.numberofsectors; ++sectornr) //Find the next sector that's to be requested!
 				{
 					tryReadIDnewsector: //Try to read a new sector number!
-					if (readDSKSectorInfo(DSKImageFile, FLOPPY.currenthead[drive], FLOPPY.physicalcylinder[drive], sectornr, &sectorinfo)) //Read?
+					if (readDSKSectorInfo(DSKImageFile, FLOPPY.currenthead[drive], FLOPPY.physicalcylinder[drive], (byte)sectornr, &sectorinfo)) //Read?
 					{
 						//if ((sectorinfo.SectorID == FLOPPY.currentsector[drive]) && (sectorinfo.side==FLOPPY.currenthead[drive]) && (sectorinfo.track==FLOPPY.currentcylinder[drive])) //Found the requested sector as indicated?
 						{
-							FLOPPY.readID_lastsectornumber = sectornr; //This was the last sector we've read!
+							FLOPPY.readID_lastsectornumber = (byte)sectornr; //This was the last sector we've read!
 							goto foundsectorIDreadid; //Found it!
 						}
 					}
@@ -1973,9 +1973,9 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 				}
 				goto didntfindsectoridreadid; //Couldn't find a sector to give!
 				foundsectorIDreadid: //Found the sector ID for the write!
-				if (readDSKSectorInfo(DSKImageFile, FLOPPY.currenthead[drive], FLOPPY.physicalcylinder[drive], sectornr, &sectorinfo)) //Read the sector information too!
+				if (readDSKSectorInfo(DSKImageFile, FLOPPY.currenthead[drive], FLOPPY.physicalcylinder[drive], (byte)sectornr, &sectorinfo)) //Read the sector information too!
 				{
-					FLOPPY.readID_lastsectornumber = sectornr; //This was the last sector we've read!
+					FLOPPY.readID_lastsectornumber = (byte)sectornr; //This was the last sector we've read!
 					FLOPPY.ST1 = sectorinfo.ST1; //Load ST1!
 					FLOPPY.ST2 = sectorinfo.ST2; //Load ST2!
 					FLOPPY.resultbuffer[6] = sectorinfo.SectorSize; //Sector size!

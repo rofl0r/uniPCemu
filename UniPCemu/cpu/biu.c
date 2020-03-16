@@ -359,7 +359,7 @@ byte BIU_directrb(uint_32 realaddress, word index)
 	realaddress &= wrapaddr[(((MMU.A20LineEnabled==0) && (((realaddress&~0xFFFFF)==0x100000)||(is_Compaq!=1)))&1)]; //Apply A20, when to be applied!
 
 	//Normal memory access!
-	result = MMU_INTERNAL_directrb_realaddr(realaddress,index); //Read from MMU/hardware!
+	result = MMU_INTERNAL_directrb_realaddr(realaddress,(byte)(index&0xFF)); //Read from MMU/hardware!
 
 	if (unlikely(MMU_logging==1) && ((index & 0x100) == 0)) //To log?
 	{
@@ -383,7 +383,7 @@ void BIU_directwb(uint_32 realaddress, byte val, word index) //Access physical m
 	realaddress &= wrapaddr[(((MMU.A20LineEnabled==0) && (((realaddress&~0xFFFFF)==0x100000)||(is_Compaq!=1)))&1)]; //Apply A20, when to be applied!
 
 	//Normal memory access!
-	MMU_INTERNAL_directwb_realaddr(realaddress,val,index); //Set data!
+	MMU_INTERNAL_directwb_realaddr(realaddress,val,(byte)(index&0xFF)); //Set data!
 }
 
 word BIU_directrw(uint_32 realaddress, word index) //Direct read from real memory (with real data direct)!
@@ -469,7 +469,7 @@ void BIU_dosboxTick()
 		maxaddress = MIN((uint_64)((realaddress + (uint_64)BIUsize) - 1ULL), maxaddress); //Prevent 32-bit overflow and segmentation limit from occurring!
 		if (unlikely(endpos > maxaddress)) //More left than we can handle(never less than 1 past us)?
 		{
-			BIUsize -= endpos - maxaddress; //Only check until the maximum address!
+			BIUsize -= (uint_32)(endpos - maxaddress); //Only check until the maximum address!
 		}
 
 		BIUsize = MAX(BIUsize, 1); //Must be at least 1, just for safety!
@@ -491,8 +491,8 @@ void BIU_dosboxTick()
 			maxaddress = (endpos<=BIUsize); //Valid to use(and not underflowing the remainder we're able to fetch)?
 			if (maxaddress) //Can we just take the previous page?
 			{
-				realaddress -= endpos; //Round down to the previous page!
-				BIUsize -= endpos; //Some bytes are not available to fetch!
+				realaddress -= (uint_32)endpos; //Round down to the previous page!
+				BIUsize -= (uint_32)endpos; //Some bytes are not available to fetch!
 			}
 			else //Rounding down to the previous page not possible? Just step back!
 			{

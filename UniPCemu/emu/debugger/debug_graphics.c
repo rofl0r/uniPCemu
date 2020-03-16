@@ -62,7 +62,7 @@ byte *loadfile(char *filename, int_32 *size)
 {
 	byte *buffer;
 	BIGFILE *f;
-	int_32 thesize;
+	uint_64 thesize;
 	f = emufopen64(filename,"rb");
 	if (!f) //failed to open?
 	{
@@ -71,12 +71,12 @@ byte *loadfile(char *filename, int_32 *size)
 	emufseek64(f,0,SEEK_END); //EOF!
 	thesize = emuftell64(f); //Size!
 	emufseek64(f,0,SEEK_SET); //BOF!
-	if (!thesize) //No size?
+	if ((!thesize) || (thesize&~0xFFFFFFFFULL)) //No size?
 	{
 		emufclose64(f); //Close!
 		return NULL; //No file!
 	}
-	buffer = (byte *)zalloc(thesize,"LOADEDFILE",NULL);
+	buffer = (byte *)zalloc((uint_32)thesize,"LOADEDFILE",NULL);
 	if (!buffer) //No buffer?
 	{
 		emufclose64(f); //Close
@@ -84,12 +84,12 @@ byte *loadfile(char *filename, int_32 *size)
 	}
 	if (emufread64(buffer,1,thesize,f)!=thesize) //Error reading?
 	{
-		freez((void **)&buffer,thesize,"LOADEDFILE"); //Release!
+		freez((void **)&buffer,(uint_32)thesize,"LOADEDFILE"); //Release!
 		emufclose64(f); //Close!
 		return NULL; //No file!
 	}
 	emufclose64(f); //Close!
-	*size = thesize; //Set the size!
+	*size = (int_32)thesize; //Set the size!
 	return buffer; //Give the buffer read!
 }
 
@@ -291,7 +291,7 @@ void DoDebugVGAGraphics(word mode, word xsize, word ysize, uint_32 maxcolor, int
 	}
 	
 	finishy: //Finish our operations!
-	if (loadVGADump(mode)) //VGA dump loaded instead?
+	if (loadVGADump((byte)mode)) //VGA dump loaded instead?
 	{
 		dolog("debugger","VGA dump loaded: %02X",mode); //Loaded this VGA dump instead logged!
 	}

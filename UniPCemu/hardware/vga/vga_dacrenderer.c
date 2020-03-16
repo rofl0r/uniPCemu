@@ -160,9 +160,9 @@ void VGA_initBWConversion()
 		a = n & 0xFF; //Input!
 #ifdef LUMINANCE_WEIGHTED
 		//Here, luminance adds to 255, but R,G,B weigh differently towards that. The greyscale lookup table contains entries for the 0-255 values repeated each 256 items.
-		Luminance_R[a] = a * LUMINANCE_RFACTOR; //Red weighted!
-		Luminance_G[a] = a * LUMINANCE_GFACTOR; //Green weighted!
-		Luminance_B[a] = a * LUMINANCE_BFACTOR; //Blue weighted!
+		Luminance_R[a] = (byte)((double)a * LUMINANCE_RFACTOR); //Red weighted!
+		Luminance_G[a] = (byte)((double)a * LUMINANCE_GFACTOR); //Green weighted!
+		Luminance_B[a] = (byte)((double)a * LUMINANCE_BFACTOR); //Blue weighted!
 		//The input is the weighted sum because all factors together add up to 1 for the full luminance range!
 		//a stays the same as the input low 8 bits for a direct 8-bit lookup to be archieved(the input values is the luminance factor of 0-255 because of the above weights)!
 #else //Unweighted?

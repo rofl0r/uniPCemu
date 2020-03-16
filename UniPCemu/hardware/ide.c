@@ -185,7 +185,7 @@ typedef struct
 		byte ERRORREGISTER;
 		byte STATUSREGISTER;
 		byte readmultipleerror;
-		byte readmultiple_partialtransfer; //For error cases, how much is actually transferred(in sectors)!
+		word readmultiple_partialtransfer; //For error cases, how much is actually transferred(in sectors)!
 
 		byte SensePacket[0x10]; //Data of a request sense packet.
 
@@ -978,7 +978,7 @@ void ATAPI_loadtrackinfo(byte channel, byte slave) //Retrieves the track number 
 				g->cue_postgapskip = cueimage_readsector(ATA_Drives[channel][slave], g->cue_postgapstartM, g->cue_postgapstartS, g->cue_postgapstartF, NULL, 0); //Try to read as specified!
 				if (g->cue_trackskip < -2) //Skipping more?
 				{
-					g->pregapsize = -(g->cue_trackskip + 2); //More pregap to skip!
+					g->pregapsize = (uint_32)(-(g->cue_trackskip + 2)); //More pregap to skip!
 				}
 				else
 				{
@@ -988,7 +988,7 @@ void ATAPI_loadtrackinfo(byte channel, byte slave) //Retrieves the track number 
 				{
 					if (g->cue_postgapskip < -2) //Skipping more after this track?
 					{
-						g->postgapsize = -(g->cue_postgapskip + 2); //More postgap to skip for the next track!
+						g->postgapsize = (uint_32)(-(g->cue_postgapskip + 2)); //More postgap to skip for the next track!
 					}
 					else
 					{
@@ -1008,7 +1008,7 @@ void ATAPI_loadtrackinfo(byte channel, byte slave) //Retrieves the track number 
 					case 1 + MODE_MODEXA: //Mode XA block?
 					case 1 + MODE_AUDIO: //Audio block?
 						//Valid track to use?
-						g->tracktype = g->cue_trackskip2; //The track type!
+						g->tracktype = (byte)g->cue_trackskip2; //The track type!
 						continue; //Continue searching!
 					default: //Unknown/unsupported mode/OOR?
 						if (g->cue_trackskip >= 0) //Valid to report?
@@ -1063,7 +1063,7 @@ sword ATAPI_gettrackinfo(byte channel, byte slave, byte M, byte S, byte F, byte 
 				{
 					if (pregapsize && requestedtrack) //Want to know the pregap size for this track?
 					{
-						*pregapsize = -(g->cue_trackskip + 2); //More pregap to skip!
+						*pregapsize = (uint_32)(-(g->cue_trackskip + 2)); //More pregap to skip!
 					}
 				}
 				if (g->cuepostgapresult != 0) //Gotten postgap?
@@ -1072,7 +1072,7 @@ sword ATAPI_gettrackinfo(byte channel, byte slave, byte M, byte S, byte F, byte 
 					{
 						if (postgapsize && requestedtrack) //Want to know the postgap size?
 						{
-							*postgapsize = -(g->cue_postgapskip + 2); //More postgap to skip for the next track!
+							*postgapsize = (uint_32)(-(g->cue_postgapskip + 2)); //More postgap to skip for the next track!
 						}
 					}
 				}
@@ -1084,7 +1084,7 @@ sword ATAPI_gettrackinfo(byte channel, byte slave, byte M, byte S, byte F, byte 
 					case 1 + MODE_MODEXA: //Mode XA block?
 					case 1 + MODE_AUDIO: //Audio block?
 						//Valid track to use?
-						if (tracktype && requestedtrack) *tracktype = g->cue_trackskip2; //The track type!
+						if (tracktype && requestedtrack) *tracktype = (byte)g->cue_trackskip2; //The track type!
 						continue; //Continue searching!
 					default: //Unknown/unsupported mode/OOR?
 						if (tracktype >= 0) //Valid to report?
@@ -1785,8 +1785,8 @@ void ATA_updateCapacity(byte channel, byte slave)
 void HDD_classicGeometry(uint_64 disk_size, word *cylinders, word *heads, word *SPT)
 {
 	uint_32 tempcylinders=0;
-	*SPT = (disk_size>=63)?63:disk_size; //How many sectors use for each track? No more than 63!
-	*heads = ((disk_size/ *SPT)>=16)?16:((disk_size/ *SPT)?(disk_size/ *SPT):1); //1-16 heads!
+	*SPT = (word)((disk_size>=63)?63:disk_size); //How many sectors use for each track? No more than 63!
+	*heads = (word)(((disk_size/ *SPT)>=16)?16:((disk_size/ *SPT)?(disk_size/ *SPT):1)); //1-16 heads!
 	tempcylinders = (uint_32)(disk_size / (63*16)); //How many cylinders!
 	*cylinders = (tempcylinders>=0x3FFF)?0x3FFF:(tempcylinders?tempcylinders:1); //Give the maximum amount of cylinders allowed!
 }
@@ -1977,7 +1977,7 @@ OPTINLINE byte ATA_readsector(byte channel, byte command) //Read the current sec
 {
 	byte multiple = 1; //Multiple to read!
 	word counter;
-	byte partialtransfer;
+	word partialtransfer;
 	uint_32 disk_size = ((ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[61] << 16) | ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[60]); //The size of the disk in sectors!
 	if (ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus == 1) //We're reading already?
 	{
@@ -2295,9 +2295,9 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 						cue_postgapskip = cueimage_readsector(ATA_Drives[channel][drive], cue_postgapstartM, cue_postgapstartS, cue_postgapstartF, NULL, 0); //Try to read as specified!
 						if (cue_trackskip<-2) //Skipping more?
 						{
-							skipPregap += -(cue_trackskip+2); //More pregap to skip!
+							skipPregap += (uint_32)(-(cue_trackskip+2)); //More pregap to skip!
 						}
-						skipPregap += cuepostgappending; //Apply pending postgap from the previous track as well!
+						skipPregap += (uint_32)cuepostgappending; //Apply pending postgap from the previous track as well!
 						cuepostgapactive = cuepostgappending; //Save the active postgap as well!
 						if (cuepostgapresult != 0) //Gotten postgap?
 						{
@@ -2322,11 +2322,11 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 								if ((ATA[channel].Drive[drive].expectedReadDataType != 1) && (ATA[channel].Drive[drive].expectedReadDataType != 0)) goto startCUEread; //Invalid type to read!
 								if (cue_trackskip <= -2) //Some pregap for this song? Include the pregap in the read?
 								{
-									skipPregap -= (cue_trackskip + 2); //Undo the pregap, as this is raw audio we're reading in this case!
+									skipPregap -= (uint_32)(cue_trackskip + 2); //Undo the pregap, as this is raw audio we're reading in this case!
 								}
 								if (cuepostgapactive <= -2) //Some postgap for this song? Include the postgap in the read?
 								{
-									skipPregap -= (cuepostgapactive + 2); //Undo the pregap, as this is raw audio we're reading in this case!
+									skipPregap -= (uint_32)(cuepostgapactive + 2); //Undo the pregap, as this is raw audio we're reading in this case!
 								}
 								goto startCUEread; //Ready to process
 							default: //Unknown/unsupported mode/OOR?
@@ -2957,7 +2957,7 @@ byte ATAPI_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sw
 								trackfound = 1; //Track found!
 								if (cueresult <= -2) //To skip some tracks?
 								{
-									LBA2MSFbin(MSF2LBAbin(cue_startM, cue_startS, cue_startF) + -(cueresult + 2), &cue_skipM, &cue_skipS, &cue_skipF); //Skip this much!
+									LBA2MSFbin(MSF2LBAbin(cue_startM, cue_startS, cue_startF) + (uint_32)(-(cueresult + 2)), &cue_skipM, &cue_skipS, &cue_skipF); //Skip this much!
 									cueresult = cueimage_readsector(ATA_Drives[channel][drive], cue_skipM, cue_skipS, cue_skipF,NULL,0); //Try to read as specified!
 								}
 							}
@@ -3130,7 +3130,7 @@ byte ATAPI_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sw
 						trackfound = 1; //Track found!
 						if (cueresult <= -2) //To skip some tracks?
 						{
-							LBA2MSFbin(MSF2LBAbin(cue_startM, cue_startS, cue_startF) + -(cueresult + 2), &cue_skipM, &cue_skipS, &cue_skipF); //Skip this much!
+							LBA2MSFbin(MSF2LBAbin(cue_startM, cue_startS, cue_startF) + (uint_32)(-(cueresult + 2)), &cue_skipM, &cue_skipS, &cue_skipF); //Skip this much!
 							cueresult = cueimage_readsector(ATA_Drives[channel][drive], cue_skipM, cue_skipS, cue_skipF, NULL, 0); //Try to read as specified!
 						}
 					}
@@ -3188,7 +3188,7 @@ byte ATAPI_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sw
 								trackfound = 1; //Track found!
 								if (cueresult <= -2) //To skip some tracks?
 								{
-									LBA2MSFbin(MSF2LBAbin(cue_startM, cue_startS, cue_startF) + -(cueresult + 2), &cue_skipM, &cue_skipS, &cue_skipF); //Skip this much!
+									LBA2MSFbin(MSF2LBAbin(cue_startM, cue_startS, cue_startF) + (uint_32)(-(cueresult + 2)), &cue_skipM, &cue_skipS, &cue_skipF); //Skip this much!
 									cueresult = cueimage_readsector(ATA_Drives[channel][drive], cue_skipM, cue_skipS, cue_skipF, NULL, 0); //Try to read as specified!
 								}
 							}
@@ -3224,7 +3224,7 @@ byte ATAPI_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sw
 								trackfound = 1; //Track found!
 								if (cueresult <= -2) //To skip some tracks?
 								{
-									LBA2MSFbin(MSF2LBAbin(cue_startM, cue_startS, cue_startF) + -(cueresult + 2), &cue_skipM, &cue_skipS, &cue_skipF); //Skip this much!
+									LBA2MSFbin(MSF2LBAbin(cue_startM, cue_startS, cue_startF) + (uint_32)(-(cueresult + 2)), &cue_skipM, &cue_skipS, &cue_skipF); //Skip this much!
 									cueresult = cueimage_readsector(ATA_Drives[channel][drive], cue_skipM, cue_skipS, cue_skipF, NULL, 0); //Try to read as specified!
 								}
 							}
@@ -3248,7 +3248,7 @@ byte ATAPI_generateTOC(byte* buf, sword* length, byte msf, sword start_track, sw
 				if (!track) track = 1; //One track at least!
 
 				//Now, build the rest of the information!
-				for (i = 0; i < 4+(track-1); i++) { //A0-A2 and all the tracks!
+				for (i = 0; i < 4U+(track-1); i++) { //A0-A2 and all the tracks!
 					buf[len++] = 1; //Session number
 					if (!iscue)
 					{
@@ -3549,12 +3549,12 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			if (ATAPI_supportedmodepagecodes[i] == (ATA[channel].Drive[drive].ATAPI_PACKET[2]&0x3F)) //Page found in our page storage?
 			{
 				//Valid?
-				ATA[channel].Drive[drive].datablock = MIN(ATA[channel].Drive[drive].datablock, ATAPI_supportedmodepagecodes_length[i]+8); //Limit tothe maximum available length, with the header added to it!
+				ATA[channel].Drive[drive].datablock = MIN(ATA[channel].Drive[drive].datablock, ATAPI_supportedmodepagecodes_length[i]+8U); //Limit tothe maximum available length, with the header added to it!
 				//if (ATAPI_supportedmodepagecodes_length[i]<=ATA[channel].Drive[drive].datablock) //Valid page size?
 				{
 					//Generate a header for the packet!
 					ATA[channel].Drive[drive].data[0] = (ATAPI_supportedmodepagecodes_length[i] >> 8); //MSB of Side of data following the header!
-					ATA[channel].Drive[drive].data[1] = ATAPI_supportedmodepagecodes_length[i]; //LSB of Size of the data following the header!
+					ATA[channel].Drive[drive].data[1] = (byte)ATAPI_supportedmodepagecodes_length[i]; //LSB of Size of the data following the header!
 
 					//Disc in drive and type of said disc:
 					switch (ATA[channel].Drive[drive].PendingLoadingMode)
@@ -3578,7 +3578,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 
 					//Generate the page itself!
 					ATA[channel].Drive[drive].data[8] = ATAPI_supportedmodepagecodes[i]; //The page code and PS bit!
-					ATA[channel].Drive[drive].data[9] = ATAPI_supportedmodepagecodes_length[i]; //Actual page length that's stored(which follows right after, either fully or partially)!
+					ATA[channel].Drive[drive].data[9] = (byte)ATAPI_supportedmodepagecodes_length[i]; //Actual page length that's stored(which follows right after, either fully or partially)!
 					switch (ATA[channel].Drive[drive].ATAPI_PACKET[2]>>6) //What kind of packet are we requesting?
 					{
 					case CDROM_PAGECONTROL_CHANGEABLE: //1 bits for all changable values?

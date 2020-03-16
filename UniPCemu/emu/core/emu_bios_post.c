@@ -606,12 +606,12 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 			if (f) //Boot ROM?
 			{
 				emufseek64(f, 0, SEEK_END); //Goto EOF!
-				romsize = emuftell64(f); //ROM size!
+				romsize = (uint_32)emuftell64(f); //ROM size!
 				emufseek64(f, 0, SEEK_SET); //Goto BOF!
 				byte *ptr = (byte *)MMU_ptr(-1, 0x0000, 0x0000, 0, romsize); //Read a pointer to test ROM memory!
 				if (ptr) //Valid pointer?
 				{
-					verified = emufread64(ptr, 1, romsize, f); //Read ROM to memory adress 0!
+					verified = (emufread64(ptr, 1, romsize, f)==romsize); //Read ROM to memory adress 0!
 				}
 				else
 				{

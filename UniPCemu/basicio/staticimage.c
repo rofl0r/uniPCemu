@@ -93,7 +93,7 @@ byte staticimage_getgeometry(char *filename, word *cylinders, word *heads, word 
 		case 1: //Bochs format?
 			*heads = 16;
 			*SPT = 63;
-			*cylinders = MAX(MIN((disk_size/(63*16)),0xFFFF),1);
+			*cylinders = (word)(MAX(MIN((disk_size/(63*16)),0xFFFF),1));
 			return 1; //OK!
 		case 2: //UniPCemu format?
 			HDD_classicGeometry(disk_size,cylinders,heads,SPT); //Apply classic geometry!

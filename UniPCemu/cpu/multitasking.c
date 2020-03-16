@@ -325,7 +325,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 		dolog("debugger", "Switching task to task %04X", destinationtask);
 	}
 
-	uint_32 limit; //The limit we use!
+	uint_64 limit; //The limit we use!
 
 	switch (GENERALSEGMENTPTR_TYPE(LOADEDDESCRIPTOR)) //Check the type of descriptor we're switching to!
 	{

@@ -1443,7 +1443,7 @@ void updateVGA(DOUBLE timepassed, uint_32 MHZ14passed)
 		#ifdef LIMITVGA
 		if ((renderings>VGA_limit) && VGA_limit) //Limit broken?
 		{
-			renderings = VGA_limit; //Limit the processing to the amount of time specified!
+			renderings = (uint_32)VGA_limit; //Limit the processing to the amount of time specified!
 		}
 		#endif
 		if (unlikely(renderings==0)) return; //Nothing to render!

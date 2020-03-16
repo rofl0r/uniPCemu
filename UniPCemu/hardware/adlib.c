@@ -576,7 +576,7 @@ OPTINLINE void stepTremoloVibrato(TREMOLOVIBRATOSIGNAL *signal, float frequency)
 	float temp, dummy;
 	signal->current = getOPL2TriangleWave(OPL2SinWave((float)PI2*frequency*(float)signal->time)); //Apply the signal using the OPL2 Sine Wave, reverse the operation and convert to triangle wave!
 
-	signal->time += adlib_sampleLength; //Add 1 sample to the time!
+	signal->time += (float)adlib_sampleLength; //Add 1 sample to the time!
 
 	temp = signal->time*frequency; //Calculate for overflow!
 	if (temp >= 1.0f) { //Overflow?
@@ -684,7 +684,7 @@ OPTINLINE void incop(byte operator, float frequency)
 	#else
 	DOUBLE d;
 	#endif
-	adlibop[operator].time += adlib_sampleLength; //Add 1 sample to the time!
+	adlibop[operator].time += (float)adlib_sampleLength; //Add 1 sample to the time!
 
 	temp = adlibop[operator].time*frequency; //Calculate for overflow!
 	if (temp >= 1.0f) { //Overflow?
@@ -777,7 +777,7 @@ OPTINLINE word getphase(byte operator, float frequency) //Get the current phrase
 
 float convertphase_real(word phase)
 {
-	return ((double)unsigned2signed16(((phase&0x200)<<6)+((double)(phase&0x1FF)*((1.0/(double)0x1FF)*(double)SHRT_MAX))))*((1.0/(double)(SHRT_MAX+(((phase&0x200)>>9))))); //Give the phase to execute, normalized!
+	return (float)(((double)unsigned2signed16(((phase&0x200)<<6)+(word)((double)(phase&0x1FF)*((1.0/(double)0x1FF)*(double)SHRT_MAX))))*((1.0/(double)(((uint_64)SHRT_MAX+(uint_64)(((phase&0x200)>>9))))))); //Give the phase to execute, normalized!
 }
 
 float convertphase(word phase)

@@ -202,7 +202,7 @@ byte getcharxy(VGA_Type *VGA, byte attribute, byte character, byte x, byte y) //
 		charloc |= y;
 		charloc <<= 1;
 		charloc |= attribute;
-		lastrow = VGA->getcharxy_values[charloc]; //Lookup the new row!
+		lastrow = (byte)VGA->getcharxy_values[charloc]; //Lookup the new row!
 		lastcharinfo = lastlookup; //Save the loaded row as the current row!
 	}
 	

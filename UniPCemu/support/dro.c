@@ -138,9 +138,9 @@ byte readDRO(char *filename, DR0HEADER *header, DR01HEADEREARLY *earlyheader, DR
 	byte correctSignature[8] = {'D','B','R','A','W','O','P','L'};
 	byte version = 0; //The version to return!
 	word temp;
-	uint_32 filesize;
+	FILEPOS filesize;
 	BIGFILE *f; //The file!
-	uint_32 oldpos;
+	FILEPOS oldpos;
 	f = emufopen64(filename,"rb"); //Open the filename!
 	if (!f) return 0; //File not found!
 	byte empty[3] = {0,0,0}; //Empty data!
@@ -235,13 +235,13 @@ byte readDRO(char *filename, DR0HEADER *header, DR01HEADEREARLY *earlyheader, DR
 	filesize = emuftell64(f); //File size!
 	emufseek64(f,oldpos,SEEK_SET); //Return to the start of the data!
 	filesize -= oldpos; //Difference is the file size!
-	if (!filesize)
+	if ((!filesize) || (filesize&~0xFFFFFFFFU))
 	{
 		emufclose64(f);
 		return 0; //Error: invalid file size!
 	}
 
-	*data = zalloc(filesize,"DROFILE",NULL); //Allocate a DR0 file's contents!
+	*data = zalloc((uint_32)filesize,"DROFILE",NULL); //Allocate a DR0 file's contents!
 	if (!*data) //Failed to allocate?
 	{
 		emufclose64(f);
@@ -250,12 +250,12 @@ byte readDRO(char *filename, DR0HEADER *header, DR01HEADEREARLY *earlyheader, DR
 
 	if (emufread64(*data,1,filesize,f)!=filesize) //Error reading contents?
 	{
-		freez((void **)data,filesize,"DROFILE"); //Release the file!
+		freez((void **)data,(uint_32)filesize,"DROFILE"); //Release the file!
 		emufclose64(f);
 		return 0; //Error: file couldn't be read!
 	}
 	emufclose64(f); //Finished, close the file!
-	*datasize = filesize; //Save the filesize for reference!
+	*datasize = (uint_32)filesize; //Save the filesize for reference!
 	return version; //Successfully read the file!
 }
 
@@ -353,7 +353,7 @@ void stepDROPlayer(DOUBLE timepassed)
 	{
 		droplayer->currenttime += timepassed; //Add the time passed to the playback time!
 		//Checks time and plays the DRO file selected!
-		showTime(droplayer->currenttime, &droplayer->oldplaytime); //Update time!
+		showTime((float)droplayer->currenttime, &droplayer->oldplaytime); //Update time!
 		if (droplayer->currenttime>=droplayer->playtime) //Enough time passed to start playback (again)?
 		{
 			for (;droplayer->currenttime>=droplayer->playtime;) //Execute all commands we can in this time!
@@ -438,7 +438,7 @@ void stepDROPlayer(DOUBLE timepassed)
 			goto continueplayer; //Continue playing by default!
 			
 			finishinput: //Finish the input! Close the file!
-			showTime(droplayer->currenttime, &droplayer->oldplaytime); //Update time!
+			showTime((float)droplayer->currenttime, &droplayer->oldplaytime); //Update time!
 	
 			for (droplayer->w=0;droplayer->w<=0xFF;++droplayer->w) //Clear all registers!
 			{

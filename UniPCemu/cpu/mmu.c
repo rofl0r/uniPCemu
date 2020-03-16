@@ -144,7 +144,7 @@ uint_32 MMU_realaddr(sword segdesc, word segment, uint_32 offset, byte wordop, b
 	}*/
 	if ((segdesc!=-3) && (segdesc>=0)) //Not using the actual literal value?
 	{
-		realaddress += CPU_MMU_start(segdesc, segment);
+		realaddress += (uint_32)CPU_MMU_start(segdesc, segment);
 	}
 	else if (segdesc==-3) //Special?
 	{
@@ -230,7 +230,7 @@ byte checkMMUaccess(sword segdesc, word segment, uint_64 offset, word readflags,
 	}
 
 	//Check for paging and debugging next!
-	realaddress = MMU_realaddr(segdesc, segment, offset, 0,is_offset16); //Real adress!
+	realaddress = MMU_realaddr(segdesc, segment, (uint_32)offset, 0,is_offset16); //Real adress!
 
 	if ((readflags & 0x20) == 0) //Allow debugger checks?
 	{

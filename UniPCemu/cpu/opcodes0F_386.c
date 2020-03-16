@@ -448,7 +448,7 @@ void CPU386_OP0F02() //LAR /r
 extern byte protection_PortRightsLookedup; //Are the port rights looked up?
 void CPU386_OP0F03() //LSL /r
 {
-	uint_32 limit;
+	uint_64 limit;
 	byte isconforming = 1;
 	SEGMENT_DESCRIPTOR verdescriptor;
 	sbyte loadresult;
@@ -515,14 +515,14 @@ void CPU386_OP0F03() //LSL /r
 
 				limit = verdescriptor.PRECALCS.limit; //The limit to apply!
 
-				if ((MAX(getCPL(), getRPL(oper1d)) <= GENERALSEGMENT_DPL(verdescriptor)) || isconforming) //Valid privilege?
+				if (((byte)(MAX(getCPL(), getRPL(oper1d))) <= (byte)GENERALSEGMENT_DPL(verdescriptor)) || isconforming) //Valid privilege?
 				{
 					if (unlikely(CPU[activeCPU].modrmstep == 2))
 					{
 						if (modrm_check32(&params, MODRM_src0, 0|0x40)) return;
 						if (modrm_check32(&params, MODRM_src0, 0|0xA0)) return;
 					} //Abort on fault!
-					if (CPU80386_instructionstepwritemodrmdw(2,(uint_32)(limit&0xFFFFFFFF),MODRM_src0)) return; //Write our result!
+					if (CPU80386_instructionstepwritemodrmdw(2,(uint_32)(limit&0xFFFFFFFFU),MODRM_src0)) return; //Write our result!
 					CPUPROT1
 						FLAGW_ZF(1); //We're valid!
 					CPUPROT2
@@ -601,7 +601,7 @@ byte LOADALL386_checkMMUaccess(word segment, uint_64 offset, byte readflags, byt
 	}
 
 	//Check for paging and debugging next!
-	realaddress = ((uint_64)segment<<4)+offset; //Real adress, 80386 way!
+	realaddress = (uint_32)((((uint_64)(segment))<<4)+offset); //Real adress, 80386 way!
 
 	if ((readflags & 0x20) == 0)
 	{

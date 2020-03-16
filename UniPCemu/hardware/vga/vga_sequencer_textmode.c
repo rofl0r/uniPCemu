@@ -117,28 +117,28 @@ void VGA_TextDecoder(VGA_Type *VGA, word loadedlocation)
 		if (likely(CGAEMULATION_ENABLED(VGA))) //Pure CGA mode?
 		{
 			//Read all 8 pixels with a possibility of 9 pixels to be safe!
-			characterpixels[0] = getcharxy_CGA(character, 0, ((SEQ_DATA *)VGA->Sequencer)->charinner_y); //Read all coordinates!
-			characterpixels[1] = getcharxy_CGA(character, 1, ((SEQ_DATA *)VGA->Sequencer)->charinner_y); //Read all coordinates!
-			characterpixels[2] = getcharxy_CGA(character, 2, ((SEQ_DATA *)VGA->Sequencer)->charinner_y); //Read all coordinates!
-			characterpixels[3] = getcharxy_CGA(character, 3, ((SEQ_DATA *)VGA->Sequencer)->charinner_y); //Read all coordinates!
-			characterpixels[4] = getcharxy_CGA(character, 4, ((SEQ_DATA *)VGA->Sequencer)->charinner_y); //Read all coordinates!
-			characterpixels[5] = getcharxy_CGA(character, 5, ((SEQ_DATA *)VGA->Sequencer)->charinner_y); //Read all coordinates!
-			characterpixels[6] = getcharxy_CGA(character, 6, ((SEQ_DATA *)VGA->Sequencer)->charinner_y); //Read all coordinates!
-			characterpixels[7] = getcharxy_CGA(character, 7, ((SEQ_DATA *)VGA->Sequencer)->charinner_y); //Read all coordinates!
+			characterpixels[0] = getcharxy_CGA((byte)character, 0, ((SEQ_DATA *)VGA->Sequencer)->charinner_y); //Read all coordinates!
+			characterpixels[1] = getcharxy_CGA((byte)character, 1, ((SEQ_DATA *)VGA->Sequencer)->charinner_y); //Read all coordinates!
+			characterpixels[2] = getcharxy_CGA((byte)character, 2, ((SEQ_DATA *)VGA->Sequencer)->charinner_y); //Read all coordinates!
+			characterpixels[3] = getcharxy_CGA((byte)character, 3, ((SEQ_DATA *)VGA->Sequencer)->charinner_y); //Read all coordinates!
+			characterpixels[4] = getcharxy_CGA((byte)character, 4, ((SEQ_DATA *)VGA->Sequencer)->charinner_y); //Read all coordinates!
+			characterpixels[5] = getcharxy_CGA((byte)character, 5, ((SEQ_DATA *)VGA->Sequencer)->charinner_y); //Read all coordinates!
+			characterpixels[6] = getcharxy_CGA((byte)character, 6, ((SEQ_DATA *)VGA->Sequencer)->charinner_y); //Read all coordinates!
+			characterpixels[7] = getcharxy_CGA((byte)character, 7, ((SEQ_DATA *)VGA->Sequencer)->charinner_y); //Read all coordinates!
 			characterpixels[8] = 0; //Read all coordinates!
 			//We're not displayed else, so don't care about output!
 		}
 		else if (likely(MDAEMULATION_ENABLED(VGA))) //Pure MDA mode?
 		{
 			//Read all 9 pixels with a possibility of 9 pixels to be safe!
-			characterpixels[0] = getcharxy_MDA(character, 0, ((SEQ_DATA *)VGA->Sequencer)->charinner_y); //Read all coordinates!
-			characterpixels[1] = getcharxy_MDA(character, 1, ((SEQ_DATA *)VGA->Sequencer)->charinner_y); //Read all coordinates!
-			characterpixels[2] = getcharxy_MDA(character, 2, ((SEQ_DATA *)VGA->Sequencer)->charinner_y); //Read all coordinates!
-			characterpixels[3] = getcharxy_MDA(character, 3, ((SEQ_DATA *)VGA->Sequencer)->charinner_y); //Read all coordinates!
-			characterpixels[4] = getcharxy_MDA(character, 4, ((SEQ_DATA *)VGA->Sequencer)->charinner_y); //Read all coordinates!
-			characterpixels[5] = getcharxy_MDA(character, 5, ((SEQ_DATA *)VGA->Sequencer)->charinner_y); //Read all coordinates!
-			characterpixels[6] = getcharxy_MDA(character, 6, ((SEQ_DATA *)VGA->Sequencer)->charinner_y); //Read all coordinates!
-			characterpixels[7] = getcharxy_MDA(character, 7, ((SEQ_DATA *)VGA->Sequencer)->charinner_y); //Read all coordinates!
+			characterpixels[0] = getcharxy_MDA((byte)character, 0, ((SEQ_DATA *)VGA->Sequencer)->charinner_y); //Read all coordinates!
+			characterpixels[1] = getcharxy_MDA((byte)character, 1, ((SEQ_DATA *)VGA->Sequencer)->charinner_y); //Read all coordinates!
+			characterpixels[2] = getcharxy_MDA((byte)character, 2, ((SEQ_DATA *)VGA->Sequencer)->charinner_y); //Read all coordinates!
+			characterpixels[3] = getcharxy_MDA((byte)character, 3, ((SEQ_DATA *)VGA->Sequencer)->charinner_y); //Read all coordinates!
+			characterpixels[4] = getcharxy_MDA((byte)character, 4, ((SEQ_DATA *)VGA->Sequencer)->charinner_y); //Read all coordinates!
+			characterpixels[5] = getcharxy_MDA((byte)character, 5, ((SEQ_DATA *)VGA->Sequencer)->charinner_y); //Read all coordinates!
+			characterpixels[6] = getcharxy_MDA((byte)character, 6, ((SEQ_DATA *)VGA->Sequencer)->charinner_y); //Read all coordinates!
+			characterpixels[7] = getcharxy_MDA((byte)character, 7, ((SEQ_DATA *)VGA->Sequencer)->charinner_y); //Read all coordinates!
 			if (unlikely(/*(GETBITS(VGA->registers->AttributeControllerRegisters.REGISTERS.ATTRIBUTEMODECONTROLREGISTER, 2, 1) == 0) ||*/ ((character & 0xE0) != 0xC0))) //Not a line drawing character? Line drawing characters are always enabled on MDA!
 			{
 				characterpixels[8] = 0; //9th bit is always background?
@@ -159,7 +159,7 @@ void VGA_TextDecoder(VGA_Type *VGA, word loadedlocation)
 		x = 0; //Start with the first pixel!
 		if (likely((character & 0xFF00) == 0)) //Compatible VGA-character(English character as the ET4000 manual states it, always true for VGA)? Fetch from DRAM!
 		{
-			charrow = getcharrow(VGA, attr3, character, ((SEQ_DATA*)VGA->Sequencer)->charinner_y); //Read the current row to use!
+			charrow = getcharrow(VGA, attr3, (byte)character, ((SEQ_DATA*)VGA->Sequencer)->charinner_y); //Read the current row to use!
 		}
 		else //Non-English character as the ET4000 manual states it(appendix 6.1) are fetched through some external EPROMs. English characters(index<=0xFF?) are handled normally through the DRAM font(normal VGA lookup)
 		{

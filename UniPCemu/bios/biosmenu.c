@@ -5895,7 +5895,7 @@ void BIOS_CPU() //CPU menu!
 				if (mode) //Enabled?
 				{
 					segment = REG_TR; //CS!
-					offset = CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].PRECALCS.base; //Our offset!
+					offset = (uint_32)CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].PRECALCS.base; //Our offset!
 					BIOS_Settings.taskBreakpoint = (((uint_64)mode&1)<<SETTINGS_TASKBREAKPOINT_ENABLE_SHIFT)|(((uint_64)segment&SETTINGS_TASKBREAKPOINT_SEGMENT_MASK)<<SETTINGS_TASKBREAKPOINT_SEGMENT_SHIFT)|((uint_64)offset&SETTINGS_TASKBREAKPOINT_BASE_MASK); //Set the new breakpoint!
 					BIOS_Changed = 1; //We've changed!
 				}
@@ -7448,7 +7448,7 @@ void BIOS_breakpoint()
 						goto abortcoloninput; //Invalid: can't handle colon at the end!							
 					}
 					//Temp points to the colon!
-					semicolonpos = temp-&breakpointstr[0]; //length up to the semicolon, which should be valid!
+					semicolonpos = (word)(temp-&breakpointstr[0]); //length up to the semicolon, which should be valid!
 					if ((semicolonpos==0) || (semicolonpos>maxsegmentsize)) //Too long segment?
 					{
 						goto abortcoloninput; //Invalid: can't handle segment length!							
@@ -7535,7 +7535,7 @@ void BIOS_taskBreakpoint()
 					goto abortcoloninput; //Invalid: can't handle colon at the end!							
 				}
 				//Temp points to the colon!
-				semicolonpos = temp-&breakpointstr[0]; //length up to the semicolon, which should be valid!
+				semicolonpos = (word)(temp-&breakpointstr[0]); //length up to the semicolon, which should be valid!
 				if ((semicolonpos==0) || (semicolonpos>maxsegmentsize)) //Too long segment?
 				{
 					goto abortcoloninput; //Invalid: can't handle segment length!							

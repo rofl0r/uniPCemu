@@ -3069,7 +3069,7 @@ OPTINLINE byte CPU8086_internal_AAD(byte data)
 	applycycles = 1;
 	CPU8086_internal_MUL((word)data, REG_AH, &oper1, &oper2, 8, &applycycles, 0, 0, 1, 0); //Execute MUL!
 	oper2b = (word)REG_AL; //What to add!
-	oper1b = ((word)oper1); //AAD base to work on, we're adding to this!
+	oper1b = (byte)((word)oper1); //AAD base to work on, we're adding to this!
 	op_add8(); //Add, 8-bit, including flags!
 	REG_AX = (res8&0xFF); //The result to load!
 	CPUPROT2
@@ -7591,7 +7591,7 @@ void op_grp3_8()
 		REG_AL = (temp1.val16&0xFF);
 		REG_AH = (temp2.val16&0xFF);
 		tempAL = FLAG_ZF; //Backup!
-		flag_log8(temp1.val16); //Flags!
+		flag_log8((byte)temp1.val16); //Flags!
 		if ((REG_AX&0xFF00)==0)
 		{
 			FLAGW_OF(0); //Both zeroed!
@@ -7627,9 +7627,9 @@ void op_grp3_8()
 		CPU8086_internal_IMUL(REG_AL, (word)oper1b, &oper1, &oper2, 8, &applycycles, 0, modrm_isregister(params)); //Execute MUL!
 		temp1.val16 = oper1;
 		temp2.val16 = oper2;
-		REG_AL = temp1.val16; //Load into AX!
-		REG_AH = temp2.val16; //Load into AX!
-		flag_log8(temp1.val16); //Flags!
+		REG_AL = (byte)temp1.val16; //Load into AX!
+		REG_AH = (byte)temp2.val16; //Load into AX!
+		flag_log8((byte)temp1.val16); //Flags!
 		if (((REG_AX&0xFF80)==0) || ((REG_AX&0xFF80)==0xFF80))
 		{
 			FLAGW_OF(0); //Both zeroed!

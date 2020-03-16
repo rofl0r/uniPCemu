@@ -2814,7 +2814,7 @@ byte authstage_enterfield(DOUBLE timepassed, sword connectedclient, char* field,
 						field[Packetserver_clients[connectedclient].packetserver_stage_byte] = '\0'; //Erase last character!
 					}
 				}
-				else if ((textinputfield == '\0') || ((Packetserver_clients[connectedclient].packetserver_stage_byte + 1) >= size) || Packetserver_clients[connectedclient].packetserver_stage_byte_overflown) //Future overflow, overflow already occurring or invalid input to add?
+				else if ((textinputfield == '\0') || ((Packetserver_clients[connectedclient].packetserver_stage_byte + 1U) >= size) || Packetserver_clients[connectedclient].packetserver_stage_byte_overflown) //Future overflow, overflow already occurring or invalid input to add?
 				{
 					Packetserver_clients[connectedclient].packetserver_stage_byte_overflown = 1; //Overflow detected!
 				}

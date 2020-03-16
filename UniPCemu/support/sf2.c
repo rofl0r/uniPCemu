@@ -523,7 +523,7 @@ RIFFHEADER *readSF(char *filename)
 {
 	
 	BIGFILE *f;
-	uint_32 filesize;
+	FILEPOS filesize;
 	byte *buffer;
 	static RIFFHEADER *riffheader;
 	f = emufopen64(filename,"rb"); //Read the file!
@@ -534,13 +534,13 @@ RIFFHEADER *readSF(char *filename)
 	emufseek64(f,0,SEEK_END); //Goto EOF!
 	filesize = emuftell64(f); //Look for the size!
 	emufseek64(f,0,SEEK_SET); //Goto BOF!
-	if (!filesize) //No size?
+	if ((!filesize) || (filesize&~0xFFFFFFFFU)) //No size?
 	{
 		dolog("SF2","Error: Soundfont %s is empty!",filename);
 		emufclose64(f); //Close!
 		return NULL; //File has no size!
 	}
-	buffer = (byte *)zalloc(filesize+sizeof(RIFFHEADER),"RIFF_FILE",NULL); //A RIFF file entry in memory!
+	buffer = (byte *)zalloc((uint_32)(filesize+sizeof(RIFFHEADER)),"RIFF_FILE",NULL); //A RIFF file entry in memory!
 	if (!buffer) //Not enough memory?
 	{
 		dolog("SF2","Error: Ran out of memory to allocate the soundfont!");
@@ -548,13 +548,13 @@ RIFFHEADER *readSF(char *filename)
 		return NULL; //Error allocating the file!
 	}
 	riffheader = (RIFFHEADER *)buffer; //Convert to integer!
-	riffheader->filesize = filesize; //Save the file size for checking!
+	riffheader->filesize = (uint_32)filesize; //Save the file size for checking!
 	riffheader->rootentry.byteentry = (byte *)buffer+sizeof(RIFFHEADER); //Start of the data!
 	if (emufread64(riffheader->rootentry.voidentry,1,filesize,f)!=filesize) //Error reading to memory?
 	{
 		dolog("SF2","Error: %s could not be read!",filename);
 		emufclose64(f); //Close the file!
-		freez((void **)&buffer,filesize,"RIFF_FILE"); //Free the file!
+		freez((void **)&buffer,(uint_32)filesize,"RIFF_FILE"); //Free the file!
 		return NULL; //Error!
 	}
 	emufclose64(f); //Close the file!
@@ -563,7 +563,7 @@ RIFFHEADER *readSF(char *filename)
 		return riffheader; //Give the result!
 	}
 	dolog("SF2","Error: The soundfont %s is corrupt!",filename);
-	freez((void **)buffer,filesize+sizeof(RIFFHEADER),"RIFF_FILE"); //Release the buffer!
+	freez((void **)buffer,(uint_32)(filesize+sizeof(RIFFHEADER)),"RIFF_FILE"); //Release the buffer!
 	return NULL; //Invalid soundfont!
 }
 

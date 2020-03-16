@@ -571,7 +571,7 @@ sbyte LOADDESCRIPTOR(int segment, word segmentval, SEGMENT_DESCRIPTOR *container
 {
 	LOADDESCRIPTOR_segmentval = segmentval;
 	uint_32 descriptor_address = 0;
-	descriptor_address = (segmentval & 4) ? CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].PRECALCS.base : CPU[activeCPU].registers->GDTR.base; //LDT/GDT selector!
+	descriptor_address = (uint_32)((segmentval & 4) ? CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].PRECALCS.base : CPU[activeCPU].registers->GDTR.base); //LDT/GDT selector!
 
 	uint_32 descriptor_index=segmentval; //The full index within the descriptor table!
 	descriptor_index &= ~0x7; //Clear bits 0-2 for our base index into the table!
@@ -647,7 +647,7 @@ sbyte LOADDESCRIPTOR(int segment, word segmentval, SEGMENT_DESCRIPTOR *container
 sbyte SAVEDESCRIPTOR(int segment, word segmentval, SEGMENT_DESCRIPTOR *container, word isJMPorCALL)
 {
 	uint_32 descriptor_address = 0;
-	descriptor_address = (segmentval & 4) ? CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].PRECALCS.base : CPU[activeCPU].registers->GDTR.base; //LDT/GDT selector!
+	descriptor_address = (uint_32)((segmentval & 4) ? CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].PRECALCS.base : CPU[activeCPU].registers->GDTR.base); //LDT/GDT selector!
 	uint_32 descriptor_index = segmentval; //The full index within the descriptor table!
 	descriptor_index &= ~0x7; //Clear bits 0-2 for our base index into the table!
 
@@ -968,7 +968,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		//Present is handled by the task switch mechanism, so don't check it here!
 
 		//Execute a normal task switch!
-		if (CPU_executionphase_starttaskswitch(segment,&LOADEDDESCRIPTOR,segmentval,*segmentval,isJMPorCALL,is_gated,-1)) //Switching to a certain task?
+		if (CPU_executionphase_starttaskswitch(segment,&LOADEDDESCRIPTOR,segmentval,*segmentval,(byte)isJMPorCALL,is_gated,-1)) //Switching to a certain task?
 		{
 			return NULL; //Error changing priviledges or anything else!
 		}
@@ -1726,7 +1726,7 @@ int CPU_MMU_checklimit(int segment, word segmentval, uint_64 offset, word forrea
 		}
 		
 		//Use segment descriptors, even when in real mode on 286+ processors!
-		rights = CPU_MMU_checkrights(segment,segmentval, offset, forreading, &CPU[activeCPU].SEG_DESCRIPTOR[segment],1,is_offset16); //What rights resulting? Test the address itself too!
+		rights = CPU_MMU_checkrights(segment,segmentval, offset, (byte)forreading, &CPU[activeCPU].SEG_DESCRIPTOR[segment],1,is_offset16); //What rights resulting? Test the address itself too!
 		if (unlikely(rights)) //Error?
 		{
 			switch (rights)
@@ -1802,7 +1802,7 @@ byte checkPortRights(word port) //Are we allowed to not use this port?
 		mapvalue = 1; //Default to have the value 1!
 		if (((GENERALSEGMENT_TYPE(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR]) == AVL_SYSTEM_BUSY_TSS32BIT) || (GENERALSEGMENT_TYPE(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR]) == AVL_SYSTEM_TSS32BIT)) && REG_TR && GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) //Active 32-bit TSS?
 		{
-			uint_32 limit;
+			uint_64 limit;
 			limit = CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].PRECALCS.limit; //The limit of the descriptor!
 			if (limit >= 0x67) //Valid to check?
 			{
@@ -1840,7 +1840,7 @@ byte getTSSIRmap(word intnr) //What are we to do with this interrupt? 0=Perform 
 	mapvalue = 1; //Default to have the value 1!
 	if (((GENERALSEGMENT_TYPE(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR]) == AVL_SYSTEM_BUSY_TSS32BIT) || (GENERALSEGMENT_TYPE(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR]) == AVL_SYSTEM_TSS32BIT)) && REG_TR && GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) //Active 32-bit TSS?
 	{
-		uint_32 limit;
+		uint_64 limit;
 		limit = CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].PRECALCS.limit; //The limit of the descriptor!
 		if (limit >= 0x67) //Valid to check?
 		{

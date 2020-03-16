@@ -631,7 +631,7 @@ byte MMU_INTERNAL_directrb_debugger(uint_32 realaddress, word index, byte *resul
 	precalcval = index_readprecalcs[index]; //Lookup the precalc val!
 	if (unlikely(applyMemoryHoles(realaddress, precalcval))) //Overflow/invalid location?
 	{
-		MMU_INTERNAL_INVMEM(originaladdress, realaddress, 0, 0, index, nonexistant); //Invalid memory accessed!
+		MMU_INTERNAL_INVMEM(originaladdress, realaddress, 0, 0, (byte)index, nonexistant); //Invalid memory accessed!
 		return 1; //Invalid memory, no response!
 	}
 	if (unlikely(doDRAM_access)) //DRAM access?
@@ -639,13 +639,13 @@ byte MMU_INTERNAL_directrb_debugger(uint_32 realaddress, word index, byte *resul
 		doDRAM_access(originaladdress); //Tick the DRAM!
 	}
 	*result = memorymapinfo[precalcval].cache[realaddress&MMU_BLOCKALIGNMENT]; //Get data from memory!
-	debugger_logmemoryaccess(0, ((ptrnum)&memorymapinfo[precalcval].cache[realaddress & 7]-(ptrnum)MMU.memory), *result, LOGMEMORYACCESS_RAM_LOGMMUALL | (((index & 0x20) >> 5) << LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
+	debugger_logmemoryaccess(0, (uint_32)((ptrnum)&memorymapinfo[precalcval].cache[realaddress & 7]-(ptrnum)MMU.memory), *result, LOGMEMORYACCESS_RAM_LOGMMUALL | (((index & 0x20) >> 5) << LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
 	//is_debugging |= 2; //Already gotten!
 specialreadcycledebugger:
 	debugger_logmemoryaccess(0, originaladdress, *result, LOGMEMORYACCESS_RAM | (((index & 0x20) >> 5) << LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
 	if (unlikely((index != 0xFF) && bushandler)) //Don't ignore BUS?
 	{
-		bushandler(index, *result); //Update the bus!
+		bushandler((byte)index, *result); //Update the bus!
 	}
 	return 0; //Give existant memory!
 }
@@ -663,7 +663,7 @@ byte MMU_INTERNAL_directrb_nodebugger(uint_32 realaddress, word index, byte *res
 	precalcval = index_readprecalcs[index]; //Lookup the precalc val!
 	if (unlikely(applyMemoryHoles(realaddress, precalcval))) //Overflow/invalid location?
 	{
-		MMU_INTERNAL_INVMEM(originaladdress, realaddress, 0, 0, index, nonexistant); //Invalid memory accessed!
+		MMU_INTERNAL_INVMEM(originaladdress, realaddress, 0, 0, (byte)index, nonexistant); //Invalid memory accessed!
 		return 1; //Not mapped!
 	}
 	*result = memorymapinfo[precalcval].cache[realaddress&MMU_BLOCKALIGNMENT]; //Get data from memory!
@@ -674,7 +674,7 @@ byte MMU_INTERNAL_directrb_nodebugger(uint_32 realaddress, word index, byte *res
 specialreadcycle:
 	if (unlikely((index != 0xFF) && bushandler)) //Don't ignore BUS?
 	{
-		bushandler(index, *result); //Update the bus!
+		bushandler((byte)index, *result); //Update the bus!
 	}
 	return 0; //Give existant memory!
 }
@@ -734,7 +734,7 @@ OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, word index
 	}
 	if (unlikely(((index&0xFF) != 0xFF) && bushandler)) //Don't ignore BUS?
 	{
-		bushandler(index, value); //Update the bus handler!
+		bushandler((byte)index, value); //Update the bus handler!
 	}
 	precalcval = index_writeprecalcs[index]; //Lookup the precalc val!
 	if (unlikely(applyMemoryHoles(realaddress,precalcval))) //Overflow/invalid location?
@@ -752,7 +752,7 @@ OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, word index
 	if (unlikely(MMU_logging == 1)) //Data debugging?
 	{
 		debugger_logmemoryaccess(1, originaladdress, value, LOGMEMORYACCESS_RAM);
-		debugger_logmemoryaccess(1, ((ptrnum)&memorymapinfo[0].cache[realaddress & 7] - (ptrnum)MMU.memory), value, LOGMEMORYACCESS_RAM_LOGMMUALL); //Log it!
+		debugger_logmemoryaccess(1, (uint_32)((ptrnum)&memorymapinfo[0].cache[realaddress & 7] - (ptrnum)MMU.memory), value, LOGMEMORYACCESS_RAM_LOGMMUALL); //Log it!
 	}
 #endif
 	memorymapinfo[precalcval].cache[realaddress & MMU_BLOCKALIGNMENT] = value; //Set data, full memory protection!

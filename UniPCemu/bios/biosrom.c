@@ -209,7 +209,7 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 		emufseek64(f,0,SEEK_END); //Goto EOF!
 		if (emuftell64(f)) //Gotten size?
 		{
-			OPTROM_size[numOPT_ROMS] = emuftell64(f); //Save the size!
+			OPTROM_size[numOPT_ROMS] = (uint_32)emuftell64(f); //Save the size!
 			emufseek64(f,0,SEEK_SET); //Goto BOF!
 			if ((location+OPTROM_size[numOPT_ROMS])>0x20000) //Overflow?
 			{
@@ -426,7 +426,7 @@ retryext:
 	emufseek64(f,0,SEEK_END); //Goto EOF!
 	if (emuftell64(f)) //Gotten size?
  	{
-		BIOS_ROM_size[nr] = emuftell64(f); //Save the size!
+		BIOS_ROM_size[nr] = (uint_32)emuftell64(f); //Save the size!
 		emufseek64(f,0,SEEK_SET); //Goto BOF!
 		BIOS_ROMS[nr] = (byte *)nzalloc(BIOS_ROM_size[nr],filename, getLock(LOCK_CPU)); //Simple memory allocation for our ROM!
 		if (!BIOS_ROMS[nr]) //Failed to allocate?
@@ -507,9 +507,9 @@ retryext:
 		}
 		
 		//Recalculate based on ROM size!
-		BIOSROM_BASE_AT = 0xFFFFFF-(MIN(ROM_size,0x100000)-1); //AT ROM size! Limit to 1MB!
-		BIOSROM_BASE_XT = 0xFFFFF-(MIN(ROM_size,(is_XT?0x10000:(is_Compaq?0x40000:0x20000)))-1); //XT ROM size! Limit to 256KB(Compaq), 128KB(AT) or 64KB(XT)!
-		BIOSROM_BASE_Modern = 0xFFFFFFFF-(ROM_size-1); //Modern ROM size!
+		BIOSROM_BASE_AT = 0xFFFFFFU-(MIN(ROM_size,0x100000U)-1U); //AT ROM size! Limit to 1MB!
+		BIOSROM_BASE_XT = 0xFFFFFU-(MIN(ROM_size,(is_XT?0x10000U:(is_Compaq?0x40000U:0x20000U)))-1U); //XT ROM size! Limit to 256KB(Compaq), 128KB(AT) or 64KB(XT)!
+		BIOSROM_BASE_Modern = 0xFFFFFFFFU-(ROM_size-1U); //Modern ROM size!
 		return 1; //Loaded!
 	}
 	
@@ -546,7 +546,7 @@ int BIOS_load_custom(char *path, char *rom)
 	emufseek64(f,0,SEEK_END); //Goto EOF!
 	if (emuftell64(f)) //Gotten size?
  	{
-		BIOS_custom_ROM_size = emuftell64(f); //Save the size!
+		BIOS_custom_ROM_size = (uint_32)emuftell64(f); //Save the size!
 		emufseek64(f,0,SEEK_SET); //Goto BOF!
 		BIOS_custom_ROM = (byte *)nzalloc(BIOS_custom_ROM_size,filename, getLock(LOCK_CPU)); //Simple memory allocation for our ROM!
 		if (!BIOS_custom_ROM) //Failed to allocate?

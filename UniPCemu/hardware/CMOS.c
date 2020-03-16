@@ -510,7 +510,7 @@ void CMOS_updateActualTime()
 		CMOS.DATA.timedivergeance += RTC_emulateddeltatiming/1000000000.0L; //Tick seconds!
 		RTC_emulateddeltatiming = fmodl(RTC_emulateddeltatiming,1000000000.0L); //Remainder!
 		#else
-		CMOS.DATA.timedivergeance += RTC_emulateddeltatiming/1000000000.0; //Tick seconds!
+		CMOS.DATA.timedivergeance += (int_64)(RTC_emulateddeltatiming/1000000000.0); //Tick seconds!
 		RTC_emulateddeltatiming = fmod(RTC_emulateddeltatiming,1000000000.0); //Remainder!
 		#endif
 		DOUBLE temp;
@@ -528,7 +528,7 @@ void CMOS_updateActualTime()
 			CMOS.DATA.timedivergeance += (temp/1000000.0L); //Add second(s) on overflow!
 			temp = fmodl(temp,1000000.0L); //Remainder!
 			#else
-			CMOS.DATA.timedivergeance += (temp/1000000.0); //Add second(s) on overflow!
+			CMOS.DATA.timedivergeance += (int_64)((temp/1000000.0)); //Add second(s) on overflow!
 			temp = fmod(temp,1000000.0); //Remainder!
 			#endif
 		}

@@ -701,7 +701,7 @@ void CPU286_OP0F02() //LAR /r
 extern byte protection_PortRightsLookedup; //Are the port rights looked up?
 void CPU286_OP0F03() //LSL /r
 {
-	uint_32 limit;
+	uint_64 limit;
 	byte isconforming = 1;
 	SEGMENT_DESCRIPTOR verdescriptor;
 	sbyte loadresult;
