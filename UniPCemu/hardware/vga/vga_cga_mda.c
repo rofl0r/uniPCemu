@@ -1197,7 +1197,7 @@ extern uint_32 VGA_VRAM_START; //To copy memory between VRAM modes!
 OPTINLINE void applyCGAMemoryMap(byte useGraphics, byte GraphicsMode) //Apply the current CGA memory map!
 {
 	uint_32 memaddr;
-	word bytesleft,shadowaddr;
+	word bytesleft;
 	byte memorymode;
 	
 	SETBITS(getActiveVGA()->registers->GraphicsRegisters.REGISTERS.MISCGRAPHICSREGISTER,2,3,((!useGraphics) && GraphicsMode)?2:3); //Use map B000(MDA) or B800(CGA), depending on the adapter used!
@@ -1228,7 +1228,6 @@ OPTINLINE void applyCGAMemoryMap(byte useGraphics, byte GraphicsMode) //Apply th
 		getActiveVGA()->CGAMDAMemoryMode = memorymode; //Updating memory!
 		bytesleft = CGAEMULATION_ENABLED(getActiveVGA())?0x4000:0x1000; //How much to copy(CGA vs MDA)!
 		memset(getActiveVGA()->VRAM, 0, getActiveVGA()->VRAM_size); //Clear all VRAM addresses for the new mode to fill!
-		shadowaddr = 0; //Init shadow RAM address!
 		memaddr = 0; //Start of address to write!
 		for (;bytesleft--;) //Process all RAM!
 		{
