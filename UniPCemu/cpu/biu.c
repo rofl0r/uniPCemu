@@ -479,9 +479,9 @@ void BIU_dosboxTick()
 		if (unlikely(checkMMUaccess(CPU_SEGMENT_CS, REG_CS, realaddress, 0x10 | 3, getCPL(), 0, 0))) return; //Abort on fault! 
 
 		//Next, check the higher bound! While it fails, decrease until we don't anymore!
-		realaddress += (BIUsize-1); //Take the last byte we might be fetching!
 		if (likely(BIUsize > 1)) //Different ending address?
 		{
+			realaddress += (BIUsize - 1); //Take the last byte we might be fetching!
 		retry_lowerbyte: //When the below check fails, try for the next address!
 			if (unlikely(checkMMUaccess(CPU_SEGMENT_CS, REG_CS, realaddress, 0x10 | 3, getCPL(), 0, 0) && BIUsize)) //Couldn't fetch?
 			{
