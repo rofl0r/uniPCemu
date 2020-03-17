@@ -12,22 +12,23 @@ This README would normally document whatever steps are necessary to get your app
 ### How do I get set up? ###
 
 * Summary of set up
-- This repository goes into a folder named UniPCEMU. Place the tools support repository(https://bitbucket.org/superfury/tools.git) parralel to this repository folder(Required for PSP builds).
-- Pull the submodules as well for it's required Makefiles and source code files.
-- Install Minimalist PSPSDK devkit(PSP, up to version 0.10.0 is compiling UniPCemu(with lots of sprintf warnings). Newer versions currently fail linking.) or Visual C++, MinGW(Windows)/MSYS2(See **MSYS2.txt**) or GNU C++ toolchsin(Linux).
+- This repository goes into a folder named UniPCemu.
+- Pull the submodules as well for it's required Makefiles and source code files for compilation.
+- Install Minimalist PSPSDK devkit(PSP, up to version 0.10.0 is compiling UniPCemu(although with lots of sprintf warnings). Newer versions currently fail linking.) or Visual C++, MinGW(Windows)/MSYS2(See **MSYS2.txt**) or GNU C++ toolchain(Linux).
 - Install SDL packages for the devkit, in C:\SDL for Windows(copy SDL2-2.* folder contents to C:\SDL\SDL2 (and the SDL2_net folder to C:\SDL\SDL2_net), to use SDL 1.2.*, copy the folder contents to C:\SDL\SDL1.2.15(and the SDL_net folder to C:\SDL\SDL_net-1.2.8)), installers for MinPSPW and /mingw(SDL or SDL2).
 - Install SDL(2) with or without SDL(2)_net for network support on your machine on Linux, according to the official build steps from libsdl.org.
 - For Linux:
+	- Run autogen.sh if the configure script doesn't run correctly.
 	- Run the configure script to configure and build the Makefile required for the project.
 	- Run make linux [re]build [SDL2] [SDL[2]_net] [x64], with the optional parts being between brackets(SDL2+, SDL(2)_net for network support, x64 for 64-bit compilation is required. All others depend on the libraries to use).
 	- Run (with sudo for installation rights) the above command, replacing [re]build with install to install the application for usage.
 - For Visual C++:
 	- Open the projects within the VisualC subfolders(the solution file) and compile SDL2 and SDL2main. Also compile the SDL2_net project when used(after compiling SDL2 itself).
 		- Don't forget to add the paths **C:\SDL\SDL2\include** to both Win32 and x64 target include directories, as well as **C:\SDL\SDL2\VisualC\$(Platform)\$(Configuration)** to both Win32 and x64 target library directories.
-	- Set the Visual C++ Local Windows Debugger to use **$(TargetDir)** for it's working directory, to comply with the other paths set in the project.
+	- Set the Visual C++ Local Windows Debugger for the project to use **$(TargetDir)** for it's working directory, to comply with the other paths set in the project.
 
 * Configuration
-	- Make sure there is a compile directory parallel to the project directory(projects_build\unipcemu) with a duplicate directory tree of the project repository(automatically createn by remake.bat on Windows and by the Windows/Linux when building using the Makefile).
+	- Make sure there is a compile directory parallel to the project directory(projects_build\unipcemu) with a duplicate directory tree of the project repository(automatically createn by remake.bat on Windows and by Windows/Linux when building using the Makefile).
 * Dependencies
 	- See set up.
 * Adding the Android SDL2 build to the Android project(directories relative to the SDL2 root directory, e.g. SDL2-2.X.X)
