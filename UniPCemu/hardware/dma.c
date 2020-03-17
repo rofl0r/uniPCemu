@@ -456,9 +456,7 @@ void DMA_StateHandler_SI()
 		channelindex = 1; //Load index!
 		channelindex <<= (channel&3); //Assign the channel index to use!
 
-		MCMReversed = DMAController[(channel>>2)].MultiChannelMaskRegister; //Load MCM!
-		MCMReversed = ~MCMReversed; //NOT!
-		MCMReversed &= channelindex; //For our current channel only!
+		MCMReversed = (~DMAController[(channel>>2)].MultiChannelMaskRegister)&channelindex; //Load MCM! For our current channel only!
 
 		if ((DMAController[(channel>>2)].DREQ&MCMReversed) || (DMAController[DMAcontroller].RequestRegister&channelindex)) //Requested and not masking or requested manually?
 		{
