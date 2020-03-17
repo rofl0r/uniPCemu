@@ -1215,23 +1215,14 @@ byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler fun
 	{
 		case BIOSROMTYPE_U18_19: //U18&19 combo?
 			tempoffset = basepos;
-			if (basepos>=0x10000) return 0; //Not us!
+			if (unlikely(basepos>=0x10000)) return 0; //Not us!
 			tempoffset &= 0x7FFF; //Our offset within the ROM!
-			if (basepos&0x8000) //u18?
+			segment = (((basepos >> 16) & 1) ^ 1); //ROM number: 0x8000+:u18, 0+:u19
+			segment += 18; //The ROM number!
+			if (likely(BIOS_ROM_size[segment]>tempoffset)) //Within range?
 			{
-				if (likely(BIOS_ROM_size[18]>tempoffset)) //Within range?
-				{
-					*value = BIOS_ROMS[18][tempoffset]; //Give the value!
-					return 1;
-				}
-			}
-			else //u19?
-			{
-				if (likely(BIOS_ROM_size[19]>tempoffset)) //Within range?
-				{
-					*value = BIOS_ROMS[19][tempoffset]; //Give the value!
-					return 1;
-				}
+				*value = BIOS_ROMS[segment][tempoffset]; //Give the value!
+				return 1;
 			}
 			break;
 		case BIOSROMTYPE_U13_15: //U13&15 combo?
@@ -1245,63 +1236,35 @@ byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler fun
 			}
 			tempoffset >>= 1; //The offset is at every 2 bytes of memory!
 			segment &= 1; //Even=u27, Odd=u47
-			if (segment) //u47/u35/u15?
+			segment <<= 1; //1:15(+2),0=13(+0).
+			segment += 13; //The ROM number!
+			if (likely(BIOS_ROM_size[segment]>tempoffset)) //Within range?
 			{
-				if (likely(BIOS_ROM_size[15]>tempoffset)) //Within range?
-				{
-					*value = BIOS_ROMS[15][tempoffset]; //Give the value!
-					return 1;
-				}
-			}
-			else //u34/u35 combination?
-			{
-				if (likely(BIOS_ROM_size[13]>tempoffset)) //Within range?
-				{
-					*value = BIOS_ROMS[13][tempoffset]; //Give the value!
-					return 1;
-				}
+				*value = BIOS_ROMS[segment][tempoffset]; //Give the value!
+				return 1;
 			}
 			break;
 		case BIOSROMTYPE_U27_47: //U27&47 combo?
 			segment = tempoffset = basepos; //Load the offset! General for AT+ ROMs!
 			tempoffset >>= 1; //The offset is at every 2 bytes of memory!
 			segment &= 1; //Even=u27, Odd=u47
-			if (segment)
+			segment = (((segment << 3) + (segment << 1)) << 1); //Set to 20 for the (*10*2 using bit shifts) for the offset to the ROM number!
+			segment += 27; //The base ROM number!
+			if (likely(BIOS_ROM_size[segment]>tempoffset)) //Within range?
 			{
-				if (likely(BIOS_ROM_size[47]>tempoffset)) //Within range?
-				{
-					*value = BIOS_ROMS[47][tempoffset]; //Give the value!
-					return 1;
-				}
-			}
-			else //Loaded?
-			{
-				if (likely(BIOS_ROM_size[27]>tempoffset)) //Within range?
-				{
-					*value = BIOS_ROMS[27][tempoffset]; //Give the value!
-					return 1;
-				}
+				*value = BIOS_ROMS[segment][tempoffset]; //Give the value!
+				return 1;
 			}
 			break;
 		case BIOSROMTYPE_U34_35: //U34&35 combo?
 			segment = tempoffset = basepos; //Load the offset! General for AT+ ROMs!
 			tempoffset >>= 1; //The offset is at every 2 bytes of memory!
 			segment &= 1; //Even=u27, Odd=u47
-			if (segment)
+			segment += 34; //The segment number to use!
+			if (likely(BIOS_ROM_size[segment]>tempoffset)) //Within range?
 			{
-				if (likely(BIOS_ROM_size[35]>tempoffset)) //Within range?
-				{
-					*value = BIOS_ROMS[35][tempoffset]; //Give the value!
-					return 1;
-				}
-			}
-			else //u34/u35 combination?
-			{
-				if (likely(BIOS_ROM_size[34]>tempoffset)) //Within range?
-				{
-					*value = BIOS_ROMS[34][tempoffset]; //Give the value!
-					return 1;
-				}
+				*value = BIOS_ROMS[segment][tempoffset]; //Give the value!
+				return 1;
 			}
 			break;
 			default: break; //Unknown even/odd mapping!
