@@ -820,11 +820,6 @@ byte MMU_INTERNAL_directrb_realaddr(uint_32 realaddress, byte index) //Read with
 {
 	byte data;
 	byte is_debugging;
-#ifdef LOG_HIGH_MEMORY
-	is_debugging = (MMU_logging == 1) || (specialdebugger && (realaddress >= 0x100000)); //Are we debugging?
-#else
-	is_debugging = (MMU_logging == 1); //Are we debugging?
-#endif
 	if (likely(MMU_IO_readhandler(realaddress, &data))) //Normal memory address?
 	{
 		if (unlikely(MMU_INTERNAL_directrb(realaddress, index, &data))) //Read the data from memory (and port I/O)!		
@@ -839,6 +834,11 @@ byte MMU_INTERNAL_directrb_realaddr(uint_32 realaddress, byte index) //Read with
 			}
 		}
 	}
+#ifdef LOG_HIGH_MEMORY
+	is_debugging = (MMU_logging == 1) || (specialdebugger && (realaddress >= 0x100000)); //Are we debugging?
+#else
+	is_debugging = (MMU_logging == 1); //Are we debugging?
+#endif
 	if (unlikely(is_debugging)) //To log?
 	{
 		debugger_logmemoryaccess(0,realaddress,data,LOGMEMORYACCESS_DIRECT|(((index&0x20)>>5)<<LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
