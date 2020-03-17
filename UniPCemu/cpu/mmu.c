@@ -43,7 +43,7 @@ byte writeword = 0; //Hi-end word written?
 
 byte memory_BIUdirectrb(uint_32 realaddress) //Direct read from real memory (with real data direct)!
 {
-	return BIU_directrb(realaddress, 0x100);
+	return BIU_directrb_external(realaddress, 0x100);
 }
 word memory_BIUdirectrw(uint_32 realaddress) //Direct read from real memory (with real data direct)!
 {
@@ -55,7 +55,7 @@ uint_32 memory_BIUdirectrdw(uint_32 realaddress) //Direct read from real memory 
 }
 void memory_BIUdirectwb(uint_32 realaddress, byte value) //Direct write to real memory (with real data direct)!
 {
-	BIU_directwb(realaddress, value, 0x100);
+	BIU_directwb_external(realaddress, value, 0x100);
 }
 void memory_BIUdirectww(uint_32 realaddress, word value) //Direct write to real memory (with real data direct)!
 {

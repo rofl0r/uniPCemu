@@ -348,7 +348,7 @@ extern MMU_type MMU; //MMU support!
 extern byte is_Compaq; //Are we emulating a Compaq architecture?
 uint_32 wrapaddr[2] = {0xFFFFFFFF,0xFFFFFFFF}; //What wrap to apply!
 extern uint_32 effectivecpuaddresspins; //What address pins are supported?
-byte BIU_directrb(uint_32 realaddress, word index)
+OPTINLINE byte BIU_directrb(uint_32 realaddress, word index)
 {
 	uint_32 originaladdr;
 	byte result;
@@ -369,7 +369,12 @@ byte BIU_directrb(uint_32 realaddress, word index)
 	return result; //Give the result!
 }
 
-void BIU_directwb(uint_32 realaddress, byte val, word index) //Access physical memory dir
+byte BIU_directrb_external(uint_32 realaddress, word index)
+{
+	return BIU_directrb(realaddress, index); //External!
+}
+
+OPTINLINE void BIU_directwb(uint_32 realaddress, byte val, word index) //Access physical memory dir
 {
 	//Apply A20!
 	wrapaddr[1] = MMU.wraparround; //What wrap to apply when enabled!
@@ -384,6 +389,11 @@ void BIU_directwb(uint_32 realaddress, byte val, word index) //Access physical m
 
 	//Normal memory access!
 	MMU_INTERNAL_directwb_realaddr(realaddress,val,(byte)(index&0xFF)); //Set data!
+}
+
+void BIU_directwb_external(uint_32 realaddress, byte val, word index) //Access physical memory dir
+{
+	BIU_directwb(realaddress, val, index); //External!
 }
 
 word BIU_directrw(uint_32 realaddress, word index) //Direct read from real memory (with real data direct)!

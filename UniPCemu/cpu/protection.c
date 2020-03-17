@@ -1132,6 +1132,75 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 	return dest; //Give the segment descriptor read from memory!
 }
 
+/*
+
+MMU: Memory limit!
+
+*/
+
+OPTINLINE byte verifyLimit(SEGMENT_DESCRIPTOR* descriptor, uint_64 offset)
+{
+	//Execute address test?
+	INLINEREGISTER byte isvalid;
+	isvalid = (offset <= descriptor->PRECALCS.limit); //Valid address range!
+	isvalid ^= descriptor->PRECALCS.topdown; //Apply expand-down data segment, if required, which reverses valid!
+	isvalid &= ((offset > descriptor->PRECALCS.roof) ^ 1); //Limit to 16-bit/32-bit address space using both top-down(required) and bottom-up(resulting in just the limit, which is lower or equal to the roof) descriptors!
+	isvalid &= 1; //Only 1-bit testing!
+	return isvalid; //Are we valid?
+}
+
+byte CPU_MMU_checkrights_cause = 0; //What cause?
+//Used by the CPU(VERR/VERW)&MMU I/O! forreading=0: Write, 1=Read normal, 3=Read opcode
+
+OPTINLINE byte CPU_MMU_checkrights(int segment, word segmentval, uint_64 offset, byte forreading, SEGMENT_DESCRIPTOR* descriptor, byte addrtest, byte is_offset16)
+{
+	//First: type checking!
+
+	if (unlikely(descriptor->PRECALCS.notpresent)) //Not present(invalid in the cache)? This also applies to NULL descriptors!
+	{
+		CPU_MMU_checkrights_cause = 1; //What cause?
+		return 1; //#GP fault: not present in descriptor cache mean invalid, thus #GP!
+	}
+
+	//Basic access rights are always checked!
+	if (likely(GENERALSEGMENTPTR_S(descriptor))) //System segment? Check for additional type information!
+	{
+		//Entries 0,4,10,14: On writing, Entries 2,6: Never match, Entries 8,12: Writing or reading normally(!=3).
+		//To ignore an entry for errors, specify mask 0, non-equals nonzero, comparison 0(a.k.a. ((forreading&0)!=0)
+		if (unlikely(descriptor->PRECALCS.rwe_errorout[forreading])) //Are we to error out on this read/write/execute operation?
+		{
+			CPU_MMU_checkrights_cause = 3; //What cause?
+			return 1; //Error!
+		}
+	}
+
+	//Next: limit checking!
+	if (likely(addrtest)) //Address test is to be performed?
+	{
+		if (likely(verifyLimit(descriptor, offset))) return 0; //OK? We're finished!
+		//Not valid?
+		{
+			CPU_MMU_checkrights_cause = 6; //What cause?
+			if (segment == CPU_SEGMENT_SS) //Stack fault?
+			{
+				return 3; //Error!
+			}
+			else //Normal #GP?
+			{
+				return 1; //Error!
+			}
+		}
+	}
+
+	//Don't perform rights checks: This is done when loading the segment register only!
+	return 0; //OK!
+}
+
+byte CPU_MMU_checkrights_jump(int segment, word segmentval, uint_64 offset, byte forreading, SEGMENT_DESCRIPTOR* descriptor, byte addrtest, byte is_offset16) //Check rights for VERR/VERW!
+{
+	return CPU_MMU_checkrights(segment, segmentval, offset, forreading, descriptor, addrtest, is_offset16); //External call!
+}
+
 word segmentWritten_tempSS;
 uint_32 segmentWritten_tempESP;
 word segmentWritten_tempSP;
@@ -1646,70 +1715,6 @@ int checkPrivilegedInstruction() //Allowed to run a privileged instruction?
 		return 0; //Not allowed to run!
 	}
 	return 1; //Allowed to run!
-}
-
-/*
-
-MMU: Memory limit!
-
-*/
-
-OPTINLINE byte verifyLimit(SEGMENT_DESCRIPTOR *descriptor, uint_64 offset)
-{
-	//Execute address test?
-	INLINEREGISTER byte isvalid;
-	isvalid = (offset<=descriptor->PRECALCS.limit); //Valid address range!
-	isvalid ^= descriptor->PRECALCS.topdown; //Apply expand-down data segment, if required, which reverses valid!
-	isvalid &= ((offset>descriptor->PRECALCS.roof)^1); //Limit to 16-bit/32-bit address space using both top-down(required) and bottom-up(resulting in just the limit, which is lower or equal to the roof) descriptors!
-	isvalid &= 1; //Only 1-bit testing!
-	return isvalid; //Are we valid?
-}
-
-byte CPU_MMU_checkrights_cause = 0; //What cause?
-//Used by the CPU(VERR/VERW)&MMU I/O! forreading=0: Write, 1=Read normal, 3=Read opcode
-
-byte CPU_MMU_checkrights(int segment, word segmentval, uint_64 offset, byte forreading, SEGMENT_DESCRIPTOR *descriptor, byte addrtest, byte is_offset16)
-{
-	//First: type checking!
-
-	if (unlikely(descriptor->PRECALCS.notpresent)) //Not present(invalid in the cache)? This also applies to NULL descriptors!
-	{
-		CPU_MMU_checkrights_cause = 1; //What cause?
-		return 1; //#GP fault: not present in descriptor cache mean invalid, thus #GP!
-	}
-
-	//Basic access rights are always checked!
-	if (likely(GENERALSEGMENTPTR_S(descriptor))) //System segment? Check for additional type information!
-	{
-		//Entries 0,4,10,14: On writing, Entries 2,6: Never match, Entries 8,12: Writing or reading normally(!=3).
-		//To ignore an entry for errors, specify mask 0, non-equals nonzero, comparison 0(a.k.a. ((forreading&0)!=0)
-		if (unlikely(descriptor->PRECALCS.rwe_errorout[forreading])) //Are we to error out on this read/write/execute operation?
-		{
-			CPU_MMU_checkrights_cause = 3; //What cause?
-			return 1; //Error!
-		}
-	}
-
-	//Next: limit checking!
-	if (likely(addrtest)) //Address test is to be performed?
-	{
-		if (likely(verifyLimit(descriptor,offset))) return 0; //OK? We're finished!
-		//Not valid?
-		{
-			CPU_MMU_checkrights_cause = 6; //What cause?
-			if (segment==CPU_SEGMENT_SS) //Stack fault?
-			{
-				return 3; //Error!
-			}
-			else //Normal #GP?
-			{
-				return 1; //Error!
-			}
-		}
-	}
-
-	//Don't perform rights checks: This is done when loading the segment register only!
-	return 0; //OK!
 }
 
 //Used by the MMU! forreading: 0=Writes, 1=Read normal, 3=Read opcode fetch. bit8=Use SS instead of 0 for the error code, bit9=bit10 contains EXT bit to use!

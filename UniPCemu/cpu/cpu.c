@@ -166,7 +166,7 @@ void CPU_JMPrel(int_32 reladdr, byte useAddressSize)
 {
 	REG_EIP += reladdr; //Apply to EIP!
 	REG_EIP &= CPU_EIPmask(useAddressSize); //Only 16-bits when required!
-	if (CPU_MMU_checkrights(CPU_SEGMENT_CS,REG_CS,REG_EIP,3,&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS],2,CPU_Operand_size[activeCPU])) //Limit broken or protection fault?
+	if (CPU_MMU_checkrights_jump(CPU_SEGMENT_CS,REG_CS,REG_EIP,3,&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS],2,CPU_Operand_size[activeCPU])) //Limit broken or protection fault?
 	{
 		THROWDESCGP(0,0,0); //#GP(0) when out of limit range!
 	}
@@ -176,7 +176,7 @@ void CPU_JMPabs(uint_32 addr, byte useAddressSize)
 {
 	REG_EIP = addr; //Apply to EIP!
 	REG_EIP &= CPU_EIPmask(useAddressSize); //Only 16-bits when required!
-	if (CPU_MMU_checkrights(CPU_SEGMENT_CS,REG_CS,REG_EIP,3,&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS],2,CPU_Operand_size[activeCPU])) //Limit broken or protection fault?
+	if (CPU_MMU_checkrights_jump(CPU_SEGMENT_CS,REG_CS,REG_EIP,3,&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS],2,CPU_Operand_size[activeCPU])) //Limit broken or protection fault?
 	{
 		THROWDESCGP(0,0,0); //#GP(0) when out of limit range!
 	}
