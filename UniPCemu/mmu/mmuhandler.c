@@ -36,7 +36,7 @@ extern MMU_type MMU; //MMU for direct access!
 #define __HW_DISABLED 0
 
 //What bits to take as a memory block to be translated and used(rounds memory down)?
-#define MMU_BLOCKALIGNMENT 7
+#define MMU_BLOCKALIGNMENT 0xF
 
 //Log invalid memory accesses?
 //#define LOG_INVALID_MEMORY
