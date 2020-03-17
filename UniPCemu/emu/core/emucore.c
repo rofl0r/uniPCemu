@@ -549,7 +549,7 @@ void initEMU(int full) //Init!
 	if (BIOS_Settings.architecture==ARCHITECTURE_XT) //XT architecture?
 	{
 		debugrow("Initialising EMS...");
-		initEMS(2 * MBMEMORY); //2MB EMS memory!
+		initEMS(2 * MBMEMORY,0); //2MB EMS memory!
 	}
 
 	debugrow("Initialising MMU...");
@@ -563,6 +563,12 @@ void initEMU(int full) //Init!
 
 	EMU_update_VGA_Settings(); //Update the VGA Settings to it's default value!
 	setupVGA(); //Set the VGA up for int10&CPU usage!
+
+	if (BIOS_Settings.architecture == ARCHITECTURE_XT) //XT architecture?
+	{
+		debugrow("Registering EMS I/O mapping...");
+		initEMS(2 * MBMEMORY, 1); //2MB EMS memory!
+	}
 
 	//PPI after VGA because we're dependant on the CGA/MDA only mode!
 	debugrow("Initialising PPI...");

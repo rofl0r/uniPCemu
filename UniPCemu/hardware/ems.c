@@ -83,13 +83,16 @@ byte writeEMSIO(word port, byte value)
 	return 1; //Give the value!
 }
 
-void initEMS(uint_32 memorysize)
+void initEMS(uint_32 memorysize, byte allocmemory_initIO)
 {
-	doneEMS(); //Make sure we're cleaned up first!
-	EMS = (byte *)zalloc(memorysize, "EMS", getLock(LOCK_CPU));
-	if (EMS) //Allocated?
+	if (allocmemory_initIO==0) //Don't allocate memory? We're a normal startup!
 	{
+		doneEMS(); //Make sure we're cleaned up first!
+		EMS = (byte*)zalloc(memorysize, "EMS", getLock(LOCK_CPU));
 		EMS_size = memorysize; //We're allocated for this much!
+	}
+	else if (EMS && EMS_size) //Initialize I/O now?
+	{
 		register_PORTIN(&readEMSIO);
 		register_PORTOUT(&writeEMSIO);
 		MMU_registerWriteHandler(&writeEMSMem, "EMS");

@@ -21,7 +21,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #ifndef __EMS_H
 #define __EMS_H
 
-void initEMS(uint_32 memorysize);
+void initEMS(uint_32 memorysize, byte allocmemory_initIO);
 void doneEMS();
 
 #endif
