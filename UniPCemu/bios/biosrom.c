@@ -1215,7 +1215,6 @@ byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler fun
 	{
 		case BIOSROMTYPE_U18_19: //U18&19 combo?
 			tempoffset = basepos;
-			if (unlikely(basepos>=0x10000)) return 0; //Not us!
 			tempoffset &= 0x7FFF; //Our offset within the ROM!
 			segment = (((basepos >> 16) & 1) ^ 1); //ROM number: 0x8000+:u18, 0+:u19
 			segment += 18; //The ROM number!
