@@ -849,17 +849,17 @@ byte MMU_INTERNAL_directrb_realaddr(uint_32 realaddress, byte index) //Read with
 
 void MMU_INTERNAL_directwb_realaddr(uint_32 realaddress, byte val, byte index) //Write without segment/offset translation&protection (from system/interrupt)!
 {
-	byte is_debugging;
 	union
 	{
 		uint_32 realaddress; //The address!
 		byte addr[4];
 	} addressconverter;
 	byte status;
+	//Are we debugging?
 #ifdef LOG_HIGH_MEMORY
-	is_debugging = (MMU_logging == 1) || (specialdebugger && (realaddress >= 0x100000)); //Are we debugging?
+#define is_debugging ((MMU_logging == 1) || (specialdebugger && (realaddress >= 0x100000))
 #else
-	is_debugging = (MMU_logging == 1); //Are we debugging?
+#define is_debugging (MMU_logging == 1)
 #endif
 	if (enableMMUbuffer && MMUBuffer) //To buffer all writes?
 	{
@@ -886,6 +886,7 @@ void MMU_INTERNAL_directwb_realaddr(uint_32 realaddress, byte val, byte index) /
 	{
 		MMU_INTERNAL_directwb(realaddress, val, index); //Set data in real memory!
 	}
+#undef is_debugging
 }
 
 void flushMMU() //Flush MMU writes!
