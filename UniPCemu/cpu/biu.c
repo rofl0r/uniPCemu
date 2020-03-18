@@ -476,6 +476,14 @@ void BIU_dosboxTick()
 		if (likely(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.topdown == 0)) //Not a top-down segment?
 		{
 			maxaddress = CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.limit; //The limit of the CS segment is the limit instead!
+			if (unlikely(realaddress > maxaddress)) //Limit broken?
+			{
+				return; //Abort!
+			}
+		}
+		else if (unlikely(realaddress <= maxaddress)) //Limit broken?
+		{
+			return; //Abort!
 		}
 		maxaddress = MIN((uint_64)((realaddress + (uint_64)BIUsize) - 1ULL), maxaddress); //Prevent 32-bit overflow and segmentation limit from occurring!
 		if (unlikely(endpos > maxaddress)) //More left than we can handle(never less than 1 past us)?
