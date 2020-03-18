@@ -459,6 +459,7 @@ OPTINLINE void CPU_fillPIQ() //Fill the PIQ until it's full!
 	BIU[activeCPU].requestready = 0; //We're starting a request!
 }
 
+extern byte CPU_MMU_checkrights_cause; //What cause?
 void BIU_dosboxTick()
 {
 	uint_32 BIUsize, BIUsize2;
@@ -484,9 +485,19 @@ void BIU_dosboxTick()
 
 		BIUsize = MAX(BIUsize, 1); //Must be at least 1, just for safety!
 
+		//Perform the little remainder of the segment limit check here instead of during the checkMMUaccess check!
+		if (likely(GENERALSEGMENT_S(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS]))) //System segment? Check for additional type information!
+		{
+			if (unlikely(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.rwe_errorout[3])) //Are we to error out on this read/write/execute operation?
+			{
+				CPU_MMU_checkrights_cause = 3; //What cause?
+				return; //Error!
+			}
+		}
+
 		//First, check the lower bound! If this fails, we can't continue(we're immediately failing)!
 		MMU_resetaddr(); //Reset the address error line for trying some I/O!
-		if (unlikely(checkMMUaccess(CPU_SEGMENT_CS, REG_CS, realaddress, 0x10 | 3, getCPL(), 0, 0))) return; //Abort on fault! 
+		if (unlikely(checkMMUaccess(CPU_SEGMENT_CS, REG_CS, realaddress, 0xA0 | 0x10 | 3, getCPL(), 0, 0))) return; //Abort on fault! 
 
 		//Next, check the higher bound! While it fails, decrease until we don't anymore!
 		if (likely(BIUsize > 1)) //Different ending address?
@@ -494,7 +505,7 @@ void BIU_dosboxTick()
 			realaddress += (BIUsize - 1); //Take the last byte we might be fetching!
 			for (;;) //When the below check fails, try for the next address!
 			{
-				if (unlikely(checkMMUaccess(CPU_SEGMENT_CS, REG_CS, realaddress, 0x10 | 3, getCPL(), 0, 0) && BIUsize)) //Couldn't fetch?
+				if (unlikely(checkMMUaccess(CPU_SEGMENT_CS, REG_CS, realaddress, 0xA0 | 0x10 | 3, getCPL(), 0, 0) && BIUsize)) //Couldn't fetch?
 				{
 					//The only thing stopping us here is the page boundary, so round down to a lower one, if possible!
 					endpos = MMU_realaddr(CPU_SEGMENT_CS, REG_CS, realaddress, 0, 0); //Linear address of the failing byte!
