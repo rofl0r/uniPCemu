@@ -478,12 +478,12 @@ void BIU_dosboxTick()
 			maxaddress = CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.limit; //The limit of the CS segment is the limit instead!
 			if (unlikely(realaddress > maxaddress)) //Limit broken?
 			{
-				return; //Abort!
+				return; //Abort on fault! 
 			}
 		}
-		else if (unlikely(realaddress <= maxaddress)) //Limit broken?
+		else if (unlikely(((uint_64)realaddress) <= CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.limit)) //Limit broken?
 		{
-			return; //Abort!
+			return; //Abort on fault! 
 		}
 		maxaddress = MIN((uint_64)((realaddress + (uint_64)BIUsize) - 1ULL), maxaddress); //Prevent 32-bit overflow and segmentation limit from occurring!
 		if (unlikely(endpos > maxaddress)) //More left than we can handle(never less than 1 past us)?
@@ -498,11 +498,11 @@ void BIU_dosboxTick()
 		{
 			if (unlikely(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.rwe_errorout[3])) //Are we to error out on this read/write/execute operation?
 			{
-				CPU_MMU_checkrights_cause = 3; //What cause?
-				return; //Error!
+				return; //Abort on fault! 
 			}
 		}
 
+		//Now, check the paging half of protection checks!
 		//First, check the lower bound! If this fails, we can't continue(we're immediately failing)!
 		MMU_resetaddr(); //Reset the address error line for trying some I/O!
 		if (unlikely(checkMMUaccess(CPU_SEGMENT_CS, REG_CS, realaddress, 0xA0 | 0x10 | 3, getCPL(), 0, 0))) return; //Abort on fault! 
