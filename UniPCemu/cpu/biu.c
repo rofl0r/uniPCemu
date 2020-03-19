@@ -460,6 +460,7 @@ OPTINLINE void CPU_fillPIQ() //Fill the PIQ until it's full!
 }
 
 extern byte CPU_MMU_checkrights_cause; //What cause?
+byte instructionlimit[4] = {10,15,15,15}; //What is the maximum instruction length in bytes?
 void BIU_dosboxTick()
 {
 	uint_32 BIUsize, BIUsize2;
@@ -541,6 +542,17 @@ void BIU_dosboxTick()
 
 		MMU_resetaddr(); //Reset the address error line for trying some I/O!
 		BIUsize2 = fifobuffer_freesize(BIU[activeCPU].PIQ); //How many to process max in this loop?
+		if ((EMULATED_CPU>=CPU_80286) && BIUsize2) //Can we limit what we fetch, instead of the entire prefetch buffer?
+		{
+			if ((BIU[activeCPU].PIQ->size-BIUsize2)>=instructionlimit[EMULATED_CPU - CPU_80286]) //Already buffered enough?
+			{
+				BIUsize2 = 0; //Don't buffer more, enough is buffered!
+			}
+			else //Not buffered enough to the limit yet?
+			{
+				BIUsize2 = MIN(instructionlimit[EMULATED_CPU - CPU_80286]-(BIU[activeCPU].PIQ->size-BIUsize2),BIUsize2); //Limit by what we can use for an instruction!
+			}
+		}
 		for (;BIUsize2 && (MMU_invaddr()==0);)
 		{
 			if ((BIU[activeCPU].PIQ_checked == 0) && BIUsize) goto recheckmemory; //Recheck anything that's needed, only when not starting off as zeroed!
@@ -564,8 +576,6 @@ void BIU_instructionStart() //Handle all when instructions are starting!
 		BIU_DosboxTickPending = 1; //We're pending to reload!
 	}
 }
-
-byte instructionlimit[4] = {10,15,15,15}; //What is the maximum instruction length in bytes?
 
 extern word OPlength; //The length of the opcode buffer!
 
