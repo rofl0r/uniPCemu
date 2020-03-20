@@ -351,27 +351,6 @@ void Paging_directwb(sword segdesc, uint_32 realaddress, byte val, byte index, b
 	MMU_INTERNAL_directwb_realaddr(realaddress,val,index); //Set data!
 }
 
-void MMU_generateaddress(sword segdesc, word segment, uint_32 offset, byte opcode, byte index, byte is_offset16) //Get adress, opcode=1 when opcode reading, else 0!
-{
-	INLINEREGISTER uint_32 realaddress;
-	byte writewordbackup = writeword; //Save the old value first!
-	if (MMU.memory==NULL) //No mem?
-	{
-		//dolog("MMU","R:No memory present!");
-		MMU.invaddr = 1; //Invalid adress!
-		return; //Out of bounds!
-	}
-
-	realaddress = MMU_realaddr(segdesc, segment, offset, writeword, is_offset16); //Real adress!
-
-	if (is_paging()) //Are we paging?
-	{
-		realaddress = mappage(realaddress,(opcode==0),getCPL()); //Map it using the paging mechanism!
-	}
-	realaddress &= effectivecpuaddresspins; //Only 20-bits address is available on a XT without newer CPU! Only 24-bits is available on a AT!
-	writeword = writewordbackup; //Restore the word address backup!
-}
-
 OPTINLINE byte MMU_INTERNAL_rb(sword segdesc, word segment, uint_32 offset, byte opcode, byte index, byte is_offset16) //Get adress, opcode=1 when opcode reading, else 0!
 {
 	INLINEREGISTER byte result; //The result!
