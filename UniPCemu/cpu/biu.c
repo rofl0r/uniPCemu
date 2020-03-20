@@ -470,7 +470,7 @@ void BIU_dosboxTick()
 	{
 		recheckmemory: //Recheck the memory that we're fetching!
 		//Precheck anything that can be checked!
-		BIUsize = fifobuffer_freesize(BIU[activeCPU].PIQ); //How much might be filled?
+		BIUsize = BIUsize2 = fifobuffer_freesize(BIU[activeCPU].PIQ); //How much might be filled?
 		realaddress = BIU[activeCPU].PIQ_Address; //Where to start checking!
 		endpos = (((uint_64)realaddress + (uint_64)BIUsize) - 1ULL); //Our last byte fetched!
 		maxaddress = 0xFFFFFFFF; //Default to a top-down segment's maximum size being the limit!
@@ -541,7 +541,6 @@ void BIU_dosboxTick()
 		BIU[activeCPU].PIQ_checked = BIUsize; //Check off any that we have verified!
 
 		MMU_resetaddr(); //Reset the address error line for trying some I/O!
-		BIUsize2 = fifobuffer_freesize(BIU[activeCPU].PIQ); //How many to process max in this loop?
 		if ((EMULATED_CPU>=CPU_80286) && BIUsize2) //Can we limit what we fetch, instead of the entire prefetch buffer?
 		{
 			if ((BIU[activeCPU].PIQ->size-BIUsize2)>=instructionlimit[EMULATED_CPU - CPU_80286]) //Already buffered enough?
