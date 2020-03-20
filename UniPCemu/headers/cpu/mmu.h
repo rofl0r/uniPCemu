@@ -85,4 +85,6 @@ byte checkDirectMMUaccess(uint_32 realaddress, byte readflags, byte CPL); //Chec
 void Paging_directwb(sword segdesc, uint_32 realaddress, byte val, byte index, byte is_offset16, byte writewordbackup, byte CPL);
 byte Paging_directrb(sword segdesc, uint_32 realaddress, byte writewordbackup, byte opcode, byte index, byte CPL);
 
+void MMU_determineAddressWrapping(); //Determine the address wrapping to use!
+
 #endif

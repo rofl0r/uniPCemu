@@ -945,6 +945,7 @@ void resetCPU(byte isInit) //Initialises the currently selected CPU!
 
 void initCPU() //Initialize CPU for full system reset into known state!
 {
+	MMU_determineAddressWrapping(); //Determine the address wrapping to use!
 	CPU_calcSegmentPrecalcsPrecalcs(); //Calculate the segmentation precalcs that are used!
 	memset(&CPU, 0, sizeof(CPU)); //Reset the CPU fully!
 	resetCPU(1); //Reset normally!

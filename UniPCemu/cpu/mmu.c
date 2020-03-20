@@ -118,6 +118,15 @@ uint_32 addresswrapping[12] = { //-NEC V20/V30 wraps offset arround 64kB? NEC V2
 							0xFFFFFFFF //80586+
 							}; //Address wrapping lookup table!
 
+byte applyspecialaddress;
+uint_32* addresswrappingbase = &addresswrapping[0];
+
+void MMU_determineAddressWrapping()
+{
+	addresswrappingbase = &addresswrapping[(EMULATED_CPU << 1)]; //The base for address wrapping!
+	applyspecialaddress = (EMULATED_CPU == CPU_NECV30); //Apply a special base with 2 entries?
+}
+
 //Address translation routine.
 //segdesc: >=0=use it's descriptor for segment #x, -1=No descriptor, use paging, -2=Direct physical memory access, -3=Use special ES, calculated in a 8086 way
 uint_32 MMU_realaddr(sword segdesc, word segment, uint_32 offset, byte wordop, byte is_offset16) //Real adress?
@@ -129,7 +138,14 @@ uint_32 MMU_realaddr(sword segdesc, word segment, uint_32 offset, byte wordop, b
 	//uint_32 originaloffset = offset; //Save!
 	writeword = 0; //Reset word-write flag for checking next bytes!
 	realaddress = offset; //Load the address!
-	realaddress &= addresswrapping[(EMULATED_CPU<<1)|(((realaddress==0x10000) && wordop)&1)]; //Apply address wrapping for the CPU offset, when needed!
+	if (likely(applyspecialaddress))
+	{
+		realaddress &= addresswrappingbase[(((realaddress == 0x10000) && wordop) & 1)]; //Apply the correct wrapping!
+	}
+	else
+	{
+		realaddress &= *addresswrappingbase; //Apply address wrapping for the CPU offset, when needed!
+	}
 
 	/*if (likely(segdesc!=-1)) //valid segment descriptor?
 	{
