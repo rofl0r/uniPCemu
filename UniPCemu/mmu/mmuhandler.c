@@ -81,28 +81,64 @@ byte numr; //Ammount registered!
 
 OPTINLINE void MMUHANDLER_countwrites()
 {
+	byte i,newentry;
 	MMUHANDLER.numw=NUMITEMS(MMUHANDLER.writehandlers); //Init!
 	for (;MMUHANDLER.numw;)
 	{
 		if (MMUHANDLER.writehandlers[MMUHANDLER.numw-1]) //Found?
 		{
-			return; //Stop searching!
+			break; //Stop searching!
 		}
 		--MMUHANDLER.numw; //Next!
 	}
+
+	//Now, compress the handlers to take the amount of items used!
+	newentry = 0; //What entry to assign it to?
+	//Now, compress the handlers into one straight list!
+	for (i = 0; i < MMUHANDLER.numw; ++i) //Handle all handlers!
+	{
+		if (MMUHANDLER.writehandlers[i]) //Assigned?
+		{
+			MMUHANDLER.writehandlers[newentry] = MMUHANDLER.writehandlers[i]; //Handler itself!
+			MMUHANDLER.startoffsetw[newentry] = MMUHANDLER.startoffsetw[i]; //Start offset!
+			MMUHANDLER.endoffsetw[newentry] = MMUHANDLER.endoffsetw[i]; //End offset!
+			memcpy(&MMUHANDLER.modulew[newentry], &MMUHANDLER.modulew[i], sizeof(MMUHANDLER.modulew[newentry])); //Module name!
+			++newentry; //Entry has been assigned!
+		}
+	}
+	MMUHANDLER.numw = newentry; //How many have been assigned!
+	MMUHANDLER.writehandlers[newentry] = NULL; //Finish the list!
 }
 
 OPTINLINE void MMUHANDLER_countreads()
 {
+	byte i, newentry;
 	MMUHANDLER.numr=NUMITEMS(MMUHANDLER.readhandlers); //Init!
 	for (;MMUHANDLER.numr;)
 	{
 		if (MMUHANDLER.readhandlers[MMUHANDLER.numr-1]) //Found?
 		{
-			return; //Stop searching!
+			break; //Stop searching!
 		}
 		--MMUHANDLER.numr; //Next!
 	}
+
+	//Now, compress the handlers to take the amount of items used!
+	newentry = 0; //What entry to assign it to?
+	//Now, compress the handlers into one straight list!
+	for (i = 0; i < MMUHANDLER.numr; ++i) //Handle all handlers!
+	{
+		if (MMUHANDLER.readhandlers[i]) //Assigned?
+		{
+			MMUHANDLER.readhandlers[newentry] = MMUHANDLER.readhandlers[i]; //Handler itself!
+			MMUHANDLER.startoffsetr[newentry] = MMUHANDLER.startoffsetr[i]; //Start offset!
+			MMUHANDLER.endoffsetr[newentry] = MMUHANDLER.endoffsetr[i]; //End offset!
+			memcpy(&MMUHANDLER.moduler[newentry], &MMUHANDLER.moduler[i], sizeof(MMUHANDLER.moduler[newentry])); //Module name!
+			++newentry; //Entry has been assigned!
+		}
+	}
+	MMUHANDLER.numr = newentry; //How many have been assigned!
+	MMUHANDLER.readhandlers[newentry] = NULL; //Finish the list!
 }
 
 void MMU_resetHandlers(char *module) //Initialise/reset handlers!
@@ -131,6 +167,8 @@ void MMU_resetHandlers(char *module) //Initialise/reset handlers!
 	{
 		MMUHANDLER.numw = 0; //Reset!
 		MMUHANDLER.numr = 0; //Reset!
+		MMUHANDLER.readhandlers[0] = NULL;
+		MMUHANDLER.writehandlers[0] = NULL;
 	}
 	else //Cleared one module: search for the last one used!
 	{
@@ -177,19 +215,17 @@ byte MMU_registerReadHandler(MMU_RHANDLER handler, char *module) //Register a re
 OPTINLINE byte MMU_IO_writehandler(uint_32 offset, byte value)
 {
 	MMU_WHANDLER *current; //Current item!
-	INLINEREGISTER MMU_WHANDLER handler;
-	INLINEREGISTER byte j = MMUHANDLER.numw; //The amount of handlers to process!
-	if (!j) return 1; //Normal memory access by default!
 	current = &MMUHANDLER.writehandlers[0]; //Start of our list!
-	do //Search all available handlers!
+	if (*current==NULL) return 1; //Normal memory access by default!
+	for (;;) //Search all available handlers!
 	{
-		handler = *current++; //Load the current address!
-		if (handler == 0) continue; //Set?
-		if (unlikely(handler(offset,value))) //Success?
+		if (*current==NULL) break; //Set?
+		if (unlikely((*current)(offset,value))) //Success?
 		{
 			return 0; //Abort searching: we're processed!
 		}
-	} while (--j);
+		++current;
+	}
 	return 1; //Normal memory access!
 }
 
@@ -197,19 +233,17 @@ OPTINLINE byte MMU_IO_writehandler(uint_32 offset, byte value)
 OPTINLINE byte MMU_IO_readhandler(uint_32 offset, byte *value)
 {
 	MMU_RHANDLER *current; //Current item!
-	INLINEREGISTER MMU_RHANDLER handler;
-	INLINEREGISTER byte j = MMUHANDLER.numr; //The amount of handlers to process!
-	if (!j) return 1; //Normal memory access by default!
 	current = &MMUHANDLER.readhandlers[0]; //Start of our list!
-	do //Search all available handlers!
+	if (*current==NULL) return 1; //Normal memory access by default!
+	for (;;) //Search all available handlers!
 	{
-		handler = *current++; //Load the current address!
-		if (handler == 0) continue; //Set?
-		if (unlikely(handler(offset,value))) //Success reading?
+		if (*current==NULL) break; //Set?
+		if (unlikely((*current)(offset,value))) //Success reading?
 		{
 			return 0; //Abort searching: we're processed!
 		}
-	} while (--j); //Loop while not done!
+		++current;
+	}
 	return 1; //Normal memory access!
 }
 
