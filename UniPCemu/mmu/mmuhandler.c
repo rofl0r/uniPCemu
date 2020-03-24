@@ -214,36 +214,40 @@ byte MMU_registerReadHandler(MMU_RHANDLER handler, char *module) //Register a re
 //Handler for special MMU-based I/O, direct addresses used!
 OPTINLINE byte MMU_IO_writehandler(uint_32 offset, byte value)
 {
-	MMU_WHANDLER *current; //Current item!
-	current = &MMUHANDLER.writehandlers[0]; //Start of our list!
-	if (*current==NULL) return 1; //Normal memory access by default!
+	MMU_WHANDLER *list; //Current list item!
+	MMU_WHANDLER current; //Current handler!
+	current = *(list = &MMUHANDLER.writehandlers[0]); //Start of our list!
+	if (unlikely(current == NULL)) goto finishIOW; //Finished?
 	for (;;) //Search all available handlers!
 	{
-		if (*current==NULL) break; //Set?
-		if (unlikely((*current)(offset,value))) //Success?
+		if (unlikely(current(offset,value))) //Success?
 		{
 			return 0; //Abort searching: we're processed!
 		}
-		++current;
+		current = *(++list); //Next handler!
+		if (unlikely(current == NULL)) goto finishIOW; //Finished?
 	}
+	finishIOW:
 	return 1; //Normal memory access!
 }
 
 //Reading only!
 OPTINLINE byte MMU_IO_readhandler(uint_32 offset, byte *value)
 {
-	MMU_RHANDLER *current; //Current item!
-	current = &MMUHANDLER.readhandlers[0]; //Start of our list!
-	if (*current==NULL) return 1; //Normal memory access by default!
+	MMU_RHANDLER *list; //Current list item!
+	MMU_RHANDLER current; //Current handler!
+	current = *(list = &MMUHANDLER.readhandlers[0]); //Start of our list!
+	if (unlikely(current == NULL)) goto finishIOR; //Finished?
 	for (;;) //Search all available handlers!
 	{
-		if (*current==NULL) break; //Set?
-		if (unlikely((*current)(offset,value))) //Success reading?
+		if (unlikely(current(offset,value))) //Success reading?
 		{
 			return 0; //Abort searching: we're processed!
 		}
-		++current;
+		current = *(++list); //Next handler!
+		if (unlikely(current == NULL)) break; //Finished?
 	}
+	finishIOR:
 	return 1; //Normal memory access!
 }
 
