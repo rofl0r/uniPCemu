@@ -52,6 +52,9 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 //Enable this define to use cycle-accurate emulation for supported CPUs!
 #define CPU_USECYCLES
 
+//Enable this to enable logging of unfinished BIU instructions leaving data in the BIU FIFO response buffer!
+//#define DEBUG_BIUFIFO
+
 //Save the last instruction address and opcode in a backup?
 #define CPU_SAVELAST
 
@@ -1547,12 +1550,13 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 			CPU[activeCPU].cycles = 4; //Small cycle dummy! Must be greater than zero!
 			return; //Don't run the CPU: we're in a permanent reset state!
 		}
-
+#ifdef DEBUG_BIUFIFO
 		if (fifobuffer_freesize(BIU[activeCPU].responses)!=BIU[activeCPU].responses->size) //Starting an instruction with a response remaining?
 		{
 			dolog("CPU","Warning: starting instruction with BIU still having a result buffered! Previous instruction: %02X(0F:%i,ModRM:%02X)@%04X:%08x",CPU[activeCPU].previousopcode,CPU[activeCPU].previousopcode0F,CPU[activeCPU].previousmodrm,CPU_exec_CS,CPU_exec_EIP);
 			BIU_readResultb(&BIUresponsedummy); //Discard the result: we're logging but continuing on simply!
 		}
+#endif
 
 		CPU[activeCPU].have_oldCPL = 0; //Default: no CPL to return to during exceptions!
 		CPU[activeCPU].have_oldESP = 0; //Default: no ESP to return to during exceptions!
@@ -1598,7 +1602,10 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		CPU[activeCPU].faultraised = 0; //Default fault raised!
 		CPU[activeCPU].faultlevel = 0; //Default to no fault level!
 
-		cleardata(&debugtext[0],sizeof(debugtext)); //Init debugger!
+		if (cpudebugger) //Debugging?
+		{
+			cleardata(&debugtext[0], sizeof(debugtext)); //Init debugger!
+		}
 
 		if (FLAG_VIP && FLAG_VIF && CPU[activeCPU].allowInterrupts) //VIP and VIF both set on the new code?
 		{
