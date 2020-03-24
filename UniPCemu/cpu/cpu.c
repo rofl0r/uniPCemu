@@ -1359,15 +1359,17 @@ void updateCPL() //Update the CPL to be the currently loaded CPL!
 void updateCPUmode() //Update the CPU mode!
 {
 	byte mode = 0; //Buffer new mode to start using for comparison!
-	if (!CPU[activeCPU].registers)
+	if (unlikely(!CPU[activeCPU].registers)) //Unusable registers?
 	{
 		CPU_initRegisters(0); //Make sure we have registers!
 		if (!CPU[activeCPU].registers) CPU[activeCPU].registers = &dummyregisters; //Dummy registers!
 	}
+	CPU[activeCPU].is_aligning = ((EMULATED_CPU >= CPU_80486) && FLAGREGR_AC(CPU[activeCPU].registers) && (CPU[activeCPU].registers->CR0 & 0x40000)); //Alignment check in effect for CPL 3?
 	mode = FLAG_V8; //VM86 mode?
 	mode <<= 1;
 	mode |= (CPU[activeCPU].registers->CR0&CR0_PE); //Protected mode?
 	mode = modes[mode]; //What is the new set mode, if changed?
+	CPU[activeCPU].is_paging = ((mode != CPU_MODE_REAL) & ((CPU[activeCPU].registers->CR0 & CR0_PG) >> 31)); //Are we paging in protected mode!
 	if (unlikely(mode!=CPUmode)) //Mode changed?
 	{
 		if ((CPUmode == CPU_MODE_REAL) && (mode == CPU_MODE_PROTECTED)) //Switching from real mode to protected mode?
@@ -1386,8 +1388,6 @@ void updateCPUmode() //Update the CPU mode!
 		}
 		CPUmode = mode; //Mode levels: Real mode > Protected Mode > VM86 Mode!
 	}
-	CPU[activeCPU].is_paging = ((CPUmode!=CPU_MODE_REAL)&((CPU[activeCPU].registers->CR0&CR0_PG)>>31)); //Are we paging in protected mode!
-	CPU[activeCPU].is_aligning = ((EMULATED_CPU >= CPU_80486) && FLAGREGR_AC(CPU[activeCPU].registers) && (CPU[activeCPU].registers->CR0 & 0x40000)); //Alignment check in effect for CPL 3?
 }
 
 byte getcpumode() //Retrieves the current mode!
