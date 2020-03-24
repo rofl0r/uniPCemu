@@ -853,6 +853,8 @@ void MMU_INTERNAL_directwdw(uint_32 realaddress, uint_32 value, word index)
 	MMU_INTERNAL_directww(realaddress + 2, (value >> 16) & 0xFFFF, index | 2); //High!
 }
 
+byte MMUbuffer_pending = 0; //Anything pending?
+
 //Direct memory access with Memory mapped I/O (for the CPU).
 byte MMU_INTERNAL_directrb_realaddr(uint_32 realaddress, byte index) //Read without segment/offset translation&protection (from system/interrupt)!
 {
@@ -903,6 +905,7 @@ void MMU_INTERNAL_directwb_realaddr(uint_32 realaddress, byte val, byte index) /
 	{
 		if (fifobuffer_freesize(MMUBuffer) >= 7) //Enough size left to buffer?
 		{
+			MMUbuffer_pending = 1; //We're pending from now on!
 			addressconverter.realaddress = realaddress; //The address to break up!
 			status = 1; //1 byte written!
 			if (!writefifobuffer(MMUBuffer, status)) return; //Invalid data!
@@ -938,16 +941,20 @@ void flushMMU() //Flush MMU writes!
 	byte val, index;
 	//Read the buffer
 	enableMMUbuffer = 0; //Finished buffering!
-	for (;readfifobuffer(MMUBuffer, &status);) //Gotten data to write(byte/word/dword data)?
+	if (unlikely(MMUbuffer_pending)) //Anything pending?
 	{
-		//Status doesn't have any meaning yet, so ignore it(always byte data)!
-		if (!readfifobuffer(MMUBuffer, &addressconverter.addr[0])) break; //Invalid data!
-		if (!readfifobuffer(MMUBuffer, &addressconverter.addr[1])) break; //Invalid data!
-		if (!readfifobuffer(MMUBuffer, &addressconverter.addr[2])) break; //Invalid data!
-		if (!readfifobuffer(MMUBuffer, &addressconverter.addr[3])) break; //Invalid data!
-		if (!readfifobuffer(MMUBuffer, &val)) break; //Invalid data!
-		if (!readfifobuffer(MMUBuffer, &index)) break; //Invalid data!
-		MMU_INTERNAL_directwb_realaddr(addressconverter.realaddress, val, index); //Write the value to memory!
+		MMUbuffer_pending = 0; //Not anymore!
+		for (; readfifobuffer(MMUBuffer, &status);) //Gotten data to write(byte/word/dword data)?
+		{
+			//Status doesn't have any meaning yet, so ignore it(always byte data)!
+			if (!readfifobuffer(MMUBuffer, &addressconverter.addr[0])) break; //Invalid data!
+			if (!readfifobuffer(MMUBuffer, &addressconverter.addr[1])) break; //Invalid data!
+			if (!readfifobuffer(MMUBuffer, &addressconverter.addr[2])) break; //Invalid data!
+			if (!readfifobuffer(MMUBuffer, &addressconverter.addr[3])) break; //Invalid data!
+			if (!readfifobuffer(MMUBuffer, &val)) break; //Invalid data!
+			if (!readfifobuffer(MMUBuffer, &index)) break; //Invalid data!
+			MMU_INTERNAL_directwb_realaddr(addressconverter.realaddress, val, index); //Write the value to memory!
+		}
 	}
 }
 
