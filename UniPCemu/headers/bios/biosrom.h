@@ -39,4 +39,7 @@ void BIOS_DUMPSYSTEMROM(); //Dump the ROM currently set (debugging purposes)!
 void BIOSROM_dumpBIOS(); /* For dumping the ROMs */
 void BIOSROM_updateTimers(DOUBLE timepassed);
 
+byte BIOS_readhandler(uint_32 offset, byte* value); /* A pointer to a handler function */
+byte BIOS_writehandler(uint_32 offset, byte value);    /* A pointer to a handler function */
+
 #endif

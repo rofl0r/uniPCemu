@@ -465,7 +465,10 @@ byte VGAmemIO_wb(uint_32 offset, byte value)
 void VGAmemIO_reset()
 {
 	//Register/reset memory mapped I/O!
+	/*
 	MMU_resetHandlers("VGA");
 	MMU_registerWriteHandler(&VGAmemIO_wb,"VGA");
 	MMU_registerReadHandler(&VGAmemIO_rb,"VGA");
+	*/
+	//Done directly by the MMU, since we're always present!
 }

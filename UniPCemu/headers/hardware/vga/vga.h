@@ -485,4 +485,8 @@ void VGA_setupEGAPalette(VGA_Type *VGA); //Setup the EGA palette for the EGA emu
 byte VGAmemIO_wb(uint_32 offset, byte value);
 void CGAMDA_doWriteRAMrefresh(uint_32 offset);
 
+//Support for the MMU to call directly!
+byte VGAmemIO_rb(uint_32 offset, byte* value);
+byte VGAmemIO_wb(uint_32 offset, byte value);
+
 #endif

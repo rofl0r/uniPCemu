@@ -29,6 +29,8 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/hardware/dram.h" //DRAM_access support!
 #include "headers/emu/gpu/gpu.h" //Need GPU comp!
 #include "headers/fopen64.h" //64-bit fopen support!
+#include "headers/bios/biosrom.h" //BIOS/option ROM support!
+#include "headers/hardware/vga/vga.h" //Video memory support!
 
 extern BIOS_Settings_TYPE BIOS_Settings; //Settings!
 extern MMU_type MMU; //MMU for direct access!
@@ -216,8 +218,10 @@ OPTINLINE byte MMU_IO_writehandler(uint_32 offset, byte value)
 {
 	MMU_WHANDLER *list; //Current list item!
 	MMU_WHANDLER current; //Current handler!
+	if (unlikely(BIOS_writehandler(offset, value))) return 0; //BIOS responded!
+	if (VGAmemIO_wb(offset, value)) return 0; //Video responded!
 	current = *(list = &MMUHANDLER.writehandlers[0]); //Start of our list!
-	if (unlikely(current == NULL)) goto finishIOW; //Finished?
+	if (likely(current == NULL)) return 1; //Finished?
 	for (;;) //Search all available handlers!
 	{
 		if (unlikely(current(offset,value))) //Success?
@@ -225,9 +229,8 @@ OPTINLINE byte MMU_IO_writehandler(uint_32 offset, byte value)
 			return 0; //Abort searching: we're processed!
 		}
 		current = *(++list); //Next handler!
-		if (unlikely(current == NULL)) goto finishIOW; //Finished?
+		if (likely(current == NULL)) break; //Finished?
 	}
-	finishIOW:
 	return 1; //Normal memory access!
 }
 
@@ -236,8 +239,10 @@ OPTINLINE byte MMU_IO_readhandler(uint_32 offset, byte *value)
 {
 	MMU_RHANDLER *list; //Current list item!
 	MMU_RHANDLER current; //Current handler!
+	if (BIOS_readhandler(offset, value)) return 0; //BIOS responded!
+	if (VGAmemIO_rb(offset, value)) return 0; //Video responded!
 	current = *(list = &MMUHANDLER.readhandlers[0]); //Start of our list!
-	if (unlikely(current == NULL)) goto finishIOR; //Finished?
+	if (likely(current == NULL)) return 1; //Finished?
 	for (;;) //Search all available handlers!
 	{
 		if (unlikely(current(offset,value))) //Success reading?
@@ -245,9 +250,8 @@ OPTINLINE byte MMU_IO_readhandler(uint_32 offset, byte *value)
 			return 0; //Abort searching: we're processed!
 		}
 		current = *(++list); //Next handler!
-		if (unlikely(current == NULL)) break; //Finished?
+		if (likely(current == NULL)) break; //Finished?
 	}
-	finishIOR:
 	return 1; //Normal memory access!
 }
 

@@ -1030,12 +1030,12 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 	basepos = tempoffset = offset; //Load the current location!
 	if (basepos >= BIOSROM_BASE_XT) //Inside 16-bit/32-bit range?
 	{
-		if (unlikely(basepos<0x100000)) basepos = BIOSROM_BASE_XT; //Our base reference position(low memory)!
+		if (unlikely(basepos < 0x100000)) basepos = BIOSROM_BASE_XT; //Our base reference position(low memory)!
 		else if (unlikely((basepos >= BIOSROM_BASE_Modern) && (EMULATED_CPU >= CPU_80386))) basepos = BIOSROM_BASE_Modern; //Our base reference position(high memory 386+)!
-		else if (unlikely((basepos >= BIOSROM_BASE_AT) && (EMULATED_CPU == CPU_80286) && (basepos<0x1000000))) basepos = BIOSROM_BASE_AT; //Our base reference position(high memmory 286)
-		else return 0; //Our of range (32-bit)?
+		else if (unlikely((basepos >= BIOSROM_BASE_AT) && (EMULATED_CPU == CPU_80286) && (basepos < 0x1000000))) basepos = BIOSROM_BASE_AT; //Our base reference position(high memmory 286)
+		else return OPTROM_writehandler(offset, value); //OPTROM? Out of range (32-bit)?
 	}
-	else return 0; //Our of range (32-bit)?
+	else return OPTROM_writehandler(offset, value); //Our of range (32-bit)?
 
 	tempoffset -= basepos; //Calculate from the base position!
 	if ((offset>=0xE0000) && (offset<=0xFFFFF) && (BIOSROM_DisableLowMemory)) return 0; //Disabled for Compaq RAM!
@@ -1157,7 +1157,7 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 		default: break; //Unknown even/odd mapping!
 		}
 
-	return 0; //Not recognised, use normal RAM!
+	return OPTROM_writehandler(offset, value); //Not recognised, use normal RAM or option ROM!
 }
 
 byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler function */
@@ -1167,12 +1167,12 @@ byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler fun
 	basepos = tempoffset = offset;
 	if (basepos>=BIOSROM_BASE_XT) //Inside 16-bit/32-bit range?
 	{
-		if (unlikely(basepos<0x100000)) {  basepos = BIOSROM_BASE_XT; endpos = 0x100000; } //Our base reference position(low memory)!
+		if (unlikely(basepos < 0x100000)) { basepos = BIOSROM_BASE_XT; endpos = 0x100000; } //Our base reference position(low memory)!
 		else if (unlikely((basepos >= BIOSROM_BASE_Modern) && (EMULATED_CPU >= CPU_80386))) { basepos = BIOSROM_BASE_Modern; endpos = 0x100000000ULL; } //Our base reference position(high memory 386+)!
-		else if (unlikely((basepos >= BIOSROM_BASE_AT) && (EMULATED_CPU == CPU_80286) && (basepos<0x1000000))) { basepos = BIOSROM_BASE_AT; endpos = 0x1000000; } //Our base reference position(high memmory 286)
-		else return 0; //Our of range (32-bit)?
+		else if (unlikely((basepos >= BIOSROM_BASE_AT) && (EMULATED_CPU == CPU_80286) && (basepos < 0x1000000))) { basepos = BIOSROM_BASE_AT; endpos = 0x1000000; } //Our base reference position(high memmory 286)
+		else return OPTROM_readhandler(offset, value); //OPTROM or nothing? Out of range (32-bit)?
 	}
-	else return 0; //Our of range (32-bit)?
+	else return OPTROM_readhandler(offset, value); //OPTROM or nothing? Out of range (32-bit)?
 	
 	baseposbackup = basepos; //Store for end location reversal!
 	tempoffset -= basepos; //Calculate from the base position!
@@ -1268,18 +1268,17 @@ byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler fun
 			break;
 			default: break; //Unknown even/odd mapping!
 	}
-
-	return 0; //Not recognised, use normal RAM!
+	return OPTROM_readhandler(offset, value); //OPTROM or nothing? Out of range (32-bit)?
 }
 
 void BIOS_registerROM()
 {
 	//Register our read&write handlers for 16&32-bit CPUs!
-	MMU_registerWriteHandler(&BIOS_writehandler,"BIOSROM");
-	MMU_registerReadHandler(&BIOS_readhandler,"BIOSROM");
-
-	MMU_registerReadHandler(&OPTROM_readhandler,"OPTROM");
-	MMU_registerWriteHandler(&OPTROM_writehandler,"OPTROM");
+	/*
+	MMU_registerWriteHandler(&BIOS_writehandler,"BIOSOPTROM");
+	MMU_registerReadHandler(&BIOS_readhandler,"BIOSOPTROM");
+	*/
+	//This is called directly now!
 }
 
 void BIOSROM_dumpBIOS()
