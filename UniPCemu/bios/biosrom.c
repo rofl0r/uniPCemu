@@ -731,7 +731,9 @@ int BIOS_load_VGAROM() //Load custom ROM from emulator itself!
 
 byte BIOSROM_DisableLowMemory = 0; //Disable low-memory mapping of the BIOS and OPTROMs! Disable mapping of low memory locations E0000-FFFFF used on the Compaq Deskpro 386.
 
-byte OPTROM_readhandler(uint_32 offset, byte *value)    /* A pointer to a handler function */
+extern byte memory_dataread;
+
+byte OPTROM_readhandler(uint_32 offset)    /* A pointer to a handler function */
 {
 	uint_32 ROMsize;
 	INLINEREGISTER uint_64 basepos, currentpos, temppos; //Current position!
@@ -779,10 +781,10 @@ byte OPTROM_readhandler(uint_32 offset, byte *value)    /* A pointer to a handle
 				}
 				if ((ISVGA==4) && (i==0)) //EGA ROM is reversed?
 				{
-					*value = OPT_ROMS[i][ROMsize-temppos-1]; //Read the data from the ROM, reversed!
+					memory_dataread = OPT_ROMS[i][ROMsize-temppos-1]; //Read the data from the ROM, reversed!
 					return 1; //Done: we've been read!				
 				}
-				*value = OPT_ROMS[i][temppos]; //Read the data from the ROM!
+				memory_dataread = OPT_ROMS[i][temppos]; //Read the data from the ROM!
 				return 1; //Done: we've been read!
 			}
 		}
@@ -793,7 +795,7 @@ byte OPTROM_readhandler(uint_32 offset, byte *value)    /* A pointer to a handle
 	{
 		if (likely(basepos < BIOS_custom_VGAROM_size)) //OK?
 		{
-			*value = BIOS_custom_VGAROM[basepos]; //Give the value!
+			memory_dataread = BIOS_custom_VGAROM[basepos]; //Give the value!
 			return 1;
 		}
 	}
@@ -1160,7 +1162,7 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 	return OPTROM_writehandler(offset, value); //Not recognised, use normal RAM or option ROM!
 }
 
-byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler function */
+byte BIOS_readhandler(uint_32 offset) /* A pointer to a handler function */
 {
 	INLINEREGISTER uint_32 basepos, tempoffset, baseposbackup;
 	uint_64 endpos;
@@ -1170,9 +1172,9 @@ byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler fun
 		if (unlikely(basepos < 0x100000)) { basepos = BIOSROM_BASE_XT; endpos = 0x100000; } //Our base reference position(low memory)!
 		else if (unlikely((basepos >= BIOSROM_BASE_Modern) && (EMULATED_CPU >= CPU_80386))) { basepos = BIOSROM_BASE_Modern; endpos = 0x100000000ULL; } //Our base reference position(high memory 386+)!
 		else if (unlikely((basepos >= BIOSROM_BASE_AT) && (EMULATED_CPU == CPU_80286) && (basepos < 0x1000000))) { basepos = BIOSROM_BASE_AT; endpos = 0x1000000; } //Our base reference position(high memmory 286)
-		else return OPTROM_readhandler(offset, value); //OPTROM or nothing? Out of range (32-bit)?
+		else return OPTROM_readhandler(offset); //OPTROM or nothing? Out of range (32-bit)?
 	}
-	else return OPTROM_readhandler(offset, value); //OPTROM or nothing? Out of range (32-bit)?
+	else return OPTROM_readhandler(offset); //OPTROM or nothing? Out of range (32-bit)?
 	
 	baseposbackup = basepos; //Store for end location reversal!
 	tempoffset -= basepos; //Calculate from the base position!
@@ -1184,7 +1186,7 @@ byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler fun
 			if (likely(tempoffset<0x10000)) //Within range?
 			{
 				tempoffset &= 0xFFFF; //16-bit ROM!
-				*value = BIOS_custom_ROM[tempoffset]; //Give the value!
+				memory_dataread = BIOS_custom_ROM[tempoffset]; //Give the value!
 				return 1; //Direct offset used!
 			}
 		}
@@ -1198,12 +1200,12 @@ byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler fun
 		tempoffset = (uint_32)(BIOS_custom_ROM_size-(endpos-(tempoffset+baseposbackup))); //Patch to the end block of the ROM instead of the start.
 		if (likely(tempoffset<BIOS_custom_ROM_size)) //Within range?
 		{
-			*value = BIOS_custom_ROM[tempoffset]; //Give the value!
+			memory_dataread = BIOS_custom_ROM[tempoffset]; //Give the value!
 			return 1; //ROM offset from the end of RAM used!
 		}
 		else //Custom ROM, but nothing to give? Give 0x00!
 		{
-			*value = 0x00; //Dummy value for the ROM!
+			memory_dataread = 0x00; //Dummy value for the ROM!
 			return 1; //Abort!
 		}
 		tempoffset = basepos; //Restore the temporary offset!
@@ -1220,7 +1222,7 @@ byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler fun
 			segment += 18; //The ROM number!
 			if (likely(BIOS_ROM_size[segment]>tempoffset)) //Within range?
 			{
-				*value = BIOS_ROMS[segment][tempoffset]; //Give the value!
+				memory_dataread = BIOS_ROMS[segment][tempoffset]; //Give the value!
 				return 1;
 			}
 			break;
@@ -1239,7 +1241,7 @@ byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler fun
 			segment += 13; //The ROM number!
 			if (likely(BIOS_ROM_size[segment]>tempoffset)) //Within range?
 			{
-				*value = BIOS_ROMS[segment][tempoffset]; //Give the value!
+				memory_dataread = BIOS_ROMS[segment][tempoffset]; //Give the value!
 				return 1;
 			}
 			break;
@@ -1251,7 +1253,7 @@ byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler fun
 			segment += 27; //The base ROM number!
 			if (likely(BIOS_ROM_size[segment]>tempoffset)) //Within range?
 			{
-				*value = BIOS_ROMS[segment][tempoffset]; //Give the value!
+				memory_dataread = BIOS_ROMS[segment][tempoffset]; //Give the value!
 				return 1;
 			}
 			break;
@@ -1262,13 +1264,13 @@ byte BIOS_readhandler(uint_32 offset, byte *value) /* A pointer to a handler fun
 			segment += 34; //The segment number to use!
 			if (likely(BIOS_ROM_size[segment]>tempoffset)) //Within range?
 			{
-				*value = BIOS_ROMS[segment][tempoffset]; //Give the value!
+				memory_dataread = BIOS_ROMS[segment][tempoffset]; //Give the value!
 				return 1;
 			}
 			break;
 			default: break; //Unknown even/odd mapping!
 	}
-	return OPTROM_readhandler(offset, value); //OPTROM or nothing? Out of range (32-bit)?
+	return OPTROM_readhandler(offset); //OPTROM or nothing? Out of range (32-bit)?
 }
 
 void BIOS_registerROM()
@@ -1300,7 +1302,6 @@ void BIOSROM_dumpBIOS()
 			endloc = 0x1000000;
 		}
 		BIGFILE *f;
-		byte data;
 		char filename[2][100];
 		memset(&filename,0,sizeof(filename)); //Clear/init!
 		snprintf(filename[0],sizeof(filename[0]), "%s/ROMDMP.%s.BIN", ROMpath,(is_Compaq?"32":(is_XT?"XT":"AT"))); //Create the filename for the ROM for the architecture!
@@ -1310,9 +1311,9 @@ void BIOSROM_dumpBIOS()
 		if (!f) return;
 		for (;baseloc<endloc;++baseloc)
 		{
-			if (BIOS_readhandler((uint_32)baseloc,&data)) //Read directly!
+			if (BIOS_readhandler((uint_32)baseloc)) //Read directly!
 			{
-				if (!emufwrite64(&data,1,1,f)) //Failed to write?
+				if (!emufwrite64(&memory_dataread,1,1,f)) //Failed to write?
 				{
 					emufclose64(f); //close!
 					delete_file(ROMpath,filename[1]); //Remove: invalid!

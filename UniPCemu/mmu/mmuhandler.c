@@ -235,17 +235,18 @@ OPTINLINE byte MMU_IO_writehandler(uint_32 offset, byte value)
 }
 
 //Reading only!
-OPTINLINE byte MMU_IO_readhandler(uint_32 offset, byte *value)
+byte memory_dataread = 0;
+OPTINLINE byte MMU_IO_readhandler(uint_32 offset)
 {
 	MMU_RHANDLER *list; //Current list item!
 	MMU_RHANDLER current; //Current handler!
-	if (BIOS_readhandler(offset, value)) return 0; //BIOS responded!
-	if (VGAmemIO_rb(offset, value)) return 0; //Video responded!
+	if (BIOS_readhandler(offset)) return 0; //BIOS responded!
+	if (VGAmemIO_rb(offset)) return 0; //Video responded!
 	current = *(list = &MMUHANDLER.readhandlers[0]); //Start of our list!
 	if (likely(current == NULL)) return 1; //Finished?
 	for (;;) //Search all available handlers!
 	{
-		if (unlikely(current(offset,value))) //Success reading?
+		if (unlikely(current(offset,&memory_dataread))) //Success reading?
 		{
 			return 0; //Abort searching: we're processed!
 		}
@@ -862,18 +863,17 @@ byte MMUbuffer_pending = 0; //Anything pending?
 //Direct memory access with Memory mapped I/O (for the CPU).
 byte MMU_INTERNAL_directrb_realaddr(uint_32 realaddress, byte index) //Read without segment/offset translation&protection (from system/interrupt)!
 {
-	byte data;
-	if (likely(MMU_IO_readhandler(realaddress, &data))) //Normal memory address?
+	if (likely(MMU_IO_readhandler(realaddress))) //Normal memory address?
 	{
-		if (unlikely(MMU_INTERNAL_directrb(realaddress, index, &data))) //Read the data from memory (and port I/O)!		
+		if (unlikely(MMU_INTERNAL_directrb(realaddress, index, &memory_dataread))) //Read the data from memory (and port I/O)!		
 		{
 			if (likely((is_XT == 0) || (EMULATED_CPU >= CPU_80286))) //To give NOT for detecting memory on AT only?
 			{
-				data = 0xFF; //Give the last data read/written by the BUS!
+				memory_dataread = 0xFF; //Give the last data read/written by the BUS!
 			}
 			else
 			{
-				data = (byte)(mem_BUSValue >> ((index & 3) << 3)); //Give the last data read/written by the BUS!
+				memory_dataread = (byte)(mem_BUSValue >> ((index & 3) << 3)); //Give the last data read/written by the BUS!
 			}
 		}
 	}
@@ -885,9 +885,9 @@ byte MMU_INTERNAL_directrb_realaddr(uint_32 realaddress, byte index) //Read with
 #endif
 	if (unlikely(is_debugging)) //To log?
 	{
-		debugger_logmemoryaccess(0,realaddress,data,LOGMEMORYACCESS_DIRECT|(((index&0x20)>>5)<<LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
+		debugger_logmemoryaccess(0,realaddress,memory_dataread,LOGMEMORYACCESS_DIRECT|(((index&0x20)>>5)<<LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
 	}
-	return data;
+	return memory_dataread;
 #undef is_debugging
 }
 
