@@ -420,7 +420,7 @@ void BIU_directwdw(uint_32 realaddress, uint_32 value, word index)
 
 extern uint_32 checkMMUaccess_linearaddr; //Saved linear address for the BIU to use!
 byte PIQ_block = 0; //Blocking any PIQ access now?
-void CPU_fillPIQ() //Fill the PIQ until it's full!
+OPTINLINE void CPU_fillPIQ() //Fill the PIQ until it's full!
 {
 	uint_32 realaddress, linearaddress;
 	INLINEREGISTER physaddr;
