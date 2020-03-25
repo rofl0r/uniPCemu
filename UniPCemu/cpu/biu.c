@@ -423,7 +423,7 @@ byte PIQ_block = 0; //Blocking any PIQ access now?
 OPTINLINE void CPU_fillPIQ() //Fill the PIQ until it's full!
 {
 	uint_32 realaddress, linearaddress;
-	INLINEREGISTER physaddr;
+	INLINEREGISTER uint_32 physaddr;
 	byte value;
 	if (unlikely(((PIQ_block==1) || (PIQ_block==9)) && (useIPSclock==0))) { PIQ_block = 0; return; /* Blocked access: only fetch one byte/word instead of a full word/dword! */ }
 	if (unlikely(BIU[activeCPU].PIQ==0)) return; //Not gotten a PIQ? Abort!
