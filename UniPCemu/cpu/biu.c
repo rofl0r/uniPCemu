@@ -420,15 +420,16 @@ void BIU_directwdw(uint_32 realaddress, uint_32 value, word index)
 
 extern uint_32 checkMMUaccess_linearaddr; //Saved linear address for the BIU to use!
 byte PIQ_block = 0; //Blocking any PIQ access now?
-OPTINLINE void CPU_fillPIQ() //Fill the PIQ until it's full!
+void CPU_fillPIQ() //Fill the PIQ until it's full!
 {
 	uint_32 realaddress, linearaddress;
 	INLINEREGISTER uint_32 physaddr;
 	byte value;
 	if (unlikely(((PIQ_block==1) || (PIQ_block==9)) && (useIPSclock==0))) { PIQ_block = 0; return; /* Blocked access: only fetch one byte/word instead of a full word/dword! */ }
 	if (unlikely(BIU[activeCPU].PIQ==0)) return; //Not gotten a PIQ? Abort!
+	BIU[activeCPU].requestready = 0; //We're starting a request!
 	realaddress = BIU[activeCPU].PIQ_Address; //Next address to fetch(Logical address)!
-	physaddr = checkMMUaccess_linearaddr = MMU_realaddr(CPU_SEGMENT_CS, REG_CS, realaddress, 0,0); //Linear adress!
+	checkMMUaccess_linearaddr = physaddr = MMU_realaddr(CPU_SEGMENT_CS, REG_CS, realaddress, 0,0); //Linear adress!
 	if (likely(BIU[activeCPU].PIQ_checked)) //Checked left not performing any memory checks?
 	{
 		--BIU[activeCPU].PIQ_checked; //Tick checked data to not check!
@@ -439,26 +440,28 @@ OPTINLINE void CPU_fillPIQ() //Fill the PIQ until it's full!
 		if (unlikely(checkMMUaccess(CPU_SEGMENT_CS, REG_CS, realaddress, 0x10 | 3, getCPL(), 0, 0))) return; //Abort on fault!
 		physaddr = linearaddress = checkMMUaccess_linearaddr; //Linear address!
 	}
-	if (unlikely(is_paging())) //Are we paging?
-	{
-		physaddr = mappage(physaddr,0,getCPL()); //Map it using the paging mechanism to a physical address!		
-	}
 	if (unlikely(checkMMUaccess_linearaddr & 1)) //Read an odd address?
 	{
 		PIQ_block &= 5; //Start blocking when it's 3(byte fetch instead of word fetch), also include dword odd addresses. Otherwise, continue as normally!		
 	}
-	writefifobuffer(BIU[activeCPU].PIQ, (value = BIU_directrb(physaddr,0|0x20|0x100))); //Add the next byte from memory into the buffer!
+	if (is_paging()) //Are we paging?
+	{
+		physaddr = mappage(physaddr,0,getCPL()); //Map it using the paging mechanism to a physical address!		
+	}
+	value = BIU_directrb(physaddr, 0 | 0x20 | 0x100); //Read the memory location!
+	writefifobuffer(BIU[activeCPU].PIQ, value); //Add the next byte from memory into the buffer!
 	if (unlikely(MMU_logging == 1)) //To log?
 	{
 		debugger_logmemoryaccess(0, linearaddress, value, LOGMEMORYACCESS_PAGED | ((((0 | 0x20 | 0x100) & 0x20) >> 5) << LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
 		debugger_logmemoryaccess(0, BIU[activeCPU].PIQ_Address, value, LOGMEMORYACCESS_NORMAL | ((((0 | 0x20 | 0x100) & 0x20) >> 5) << LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
 	}
+	//Next data! Take 4 cycles on 8088, 2 on 8086 when loading words/4 on 8086 when loading a single byte.
+	CPU[activeCPU].BUSactive = 1; //Start memory cycles!
+
+	//Prepare the next address to be read(EIP of the BIU)!
 	++realaddress; //Increase the address to the next location!
 	realaddress &= CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof; //Wrap EIP as needed!
 	BIU[activeCPU].PIQ_Address = realaddress; //Save the increased&wrapped EIP!
-	//Next data! Take 4 cycles on 8088, 2 on 8086 when loading words/4 on 8086 when loading a single byte.
-	CPU[activeCPU].BUSactive = 1; //Start memory cycles!
-	BIU[activeCPU].requestready = 0; //We're starting a request!
 }
 
 extern byte CPU_MMU_checkrights_cause; //What cause?
