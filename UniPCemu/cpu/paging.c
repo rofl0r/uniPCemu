@@ -88,6 +88,12 @@ extern byte EMU_RUNNING; //1 when paging can be applied!
 extern byte advancedlog; //Advanced log setting
 extern byte MMU_logging; //Are we logging from the MMU?
 word PFflags;
+
+//Small little cache for the most recent tags that are read!
+uint_32 mostrecentTAGread = 0; //Most recent read tag in the TLB!
+uint_32 mostrecentTAGmask = 0; //Most recent read tag mask in the TLB!
+uint_32 mostrecentTAGresult = 0; //The result of the most recent tag read!
+
 void raisePF(uint_32 address, word flags)
 {
 	if ((MMU_logging == 1) && advancedlog) //Are we logging?
@@ -394,6 +400,7 @@ OPTINLINE void PagingTLB_initlists()
 	byte setsize;
 	byte indexsize;
 	byte whichentry;
+	mostrecentTAGread = 0; //Invalidate to be sure!
 	setsize = /*(8<<((EMULATED_CPU>=CPU_80486)?1:0))*/ 16;
 	indexsize = /*(8>>((EMULATED_CPU>=CPU_80486)?1:0))*/ 4;
 	for (set = 0; set < setsize; ++set) //process all sets!
@@ -417,6 +424,7 @@ OPTINLINE void PagingTLB_clearlists()
 	byte setsize;
 	byte indexsize;
 	byte whichentry;
+	mostrecentTAGread = 0; //Invalidate to be sure!
 	setsize = /*(8<<((EMULATED_CPU>=CPU_80486)?1:0)) =*/ 16;
 	indexsize = /*(8>>((EMULATED_CPU>=CPU_80486)?1:0))*/ 4;
 	for (set = 0; set < setsize; ++set) //process all sets!
@@ -493,6 +501,7 @@ OPTINLINE TLB_ptr *allocTLB(sbyte set) //Allocate a TLB entry!
 	TLB_ptr *result;
 	if (CPU[activeCPU].Paging_TLB.TLB_freelist_head[set]) //Anything available?
 	{
+		mostrecentTAGread = 0; //Invalidate to be sure!
 		result = CPU[activeCPU].Paging_TLB.TLB_freelist_head[set]; //What item are we allocating, take it from the free list!
 		//Now take the item from the pool and move it to the used list!
 		CPU[activeCPU].Paging_TLB.TLB_freelist_head[set]->allocated = 1; //We're allocated now!
@@ -506,10 +515,12 @@ OPTINLINE TLB_ptr *allocTLB(sbyte set) //Allocate a TLB entry!
 	return NULL; //Nothing to allocate!
 }
 
+
 OPTINLINE void freeTLB(sbyte set, TLB_ptr *listitem) //Make an entry available again!
 {
 	if (listitem->allocated) //Are we allocated at all?
 	{
+		mostrecentTAGread = 0; //Invalidate last read TLB to be sure!
 		listitem->allocated = 0; //Mark us as freed!
 		Paging_moveListItem(listitem, //What item to take!
 			&CPU[activeCPU].Paging_TLB.TLB_freelist_head[set], //destination head
@@ -521,6 +532,7 @@ OPTINLINE void freeTLB(sbyte set, TLB_ptr *listitem) //Make an entry available a
 
 OPTINLINE void Paging_setNewestTLB(sbyte set, TLB_ptr *listitem) //Tick an TLB entry for making it the most recently used!
 {
+	mostrecentTAGread = 0; //Invalidate to be sure!
 	if (listitem->allocated) //Are we allocated at all?
 	{
 		Paging_moveListItem(listitem,
@@ -564,6 +576,7 @@ OPTINLINE TLBEntry *Paging_oldestTLB(sbyte set) //Find a TLB to be used/overwrit
 	indexsize = /*(8>>((EMULATED_CPU>=CPU_80486)?1:0))*/ 4;
 	whichentry = (set*indexsize)+3; //Which one?
 
+	mostrecentTAGread = 0; //Invalidate to be sure!
 	return &CPU[activeCPU].Paging_TLB.TLB[whichentry]; //Safety: return the final entry! Shouldn't happen under normal circumstances.
 }
 
@@ -675,6 +688,7 @@ void Paging_writeTLB(sbyte TLB_way, uint_32 logicaladdress, byte W, byte U, byte
 	curentry->data = result; //The result for the lookup!
 	curentry->TAG = TAG; //The TAG to find it by!
 	curentry->addrmask = addrmask; //Save the address mask for matching a TLB entry after it's stored!
+	mostrecentTAGread = 0; //Invalidate to be sure!
 	BIU_recheckmemory(); //Recheck anything that's fetching from now on!
 }
 
@@ -693,11 +707,18 @@ byte Paging_readTLB(byte *TLB_way, uint_32 logicaladdress, byte W, byte U, byte 
 		TAG = Paging_generateTAG(logicaladdress, W, U, D, A, S); //Generate a TAG!
 		TAG &= TAGMask; //Premask the search tag for faster comparison!
 
+		if (likely((mostrecentTAGread==TAG) && (mostrecentTAGmask==TAGMask) && (TLB_way==NULL))) //Same tag read again(and no extra action needed)?
+		{
+			return mostrecentTAGresult; //Give the most recent result!
+		}
+
 		for (; curentry;) //Check all entries that are allocated!
 		{
 			if (likely((curentry->entry->TAG&TAGMask) == TAG)) //Found and allocated?
 			{
-				*result = curentry->entry->data; //Give the stored data!
+				mostrecentTAGread = TAG; //Most recent tag that has been read!
+				mostrecentTAGmask = TAGMask; //What to count!
+				*result = mostrecentTAGresult = curentry->entry->data; //Give the stored data!
 				Paging_setNewestTLB(TLB_set, curentry); //Set us as the newest TLB!
 				if (unlikely(TLB_way)) //Requested way?
 				{
@@ -732,6 +753,7 @@ void Paging_Invalidate(uint_32 logicaladdress) //Invalidate a single address!
 
 void Paging_clearTLB()
 {
+	mostrecentTAGread = 0; //Invalidate to be sure!
 	PagingTLB_clearlists(); //Initialize the TLB lists to become empty!
 	BIU_recheckmemory(); //Recheck anything that's fetching from now on!
 }
