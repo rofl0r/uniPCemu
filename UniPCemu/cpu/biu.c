@@ -420,7 +420,12 @@ void BIU_directwdw(uint_32 realaddress, uint_32 value, word index)
 
 extern uint_32 checkMMUaccess_linearaddr; //Saved linear address for the BIU to use!
 byte PIQ_block = 0; //Blocking any PIQ access now?
+#ifdef IS_WINDOWS
 void CPU_fillPIQ() //Fill the PIQ until it's full!
+#else
+//Non-Windows doesn't have the overhead or profiling requirement of this function!
+OPTINLINE void CPU_fillPIQ() //Fill the PIQ until it's full!
+#endif
 {
 	uint_32 realaddress, linearaddress;
 	INLINEREGISTER uint_32 physaddr;
