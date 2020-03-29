@@ -318,6 +318,8 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 		}
 	}
 
+	CPU[activeCPU].allowInterrupts = 1; //Allow interrupts again after this task switch finishes(count as an instruction executing)!
+
 	enableMMUbuffer = 0; //Disable any MMU buffering: we need to update memory directly and properly, in order to work!
 
 	if ((MMU_logging == 1) && advancedlog) //Are we logging?
