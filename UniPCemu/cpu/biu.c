@@ -455,13 +455,15 @@ OPTINLINE void CPU_fillPIQ() //Fill the PIQ until it's full!
 	}
 	value = BIU_directrb(physaddr, 0 | 0x20 | 0x100); //Read the memory location!
 	writefifobuffer(BIU[activeCPU].PIQ, value); //Add the next byte from memory into the buffer!
+
+	//Next data! Take 4 cycles on 8088, 2 on 8086 when loading words/4 on 8086 when loading a single byte.
+	BIU[activeCPU].BUSactive = 1; //Start memory cycles!
+	
 	if (unlikely(MMU_logging == 1)) //To log?
 	{
 		debugger_logmemoryaccess(0, linearaddress, value, LOGMEMORYACCESS_PAGED | ((((0 | 0x20 | 0x100) & 0x20) >> 5) << LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
 		debugger_logmemoryaccess(0, BIU[activeCPU].PIQ_Address, value, LOGMEMORYACCESS_NORMAL | ((((0 | 0x20 | 0x100) & 0x20) >> 5) << LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
 	}
-	//Next data! Take 4 cycles on 8088, 2 on 8086 when loading words/4 on 8086 when loading a single byte.
-	BIU[activeCPU].BUSactive = 1; //Start memory cycles!
 
 	//Prepare the next address to be read(EIP of the BIU)!
 	++realaddress; //Increase the address to the next location!
