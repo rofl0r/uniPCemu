@@ -1025,7 +1025,7 @@ OPTINLINE void debugger_autolog()
 			safestrcpy(statelog,sizeof(statelog),""); //Default to empty!
 			if (DEBUGGER_LOGSTATES) //Are we logging states?
 			{
-				if (BIU[activeCPU].stallingBUS && ((BIU[activeCPU].stallingBUS!=3) || ((BIU[activeCPU].stallingBUS==3) && (CPU[activeCPU].BUSactive==0)))) //Stalling the BUS?
+				if (BIU[activeCPU].stallingBUS && ((BIU[activeCPU].stallingBUS!=3) || ((BIU[activeCPU].stallingBUS==3) && (BIU[activeCPU].BUSactive==0)))) //Stalling the BUS?
 				{
 					safestrcpy(statelog,sizeof(statelog),"BIU --"); //Stalling the BIU!
 				}

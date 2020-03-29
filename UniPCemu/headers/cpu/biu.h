@@ -45,6 +45,9 @@ typedef struct
 	uint_32 PIQ_Address; //EIP of the current PIQ data!
 	byte PIQ_checked; //How many bytes of data have been checked and don't need to be rechecked?
 
+	byte BUSactive; //Is the BUS currently active? Determines who's owning the BUS: 0=No control, 1=CPU, 2=DMA
+	byte _lock; //Lock signal status!
+
 	uint_32 currentrequest; //Current request!
 	uint_64 currentpayload[2]; //Current payload!
 	uint_32 currentresult; //Current result!

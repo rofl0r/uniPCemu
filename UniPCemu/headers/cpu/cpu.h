@@ -884,7 +884,6 @@ typedef struct
 	byte executed; //Has the current instruction finished executing?
 	word instructionstep, internalinstructionstep, modrmstep, internalmodrmstep, internalinterruptstep, stackchecked; //Step we're at, executing the instruction that's fetched and loaded to execute.
 	byte pushbusy; //Is a push operation busy?
-	byte BUSactive; //Is the BUS currently active? Determines who's owning the BUS: 0=No control, 1=CPU, 2=DMA
 	byte resetPending; //Is a CPU reset pending?
 	CPU_TLB Paging_TLB; //Our TLB to use for paging access!
 	byte is_paging; //Are we paging?
@@ -893,7 +892,6 @@ typedef struct
 	byte activeBreakpoint[4]; //Are we an active breakpoint?
 	uint_64 TSC; //Timestamp counter, counts raw clock cycles!
 	double TSCtiming; //How much remaining time has been counted on top of the time-stamp counter?
-	byte _lock; //Lock signal status!
 	byte unaffectedRF; //Don't affect the resume flag this instruction!
 } CPU_type;
 

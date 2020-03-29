@@ -28,12 +28,15 @@ DMA Controller (8237A)
 #include "headers/hardware/ports.h" //Port support!
 #include "headers/mmu/mmuhandler.h" //Direct Memory support!
 #include "headers/hardware/8237A.h" //Our own header!
-#include "headers/cpu/cpu.h" //CPU support for BUS sharing!
+#include "headers/cpu/cpu.h" //CPU support for the active CPU!
+#include "headers/cpu/biu.h" //CPU support for BUS sharing and the lock signal!
 
 //Are we disabled?
 #define __HW_DISABLED 0
 
 extern byte is_Compaq; //Are we emulating an Compaq architecture?
+
+extern BIU_type BIU[/*MAXCPUS*/ 1]; //The BIU for the BUS activity detection!
 
 typedef struct
 {
@@ -501,11 +504,11 @@ void DMA_StateHandler_S0()
 	//S0: Sample DLDA. Resolve DRQn priorities.
 	if (likely(useIPSclock==0)) //Cycle-accurate clock used?
 	{
-		if (CPU[activeCPU].BUSactive!=2) //Bus isn't assigned to ours yet?
+		if (BIU[activeCPU].BUSactive!=2) //Bus isn't assigned to ours yet?
 		{
-			if ((CPU[activeCPU].BUSactive==0) && (CPU[activeCPU]._lock==0)) //Are we to take the BUS now? The CPU has released the bus(is at T4 state now) and dropped the lock signal!
+			if ((BIU[activeCPU].BUSactive==0) && (BIU[activeCPU]._lock==0)) //Are we to take the BUS now? The CPU has released the bus(is at T4 state now) and dropped the lock signal!
 			{
-				CPU[activeCPU].BUSactive = 2; //Take control of the BUS(DLDA is now high). Wait 1 cycle(signal the CPU is this step. Receiving the HLDA the next cycle) before starting the transfer!
+				BIU[activeCPU].BUSactive = 2; //Take control of the BUS(DLDA is now high). Wait 1 cycle(signal the CPU is this step. Receiving the HLDA the next cycle) before starting the transfer!
 				if (blockDMA) //Blocking DMA grant for one cycle(semi-waitstate)?
 				{
 					DMA_waitstate = blockDMA; //Apply this waitstate!
@@ -520,7 +523,7 @@ void DMA_StateHandler_S0()
 			return; //NOP state!
 		}
 	}
-	else if (unlikely(CPU[activeCPU]._lock)) return; //Block us while the bus is locked in IPS clocking mode!
+	else if (unlikely(BIU[activeCPU]._lock)) return; //Block us while the bus is locked in IPS clocking mode!
 
 	if (DMA_waitstate) //Waiting on DMA transfer start?
 	{
@@ -580,7 +583,7 @@ void DMA_StateHandler_S0()
 	}
 	if (likely(useIPSclock==0)) //Cycle-accurate clock used?
 	{
-		CPU[activeCPU].BUSactive = (CPU[activeCPU].BUSactive==2)?0:CPU[activeCPU].BUSactive; //Release the BUS: we've got nothing to do after all!
+		BIU[activeCPU].BUSactive = (BIU[activeCPU].BUSactive==2)?0:BIU[activeCPU].BUSactive; //Release the BUS: we've got nothing to do after all!
 	}
 }
 
@@ -747,8 +750,8 @@ void DMA_StateHandler_S4()
 	DMA_S = 0; //Default to SI state!
 	if (likely(useIPSclock==0)) //Cycle-accurate clock used?
 	{	
-		CPU[activeCPU].BUSactive = (CPU[activeCPU].BUSactive==2)?0:CPU[activeCPU].BUSactive; //Release the BUS, when allowed!
-		retryclock = (((CPU[activeCPU].BUSactive==2) || (CPU[activeCPU].BUSactive==0))); //BUS available? Sample DREQ and perform steps to get directly into S1!
+		BIU[activeCPU].BUSactive = (BIU[activeCPU].BUSactive==2)?0:BIU[activeCPU].BUSactive; //Release the BUS, when allowed!
+		retryclock = (((BIU[activeCPU].BUSactive==2) || (BIU[activeCPU].BUSactive==0))); //BUS available? Sample DREQ and perform steps to get directly into S1!
 	}
 	else //Using IPS clock?
 	{

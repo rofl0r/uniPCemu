@@ -386,6 +386,8 @@ byte is_XT = 0; //Are we emulating an XT architecture?
 byte is_Compaq = 0; //Are we emulating an Compaq architecture?
 byte is_PS2 = 0; //Are we emulating PS/2 architecture extensions?
 
+extern BIU_type BIU[MAXCPUS]; //The BIU for the BUS activity reset!
+
 void initEMU(int full) //Init!
 {
 	char soundfont[256];
@@ -397,7 +399,7 @@ void initEMU(int full) //Init!
 
 	allcleared = 0; //Not cleared anymore!
 
-	CPU[activeCPU].BUSactive = 0; //Nobody's controlling the BUS!
+	BIU[activeCPU].BUSactive = 0; //Nobody's controlling the BUS!
 
 	MMU_resetHandlers(NULL); //Reset all memory handlers before starting!
 
