@@ -74,6 +74,7 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 	CPU[activeCPU].executed = 0; //Default: still busy executing!
 	CPU_interruptraised = 1; //We've raised an interrupt!
 	REPPending = CPU[activeCPU].repeating = 0; //Not repeating anymore!
+	CPU[activeCPU].allowInterrupts = 1; //Allow interrupts again after this interrupt finishes(count as an instruction executing)!
 	if ((getcpumode()==CPU_MODE_REAL) || (errorcode==-4)) //Use IVT structure in real mode only, or during VME when processing real-mode style interrupts(errorcode of -4)!
 	{
 		if (((errorcode == -4)?0x3FF:(CPU[activeCPU].registers->IDTR.limit))<((intnr<<2)|3)) //IVT limit too low?
