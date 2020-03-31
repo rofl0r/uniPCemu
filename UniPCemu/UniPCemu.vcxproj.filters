@@ -588,6 +588,9 @@
     <ClCompile Include="cpu\cpu_stack.c">
       <Filter>Source Files\cpu</Filter>
     </ClCompile>
+    <ClCompile Include="basicio\imdimage.c">
+      <Filter>Source Files\basicio</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="headers\header_dosbox.h">
@@ -1033,6 +1036,9 @@
     </ClInclude>
     <ClInclude Include="headers\interrupts\textmodedata.h">
       <Filter>Header Files\interrupts</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\basicio\imdimage.h">
+      <Filter>Header Files\basicio</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

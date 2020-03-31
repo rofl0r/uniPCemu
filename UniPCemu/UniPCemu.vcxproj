@@ -111,6 +111,7 @@
     <ClCompile Include="basicio\cueimage.c" />
     <ClCompile Include="basicio\dskimage.c" />
     <ClCompile Include="basicio\dynamicimage.c" />
+    <ClCompile Include="basicio\imdimage.c" />
     <ClCompile Include="basicio\io.c" />
     <ClCompile Include="basicio\port_io.c" />
     <ClCompile Include="basicio\port_mapper.c" />
@@ -268,6 +269,7 @@
     <ClInclude Include="headers\basicio\cueimage.h" />
     <ClInclude Include="headers\basicio\dskimage.h" />
     <ClInclude Include="headers\basicio\dynamicimage.h" />
+    <ClInclude Include="headers\basicio\imdimage.h" />
     <ClInclude Include="headers\basicio\io.h" />
     <ClInclude Include="headers\basicio\staticimage.h" />
     <ClInclude Include="headers\bios\bios.h" />
