@@ -957,7 +957,6 @@ byte writeIMDSector(char* filename, byte side, byte track, byte sector, word sec
 	FILEPOS compressedsectorpos; //Position of the compressed sector!
 	FILEPOS eofpos; //EOF position!
 	byte filldata;
-	byte is_compresseddata = 0; //Are we compressed data?
 	byte compresseddata_byteval; //What is the compressed data, if it's compressed?
 	byte physicalsectornr;
 	byte physicalheadnr;
@@ -976,7 +975,7 @@ byte writeIMDSector(char* filename, byte side, byte track, byte sector, word sec
 		return 0; //Not a IMD image!
 	}
 	fillsector = (byte*)sectordata; //What sector is supposed to be filled with this byte!
-	BIGFILE* f, *f2;
+	BIGFILE* f;
 	f = emufopen64(filename, "rb+"); //Open the image!
 	if (!f) return 0; //Not opened!
 	if (emufread64(&identifier, 1, sizeof(identifier), f) != sizeof(identifier)) //Try to read the header?
