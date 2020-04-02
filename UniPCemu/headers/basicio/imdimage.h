@@ -25,8 +25,8 @@ typedef struct
 } IMDIMAGE_SECTORINFO;
 
 byte is_IMDimage(char* filename); //Are we a IMD image?
-byte readIMDSectorInfo(char* filename, byte side, byte track, byte sector, IMDIMAGE_SECTORINFO* result);
-byte readIMDSector(char* filename, byte side, byte track, byte sector, word sectorsize, void* result);
-byte writeIMDSector(char* filename, byte side, byte track, byte sector, word sectorsize, void* sectordata);
+byte readIMDSectorInfo(char* filename, byte track, byte sector, IMDIMAGE_SECTORINFO* result);
+byte readIMDSector(char* filename, byte track, byte sector, word sectorsize, void* result);
+byte writeIMDSector(char* filename, byte track, byte sector, word sectorsize, void* sectordata);
 
 #endif

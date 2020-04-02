@@ -87,7 +87,7 @@ byte is_IMDimage(char* filename) //Are we a IMD image?
 	return 0; //Invalid IMD file!
 }
 
-byte readIMDSectorInfo(char* filename, byte side, byte track, byte sector, IMDIMAGE_SECTORINFO* result)
+byte readIMDSectorInfo(char* filename, byte track, byte sector, IMDIMAGE_SECTORINFO* result)
 {
 	byte physicalsectornr;
 	byte physicalheadnr;
@@ -515,7 +515,7 @@ validIMDheaderInfo:
 }
 
 
-byte readIMDSector(char* filename, byte side, byte track, byte sector, word sectorsize, void* result)
+byte readIMDSector(char* filename, byte track, byte sector, word sectorsize, void* result)
 {
 	byte filldata;
 	byte physicalsectornr;
@@ -948,7 +948,7 @@ validIMDheaderRead:
 	return 0; //Invalid IMD file!
 }
 
-byte writeIMDSector(char* filename, byte side, byte track, byte sector, word sectorsize, void* sectordata)
+byte writeIMDSector(char* filename, byte track, byte sector, word sectorsize, void* sectordata)
 {
 	uint_32 fillsector_dataleft;
 	byte *fillsector;
