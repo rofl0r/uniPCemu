@@ -94,7 +94,7 @@ byte readIMDSectorInfo(char* filename, byte track, byte sector, IMDIMAGE_SECTORI
 	byte physicalcylindernr;
 	word physicalsectorsize; //Effective sector size!
 	word sectornumber;
-	word* sectorsizemap; //Sector size map!
+	word* sectorsizemap=NULL; //Sector size map!
 	uint_32 datarecordnumber;
 	TRACKINFORMATIONBLOCK trackinfo;
 	word trackskipleft;
@@ -523,7 +523,7 @@ byte readIMDSector(char* filename, byte track, byte sector, word sectorsize, voi
 	byte physicalcylindernr;
 	word physicalsectorsize; //Effective sector size!
 	word sectornumber;
-	word* sectorsizemap; //Sector size map!
+	word* sectorsizemap=NULL; //Sector size map!
 	uint_32 datarecordnumber;
 	TRACKINFORMATIONBLOCK trackinfo;
 	word trackskipleft;
@@ -951,9 +951,9 @@ validIMDheaderRead:
 byte writeIMDSector(char* filename, byte track, byte sector, word sectorsize, void* sectordata)
 {
 	uint_32 fillsector_dataleft;
-	byte *fillsector;
-	byte *tailbuffer; //Buffer for the compressed sector until the end!
-	byte *headbuffer; //Buffer for the compressed sector until the end!
+	byte *fillsector=NULL;
+	byte *tailbuffer=NULL; //Buffer for the compressed sector until the end!
+	byte *headbuffer=NULL; //Buffer for the compressed sector until the end!
 	FILEPOS tailbuffersize; //Size of the tail buffer!
 	FILEPOS compressedsectorpos=0; //Position of the compressed sector!
 	FILEPOS eofpos; //EOF position!
@@ -965,7 +965,7 @@ byte writeIMDSector(char* filename, byte track, byte sector, word sectorsize, vo
 	byte physicalcylindernr;
 	word physicalsectorsize; //Effective sector size!
 	word sectornumber;
-	word* sectorsizemap; //Sector size map!
+	word* sectorsizemap=NULL; //Sector size map!
 	uint_32 datarecordnumber;
 	TRACKINFORMATIONBLOCK trackinfo;
 	word trackskipleft;
