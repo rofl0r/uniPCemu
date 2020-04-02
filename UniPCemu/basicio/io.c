@@ -22,6 +22,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/basicio/dynamicimage.h" //Dynamic image support!
 #include "headers/basicio/staticimage.h" //Static image support!
 #include "headers/basicio/dskimage.h" //DSK image support!
+#include "headers/basicio/imdimage.h" //IMD image support!
 #include "headers/support/log.h" //Logging support!
 #include "headers/bios/bios.h" //BIOS support for requesting ejecting a disk!
 #include "headers/basicio/cueimage.h" //CUE image support!
@@ -134,7 +135,7 @@ OPTINLINE void loadDisk(int device, char *filename, uint_64 startpos, byte reado
 	byte cueimage = 0;
 	if (!dynamicimage) //Might be a static image when not a dynamic image?
 	{
-		if (!is_DSKimage(fullfilename)) //Not a DSK image?
+		if (!(is_DSKimage(fullfilename)||is_IMDimage(fullfilename))) //Not a DSK/IMD image?
 		{
 			if (!(cueimage = is_cueimage(fullfilename))) //Not a cue image?
 			{
@@ -158,6 +159,7 @@ OPTINLINE void loadDisk(int device, char *filename, uint_64 startpos, byte reado
 	disks[device].selectedtrack = 1; //Default to the data track, track 1!
 	disks[device].selectedsubtrack = 1; //Default to the data subtrack, subtrack 1!
 	disks[device].DSKimage = dynamicimage ? 0 : is_DSKimage(filename); //DSK image?
+	disks[device].IMDimage = dynamicimage ? 0 : is_IMDimage(filename); //IMD image?
 	disks[device].size = (customsize>0) ? customsize : getdisksize(device); //Get sizes!
 	disks[device].writeErrorIsReadOnly = 0; //Unknown status by default: nothing is written yet!
 	if (cueimage) //CUE image?
@@ -167,8 +169,8 @@ OPTINLINE void loadDisk(int device, char *filename, uint_64 startpos, byte reado
 	}
 	else
 	{
-		disks[device].readhandler = disks[device].DSKimage ? NULL : (disks[device].dynamicimage ? &dynamicimage_readsector : &staticimage_readsector); //What read sector function to use!
-		disks[device].writehandler = disks[device].DSKimage ? NULL : (disks[device].dynamicimage ? &dynamicimage_writesector : &staticimage_writesector); //What write sector function to use!
+		disks[device].readhandler = (disks[device].DSKimage||disks[device].IMDimage) ? NULL : (disks[device].dynamicimage ? &dynamicimage_readsector : &staticimage_readsector); //What read sector function to use!
+		disks[device].writehandler = (disks[device].DSKimage||disks[device].IMDimage) ? NULL : (disks[device].dynamicimage ? &dynamicimage_writesector : &staticimage_writesector); //What write sector function to use!
 	}
 
 	registerdiskchange: //Register any disk changes!
@@ -248,9 +250,9 @@ byte io_getgeometry(int device, word *cylinders, word *heads, word *SPT) //Get g
 	{
 		return dynamicimage_getgeometry(dev,cylinders,heads,SPT); //Dynamic image format!
 	}
-	else if (disks[device].staticimage && (!disks[device].DSKimage)) //Static?
+	else if (disks[device].staticimage && (!(disks[device].DSKimage||disks[device].IMDimage))) //Static?
 	{
-		return staticimage_getgeometry(dev,cylinders,heads,SPT); //Dynamic image format!
+		return staticimage_getgeometry(dev,cylinders,heads,SPT); //Static image format!
 	}
 	return FALSE; //Unknown disk type!
 }
@@ -258,6 +260,11 @@ char *getDSKimage(int drive)
 {
 	if (drive<0 || drive>0xFF) return NULL; //Readonly with unknown drives!
 	return disks[drive].DSKimage?&disks[drive].filename[0]:NULL; //Filename for DSK images, NULL otherwise!
+}
+char* getIMDimage(int drive)
+{
+	if (drive < 0 || drive>0xFF) return NULL; //Readonly with unknown drives!
+	return disks[drive].IMDimage ? &disks[drive].filename[0] : NULL; //Filename for DSK images, NULL otherwise!
 }
 
 char *getCUEimage(int drive)

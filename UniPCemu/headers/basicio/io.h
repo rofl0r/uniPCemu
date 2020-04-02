@@ -38,6 +38,7 @@ BOOTIMGINFO customdisk; //Boot image info!
 byte dynamicimage; //Are we a dynamic image?
 byte staticimage; //Are we a static image?
 byte DSKimage; //Are we a DSK image?
+byte IMDimage; //Are we a IMD image?
 byte cueimage; //Are we a CUE image?
 SECTORHANDLER readhandler, writehandler; //Read&write handlers!
 uint_32 selectedtrack; //The track selected for this disk!
@@ -71,6 +72,7 @@ byte io_getgeometry(int device, word *cylinders, word *heads, word *SPT); //Get 
 uint_64 disksize(int disknumber); //Currently mounted disk size!
 void register_DISKCHANGE(int device, DISKCHANGEDHANDLER diskchangedhandler); //Register a disk changed handler!
 char *getDSKimage(int drive); //Get DSK image filename OR NULL if not a DSK image!
+char* getIMDimage(int drive); //Get IMD image filename OR NULL if not a IMD image!
 char *getCUEimage(int drive); //Get CUE image filename or NULL if not a CUE image!
 
 void CDROM_selecttrack(int device, uint_32 track); //Select a track for CD-ROM devices to read!

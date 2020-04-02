@@ -24,6 +24,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/basicio/io.h" //Basic I/O functionality!
 #include "headers/hardware/pic.h" //PIC support!
 #include "headers/basicio/dskimage.h" //DSK image support!
+#include "headers/basicio/imdimage.h" //DSK image support!
 #include "headers/support/log.h" //Logging support!
 #include "headers/hardware/floppy.h" //Our type definitions!
 #include "headers/bios/biosrom.h" //ROM support for Turbo XT BIOS detection!
@@ -123,6 +124,7 @@ struct
 	byte reset_pending,reset_pended; //Reset pending?
 	byte reset_pending_size; //Size of the pending reset max value! A maximum set of 3 with 4 drives reset!
 	byte currentcylinder[4], currenthead[4], currentsector[4]; //Current head for all 4 drives(current cylinder = the idea the FDC has of the current cylinder)!
+	byte currentformatsector[4]; //Current formatting sector(for IMD images)!
 	byte physicalcylinder[4]; //Actual physical drive cyclinder that's been selected on the drive(the physical cylinder on the drive)!
 	byte activecommand[4]; //What command is running to time?
 	byte TC; //Terminal count triggered?
@@ -554,13 +556,19 @@ extern CMOS_Type CMOS;
 
 OPTINLINE void updateFloppyGeometries(byte floppy, byte side, byte track)
 {
+	word IMDimage_tracks=0;
+	byte IMDimage_sides;
+	word IMDimage_sector;
+	byte IMDimage_SPT;
+	IMDIMAGE_SECTORINFO IMDImage_sectorinfo;
 	uint_64 floppysize = disksize(floppy); //Retrieve disk size for reference!
 	byte i;
 	char *DSKImageFile = NULL; //DSK image file to use?
+	char* IMDImageFile = NULL; //IMD image file to use?
 	DISKINFORMATIONBLOCK DSKInformation;
 	TRACKINFORMATIONBLOCK DSKTrackInformation;
 	FLOPPY.geometries[floppy] = NULL; //Init geometry to unknown!
-	if (!(DSKImageFile = getDSKimage((floppy) ? FLOPPY1 : FLOPPY0))) //Are we not a DSK image file?
+	if (!((DSKImageFile = getDSKimage((floppy) ? FLOPPY1 : FLOPPY0)) || (IMDImageFile = getIMDimage((floppy) ? FLOPPY1 : FLOPPY0)))) //Are we not a DSK/IMD image file?
 	{
 		for (i = 0; i < NUMITEMS(floppygeometries); i++) //Update the geometry!
 		{
@@ -601,6 +609,71 @@ OPTINLINE void updateFloppyGeometries(byte floppy, byte side, byte track)
 		}
 	}
 
+	if ((IMDImageFile = getIMDimage((floppy) ? FLOPPY1 : FLOPPY0))) //Are we a IMD image file?
+	{
+		IMDimage_sides = 1; //Single sided by default!
+		if (!readIMDSectorInfo(IMDImageFile, 0, 0, &IMDImage_sectorinfo)) //Failed to read the track? Doesn't exist!
+		{
+			IMDimage_tracks = 0; //No tracks found!
+			goto IMDimage_tracksfound; //Stop searching!
+		}
+		for (IMDimage_tracks = 0; IMDimage_tracks < 0x100;) //Determine the amount of tracks!
+		{
+			if (!readIMDSectorInfo(IMDImageFile, IMDimage_tracks, 0, &IMDImage_sectorinfo)) //Failed to read the track? Doesn't exist!
+			{
+				break; //Stop searching!
+			}
+			if (IMDimage_sides == 1) //Not double sided detected yet?
+			{
+				for (IMDimage_sector = 0; IMDimage_sector < IMDImage_sectorinfo.totalsectors;) //Check all sectors on the track!
+				{
+					if (readIMDSectorInfo(IMDImageFile, IMDimage_tracks, IMDimage_sector, &IMDImage_sectorinfo)) //Gotten sector information?
+					{
+						if (IMDImage_sectorinfo.headnumber) //Double sided has side 1 in it's track's sectors?
+						{
+							IMDimage_sides = 2; //Double sided!
+							goto nexttrack; //Next track!
+						}
+					}
+				}
+			}
+			nexttrack: //Process next track!
+			++IMDimage_tracks; //Next track and found a track!
+		}
+		IMDimage_tracksfound:
+		if (readIMDSectorInfo(IMDImageFile, track, 0, &IMDImage_sectorinfo)) //Gotten information about the IMD image?
+		{
+			IMDimage_SPT = 0; //Start to detect the SPT!
+			for (IMDimage_sector = 0; IMDimage_sector < IMDImage_sectorinfo.totalsectors;) //Check all sectors on the track!
+			{
+				if (readIMDSectorInfo(IMDImageFile, track, IMDimage_sector, &IMDImage_sectorinfo)) //Gotten sector information?
+				{
+					if (IMDImage_sectorinfo.headnumber == side) //Detected on this side?
+					{
+						++IMDimage_SPT; //Count the amount of sectors on this side!
+					}
+				}
+			}
+			FLOPPY.geometries[floppy] = &FLOPPY.customgeometry[floppy]; //Apply custom geometry!
+			FLOPPY.customgeometry[floppy].sides = IMDimage_sides; //Number of sides!
+			FLOPPY.customgeometry[floppy].tracks = IMDimage_tracks; //Number of tracks!
+			FLOPPY.customgeometry[floppy].SPT = IMDimage_SPT; //Number of sectors in this track and side!
+			//Fill in the remaining information with defaults!
+			FLOPPY.customgeometry[floppy].RPM = 300; //Default to 300 RPM!
+			FLOPPY.customgeometry[floppy].boardjumpersetting = 0; //Unknown, leave at 0!
+			FLOPPY.customgeometry[floppy].ClusterSize = 0; //Unknown!
+			FLOPPY.customgeometry[floppy].DirectorySize = 0; //Unknown!
+			FLOPPY.customgeometry[floppy].DoubleDensity = (IMDimage_SPT>40); //Probably double density?
+			FLOPPY.customgeometry[floppy].FATSize = 0; //Unknown!
+			FLOPPY.customgeometry[floppy].GAPLength = GAPLENGTH_IGNORE; //Our GAP3 length used! Unknown!
+			FLOPPY.customgeometry[floppy].KB = 0; //Raw size! Unknown!
+			FLOPPY.customgeometry[floppy].measurement = IMDimage_tracks > 40 ? 1 : 0; //Unknown, take 3,5" when >40 tracks!
+			FLOPPY.customgeometry[floppy].MediaDescriptorByte = 0x00; //Unknown!
+			FLOPPY.customgeometry[floppy].supportedrates = 0x1B; //Support all rates for now!
+			FLOPPY.customgeometry[floppy].TapeDriveRegister = 0x00; //Unknown!
+			return; //Geometry obtained!
+		}
+	}
 	//Another try, find biggest fit!
 	word largestKB = 0;
 	FLOPPY_GEOMETRY *largestgeometry = NULL; //The largest found!
@@ -1190,8 +1263,10 @@ void floppy_common_sectoraccess_nomedia()
 void floppy_readsector() //Request a read sector command!
 {
 	char *DSKImageFile = NULL; //DSK image file to use?
+	char* IMDImageFile = NULL; //IMD image file to use?
 	SECTORINFORMATIONBLOCK sectorinfo; //Information about the sector!
 	TRACKINFORMATIONBLOCK trackinfo;
+	IMDIMAGE_SECTORINFO IMD_sectorinfo; //Information about the sector!
 	word sectornr;
 
 	if ((!FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]) || ((FLOPPY_DOR_DRIVENUMBERR<2)?(!is_mounted(FLOPPY_DOR_DRIVENUMBERR?FLOPPY1:FLOPPY0)):1)) //Not inserted or valid?
@@ -1266,35 +1341,85 @@ void floppy_readsector() //Request a read sector command!
 	}
 	else //DSK or error?
 	{
-		if ((DSKImageFile = getDSKimage((FLOPPY_DOR_DRIVENUMBERR) ? FLOPPY1 : FLOPPY0))) //Are we a DSK image file?
+		if ((DSKImageFile = getDSKimage((FLOPPY_DOR_DRIVENUMBERR) ? FLOPPY1 : FLOPPY0)) || (IMDImageFile = getIMDimage((FLOPPY_DOR_DRIVENUMBERR) ? FLOPPY1 : FLOPPY0))) //Are we a DSK/IMD image file?
 		{
-			if (readDSKTrackInfo(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], &trackinfo) == 0) //Read?
+			if (DSKImageFile) //DSK image?
 			{
-				goto floppy_errorread;
-			}
-			for (sectornr = 0; sectornr < (word)trackinfo.numberofsectors; ++sectornr) //Find the sector that's to be requested!
-			{
-				if (readDSKSectorInfo(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], (byte)sectornr, &sectorinfo)) //Read?
+				if (readDSKTrackInfo(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], &trackinfo) == 0) //Read?
 				{
-					if ((sectorinfo.SectorID == FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]) && (sectorinfo.side == FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]) && (sectorinfo.track == FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR])) //Found the requested sector as indicated?
+					goto floppy_errorread;
+				}
+			}
+			else if (IMDImageFile) //IMD image?
+			{
+				if (readIMDSectorInfo(IMDImageFile, FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR],0, &IMD_sectorinfo) == 0) //Read track info?
+				{
+					goto floppy_errorread;
+				}
+			}
+			for (sectornr = 0; sectornr < (IMDImageFile?IMD_sectorinfo.totalsectors:(word)trackinfo.numberofsectors); ++sectornr) //Find the sector that's to be requested!
+			{
+				if (DSKImageFile) //DSK file format?
+				{
+					if (readDSKSectorInfo(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], (byte)sectornr, &sectorinfo)) //Read?
 					{
-						goto foundsectorIDread; //Found it!
+						if ((sectorinfo.SectorID == FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]) && (sectorinfo.side == FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]) && (sectorinfo.track == FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR])) //Found the requested sector as indicated?
+						{
+							goto foundsectorIDread; //Found it!
+						}
+					}
+				}
+				else if (IMDImageFile) //IMD image format?
+				{
+					if (readIMDSectorInfo(IMDImageFile, FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], (byte)sectornr, &IMD_sectorinfo)) //Found some sector information?
+					{
+						if (IMD_sectorinfo.datamark == DATAMARK_NORMALDATA) //Normal data mark found?
+						{
+							if ((IMD_sectorinfo.sectorID == FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]) && (IMD_sectorinfo.headnumber == FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]) && (sectorinfo.track == FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR])) //Found the requested sector as indicated?
+							{
+								goto foundsectorIDread; //Found it!
+							}
+						}
 					}
 				}
 			}
-			FLOPPY.readID_lastsectornumber = (trackinfo.numberofsectors-1); //Last sector reached, go back to the first one!
-			goto floppy_errorread;
-			foundsectorIDread: //Found the sector ID for the write!
-			if (readDSKSectorData(DSKImageFile,FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], (byte)sectornr, FLOPPY.commandbuffer[5], &FLOPPY.databuffersize)) //Read the data into memory?
+			if (DSKImageFile) //DSK image file?
 			{
-				if (readDSKSectorInfo(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], (byte)sectornr, &sectorinfo)) //Read the sector information too!
+				FLOPPY.readID_lastsectornumber = (trackinfo.numberofsectors - 1); //Last sector reached, go back to the first one!
+			}
+			else if (IMDImageFile) //IMD image file?
+			{
+				FLOPPY.readID_lastsectornumber = (IMD_sectorinfo.totalsectors - 1); //Last sector reached, go back to the first one!
+			}
+			goto floppy_errorread;
+		foundsectorIDread: //Found the sector ID for the write!
+			if (DSKImageFile) //DSK image file?
+			{
+				if (readDSKSectorData(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], (byte)sectornr, FLOPPY.commandbuffer[5], &FLOPPY.databuffersize)) //Read the data into memory?
 				{
-					FLOPPY.readID_lastsectornumber = (byte)sectornr; //This was the last sector we've read!
-					FLOPPY.ST1 = sectorinfo.ST1; //Load ST1!
-					FLOPPY.ST2 = sectorinfo.ST2; //Load ST2!
+					if (readDSKSectorInfo(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], (byte)sectornr, &sectorinfo)) //Read the sector information too!
+					{
+						FLOPPY.readID_lastsectornumber = (byte)sectornr; //This was the last sector we've read!
+						FLOPPY.ST1 = sectorinfo.ST1; //Load ST1!
+						FLOPPY.ST2 = sectorinfo.ST2; //Load ST2!
+					}
+					FLOPPY_startData();
+					return; //Just execute it!
 				}
-				FLOPPY_startData();
-				return; //Just execute it!
+			}
+			else if (IMDImageFile) //IMD image file?
+			{
+				if (readIMDSector(IMDImageFile, FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], (byte)sectornr, FLOPPY.databuffersize,&FLOPPY.databuffer)) //Read the data into memory?
+				{
+					if (readIMDSectorInfo(IMDImageFile, FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], (byte)sectornr, &IMD_sectorinfo)) //Read the sector information too!
+					{
+						FLOPPY.readID_lastsectornumber = (byte)sectornr; //This was the last sector we've read!
+						FLOPPY.ST1 = 0x00; //Load ST1!
+						FLOPPY.ST2 = 0x00; //Load ST2!
+					}
+					FLOPPY_startData();
+					return; //Just execute it!
+				}
 			}
 		}
 
@@ -1307,7 +1432,9 @@ void floppy_readsector() //Request a read sector command!
 void FLOPPY_formatsector() //Request a read sector command!
 {
 	char *DSKImageFile;
+	char *IMDImageFile;
 	SECTORINFORMATIONBLOCK sectorinfo;
+	IMDIMAGE_SECTORINFO IMD_sectorinfo; //Information about the sector!
 	++FLOPPY.sectorstransferred; //A sector has been transferred!
 	if (!FLOPPY_supportsrate(FLOPPY_DOR_DRIVENUMBERR) || !FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR] || ((FLOPPY_DOR_DRIVENUMBERR < 2) ? (!is_mounted(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0)) : 1)) //We don't support the rate or geometry?
 	{
@@ -1373,38 +1500,94 @@ void FLOPPY_formatsector() //Request a read sector command!
 		}
 
 		//Check disk specific information!
-		if ((DSKImageFile = getDSKimage((FLOPPY_DOR_DRIVENUMBERR) ? FLOPPY1 : FLOPPY0))) //Are we a DSK image file?
+		if ((DSKImageFile = getDSKimage((FLOPPY_DOR_DRIVENUMBERR) ? FLOPPY1 : FLOPPY0)) || (IMDImageFile = getIMDimage((FLOPPY_DOR_DRIVENUMBERR) ? FLOPPY1 : FLOPPY0))) //Are we a DSK/IMD image file?
 		{
-			if (!readDSKSectorInfo(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], (FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]-1), &sectorinfo)) //Failed to read sector information block?
+			if (DSKImageFile) //DSK image file?
 			{
-				goto floppy_errorformat;
-				return; //Error!
+				if (!readDSKSectorInfo(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], (FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR] - 1), &sectorinfo)) //Failed to read sector information block?
+				{
+					goto floppy_errorformat;
+					return; //Error!
+				}
+			}
+			else if (IMDImageFile) //IMD image file?
+			{
+				for (;;) //Loop searching for the next sector!
+				{
+					if (!readIMDSectorInfo(IMDImageFile, FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.currentformatsector[FLOPPY_DOR_DRIVENUMBERR], &IMD_sectorinfo)) //Failed to read sector information block?
+					{
+						goto floppy_errorformat;
+						return; //Error!
+					}
+					if (IMD_sectorinfo.headnumber != FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]) //Wrong head?
+					{
+						++FLOPPY.currentformatsector[FLOPPY_DOR_DRIVENUMBERR]; //Ignore this side and skip over it!
+						continue; //Ignore this head!
+					}
+					break; //Found the corresponding sector number!
+				}
 			}
 			
-			FLOPPY.readID_lastsectornumber = (FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR] - 1); //This was the last sector we've read!
-
-			if ((sectorinfo.track != FLOPPY.databuffer[0]) ||
-				(sectorinfo.side != FLOPPY.databuffer[1]) ||
-				(sectorinfo.SectorID != FLOPPY.databuffer[2])) //Sector ID mismatch?
+			if (DSKImageFile) //DSK image?
 			{
-				goto floppy_errorformat;
-				return; //Error!
+				FLOPPY.readID_lastsectornumber = (FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR] - 1); //This was the last sector we've read!
+			}
+			else if (IMDImageFile) //IMD image?
+			{
+				FLOPPY.readID_lastsectornumber = (FLOPPY.currentformatsector[FLOPPY_DOR_DRIVENUMBERR]); //This is the last sector we've read!
+			}
+
+			if (DSKImageFile) //DSK image?
+			{
+				if ((sectorinfo.track != FLOPPY.databuffer[0]) ||
+					(sectorinfo.side != FLOPPY.databuffer[1]) ||
+					(sectorinfo.SectorID != FLOPPY.databuffer[2])) //Sector ID mismatch?
+				{
+					goto floppy_errorformat;
+					return; //Error!
+				}
+			}
+			else if (IMDImageFile) //IMD image?
+			{
+				if ((IMD_sectorinfo.cylinderID != FLOPPY.databuffer[0]) ||
+					(IMD_sectorinfo.headnumber != FLOPPY.databuffer[1]) ||
+					(IMD_sectorinfo.sectorID != FLOPPY.databuffer[2])) //Sector ID mismatch?
+				{
+					goto floppy_errorformat;
+					return; //Error!
+				}
 			}
 
 			//Verify sector size!
-			if (sectorinfo.SectorSize != FLOPPY.databuffer[3]) //Invalid sector size?
+			if (DSKImageFile) //DSK image?
 			{
-				goto floppy_errorformat;
-				return; //Error!
+				if (sectorinfo.SectorSize != FLOPPY.databuffer[3]) //Invalid sector size?
+				{
+					goto floppy_errorformat;
+					return; //Error!
+				}
 			}
 
 			//Fill the sector buffer and write it!
-			memset(&FLOPPY.databuffer, FLOPPY.commandbuffer[5], MIN(((size_t)1 << sectorinfo.SectorSize),sizeof(FLOPPY.databuffer))); //Clear our buffer with the fill byte!
-			if (!writeDSKSectorData(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], (FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]-1), sectorinfo.SectorSize, &FLOPPY.databuffer)) //Failed writing the formatted sector?
+			if (DSKImageFile) //DSK image?
 			{
-				updateFloppyWriteProtected(1, FLOPPY_DOR_DRIVENUMBERR); //Tried to write!
-				goto floppy_errorformat;
-				return; //Error!
+				memset(&FLOPPY.databuffer, FLOPPY.commandbuffer[5], MIN(((size_t)1 << sectorinfo.SectorSize), sizeof(FLOPPY.databuffer))); //Clear our buffer with the fill byte!
+				if (!writeDSKSectorData(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], (FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR] - 1), sectorinfo.SectorSize, &FLOPPY.databuffer)) //Failed writing the formatted sector?
+				{
+					updateFloppyWriteProtected(1, FLOPPY_DOR_DRIVENUMBERR); //Tried to write!
+					goto floppy_errorformat;
+					return; //Error!
+				}
+			}
+			else if (IMDImageFile) //IMD image?
+			{
+				memset(&FLOPPY.databuffer, FLOPPY.commandbuffer[5], MIN(((size_t)0x80 << FLOPPY.databuffer[3]), sizeof(FLOPPY.databuffer))); //Clear our buffer with the fill byte!
+				if (!writeIMDSector(IMDImageFile, FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.currentformatsector[FLOPPY_DOR_DRIVENUMBERR], (0x80<<FLOPPY.databuffer[3]), &FLOPPY.databuffer)) //Failed writing the formatted sector?
+				{
+					updateFloppyWriteProtected(1, FLOPPY_DOR_DRIVENUMBERR); //Tried to write!
+					goto floppy_errorformat;
+					return; //Error!
+				}
 			}
 			updateFloppyWriteProtected(1, FLOPPY_DOR_DRIVENUMBERR); //Tried to write!
 		}
@@ -1449,6 +1632,7 @@ void FLOPPY_formatsector() //Request a read sector command!
 
 	FLOPPY_ST0_CURRENTHEADW(FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]); //Our idea of the current head!
 
+	++FLOPPY.currentformatsector[FLOPPY_DOR_DRIVENUMBERR]; //Handled this raw sector for the formats requiring it!
 	if (++FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR] > FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->SPT) //SPT passed? We're finished!
 	{
 		FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR] = 1; //Reset sector number!
@@ -1518,8 +1702,12 @@ void floppy_executeWriteData()
 {
 	word sectornr;
 	char *DSKImageFile = NULL; //DSK image file to use?
+	char *IMDImageFile = NULL; //DSK image file to use?
 	SECTORINFORMATIONBLOCK sectorinfo;
+	IMDIMAGE_SECTORINFO IMD_sectorinfo; //Information about the sector!
 	TRACKINFORMATIONBLOCK trackinfo;
+	byte DSKIMDsuccess=0;
+
 	if (!FLOPPY_supportsrate(FLOPPY_DOR_DRIVENUMBERR) || !FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR] || ((FLOPPY_DOR_DRIVENUMBERR < 2) ? (!is_mounted(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0)) : 1)) //We don't support the rate or geometry?
 	{
 		FLOPPY_LOGD("FLOPPY: Error: Invalid disk rate/geometry!")
@@ -1604,30 +1792,68 @@ void floppy_executeWriteData()
 			FLOPPY.commandstep = 3; //Move to result phase!
 			FLOPPY_raiseIRQ(); //Entering result phase!
 		}
-		else //DSK or error?
+		else //DSK/IMD or error?
 		{
 			updateFloppyWriteProtected(1, FLOPPY_DOR_DRIVENUMBERR); //Tried to write!
-			if ((DSKImageFile = getDSKimage((FLOPPY_DOR_DRIVENUMBERR) ? FLOPPY1 : FLOPPY0))) //Are we a DSK image file?
+			if ((DSKImageFile = getDSKimage((FLOPPY_DOR_DRIVENUMBERR) ? FLOPPY1 : FLOPPY0)) || (IMDImageFile = getIMDimage((FLOPPY_DOR_DRIVENUMBERR) ? FLOPPY1 : FLOPPY0))) //Are we a DSK image file?
 			{
-				if (readDSKTrackInfo(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], &trackinfo) == 0) //Read?
+				if (DSKImageFile) //DSK image?
 				{
-					goto didntfindsectoridwrite;
-				}
-				for (sectornr = 0; sectornr < (word)trackinfo.numberofsectors; ++sectornr) //Find the sector that's to be requested!
-				{
-					if (readDSKSectorInfo(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], (byte)sectornr, &sectorinfo)) //Read?
+					if (readDSKTrackInfo(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], &trackinfo) == 0) //Read?
 					{
-						if ((sectorinfo.SectorID == FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]) && (sectorinfo.side == FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]) && (sectorinfo.track == FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR])) //Found the requested sector as indicated?
+						goto didntfindsectoridwrite;
+					}
+				}
+				else if (IMDImageFile) //IMD image?
+				{
+					if (readIMDSectorInfo(IMDImageFile, FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], 0, &IMD_sectorinfo) == 0) //Read?
+					{
+						goto didntfindsectoridwrite;
+					}
+				}
+				for (sectornr = 0; sectornr < (IMDImageFile ? IMD_sectorinfo.totalsectors : ((word)trackinfo.numberofsectors)); ++sectornr) //Find the sector that's to be requested!
+				{
+					if (DSKImageFile) //DSK image?
+					{
+						if (readDSKSectorInfo(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], (byte)sectornr, &sectorinfo)) //Read?
 						{
-							goto foundsectorIDwrite; //Found it!
+							if ((sectorinfo.SectorID == FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]) && (sectorinfo.side == FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]) && (sectorinfo.track == FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR])) //Found the requested sector as indicated?
+							{
+								goto foundsectorIDwrite; //Found it!
+							}
+						}
+					}
+					else if (IMDImageFile) //IMD image?
+					{
+						if (readIMDSectorInfo(IMDImageFile, FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], (byte)sectornr, &IMD_sectorinfo)) //Read?
+						{
+							if ((IMD_sectorinfo.sectorID == FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]) && (IMD_sectorinfo.headnumber == FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]) && (IMD_sectorinfo.cylinderID == FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR])) //Found the requested sector as indicated?
+							{
+								goto foundsectorIDwrite; //Found it!
+							}
 						}
 					}
 				}
-				FLOPPY.readID_lastsectornumber = (trackinfo.numberofsectors - 1); //Last sector reached, go back to the first one!
+				if (DSKImageFile) //DSK image?
+				{
+					FLOPPY.readID_lastsectornumber = (trackinfo.numberofsectors - 1); //Last sector reached, go back to the first one!
+				}
+				else if (IMDImageFile) //IMD image?
+				{
+					FLOPPY.readID_lastsectornumber = (IMD_sectorinfo.totalsectors - 1); //Last sector reached, go back to the first one!
+				}
 				goto didntfindsectoridwrite;
 				foundsectorIDwrite: //Found the sector ID for the write!
 				FLOPPY.readID_lastsectornumber = (byte)sectornr; //This was the last sector we've read!
-				if (writeDSKSectorData(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], (byte)sectornr, FLOPPY.commandbuffer[5], &FLOPPY.databuffersize)) //Read the data into memory?
+				if (DSKImageFile) //DSK image file?
+				{
+					DSKIMDsuccess = writeDSKSectorData(DSKImageFile, FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], (byte)sectornr, FLOPPY.commandbuffer[5], &FLOPPY.databuffer); //Success?
+				}
+				else if (IMDImageFile)
+				{
+					DSKIMDsuccess = writeIMDSector(IMDImageFile, FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], (byte)sectornr, FLOPPY.databuffersize, &FLOPPY.databuffer); //Try to read the sector as requested!
+				}
+				if (DSKIMDsuccess) //Read the data into memory?
 				{
 					switch (floppy_increasesector(FLOPPY_DOR_DRIVENUMBERR)) //Goto next sector!
 					{
@@ -1766,9 +1992,13 @@ void floppy_executeData() //Execute a floppy command. Data is fully filled!
 
 void floppy_executeCommand() //Execute a floppy command. Buffers are fully filled!
 {
+	word IMDsectorsizerem; //Remainder to apply!
+	word IMDsectorsizeshift; //Calculated IMD sector size!
 	byte drive;
 	char *DSKImageFile = NULL; //DSK image file to use?
+	char *IMDImageFile = NULL; //DSK image file to use?
 	SECTORINFORMATIONBLOCK sectorinfo; //Information about the sector!
+	IMDIMAGE_SECTORINFO IMD_sectorinfo; //Information about the sector!
 	TRACKINFORMATIONBLOCK trackinfo;
 	word sectornr;
 	byte ReadID_loopdetection;
@@ -1937,18 +2167,28 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			FLOPPY_ST0_INTERRUPTCODEW(0); //OK! Correctly executed!
 			FLOPPY_ST0_CURRENTHEADW(FLOPPY.currenthead[drive]&1); //Head!
 			FLOPPY_ST0_UNITSELECTW(drive); //Unit selected!
-			if ((DSKImageFile = getDSKimage((drive) ? FLOPPY1 : FLOPPY0))) //Are we a DSK image file?
+			if ((DSKImageFile = getDSKimage((drive) ? FLOPPY1 : FLOPPY0)) || (IMDImageFile = getIMDimage((drive) ? FLOPPY1 : FLOPPY0))) //Are we a DSK/IMD image file?
 			{
-				if (readDSKTrackInfo(DSKImageFile, FLOPPY.currenthead[drive], FLOPPY.physicalcylinder[drive], &trackinfo) == 0) //Read?
+				if (DSKImageFile) //DSK image?
 				{
-					goto didntfindsectoridreadid;
+					if (readDSKTrackInfo(DSKImageFile, FLOPPY.currenthead[drive], FLOPPY.physicalcylinder[drive], &trackinfo) == 0) //Read?
+					{
+						goto didntfindsectoridreadid;
+					}
+				}
+				else if (IMDImageFile) //IMD image?
+				{
+					if (readIMDSectorInfo(IMDImageFile, FLOPPY.physicalcylinder[drive],0, &IMD_sectorinfo) == 0) //Read?
+					{
+						goto didntfindsectoridreadid;
+					}
 				}
 				ReadID_loopdetection = 2; //Allow looping back to the index hole twice(first time for the end being reached, second time for the sector not being found)!
 				retryReadID: //Try again for end-of-disc!
-				if (FLOPPY.readID_lastsectornumber >= trackinfo.numberofsectors) //Out of range?
+				if (FLOPPY.readID_lastsectornumber >= (IMDImageFile?IMD_sectorinfo.totalsectors:trackinfo.numberofsectors)) //Out of range?
 				{
 					sectornr = 0; //Try to use the first sector on the disk!
-					if (trackinfo.numberofsectors) //Valid?
+					if (IMDImageFile?IMD_sectorinfo.totalsectors:trackinfo.numberofsectors) //Valid?
 					{
 						goto tryReadIDnewsector; //Found the last sector number!
 					}
@@ -1956,40 +2196,90 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 				
 				for (sectornr = (FLOPPY.readID_lastsectornumber+1); sectornr < (word)trackinfo.numberofsectors; ++sectornr) //Find the next sector that's to be requested!
 				{
-					tryReadIDnewsector: //Try to read a new sector number!
-					if (readDSKSectorInfo(DSKImageFile, FLOPPY.currenthead[drive], FLOPPY.physicalcylinder[drive], (byte)sectornr, &sectorinfo)) //Read?
+				tryReadIDnewsector: //Try to read a new sector number!
+					if (DSKImageFile) //DSK image?
 					{
-						//if ((sectorinfo.SectorID == FLOPPY.currentsector[drive]) && (sectorinfo.side==FLOPPY.currenthead[drive]) && (sectorinfo.track==FLOPPY.currentcylinder[drive])) //Found the requested sector as indicated?
+						if (readDSKSectorInfo(DSKImageFile, FLOPPY.currenthead[drive], FLOPPY.physicalcylinder[drive], (byte)sectornr, &sectorinfo)) //Read?
 						{
-							FLOPPY.readID_lastsectornumber = (byte)sectornr; //This was the last sector we've read!
-							goto foundsectorIDreadid; //Found it!
+							//if ((sectorinfo.SectorID == FLOPPY.currentsector[drive]) && (sectorinfo.side==FLOPPY.currenthead[drive]) && (sectorinfo.track==FLOPPY.currentcylinder[drive])) //Found the requested sector as indicated?
+							{
+								FLOPPY.readID_lastsectornumber = (byte)sectornr; //This was the last sector we've read!
+								goto foundsectorIDreadid; //Found it!
+							}
+						}
+					}
+					else if (IMDImageFile) //IMD image?
+					{
+						if (readIMDSectorInfo(IMDImageFile, FLOPPY.physicalcylinder[drive], (byte)sectornr, &IMD_sectorinfo)) //Read?
+						{
+							//if ((sectorinfo.SectorID == FLOPPY.currentsector[drive]) && (sectorinfo.side==FLOPPY.currenthead[drive]) && (sectorinfo.track==FLOPPY.currentcylinder[drive])) //Found the requested sector as indicated?
+							if (IMD_sectorinfo.headnumber==FLOPPY.currenthead[drive]) //Selected head?
+							{
+								FLOPPY.readID_lastsectornumber = (byte)sectornr; //This was the last sector we've read!
+								goto foundsectorIDreadid; //Found it!
+							}
 						}
 					}
 				}
-				FLOPPY.readID_lastsectornumber = trackinfo.numberofsectors; //Last sector reached, go back to the first one!
+				if (DSKImageFile) //DSK image?
+				{
+					FLOPPY.readID_lastsectornumber = trackinfo.numberofsectors; //Last sector reached, go back to the first one!
+				}
+				else if (IMDImageFile) //IMD image?
+				{
+					FLOPPY.readID_lastsectornumber = IMD_sectorinfo.totalsectors; //Last sector reached, go back to the first one!
+				}
 				if (ReadID_loopdetection--) //Allowed to loop back to the start of the disc?
 				{
 					goto retryReadID; //Try again, from the index hole!
 				}
 				goto didntfindsectoridreadid; //Couldn't find a sector to give!
-				foundsectorIDreadid: //Found the sector ID for the write!
-				if (readDSKSectorInfo(DSKImageFile, FLOPPY.currenthead[drive], FLOPPY.physicalcylinder[drive], (byte)sectornr, &sectorinfo)) //Read the sector information too!
+			foundsectorIDreadid: //Found the sector ID for the write!
+				if (DSKImageFile) //DSK image?
 				{
-					FLOPPY.readID_lastsectornumber = (byte)sectornr; //This was the last sector we've read!
-					FLOPPY.ST1 = sectorinfo.ST1; //Load ST1!
-					FLOPPY.ST2 = sectorinfo.ST2; //Load ST2!
-					FLOPPY.resultbuffer[6] = sectorinfo.SectorSize; //Sector size!
-					FLOPPY.resultbuffer[3] = sectorinfo.track; //Cylinder(exception: actually give what we read from the disk)!
-					FLOPPY.resultbuffer[4] = sectorinfo.side; //Head!
-					FLOPPY.resultbuffer[5] = sectorinfo.SectorID; //Sector!
-				}
-				else
-				{
+					if (readDSKSectorInfo(DSKImageFile, FLOPPY.currenthead[drive], FLOPPY.physicalcylinder[drive], (byte)sectornr, &sectorinfo)) //Read the sector information too!
+					{
+						FLOPPY.readID_lastsectornumber = (byte)sectornr; //This was the last sector we've read!
+						FLOPPY.ST1 = sectorinfo.ST1; //Load ST1!
+						FLOPPY.ST2 = sectorinfo.ST2; //Load ST2!
+						FLOPPY.resultbuffer[6] = sectorinfo.SectorSize; //Sector size!
+						FLOPPY.resultbuffer[3] = sectorinfo.track; //Cylinder(exception: actually give what we read from the disk)!
+						FLOPPY.resultbuffer[4] = sectorinfo.side; //Head!
+						FLOPPY.resultbuffer[5] = sectorinfo.SectorID; //Sector!
+					}
+					else
+					{
 					didntfindsectoridreadid:
-					FLOPPY.ST1 = 0x00; //Not found!
-					FLOPPY.ST2 = 0x00; //Not found!
-					FLOPPY.resultbuffer[6] = 0; //Unknown sector size!
-					goto floppy_errorReadID; //Error out!
+						FLOPPY.ST1 = 0x00; //Not found!
+						FLOPPY.ST2 = 0x00; //Not found!
+						FLOPPY.resultbuffer[6] = 0; //Unknown sector size!
+						goto floppy_errorReadID; //Error out!
+					}
+				}
+				else if (IMDImageFile) //IMD image?
+				{
+					if (readIMDSectorInfo(IMDImageFile, FLOPPY.physicalcylinder[drive], (byte)sectornr, &IMD_sectorinfo)) //Read the sector information too!
+					{
+						FLOPPY.readID_lastsectornumber = (byte)sectornr; //This was the last sector we've read!
+						FLOPPY.ST1 = 0x00; //Load ST1!
+						FLOPPY.ST2 = 0x00; //Load ST2!
+						FLOPPY.resultbuffer[6] = 0; //Default: no shift!
+						IMDsectorsizerem = (IMD_sectorinfo.sectorsize >> 7); //Initialize shifting value!
+						IMDsectorsizeshift = 0; //Default: nothing shifted!
+						for (;IMDsectorsizerem;) //Bits left set?
+						{
+							IMDsectorsizerem >>= 1; //Shift one bit off!
+							++IMDsectorsizeshift; //One more set bit has been shifted off!
+						}
+						FLOPPY.resultbuffer[6] = IMDsectorsizeshift; //Sector size in 128<<n format!
+						FLOPPY.resultbuffer[3] = IMD_sectorinfo.cylinderID; //Cylinder(exception: actually give what we read from the disk)!
+						FLOPPY.resultbuffer[4] = IMD_sectorinfo.headnumber; //Head!
+						FLOPPY.resultbuffer[5] = IMD_sectorinfo.sectorID; //Sector!
+					}
+					else //Couldn't read sector information?
+					{
+						goto didntfindsectoridreadid; //Same as above!
+					}
 				}
 			}
 			else //Normal disk? Generate valid data!
@@ -2045,6 +2335,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			FLOPPY.activecommand[drive] = FLOPPY.commandbuffer[0]; //Our command to execute!
 			FLOPPY.currenthead[drive] = (FLOPPY.commandbuffer[1] & 4) >> 2; //Set the new head from the parameters!
 			FLOPPY.currentsector[drive] = 1; //Start out with sector #1(first sector of the track on DSK images)!
+			FLOPPY.currentformatsector[drive] = 0; //Currently formatting sector number on the track for IMD images, 0-based, sides in any order!
 			updateFloppyGeometries(drive, FLOPPY.currenthead[drive], FLOPPY.physicalcylinder[drive]); //Update our geometry to use!
 			if (!(FLOPPY_DOR_MOTORCONTROLR&(1 << drive))) //Not motor ON?
 			{
@@ -2065,7 +2356,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 				return;
 			}
 
-			if ((DSKImageFile = getDSKimage((drive) ? FLOPPY1 : FLOPPY0))) //Are we a DSK image file?
+			if ((DSKImageFile = getDSKimage((drive) ? FLOPPY1 : FLOPPY0)) || (IMDImageFile = getIMDimage((drive) ? FLOPPY1 : FLOPPY0))) //Are we a DSK image file?
 			{
 				FLOPPY.databuffersize = 4; //We're 4 bytes per sector!
 				FLOPPY_startData(); //Start the data transfer!
