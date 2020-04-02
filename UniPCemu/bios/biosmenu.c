@@ -41,6 +41,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/emu/input.h" //We need input using psp_inputkey.
 #include "headers/emu/emu_vga.h" //VGA update support!
 #include "headers/basicio/dskimage.h" //DSK image support!
+#include "headers/basicio/imdimage.h" //DSK image support!
 #include "headers/support/mid.h" //MIDI player support!
 #include "headers/hardware/ssource.h" //Sound Source volume knob support!
 #include "headers/emu/gpu/gpu_framerate.h" //Framerate support!
@@ -1221,6 +1222,14 @@ void hdd_information(char *filename) //Displays information about a harddisk to 
 		GPU_EMU_printscreen(0, 7, "Disk size: %08i MB %04i KB", (uint_32)(size / MBMEMORY), (uint_32)((size % MBMEMORY) / 1024)); //Show size too!
 		GPU_EMU_printscreen(0, 8, "                                  "); //Clear file size info!
 	}
+	else if (is_IMDimage(path)) //IMD disk image?
+	{
+		IMDIMAGE_SECTORINFO sectorinfo;
+		if (!readIMDSectorInfo(path,0,0,&sectorinfo)) goto unknownimage;
+		GPU_EMU_printscreen(0, 6, "This is a IMD disk image file.              "); //Show selection init!
+		GPU_EMU_printscreen(0, 7, "                              "); //Don't show size!
+		GPU_EMU_printscreen(0, 8, "                                  "); //Clear file size info!
+	}
 	else if (is_staticimage(path)) //Static image?
 	{
 		size = staticimage_getsize(path); //Get the filesize!
@@ -1274,7 +1283,7 @@ void BIOS_disk_nofiles()
 void BIOS_floppy0_selection() //FLOPPY0 selection menu!
 {
 	BIOS_Title("Mount FLOPPY A");
-	generateFileList(diskpath,"img|ima|dsk",0,0); //Generate file list for all .img files!
+	generateFileList(diskpath,"img|ima|dsk|imd",0,0); //Generate file list for all .img files!
 	EMU_locktext();
 	EMU_gotoxy(0,4); //Goto 4th row!
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
@@ -1306,7 +1315,7 @@ void BIOS_floppy0_selection() //FLOPPY0 selection menu!
 void BIOS_floppy1_selection() //FLOPPY1 selection menu!
 {
 	BIOS_Title("Mount FLOPPY B");
-	generateFileList(diskpath,"img|ima|dsk",0,0); //Generate file list for all .img files!
+	generateFileList(diskpath,"img|ima|dsk|imd",0,0); //Generate file list for all .img files!
 	EMU_locktext();
 	EMU_gotoxy(0,4); //Goto 4th row!
 	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
