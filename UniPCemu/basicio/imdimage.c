@@ -951,11 +951,13 @@ validIMDheaderRead:
 byte writeIMDSector(char* filename, byte side, byte track, byte sector, word sectorsize, void* sectordata)
 {
 	uint_32 fillsector_dataleft;
-	byte* fillsector;
+	byte *fillsector;
 	byte *tailbuffer; //Buffer for the compressed sector until the end!
+	byte *headbuffer; //Buffer for the compressed sector until the end!
 	FILEPOS tailbuffersize; //Size of the tail buffer!
-	FILEPOS compressedsectorpos; //Position of the compressed sector!
+	FILEPOS compressedsectorpos=0; //Position of the compressed sector!
 	FILEPOS eofpos; //EOF position!
+	byte retryingheaderror; //Prevents infinite loop on file rewrite!
 	byte filldata;
 	byte compresseddata_byteval; //What is the compressed data, if it's compressed?
 	byte physicalsectornr;
@@ -1275,11 +1277,18 @@ validIMDheaderRead:
 	if (datarecordnumber) //Left to read? Reached the sector!
 	{
 		compressedsectorpos = emuftell64(f); //What is the location of the compressed sector in the original file, if it's compressed!
+		if (compressedsectorpos < 0) goto failedcompressedpos; //Failed detecting the compressed location?
+		headbuffer = (byte*)zalloc(compressedsectorpos, "IMDIMAGE_FAILEDHEADBUFFER",NULL);
 		if (emufread64(&data, 1, sizeof(data), f) != sizeof(data)) //Read the identifier!
 		{
+			failedcompressedpos:
 			if (sectorsizemap) //Allocated sector size map?
 			{
 				freez((void**)&sectorsizemap, (trackinfo.sectorspertrack << 1), "IMDIMAGE_SECTORSIZEMAP"); //Free the allocated sector size map!
+			}
+			if (headbuffer) //Head buffer allocated?
+			{
+				freez((void**)&headbuffer, compressedsectorpos, "IMDIMAGE_FAILEDHEADBUFFER"); //Free the allocated sector size map!
 			}
 			emufclose64(f); //Close the image!
 			return 0; //Invalid IMD file!
@@ -1293,6 +1302,10 @@ validIMDheaderRead:
 				if (sectorsizemap) //Allocated sector size map?
 				{
 					freez((void**)&sectorsizemap, (trackinfo.sectorspertrack << 1), "IMDIMAGE_SECTORSIZEMAP"); //Free the allocated sector size map!
+				}
+				if (headbuffer) //Head buffer allocated?
+				{
+					freez((void**)&headbuffer, compressedsectorpos, "IMDIMAGE_FAILEDHEADBUFFER"); //Free the allocated sector size map!
 				}
 				emufclose64(f); //Close the image!
 				return 0; //Invalid IMD file!
@@ -1328,6 +1341,10 @@ validIMDheaderRead:
 					{
 						freez((void**)&sectorsizemap, (trackinfo.sectorspertrack << 1), "IMDIMAGE_SECTORSIZEMAP"); //Free the allocated sector size map!
 					}
+					if (headbuffer) //Head buffer allocated?
+					{
+						freez((void**)&headbuffer, compressedsectorpos, "IMDIMAGE_FAILEDHEADBUFFER"); //Free the allocated sector size map!
+					}
 					emufclose64(f); //Close the image!
 					return 1; //Gotten information about the record!
 				}
@@ -1353,6 +1370,10 @@ validIMDheaderRead:
 					if (sectorsizemap) //Allocated sector size map?
 					{
 						freez((void**)&sectorsizemap, (trackinfo.sectorspertrack << 1), "IMDIMAGE_SECTORSIZEMAP"); //Free the allocated sector size map!
+					}
+					if (headbuffer) //Head buffer allocated?
+					{
+						freez((void**)&headbuffer, compressedsectorpos, "IMDIMAGE_FAILEDHEADBUFFER"); //Free the allocated sector size map!
 					}
 					emufclose64(f); //Close the image!
 					return 0; //Invalid IMD file!
@@ -1438,12 +1459,22 @@ validIMDheaderRead:
 					{
 						//Perform an undo operation!
 					undoUncompressedsectorwrite: //Undo it!
+						if (emufseek64(f, 0, SEEK_SET) < 0) //Failed getting to BOF?
+						{
+							goto invalidsectordata; //Error out!
+						}
+						if (emufread64(headbuffer, 1, compressedsectorpos, f) != compressedsectorpos) //Failed reading the head?
+						{
+							goto invalidsectordata; //Error out!
+						}
 						if (emufseek64(f, compressedsectorpos, SEEK_SET) < 0) //Failed to seek?
 						{
 							freez((void**)&tailbuffer, tailbuffersize, "IMDIMAGE_FOOTERDATA"); //Release the tail buffer!
 							goto invalidsectordata; //Error out!
 						}
-						if (emufwrite64(&data, 1, sizeof(data), f) < 0) //Failed to write the compressed ID?
+						retryingheaderror = 1; //Allow retrying rewrite once!
+					retryclearedend: //After writing the head buffer when not having reached EOF at the end of this!
+						if (emufwrite64(&data, 1, sizeof(data), f) != sizeof(data)) //Failed to write the compressed ID?
 						{
 							freez((void**)&tailbuffer, tailbuffersize, "IMDIMAGE_FOOTERDATA"); //Release the tail buffer!
 							goto invalidsectordata; //Error out!
@@ -1458,7 +1489,42 @@ validIMDheaderRead:
 							freez((void**)&tailbuffer, tailbuffersize, "IMDIMAGE_FOOTERDATA"); //Release the tail buffer!
 							goto invalidsectordata; //Error out!
 						}
+						if (emufseek64(f, 0, SEEK_END) < 0) //Couldn't seek to EOF?
+						{
+							freez((void**)&tailbuffer, tailbuffersize, "IMDIMAGE_FOOTERDATA"); //Release the tail buffer!
+							goto invalidsectordata; //Error out!
+						}
+						if ((emuftell64(f)!=eofpos) && retryingheaderror) //EOF has changed to an incorrect value?
+						{
+							emufclose64(f); //Close the image!
+							f = emufopen64(filename, "wb"); //Open the image!
+							if (!f) //Failed to reopen?
+							{
+								if (headbuffer) //Head buffer allocated?
+								{
+									freez((void**)&headbuffer, compressedsectorpos, "IMDIMAGE_FAILEDHEADBUFFER"); //Free the allocated sector size map!
+								}
+								freez((void**)&tailbuffer, tailbuffersize, "IMDIMAGE_FOOTERDATA"); //Release the tail buffer!
+								goto invalidsectordata; //Error out!
+							}
+							if (emufwrite64(headbuffer, 1, compressedsectorpos, f) != compressedsectorpos) //Failed writing the original head data back?
+							{
+								if (headbuffer) //Head buffer allocated?
+								{
+									freez((void**)&headbuffer, compressedsectorpos, "IMDIMAGE_FAILEDHEADBUFFER"); //Free the allocated sector size map!
+								}
+								freez((void**)&tailbuffer, tailbuffersize, "IMDIMAGE_FOOTERDATA"); //Release the tail buffer!
+								goto invalidsectordata; //Error out!
+							}
+							retryingheaderror = 0; //Fail if this occurs again, prevent infinite loop!
+							goto retryclearedend; //Retry with the end having been cleared!
+						}
+
 						freez((void**)&tailbuffer, tailbuffersize, "IMDIMAGE_FOOTERDATA"); //Release the tail buffer!
+						if (headbuffer) //Head buffer allocated?
+						{
+							freez((void**)&headbuffer, compressedsectorpos, "IMDIMAGE_FAILEDHEADBUFFER"); //Free the allocated sector size map!
+						}
 						goto invalidsectordata; //Error out always, since we couldn't update the real data!
 					}
 					if (emufwrite64(tailbuffer, 1, tailbuffersize, f) != tailbuffersize) //Couldn't update the remainder of the file correctly?
@@ -1468,6 +1534,10 @@ validIMDheaderRead:
 					//We've successfully updated the file with a new sector!
 					//The compressed sector data has been updated!
 					freez((void**)&tailbuffer, tailbuffersize, "IMDIMAGE_FOOTERDATA"); //Release the tail buffer!
+					if (headbuffer) //Head buffer allocated?
+					{
+						freez((void**)&headbuffer, compressedsectorpos, "IMDIMAGE_FAILEDHEADBUFFER"); //Free the allocated sector size map!
+					}
 					goto sectorready; //Success!
 				}
 				//memset(result, filldata, physicalsectorsize); //Give the result: a sector filled with one type of data!
@@ -1485,6 +1555,10 @@ validIMDheaderRead:
 	if (sectorsizemap) //Allocated sector size map?
 	{
 		freez((void**)&sectorsizemap, (trackinfo.sectorspertrack << 1), "IMDIMAGE_SECTORSIZEMAP"); //Free the allocated sector size map!
+	}
+	if (headbuffer) //Head buffer allocated?
+	{
+		freez((void**)&headbuffer, compressedsectorpos, "IMDIMAGE_FAILEDHEADBUFFER"); //Free the allocated sector size map!
 	}
 	emufclose64(f); //Close the image!
 	return 0; //Invalid IMD file!
