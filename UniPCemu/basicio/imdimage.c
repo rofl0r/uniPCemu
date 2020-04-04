@@ -426,7 +426,7 @@ validIMDheaderInfo:
 
 		if (data > 8) //Undefined value?
 		{
-		invalidsectordata:
+		invalidsectordataInfo:
 			if (sectorsizemap) //Allocated sector size map?
 			{
 				freez((void**)&sectorsizemap, (trackinfo.sectorspertrack << 1), "IMDIMAGE_SECTORSIZEMAP"); //Free the allocated sector size map!
@@ -444,11 +444,11 @@ validIMDheaderInfo:
 					//Check if we're valid!
 					if (emufseek64(f, sectorsizemap[sectornumber], SEEK_CUR) < 0) //Failed to skip the data part of the sector?
 					{
-						goto invalidsectordata; //Error out!
+						goto invalidsectordataInfo; //Error out!
 					}
 					physicalsectorsize = sectorsizemap[sectornumber]; //Physical sector size!
 					//The sector is loaded and valid!
-				sectorready:
+				sectorreadyInfo:
 					//Fill up the sector information block!
 					result->cylinderID = physicalcylindernr; //Physical cylinder number!
 					result->headnumber = physicalheadnr; //Physical head number!
@@ -457,7 +457,7 @@ validIMDheaderInfo:
 					result->sectorsize = physicalsectorsize; //Physical sector size!
 					result->totalsectors = trackinfo.sectorspertrack; //How many sectors are on this track!
 					result->datamark = ((data - 1) >> 1); //What is it marked as!
-					sectorready_unreadable:
+					sectorready_unreadableInfo:
 
 					//Finish up!
 					if (sectorsizemap) //Allocated sector size map?
@@ -471,11 +471,11 @@ validIMDheaderInfo:
 				{
 					if (emufseek64(f, SECTORSIZE_BYTES(trackinfo.SectorSize), SEEK_CUR) < 0) //Errored out?
 					{
-						goto invalidsectordata;
+						goto invalidsectordataInfo;
 					}
 					physicalsectorsize = SECTORSIZE_BYTES(trackinfo.SectorSize); //How large are we physically!
 
-					goto sectorready; //Handle ready sector information!
+					goto sectorreadyInfo; //Handle ready sector information!
 				}
 			}
 			else //Compressed?
@@ -497,7 +497,7 @@ validIMDheaderInfo:
 				{
 					physicalsectorsize = SECTORSIZE_BYTES(trackinfo.SectorSize); //Errored out?
 				}
-				goto sectorready;
+				goto sectorreadyInfo;
 			}
 		}
 		else //Unreadable sector?
@@ -509,7 +509,7 @@ validIMDheaderInfo:
 			result->sectorsize = 0; //Physical sector size!
 			result->totalsectors = trackinfo.sectorspertrack; //How many sectors are on this track!
 			result->datamark = DATAMARK_INVALID; //What is it marked as!
-			goto sectorready_unreadable; //Handle the unreadable sector result!
+			goto sectorready_unreadableInfo; //Handle the unreadable sector result!
 		}
 	}
 
@@ -865,7 +865,7 @@ validIMDheaderRead:
 		{
 			if (data > 8) //Undefined value?
 			{
-			invalidsectordata:
+			invalidsectordataRead:
 				if (sectorsizemap) //Allocated sector size map?
 				{
 					freez((void**)&sectorsizemap, (trackinfo.sectorspertrack << 1), "IMDIMAGE_SECTORSIZEMAP"); //Free the allocated sector size map!
@@ -880,16 +880,16 @@ validIMDheaderRead:
 				{
 					if (sectorsizemap[sectornumber] != sectorsize) //Sector size mismatch?
 					{
-						goto invalidsectordata; //Error out!
+						goto invalidsectordataRead; //Error out!
 					}
 					//Check if we're valid!
 					if (emufread64(result,1,sectorsizemap[sectornumber],f)!=sectorsizemap[sectornumber]) //Failed to skip the data part of the sector?
 					{
-						goto invalidsectordata; //Error out!
+						goto invalidsectordataRead; //Error out!
 					}
 					physicalsectorsize = sectorsizemap[sectornumber]; //Physical sector size!
 					//The sector is loaded and valid!
-				sectorready:
+				sectorreadyRead:
 					//Fill up the sector information block!
 					/*
 					result->cylinderID = physicalcylindernr; //Physical cylinder number!
@@ -911,15 +911,15 @@ validIMDheaderRead:
 				{
 					if (SECTORSIZE_BYTES(trackinfo.SectorSize) != sectorsize) //Sector size mismatch?
 					{
-						goto invalidsectordata; //Error out!
+						goto invalidsectordataRead; //Error out!
 					}
 					if (emufread64(result, 1, SECTORSIZE_BYTES(trackinfo.SectorSize), f) < 0) //Errored out?
 					{
-						goto invalidsectordata; //Error out!
+						goto invalidsectordataRead; //Error out!
 					}
 					physicalsectorsize = SECTORSIZE_BYTES(trackinfo.SectorSize); //How large are we physically!
 
-					goto sectorready; //Handle ready sector information!
+					goto sectorreadyRead; //Handle ready sector information!
 				}
 			}
 			else //Compressed?
@@ -943,16 +943,16 @@ validIMDheaderRead:
 				}
 				if (physicalsectorsize != sectorsize) //Sector size mismatch?
 				{
-					goto invalidsectordata; //Error out!
+					goto invalidsectordataRead; //Error out!
 				}
 				//Fill the result up!
 				memset(result, filldata, physicalsectorsize); //Give the result: a sector filled with one type of data!
-				goto sectorready;
+				goto sectorreadyRead;
 			}
 		}
 		else //Invalid sector to read?
 		{
-			goto invalidsectordata; //Error out!
+			goto invalidsectordataRead; //Error out!
 		}
 	}
 
@@ -1017,7 +1017,7 @@ byte writeIMDSector(char* filename, byte track, byte head, byte sector, word sec
 		}
 		if (identifier[0] == 0x1A) //Finished comment identifier?
 		{
-			goto validIMDheaderRead; //Header is validly read!
+			goto validIMDheaderWrite; //Header is validly read!
 		}
 	}
 	//Reached EOF without comment finishing?
@@ -1025,7 +1025,7 @@ byte writeIMDSector(char* filename, byte track, byte head, byte sector, word sec
 	emufclose64(f); //Close the image!
 	return 0; //Invalid IMD file!
 
-validIMDheaderRead:
+validIMDheaderWrite:
 	//Now, skip tracks until we reach the selected track!
 	trackskipleft = track; //How many tracks to skip!
 	for (;;) //Skipping left?
@@ -1305,11 +1305,11 @@ validIMDheaderRead:
 	if (datarecordnumber) //Left to read? Reached the sector!
 	{
 		compressedsectorpos = emuftell64(f); //What is the location of the compressed sector in the original file, if it's compressed!
-		if (compressedsectorpos < 0) goto failedcompressedpos; //Failed detecting the compressed location?
+		if (compressedsectorpos < 0) goto failedcompressedposWrite; //Failed detecting the compressed location?
 		headbuffer = (byte*)zalloc(compressedsectorpos, "IMDIMAGE_FAILEDHEADBUFFER",NULL);
 		if (emufread64(&data, 1, sizeof(data), f) != sizeof(data)) //Read the identifier!
 		{
-			failedcompressedpos:
+			failedcompressedposWrite:
 			if (sectorsizemap) //Allocated sector size map?
 			{
 				freez((void**)&sectorsizemap, (trackinfo.sectorspertrack << 1), "IMDIMAGE_SECTORSIZEMAP"); //Free the allocated sector size map!
@@ -1326,7 +1326,7 @@ validIMDheaderRead:
 		{
 			if (data > 8) //Undefined value?
 			{
-			invalidsectordata:
+			invalidsectordataWrite:
 				if (sectorsizemap) //Allocated sector size map?
 				{
 					freez((void**)&sectorsizemap, (trackinfo.sectorspertrack << 1), "IMDIMAGE_SECTORSIZEMAP"); //Free the allocated sector size map!
@@ -1345,16 +1345,16 @@ validIMDheaderRead:
 				{
 					if (sectorsizemap[sectornumber] != sectorsize) //Sector size mismatch?
 					{
-						goto invalidsectordata; //Error out!
+						goto invalidsectordataWrite; //Error out!
 					}
 					//Check if we're valid!
 					if (emufwrite64(sectordata, 1, sectorsizemap[sectornumber], f) != sectorsizemap[sectornumber]) //Failed to skip the data part of the sector?
 					{
-						goto invalidsectordata; //Error out!
+						goto invalidsectordataWrite; //Error out!
 					}
 					physicalsectorsize = sectorsizemap[sectornumber]; //Physical sector size!
 					//The sector is loaded and valid!
-				sectorready:
+				sectorreadyWrite:
 					//Fill up the sector information block!
 					/*
 					result->cylinderID = physicalcylindernr; //Physical cylinder number!
@@ -1380,15 +1380,15 @@ validIMDheaderRead:
 				{
 					if (SECTORSIZE_BYTES(trackinfo.SectorSize) != sectorsize) //Sector size mismatch?
 					{
-						goto invalidsectordata; //Error out!
+						goto invalidsectordataWrite; //Error out!
 					}
 					if (emufwrite64(sectordata, 1, SECTORSIZE_BYTES(trackinfo.SectorSize), f) < 0) //Errored out?
 					{
-						goto invalidsectordata; //Error out!
+						goto invalidsectordataWrite; //Error out!
 					}
 					physicalsectorsize = SECTORSIZE_BYTES(trackinfo.SectorSize); //How large are we physically!
 
-					goto sectorready; //Handle ready sector information!
+					goto sectorreadyWrite; //Handle ready sector information!
 				}
 			}
 			else //Compressed?
@@ -1416,7 +1416,7 @@ validIMDheaderRead:
 				}
 				if (physicalsectorsize != sectorsize) //Sector size mismatch?
 				{
-					goto invalidsectordata; //Error out!
+					goto invalidsectordataWrite; //Error out!
 				}
 				//Fill the result up!
 				compresseddata_byteval = fillsector[0]; //What byte are we checking to be compressed!
@@ -1434,93 +1434,93 @@ validIMDheaderRead:
 				{
 					if (emufseek64(f, -1, SEEK_CUR) < 0) //Go back to the compressed byte!
 					{
-						goto invalidsectordata; //Error out!
+						goto invalidsectordataWrite; //Error out!
 					}
 					if (emufwrite64(&compresseddata_byteval, 1, sizeof(compresseddata_byteval), f) != sizeof(compresseddata_byteval)) //Update the compressed data!
 					{
-						goto invalidsectordata; //Error out!
+						goto invalidsectordataWrite; //Error out!
 					}
 					//The compressed sector data has been updated!
-					goto sectorready; //Success!
+					goto sectorreadyWrite; //Success!
 				}
 				else //We need to convert the compressed sector into a non-compressed sector!
 				{
 					//First, read all data that's following the compressed sector into memory!
 					if (emufseek64(f, 0, SEEK_END) < 0) //Failed getting to EOF?
 					{
-						goto invalidsectordata; //Error out!
+						goto invalidsectordataWrite; //Error out!
 					}
 					if (emuftell64(f) < 0) //Invalid to update?
 					{
-						goto invalidsectordata; //Error out!
+						goto invalidsectordataWrite; //Error out!
 					}
 					eofpos = emuftell64(f); //What is the location of the EOF!
 					if (emufseek64(f, compressedsectorpos + 2ULL, SEEK_SET) < 0) //Return to the compressed sector's following data!
 					{
-						goto invalidsectordata;
+						goto invalidsectordataWrite;
 					}
 					//Now, allocate a buffer to contain it!
 					tailbuffersize = (eofpos - compressedsectorpos - 2ULL); //How large should the tail buffer be?
 					tailbuffer = (byte*)zalloc(tailbuffersize, "IMDIMAGE_FOOTERDATA", NULL); //Allocate room for the footer to be contained!
 					if (tailbuffer == NULL) //Failed to allocate?
 					{
-						goto invalidsectordata; //Error out!
+						goto invalidsectordataWrite; //Error out!
 					}
 					//Tail buffer is ready, now fill it up!
 					if (emufread64(tailbuffer, 1, tailbuffersize, f) != tailbuffersize) //Failed to read?
 					{
 						freez((void**)&tailbuffer, tailbuffersize, "IMDIMAGE_FOOTERDATA"); //Release the tail buffer!
-						goto invalidsectordata; //Error out!
+						goto invalidsectordataWrite; //Error out!
 					}
 					//Tail buffer is filled, now return to the sector to write!
 					if (emufseek64(f, compressedsectorpos, SEEK_SET) < 0) //Return to the compressed sector's following data!
 					{
-						goto invalidsectordata;
+						goto invalidsectordataWrite;
 					}
 					//Now, try to write the sector ID and data!
 					compresseddata_byteval = 0x01; //A valid sector ID!
 					if (emufwrite64(&compresseddata_byteval, 1, sizeof(compresseddata_byteval), f) != sizeof(compresseddata_byteval)) //Write the sector ID!
 					{
-						goto invalidsectordata; //Error out!
+						goto invalidsectordataWrite; //Error out!
 					}
 					if (emufwrite64(sectordata, 1, physicalsectorsize, f) != physicalsectorsize) //Failed writing the physical sector?
 					{
 						//Perform an undo operation!
-					undoUncompressedsectorwrite: //Undo it!
+					undoUncompressedsectorwriteWrite: //Undo it!
 						if (emufseek64(f, 0, SEEK_SET) < 0) //Failed getting to BOF?
 						{
-							goto invalidsectordata; //Error out!
+							goto invalidsectordataWrite; //Error out!
 						}
 						if (emufread64(headbuffer, 1, compressedsectorpos, f) != compressedsectorpos) //Failed reading the head?
 						{
-							goto invalidsectordata; //Error out!
+							goto invalidsectordataWrite; //Error out!
 						}
 						if (emufseek64(f, compressedsectorpos, SEEK_SET) < 0) //Failed to seek?
 						{
 							freez((void**)&tailbuffer, tailbuffersize, "IMDIMAGE_FOOTERDATA"); //Release the tail buffer!
-							goto invalidsectordata; //Error out!
+							goto invalidsectordataWrite; //Error out!
 						}
 						retryingheaderror = 1; //Allow retrying rewrite once!
-					retryclearedend: //After writing the head buffer when not having reached EOF at the end of this!
+					retryclearedendWrite: //After writing the head buffer when not having reached EOF at the end of this!
 						if (emufwrite64(&data, 1, sizeof(data), f) != sizeof(data)) //Failed to write the compressed ID?
 						{
 							freez((void**)&tailbuffer, tailbuffersize, "IMDIMAGE_FOOTERDATA"); //Release the tail buffer!
-							goto invalidsectordata; //Error out!
+							goto invalidsectordataWrite; //Error out!
 						}
 						if (emufwrite64(&filldata, 1, sizeof(filldata), f) != sizeof(filldata)) //Failed writing the original data back?
 						{
 							freez((void**)&tailbuffer, tailbuffersize, "IMDIMAGE_FOOTERDATA"); //Release the tail buffer!
-							goto invalidsectordata; //Error out!
+							goto invalidsectordataWrite; //Error out!
 						}
 						if (emufwrite64(tailbuffer, 1, tailbuffersize, f) != tailbuffersize) //Failed writing the original tail data back?
 						{
 							freez((void**)&tailbuffer, tailbuffersize, "IMDIMAGE_FOOTERDATA"); //Release the tail buffer!
-							goto invalidsectordata; //Error out!
+							goto invalidsectordataWrite; //Error out!
 						}
 						if (emufseek64(f, 0, SEEK_END) < 0) //Couldn't seek to EOF?
 						{
 							freez((void**)&tailbuffer, tailbuffersize, "IMDIMAGE_FOOTERDATA"); //Release the tail buffer!
-							goto invalidsectordata; //Error out!
+							goto invalidsectordataWrite; //Error out!
 						}
 						if ((emuftell64(f)!=eofpos) && retryingheaderror) //EOF has changed to an incorrect value?
 						{
@@ -1533,7 +1533,7 @@ validIMDheaderRead:
 									freez((void**)&headbuffer, compressedsectorpos, "IMDIMAGE_FAILEDHEADBUFFER"); //Free the allocated sector size map!
 								}
 								freez((void**)&tailbuffer, tailbuffersize, "IMDIMAGE_FOOTERDATA"); //Release the tail buffer!
-								goto invalidsectordata; //Error out!
+								goto invalidsectordataWrite; //Error out!
 							}
 							if (emufwrite64(headbuffer, 1, compressedsectorpos, f) != compressedsectorpos) //Failed writing the original head data back?
 							{
@@ -1542,10 +1542,10 @@ validIMDheaderRead:
 									freez((void**)&headbuffer, compressedsectorpos, "IMDIMAGE_FAILEDHEADBUFFER"); //Free the allocated sector size map!
 								}
 								freez((void**)&tailbuffer, tailbuffersize, "IMDIMAGE_FOOTERDATA"); //Release the tail buffer!
-								goto invalidsectordata; //Error out!
+								goto invalidsectordataWrite; //Error out!
 							}
 							retryingheaderror = 0; //Fail if this occurs again, prevent infinite loop!
-							goto retryclearedend; //Retry with the end having been cleared!
+							goto retryclearedendWrite; //Retry with the end having been cleared!
 						}
 
 						freez((void**)&tailbuffer, tailbuffersize, "IMDIMAGE_FOOTERDATA"); //Release the tail buffer!
@@ -1553,11 +1553,11 @@ validIMDheaderRead:
 						{
 							freez((void**)&headbuffer, compressedsectorpos, "IMDIMAGE_FAILEDHEADBUFFER"); //Free the allocated sector size map!
 						}
-						goto invalidsectordata; //Error out always, since we couldn't update the real data!
+						goto invalidsectordataWrite; //Error out always, since we couldn't update the real data!
 					}
 					if (emufwrite64(tailbuffer, 1, tailbuffersize, f) != tailbuffersize) //Couldn't update the remainder of the file correctly?
 					{
-						goto undoUncompressedsectorwrite; //Perform an undo operation, if we can!
+						goto undoUncompressedsectorwriteWrite; //Perform an undo operation, if we can!
 					}
 					//We've successfully updated the file with a new sector!
 					//The compressed sector data has been updated!
@@ -1566,15 +1566,15 @@ validIMDheaderRead:
 					{
 						freez((void**)&headbuffer, compressedsectorpos, "IMDIMAGE_FAILEDHEADBUFFER"); //Free the allocated sector size map!
 					}
-					goto sectorready; //Success!
+					goto sectorreadyWrite; //Success!
 				}
 				//memset(result, filldata, physicalsectorsize); //Give the result: a sector filled with one type of data!
-				goto invalidsectordata; //Couldn't properly update the compressed sector data!
+				goto invalidsectordataWrite; //Couldn't properly update the compressed sector data!
 			}
 		}
 		else //Invalid sector to write?
 		{
-			goto invalidsectordata; //Error out!
+			goto invalidsectordataWrite; //Error out!
 		}
 	}
 
@@ -1654,7 +1654,7 @@ byte formatIMDTrack(char* filename, byte track, byte head, byte MFM, byte speed,
 		}
 		if (identifier[0] == 0x1A) //Finished comment identifier?
 		{
-			goto validIMDheaderRead; //Header is validly read!
+			goto validIMDheaderFormat; //Header is validly read!
 		}
 	}
 	//Reached EOF without comment finishing?
@@ -1662,7 +1662,7 @@ byte formatIMDTrack(char* filename, byte track, byte head, byte MFM, byte speed,
 	emufclose64(f); //Close the image!
 	return 0; //Invalid IMD file!
 
-validIMDheaderRead:
+validIMDheaderFormat:
 	//Now, skip tracks until we reach the selected track!
 	trackskipleft = track; //How many tracks to skip!
 	for (;;) //Skipping left?
