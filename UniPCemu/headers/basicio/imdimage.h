@@ -3,6 +3,7 @@
 
 #include "headers/types.h" //Type definitions!
 
+//Datamark values
 enum {
 	DATAMARK_NORMALDATA = 0,
 	DATAMARK_DAM = 1,
@@ -11,10 +12,19 @@ enum {
 	DATAMARK_INVALID = 0xFF
 };
 
+//MFM_speedmode defines. All but FORMATTED_MFM are used 
 enum {
-	FORMAT_SPEED_500 = 0,
-	FORMAT_SPEED_300 = 1,
-	FORMAT_SPEED_250 = 2
+	FORMAT_SPEED_500 = 0, //Low 2 bits
+	FORMAT_SPEED_300 = 1, //Low 2 bits
+	FORMAT_SPEED_250 = 2, //Low 2 bits
+	FORMAT_SPEED_1M = 3, //Low 2 bits
+	FORMATTED_MFM = 4, //Single bitflag that's set in the mode!
+};
+
+//Formatting FM/MFM parameter
+enum {
+	FORMATTING_FM = 0, //Formatting as FM
+	FORMATTING_MFM = 1 //Formatting as MFM
 };
 
 //Information about a track and sector!
