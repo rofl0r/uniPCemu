@@ -111,6 +111,7 @@ struct
 	byte commandbuffer[0x10000]; //Outgoing command buffer!
 	word commandposition; //What position in the command (starts with commandstep=commandposition=0).
 	byte databuffer[0x10000]; //Incoming data buffer!
+	byte formatbuffer[0x400]; //Enough data to contain everything that can be formatted on a track using the normal track format command!
 	word databufferposition; //How much data is buffered!
 	word databuffersize; //How much data are we to buffer!
 	byte resultbuffer[0x10]; //Incoming result buffer!
@@ -660,11 +661,11 @@ OPTINLINE void updateFloppyGeometries(byte floppy, byte side, byte track)
 			FLOPPY.customgeometry[floppy].boardjumpersetting = 0; //Unknown, leave at 0!
 			FLOPPY.customgeometry[floppy].ClusterSize = 0; //Unknown!
 			FLOPPY.customgeometry[floppy].DirectorySize = 0; //Unknown!
-			FLOPPY.customgeometry[floppy].DoubleDensity = (IMDimage_SPT>40); //Probably double density?
+			FLOPPY.customgeometry[floppy].DoubleDensity = (IMDImage_sectorinfo.MFM_speedmode&FORMATTED_MFM)?1:0; //Probably double density?
 			FLOPPY.customgeometry[floppy].FATSize = 0; //Unknown!
 			FLOPPY.customgeometry[floppy].GAPLength = GAPLENGTH_IGNORE; //Our GAP3 length used! Unknown!
 			FLOPPY.customgeometry[floppy].KB = 0; //Raw size! Unknown!
-			FLOPPY.customgeometry[floppy].measurement = IMDimage_tracks > 40 ? 1 : 0; //Unknown, take 3,5" when >40 tracks!
+			FLOPPY.customgeometry[floppy].measurement = (IMDimage_tracks > 40) ? 1 : 0; //Unknown, take 3,5" when >40 tracks!
 			FLOPPY.customgeometry[floppy].MediaDescriptorByte = 0x00; //Unknown!
 			FLOPPY.customgeometry[floppy].supportedrates = 0x1B; //Support all rates for now!
 			FLOPPY.customgeometry[floppy].TapeDriveRegister = 0x00; //Unknown!
@@ -1428,8 +1429,9 @@ void floppy_readsector() //Request a read sector command!
 
 void FLOPPY_formatsector() //Request a read sector command!
 {
+	byte* sectorbuffer;
 	char *DSKImageFile;
-	char *IMDImageFile;
+	char *IMDImageFile=NULL;
 	SECTORINFORMATIONBLOCK sectorinfo;
 	IMDIMAGE_SECTORINFO IMD_sectorinfo; //Information about the sector!
 	++FLOPPY.sectorstransferred; //A sector has been transferred!
@@ -1546,6 +1548,7 @@ void FLOPPY_formatsector() //Request a read sector command!
 			}
 			else if (IMDImageFile) //IMD image?
 			{
+				/*
 				if ((IMD_sectorinfo.cylinderID != FLOPPY.databuffer[0]) ||
 					(IMD_sectorinfo.headnumber != FLOPPY.databuffer[1]) ||
 					(IMD_sectorinfo.sectorID != FLOPPY.databuffer[2])) //Sector ID mismatch?
@@ -1553,6 +1556,13 @@ void FLOPPY_formatsector() //Request a read sector command!
 					goto floppy_errorformat;
 					return; //Error!
 				}
+				*/ //Allow any custom amount of formatting information to be used with this format!
+				sectorbuffer = &FLOPPY.formatbuffer[(FLOPPY.currentformatsector[FLOPPY_DOR_DRIVENUMBERR] - 1)<<2]; //The location of the packet containing the sector to format!
+				//Construct the format information buffer for the selected sector!
+				sectorbuffer[0] = FLOPPY.databuffer[0];//Cylinder
+				sectorbuffer[1] = FLOPPY.databuffer[1];//Head
+				sectorbuffer[2] = FLOPPY.databuffer[2];//Sector
+				sectorbuffer[3] = FLOPPY.databuffer[3];//Size(127*(2^n))
 			}
 
 			//Verify sector size!
@@ -1578,6 +1588,13 @@ void FLOPPY_formatsector() //Request a read sector command!
 			}
 			else if (IMDImageFile) //IMD image?
 			{
+				if (drivereadonly(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0)) //Read-only?
+				{
+					updateFloppyWriteProtected(1, FLOPPY_DOR_DRIVENUMBERR); //Tried to write!
+					goto floppy_errorformat;
+					return; //Error!
+				}
+				/*
 				memset(&FLOPPY.databuffer, FLOPPY.commandbuffer[5], MIN(((size_t)0x80 << FLOPPY.databuffer[3]), sizeof(FLOPPY.databuffer))); //Clear our buffer with the fill byte!
 				if (!writeIMDSector(IMDImageFile, FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR],FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.currentformatsector[FLOPPY_DOR_DRIVENUMBERR], (0x80<<FLOPPY.databuffer[3]), &FLOPPY.databuffer)) //Failed writing the formatted sector?
 				{
@@ -1585,6 +1602,8 @@ void FLOPPY_formatsector() //Request a read sector command!
 					goto floppy_errorformat;
 					return; //Error!
 				}
+				*/
+				//Formatting is performed at the end of the track, having collected all sector information!
 			}
 			updateFloppyWriteProtected(1, FLOPPY_DOR_DRIVENUMBERR); //Tried to write!
 		}
@@ -1630,8 +1649,18 @@ void FLOPPY_formatsector() //Request a read sector command!
 	FLOPPY_ST0_CURRENTHEADW(FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]); //Our idea of the current head!
 
 	++FLOPPY.currentformatsector[FLOPPY_DOR_DRIVENUMBERR]; //Handled this raw sector for the formats requiring it!
-	if (++FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR] > FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->SPT) //SPT passed? We're finished!
+	if (++FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR] > FLOPPY.commandbuffer[3]) //Track length specified passed? We're finished!
 	{
+		if (IMDImageFile) //IMD image?
+		{
+			if (formatIMDTrack(IMDImageFile,FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR],FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR],(FLOPPY.MFM?FORMATTING_MFM:FORMATTING_FM),((FLOPPY_CCR_RATER==0)?FORMAT_SPEED_500:((FLOPPY_CCR_RATER==1)?FORMAT_SPEED_300:((FLOPPY_CCR_RATER==2)?FORMAT_SPEED_250:FORMAT_SPEED_1M))), FLOPPY.commandbuffer[5],FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]-1,&FLOPPY.formatbuffer[0])) //Error formatting the track in IMD formatting mode?
+			{
+				updateFloppyWriteProtected(1, FLOPPY_DOR_DRIVENUMBERR); //Tried to write!
+				goto floppy_errorformat;
+				return; //Error!
+			}
+		}
+
 		FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR] = 1; //Reset sector number!
 		//Enter result phase!
 		FLOPPY.resultposition = 0; //Reset result position!
