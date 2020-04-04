@@ -646,7 +646,7 @@ OPTINLINE void updateFloppyGeometries(byte floppy, byte side, byte track)
 		if (readIMDSectorInfo(IMDImageFile, track,side, 0, &IMDImage_sectorinfo)) //Gotten information about the IMD image?
 		{
 			IMDimage_SPT = 0; //Start to detect the SPT!
-			for (IMDimage_sector = 0; IMDimage_sector < IMDImage_sectorinfo.totalsectors;) //Check all sectors on the track!
+			for (IMDimage_sector = 0; IMDimage_sector < IMDImage_sectorinfo.totalsectors; ++IMDimage_sector) //Check all sectors on the track!
 			{
 				if (readIMDSectorInfo(IMDImageFile, track,side, IMDimage_sector, &IMDImage_sectorinfo)) //Gotten sector information?
 				{
