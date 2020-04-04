@@ -11,6 +11,12 @@ enum {
 	DATAMARK_INVALID = 0xFF
 };
 
+enum {
+	FORMAT_SPEED_500 = 0,
+	FORMAT_SPEED_300 = 1,
+	FORMAT_SPEED_250 = 2
+};
+
 //Information about a track and sector!
 typedef struct
 {
@@ -25,8 +31,9 @@ typedef struct
 } IMDIMAGE_SECTORINFO;
 
 byte is_IMDimage(char* filename); //Are we a IMD image?
-byte readIMDSectorInfo(char* filename, byte track, byte sector, IMDIMAGE_SECTORINFO* result);
-byte readIMDSector(char* filename, byte track, byte sector, word sectorsize, void* result);
-byte writeIMDSector(char* filename, byte track, byte sector, word sectorsize, void* sectordata);
+byte readIMDSectorInfo(char* filename, byte track, byte head, byte sector, IMDIMAGE_SECTORINFO* result);
+byte readIMDSector(char* filename, byte track, byte head, byte sector, word sectorsize, void* result);
+byte writeIMDSector(char* filename, byte track, byte head, byte sector, word sectorsize, void* sectordata);
+byte formatIMDTrack(char* filename, byte track, byte head, byte MFM, byte speed, byte filldata, byte numsectors, byte* sectordata);
 
 #endif
