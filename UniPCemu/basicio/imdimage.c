@@ -411,7 +411,7 @@ validIMDheaderInfo:
 		--datarecordnumber; //Processed!
 	}
 
-	if (datarecordnumber) //Left to read? Reached the sector!
+	if (datarecordnumber==0) //Left to read? Reached the sector!
 	{
 		if (emufread64(&data, 1, sizeof(data), f) != sizeof(data)) //Read the identifier!
 		{
@@ -849,7 +849,7 @@ validIMDheaderRead:
 		--datarecordnumber; //Processed!
 	}
 
-	if (datarecordnumber) //Left to read? Reached the sector!
+	if (datarecordnumber==0) //Left to read? Reached the sector!
 	{
 		if (emufread64(&data, 1, sizeof(data), f) != sizeof(data)) //Read the identifier!
 		{
@@ -1301,7 +1301,7 @@ validIMDheaderWrite:
 		--datarecordnumber; //Processed!
 	}
 
-	if (datarecordnumber) //Left to read? Reached the sector!
+	if (datarecordnumber==0) //Left to read? Reached the sector!
 	{
 		compressedsectorpos = emuftell64(f); //What is the location of the compressed sector in the original file, if it's compressed!
 		if (compressedsectorpos < 0) goto failedcompressedposWrite; //Failed detecting the compressed location?
