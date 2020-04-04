@@ -147,7 +147,7 @@ validIMDheaderInfo:
 		}
 		if ((trackinfo.cylinder == track) && ((trackinfo.head_extrabits&IMD_HEAD_HEADNUMBER)==head)) //Track&head found?
 		{
-			if (emufseek64(f, -(sizeof(trackinfo)), SEEK_CUR) < 0) //Found!
+			if (emufseek64(f, -((int)sizeof(trackinfo)), SEEK_CUR) < 0) //Found!
 			{
 				emufclose64(f); //Close the image!
 				return 0; //Invalid IMD file!
@@ -585,7 +585,7 @@ validIMDheaderRead:
 		}
 		if ((trackinfo.cylinder == track) && ((trackinfo.head_extrabits & IMD_HEAD_HEADNUMBER) == head)) //Track&head found?
 		{
-			if (emufseek64(f, -(sizeof(trackinfo)), SEEK_CUR) < 0) //Found!
+			if (emufseek64(f, -((int)sizeof(trackinfo)), SEEK_CUR) < 0) //Found!
 			{
 				emufclose64(f); //Close the image!
 				return 0; //Invalid IMD file!
@@ -1037,7 +1037,7 @@ validIMDheaderWrite:
 		}
 		if ((trackinfo.cylinder == track) && ((trackinfo.head_extrabits & IMD_HEAD_HEADNUMBER) == head)) //Track&head found?
 		{
-			if (emufseek64(f, -(sizeof(trackinfo)), SEEK_CUR) < 0) //Found!
+			if (emufseek64(f, -((int)sizeof(trackinfo)), SEEK_CUR) < 0) //Found!
 			{
 				emufclose64(f); //Close the image!
 				return 0; //Invalid IMD file!
@@ -1148,7 +1148,6 @@ validIMDheaderWrite:
 	//Now, we're at the specified track!
 	if (emufread64(&trackinfo, 1, sizeof(trackinfo), f) != sizeof(trackinfo)) //Failed to read track info?
 	{
-		simplesearcherrorout:
 		emufclose64(f); //Close the image!
 		return 0; //Invalid IMD file!
 	}
@@ -1675,7 +1674,7 @@ validIMDheaderFormat:
 		}
 		if ((trackinfo.cylinder == track) && ((trackinfo.head_extrabits & IMD_HEAD_HEADNUMBER) == head)) //Track&head found?
 		{
-			if (emufseek64(f, -(sizeof(trackinfo)), SEEK_CUR) < 0) //Found!
+			if (emufseek64(f, -((int)sizeof(trackinfo)), SEEK_CUR) < 0) //Found!
 			{
 				emufclose64(f); //Close the image!
 				return 0; //Invalid IMD file!
@@ -1804,7 +1803,7 @@ validIMDheaderFormat:
 			return 0; //Invalid IMD file!
 		}
 
-		if (emufseek64(f, -(sizeof(trackinfo)), SEEK_CUR) < 0) //Go back to the track information!
+		if (emufseek64(f, -((int)sizeof(trackinfo)), SEEK_CUR) < 0) //Go back to the track information!
 		{
 			emufclose64(f); //Close the image!
 			return 0; //Invalid IMD file!
