@@ -1376,7 +1376,7 @@ void floppy_readsector() //Request a read sector command!
 					{
 						if (IMD_sectorinfo.datamark == DATAMARK_NORMALDATA) //Normal data mark found?
 						{
-							if ((IMD_sectorinfo.sectorID == FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]) && (IMD_sectorinfo.headnumber == FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]) && (sectorinfo.track == FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR])) //Found the requested sector as indicated?
+							if ((IMD_sectorinfo.sectorID == FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]) && (IMD_sectorinfo.headnumber == FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]) && (IMD_sectorinfo.cylinderID == FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR])) //Found the requested sector as indicated?
 							{
 								goto foundsectorIDread; //Found it!
 							}
