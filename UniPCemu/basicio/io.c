@@ -158,8 +158,8 @@ OPTINLINE void loadDisk(int device, char *filename, uint_64 startpos, byte reado
 	disks[device].cueimage = cueimage; //CUE image?
 	disks[device].selectedtrack = 1; //Default to the data track, track 1!
 	disks[device].selectedsubtrack = 1; //Default to the data subtrack, subtrack 1!
-	disks[device].DSKimage = dynamicimage ? 0 : is_DSKimage(filename); //DSK image?
-	disks[device].IMDimage = dynamicimage ? 0 : is_IMDimage(filename); //IMD image?
+	disks[device].DSKimage = dynamicimage ? 0 : is_DSKimage(disks[device].filename); //DSK image?
+	disks[device].IMDimage = dynamicimage ? 0 : is_IMDimage(disks[device].filename); //IMD image?
 	disks[device].size = (customsize>0) ? customsize : getdisksize(device); //Get sizes!
 	disks[device].writeErrorIsReadOnly = 0; //Unknown status by default: nothing is written yet!
 	if (cueimage) //CUE image?
