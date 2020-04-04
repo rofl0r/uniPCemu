@@ -35,7 +35,6 @@ typedef struct
 	byte headnumber; //Physical head number!
 	byte cylinderID; //Physical cylinder ID!
 	word sectorsize; //Actual sector size!
-	byte sectortype; //Extra information about the physical sector type's attributes!
 	word totalsectors; //Total amount of physical sectors on this track!
 	byte datamark; //What is the data marked as! 
 } IMDIMAGE_SECTORINFO;
