@@ -1962,7 +1962,7 @@ validIMDheaderRead:
 
 	for (currentsector = 0; currentsector < numsectors; ++currentsector) //Process all size numbers!
 	{
-		b = 0x01; //What kind of sector to write!
+		b = 0x02; //What kind of sector to write: compressed to 1 byte!
 		if (emufwrite64(&b, 1, sizeof(b), f) != sizeof(b))
 		{
 			emufclose64(f); //Close the file!
