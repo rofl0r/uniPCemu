@@ -385,6 +385,8 @@ byte is_mounted(int drive) //Device inserted?
 	if (drive<0 || drive>0xFF) return 0; //No disk available!
 	byte buf[512];
 	if (getCUEimage(drive)) return 1; //Mounted a CUE image, normal sector reads won't work, but still mounted!
+	if (getDSKimage(drive)) return 1; //Mounted a DSK image, normal sector reads won't work, but still mounted!
+	if (getIMDimage(drive)) return 1; //Mounted a IMD image, normal sector reads won't work, but still mounted!
 	if (!readdata(drive,&buf,0,512)) //First sector invalid?
 	{
 		return FALSE; //No drive!
