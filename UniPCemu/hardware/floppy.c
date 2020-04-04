@@ -612,14 +612,14 @@ OPTINLINE void updateFloppyGeometries(byte floppy, byte side, byte track)
 	if ((IMDImageFile = getIMDimage((floppy) ? FLOPPY1 : FLOPPY0))) //Are we a IMD image file?
 	{
 		IMDimage_sides = 1; //Single sided by default!
-		if (!readIMDSectorInfo(IMDImageFile, 0, 0, &IMDImage_sectorinfo)) //Failed to read the track? Doesn't exist!
+		if ((!readIMDSectorInfo(IMDImageFile, 0,0, 0, &IMDImage_sectorinfo)) && (!readIMDSectorInfo(IMDImageFile, 0, 1, 0, &IMDImage_sectorinfo))) //Failed to read the track? Doesn't exist!
 		{
 			IMDimage_tracks = 0; //No tracks found!
 			goto IMDimage_tracksfound; //Stop searching!
 		}
 		for (IMDimage_tracks = 0; IMDimage_tracks < 0x100;) //Determine the amount of tracks!
 		{
-			if (!readIMDSectorInfo(IMDImageFile, IMDimage_tracks, 0, &IMDImage_sectorinfo)) //Failed to read the track? Doesn't exist!
+			if (!((readIMDSectorInfo(IMDImageFile, IMDimage_tracks, 0,0, &IMDImage_sectorinfo)) || (readIMDSectorInfo(IMDImageFile, IMDimage_tracks, 1, 0, &IMDImage_sectorinfo)))) //Failed to read the track? Doesn't exist!
 			{
 				break; //Stop searching!
 			}
@@ -627,7 +627,7 @@ OPTINLINE void updateFloppyGeometries(byte floppy, byte side, byte track)
 			{
 				for (IMDimage_sector = 0; IMDimage_sector < IMDImage_sectorinfo.totalsectors;) //Check all sectors on the track!
 				{
-					if (readIMDSectorInfo(IMDImageFile, IMDimage_tracks, IMDimage_sector, &IMDImage_sectorinfo)) //Gotten sector information?
+					if (readIMDSectorInfo(IMDImageFile, IMDimage_tracks,1, IMDimage_sector, &IMDImage_sectorinfo)) //Gotten sector information?
 					{
 						if (IMDImage_sectorinfo.headnumber) //Double sided has side 1 in it's track's sectors?
 						{
@@ -641,17 +641,14 @@ OPTINLINE void updateFloppyGeometries(byte floppy, byte side, byte track)
 			++IMDimage_tracks; //Next track and found a track!
 		}
 		IMDimage_tracksfound:
-		if (readIMDSectorInfo(IMDImageFile, track, 0, &IMDImage_sectorinfo)) //Gotten information about the IMD image?
+		if (readIMDSectorInfo(IMDImageFile, track,side, 0, &IMDImage_sectorinfo)) //Gotten information about the IMD image?
 		{
 			IMDimage_SPT = 0; //Start to detect the SPT!
 			for (IMDimage_sector = 0; IMDimage_sector < IMDImage_sectorinfo.totalsectors;) //Check all sectors on the track!
 			{
-				if (readIMDSectorInfo(IMDImageFile, track, IMDimage_sector, &IMDImage_sectorinfo)) //Gotten sector information?
+				if (readIMDSectorInfo(IMDImageFile, track,side, IMDimage_sector, &IMDImage_sectorinfo)) //Gotten sector information?
 				{
-					if (IMDImage_sectorinfo.headnumber == side) //Detected on this side?
-					{
-						++IMDimage_SPT; //Count the amount of sectors on this side!
-					}
+					++IMDimage_SPT; //Count the amount of sectors on this side!
 				}
 			}
 			FLOPPY.geometries[floppy] = &FLOPPY.customgeometry[floppy]; //Apply custom geometry!
@@ -1352,7 +1349,7 @@ void floppy_readsector() //Request a read sector command!
 			}
 			else if (IMDImageFile) //IMD image?
 			{
-				if (readIMDSectorInfo(IMDImageFile, FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR],0, &IMD_sectorinfo) == 0) //Read track info?
+				if (readIMDSectorInfo(IMDImageFile, FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR],FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR],0, &IMD_sectorinfo) == 0) //Read track info?
 				{
 					goto floppy_errorread;
 				}
@@ -1371,7 +1368,7 @@ void floppy_readsector() //Request a read sector command!
 				}
 				else if (IMDImageFile) //IMD image format?
 				{
-					if (readIMDSectorInfo(IMDImageFile, FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], (byte)sectornr, &IMD_sectorinfo)) //Found some sector information?
+					if (readIMDSectorInfo(IMDImageFile, FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], (byte)sectornr, &IMD_sectorinfo)) //Found some sector information?
 					{
 						if (IMD_sectorinfo.datamark == DATAMARK_NORMALDATA) //Normal data mark found?
 						{
@@ -1409,9 +1406,9 @@ void floppy_readsector() //Request a read sector command!
 			}
 			else if (IMDImageFile) //IMD image file?
 			{
-				if (readIMDSector(IMDImageFile, FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], (byte)sectornr, FLOPPY.databuffersize,&FLOPPY.databuffer)) //Read the data into memory?
+				if (readIMDSector(IMDImageFile, FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR],FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], (byte)sectornr, FLOPPY.databuffersize,&FLOPPY.databuffer)) //Read the data into memory?
 				{
-					if (readIMDSectorInfo(IMDImageFile, FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], (byte)sectornr, &IMD_sectorinfo)) //Read the sector information too!
+					if (readIMDSectorInfo(IMDImageFile, FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR],FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], (byte)sectornr, &IMD_sectorinfo)) //Read the sector information too!
 					{
 						FLOPPY.readID_lastsectornumber = (byte)sectornr; //This was the last sector we've read!
 						FLOPPY.ST1 = 0x00; //Load ST1!
@@ -1514,7 +1511,7 @@ void FLOPPY_formatsector() //Request a read sector command!
 			{
 				for (;;) //Loop searching for the next sector!
 				{
-					if (!readIMDSectorInfo(IMDImageFile, FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.currentformatsector[FLOPPY_DOR_DRIVENUMBERR], &IMD_sectorinfo)) //Failed to read sector information block?
+					if (!readIMDSectorInfo(IMDImageFile, FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR],FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.currentformatsector[FLOPPY_DOR_DRIVENUMBERR], &IMD_sectorinfo)) //Failed to read sector information block?
 					{
 						goto floppy_errorformat;
 						return; //Error!
@@ -1582,7 +1579,7 @@ void FLOPPY_formatsector() //Request a read sector command!
 			else if (IMDImageFile) //IMD image?
 			{
 				memset(&FLOPPY.databuffer, FLOPPY.commandbuffer[5], MIN(((size_t)0x80 << FLOPPY.databuffer[3]), sizeof(FLOPPY.databuffer))); //Clear our buffer with the fill byte!
-				if (!writeIMDSector(IMDImageFile, FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.currentformatsector[FLOPPY_DOR_DRIVENUMBERR], (0x80<<FLOPPY.databuffer[3]), &FLOPPY.databuffer)) //Failed writing the formatted sector?
+				if (!writeIMDSector(IMDImageFile, FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR],FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.currentformatsector[FLOPPY_DOR_DRIVENUMBERR], (0x80<<FLOPPY.databuffer[3]), &FLOPPY.databuffer)) //Failed writing the formatted sector?
 				{
 					updateFloppyWriteProtected(1, FLOPPY_DOR_DRIVENUMBERR); //Tried to write!
 					goto floppy_errorformat;
@@ -1806,7 +1803,7 @@ void floppy_executeWriteData()
 				}
 				else if (IMDImageFile) //IMD image?
 				{
-					if (readIMDSectorInfo(IMDImageFile, FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], 0, &IMD_sectorinfo) == 0) //Read?
+					if (readIMDSectorInfo(IMDImageFile, FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], 0, &IMD_sectorinfo) == 0) //Read?
 					{
 						goto didntfindsectoridwrite;
 					}
@@ -1825,7 +1822,7 @@ void floppy_executeWriteData()
 					}
 					else if (IMDImageFile) //IMD image?
 					{
-						if (readIMDSectorInfo(IMDImageFile, FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], (byte)sectornr, &IMD_sectorinfo)) //Read?
+						if (readIMDSectorInfo(IMDImageFile, FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], (byte)sectornr, &IMD_sectorinfo)) //Read?
 						{
 							if ((IMD_sectorinfo.sectorID == FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]) && (IMD_sectorinfo.headnumber == FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]) && (IMD_sectorinfo.cylinderID == FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR])) //Found the requested sector as indicated?
 							{
@@ -1851,7 +1848,7 @@ void floppy_executeWriteData()
 				}
 				else if (IMDImageFile)
 				{
-					DSKIMDsuccess = writeIMDSector(IMDImageFile, FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], (byte)sectornr, FLOPPY.databuffersize, &FLOPPY.databuffer); //Try to read the sector as requested!
+					DSKIMDsuccess = writeIMDSector(IMDImageFile, FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], (byte)sectornr, FLOPPY.databuffersize, &FLOPPY.databuffer); //Try to read the sector as requested!
 				}
 				if (DSKIMDsuccess) //Read the data into memory?
 				{
@@ -2178,7 +2175,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 				}
 				else if (IMDImageFile) //IMD image?
 				{
-					if (readIMDSectorInfo(IMDImageFile, FLOPPY.physicalcylinder[drive],0, &IMD_sectorinfo) == 0) //Read?
+					if (readIMDSectorInfo(IMDImageFile, FLOPPY.physicalcylinder[drive], FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR], 0, &IMD_sectorinfo) == 0) //Read?
 					{
 						goto didntfindsectoridreadid;
 					}
@@ -2210,10 +2207,9 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 					}
 					else if (IMDImageFile) //IMD image?
 					{
-						if (readIMDSectorInfo(IMDImageFile, FLOPPY.physicalcylinder[drive], (byte)sectornr, &IMD_sectorinfo)) //Read?
+						if (readIMDSectorInfo(IMDImageFile, FLOPPY.physicalcylinder[drive], FLOPPY.currenthead[drive], (byte)sectornr, &IMD_sectorinfo)) //Read?
 						{
-							//if ((sectorinfo.SectorID == FLOPPY.currentsector[drive]) && (sectorinfo.side==FLOPPY.currenthead[drive]) && (sectorinfo.track==FLOPPY.currentcylinder[drive])) //Found the requested sector as indicated?
-							if (IMD_sectorinfo.headnumber==FLOPPY.currenthead[drive]) //Selected head?
+							//if ((IMD_sectorinfo.SectorID == FLOPPY.currentsector[drive]) && (IMD_sectorinfo.head==FLOPPY.currenthead[drive]) && (IMD_sectorinfo.cylinder==FLOPPY.currentcylinder[drive])) //Found the requested sector as indicated?
 							{
 								FLOPPY.readID_lastsectornumber = (byte)sectornr; //This was the last sector we've read!
 								goto foundsectorIDreadid; //Found it!
@@ -2258,7 +2254,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 				}
 				else if (IMDImageFile) //IMD image?
 				{
-					if (readIMDSectorInfo(IMDImageFile, FLOPPY.physicalcylinder[drive], (byte)sectornr, &IMD_sectorinfo)) //Read the sector information too!
+					if (readIMDSectorInfo(IMDImageFile, FLOPPY.physicalcylinder[drive], FLOPPY.currenthead[drive], (byte)sectornr, &IMD_sectorinfo)) //Read the sector information too!
 					{
 						FLOPPY.readID_lastsectornumber = (byte)sectornr; //This was the last sector we've read!
 						FLOPPY.ST1 = 0x00; //Load ST1!

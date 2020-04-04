@@ -1225,7 +1225,7 @@ void hdd_information(char *filename) //Displays information about a harddisk to 
 	else if (is_IMDimage(path)) //IMD disk image?
 	{
 		IMDIMAGE_SECTORINFO sectorinfo;
-		if (!readIMDSectorInfo(path,0,0,&sectorinfo)) goto unknownimage;
+		if (!readIMDSectorInfo(path,0,0,0,&sectorinfo)) goto unknownimage;
 		GPU_EMU_printscreen(0, 6, "This is a IMD disk image file.              "); //Show selection init!
 		GPU_EMU_printscreen(0, 7, "                              "); //Don't show size!
 		GPU_EMU_printscreen(0, 8, "                                  "); //Clear file size info!
