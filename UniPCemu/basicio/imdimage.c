@@ -277,7 +277,7 @@ validIMDheaderInfo:
 		emufclose64(f); //Close the image!
 		return 0; //Invalid IMD file!
 	}
-	if (emufseek64(f, trackinfo.sectorspertrack-sector, SEEK_CUR) < 0) //Skip the sector number map!
+	if (emufseek64(f, trackinfo.sectorspertrack-sector-1, SEEK_CUR) < 0) //Skip the sector number map!
 	{
 		emufclose64(f); //Close the image!
 		return 0; //Invalid IMD file!
