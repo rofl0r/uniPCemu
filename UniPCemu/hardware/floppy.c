@@ -561,7 +561,6 @@ OPTINLINE void updateFloppyGeometries(byte floppy, byte side, byte track)
 	word IMDimage_tracks=0;
 	byte IMDimage_sides;
 	word IMDimage_sector;
-	byte IMDimage_SPT;
 	IMDIMAGE_SECTORINFO IMDImage_sectorinfo;
 	uint_64 floppysize = disksize(floppy); //Retrieve disk size for reference!
 	byte i;
@@ -645,18 +644,10 @@ OPTINLINE void updateFloppyGeometries(byte floppy, byte side, byte track)
 		IMDimage_tracksfound:
 		if (readIMDSectorInfo(IMDImageFile, track,side, 0, &IMDImage_sectorinfo)) //Gotten information about the IMD image?
 		{
-			IMDimage_SPT = 0; //Start to detect the SPT!
-			for (IMDimage_sector = 0; IMDimage_sector < IMDImage_sectorinfo.totalsectors; ++IMDimage_sector) //Check all sectors on the track!
-			{
-				if (readIMDSectorInfo(IMDImageFile, track,side, IMDimage_sector, &IMDImage_sectorinfo)) //Gotten sector information?
-				{
-					++IMDimage_SPT; //Count the amount of sectors on this side!
-				}
-			}
 			FLOPPY.geometries[floppy] = &FLOPPY.customgeometry[floppy]; //Apply custom geometry!
 			FLOPPY.customgeometry[floppy].sides = IMDimage_sides; //Number of sides!
 			FLOPPY.customgeometry[floppy].tracks = IMDimage_tracks; //Number of tracks!
-			FLOPPY.customgeometry[floppy].SPT = IMDimage_SPT; //Number of sectors in this track and side!
+			FLOPPY.customgeometry[floppy].SPT = IMDImage_sectorinfo.totalsectors; //Number of sectors in this track and side!
 			//Fill in the remaining information with defaults!
 			FLOPPY.customgeometry[floppy].RPM = 300; //Default to 300 RPM!
 			FLOPPY.customgeometry[floppy].boardjumpersetting = 0; //Unknown, leave at 0!
