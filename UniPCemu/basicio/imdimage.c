@@ -1593,6 +1593,7 @@ validIMDheaderWrite:
 
 byte formatIMDTrack(char* filename, byte track, byte head, byte MFM, byte speed, byte filldata, byte numsectors, byte* sectordata)
 {
+	byte wasskippingtrack=0;
 	word currentsector;
 	byte b;
 	word w;
@@ -1673,8 +1674,9 @@ validIMDheaderFormat:
 			emufclose64(f); //Close the image!
 			return 0; //Invalid IMD file!
 		}
-		if ((trackinfo.cylinder == track) && ((trackinfo.head_extrabits & IMD_HEAD_HEADNUMBER) == head) && (skippingtrack == 0)) //Track&head found?
+		if ((((trackinfo.cylinder == track) && ((trackinfo.head_extrabits & IMD_HEAD_HEADNUMBER) == head)) || (wasskippingtrack)) && (skippingtrack == 0)) //Track&head found?
 		{
+			wasskippingtrack = 0; //Not skipping anymore!
 			if (emufseek64(f, -((int)sizeof(trackinfo)), SEEK_CUR) < 0) //Found!
 			{
 				emufclose64(f); //Close the image!
@@ -1816,6 +1818,7 @@ validIMDheaderFormat:
 
 		searchingheadsize = 0; //Not searching the head size anymore!
 		skippingtrack = 1; //Skipping one track!
+		wasskippingtrack = 1; //We were skipping tracks! Ignore the next track information's details!
 		goto format_skipFormattedTrack; //Skip the track to format!
 	}
 
