@@ -1667,13 +1667,13 @@ validIMDheaderFormat:
 	trackskipleft = track; //How many tracks to skip!
 	for (;;) //Skipping left?
 	{
-		format_skipFormattedTrack: //Skip the formatted track when formatting!
+	format_skipFormattedTrack: //Skip the formatted track when formatting!
 		if (emufread64(&trackinfo, 1, sizeof(trackinfo), f) != sizeof(trackinfo)) //Failed to read track info?
 		{
 			emufclose64(f); //Close the image!
 			return 0; //Invalid IMD file!
 		}
-		if ((trackinfo.cylinder == track) && ((trackinfo.head_extrabits & IMD_HEAD_HEADNUMBER) == head) && (skippingtrack==0)) //Track&head found?
+		if ((trackinfo.cylinder == track) && ((trackinfo.head_extrabits & IMD_HEAD_HEADNUMBER) == head) && (skippingtrack == 0)) //Track&head found?
 		{
 			if (emufseek64(f, -((int)sizeof(trackinfo)), SEEK_CUR) < 0) //Found!
 			{
@@ -1826,71 +1826,86 @@ validIMDheaderFormat:
 		goto errorOutFormat;
 	}
 
-	tailbuffersize = emuftell64(f)-tailpos; //The size of the tail buffer! 
+	tailbuffersize = emuftell64(f) - tailpos; //The size of the tail buffer! 
 
 	if (emufseek64(f, headbuffersize, SEEK_SET) < 0) //Can't seek to the track we want to write?
 	{
 		goto errorOutFormat; //Error out!
 	}
-	
+
 	if (emufread64(&trackinfo, 1, sizeof(trackinfo), f) != sizeof(trackinfo)) //Failed to read old track info?
 	{
 		emufclose64(f); //Close the image!
 		return 0; //Invalid IMD file!
 	}
 	//Now, we have the start of the track, end of the track and end of the following tracks! We need to load the head, current track's data and following tracks into memory!
-	headbuffer = (byte*)zalloc(headbuffersize, "IMDIMAGE_HEADBUFFER",NULL); //Allocate a head buffer!
-	if (headbuffer==NULL) goto errorOutFormat; //Error out if we can't allocate!
+	if (headbuffersize)
+	{
+		headbuffer = (byte*)zalloc(headbuffersize, "IMDIMAGE_HEADBUFFER", NULL); //Allocate a head buffer!
+	}
+	if ((headbuffer == NULL) && headbuffersize) goto errorOutFormat; //Error out if we can't allocate!
 	if (emufseek64(f, 0, SEEK_SET) < 0) //Failed to get to BOF?
 	{
 		goto errorOutFormat;
 	}
 	if (emufread64(headbuffer, 1, headbuffersize, f) != headbuffersize) goto errorOutFormat; //Couldn't read the old head!
-	tailbuffer = (byte*)zalloc(tailbuffersize, "IMDIMAGE_TAILBUFFER",NULL); //Allocate a tail buffer!
-	if (headbuffer == NULL) goto errorOutFormat; //Error out if we can't allocate!
+	if (tailbuffersize) //Gotten a size to use?
+	{
+		tailbuffer = (byte*)zalloc(tailbuffersize, "IMDIMAGE_TAILBUFFER", NULL); //Allocate a tail buffer!
+		if ((tailbuffer == NULL) && tailbuffersize) goto errorOutFormat; //Error out if we can't allocate!
+	}
 	if (emufseek64(f, tailpos, SEEK_SET) < 0) //Failed to get to next track?
 	{
 		goto errorOutFormat;
 	}
-	if (emufread64(tailbuffer, 1, tailbuffersize, f) != tailbuffersize) goto errorOutFormat; //Couldn't read the old tail!
+	if (tailbuffer) //Have a tail buffer?
+	{
+		if (emufread64(tailbuffer, 1, tailbuffersize, f) != tailbuffersize) goto errorOutFormat; //Couldn't read the old tail!
+	}
 	if (emufseek64(f, headbuffersize + sizeof(trackinfo), SEEK_SET) < 0) goto errorOutFormat; //Couldn't goto sector number map!
-	sectornumbermap = (byte*)zalloc(trackinfo.sectorspertrack, "IMDIMAGE_SECTORNUMBERMAP",NULL); //Allocate the sector number map!
-	if (sectornumbermap == NULL) goto errorOutFormat;
-	if (emufread64(sectornumbermap, 1, trackinfo.sectorspertrack, f) != trackinfo.sectorspertrack) goto errorOutFormat;
-	if (trackinfo.head_extrabits & IMD_HEAD_CYLINDERMAPPRESENT) //Cylinder map following?
+	if (trackinfo.sectorspertrack) //Gotten sectors per track?
 	{
-		cylindermap = (byte*)zalloc(trackinfo.sectorspertrack, "IMDIMAGE_CYLINDERMAP", NULL); //Allocate the cylinder map!
-		if (cylindermap == NULL) goto errorOutFormat; //Error out if we can't allocate!
-		if (emufread64(cylindermap, 1, trackinfo.sectorspertrack, f) != trackinfo.sectorspertrack) goto errorOutFormat;
-	}
-	if (trackinfo.head_extrabits & IMD_HEAD_HEADMAPPRESENT) //Head map following?
-	{
-		headmap = (byte*)zalloc(trackinfo.sectorspertrack, "IMDIMAGE_HEADMAP", NULL); //Allocate the cylinder map!
-		if (headmap == NULL) goto errorOutFormat; //Error out if we can't allocate!
-		if (emufread64(headmap, 1, trackinfo.sectorspertrack, f) != trackinfo.sectorspertrack) goto errorOutFormat;
-	}
-	sectorsizemap = NULL; //Default: no sector size map was present!
-	if (trackinfo.SectorSize == IMD_SECTORSIZE_SECTORSIZEMAPPRESENT) //Sector size map following?
-	{
-		sectorsizemap = zalloc((trackinfo.sectorspertrack << 1), "IMDIMAGE_SECTORSIZEMAP", NULL); //Allocate a sector map to use!
-		if (!sectorsizemap) //Failed to allocate?
+		sectornumbermap = (byte*)zalloc(trackinfo.sectorspertrack, "IMDIMAGE_SECTORNUMBERMAP", NULL); //Allocate the sector number map!
+		if (sectornumbermap == NULL) goto errorOutFormat;
+		if (emufread64(sectornumbermap, 1, trackinfo.sectorspertrack, f) != trackinfo.sectorspertrack) goto errorOutFormat;
+		if (trackinfo.head_extrabits & IMD_HEAD_CYLINDERMAPPRESENT) //Cylinder map following?
 		{
-			goto errorOutFormat;
+			cylindermap = (byte*)zalloc(trackinfo.sectorspertrack, "IMDIMAGE_CYLINDERMAP", NULL); //Allocate the cylinder map!
+			if (cylindermap == NULL) goto errorOutFormat; //Error out if we can't allocate!
+			if (emufread64(cylindermap, 1, trackinfo.sectorspertrack, f) != trackinfo.sectorspertrack) goto errorOutFormat;
 		}
-		if (emufread64(sectorsizemap, 1, (trackinfo.sectorspertrack << 1), f)!=(trackinfo.sectorspertrack<<1)) //Read the sector size map!
+		if (trackinfo.head_extrabits & IMD_HEAD_HEADMAPPRESENT) //Head map following?
 		{
-			goto errorOutFormat;
+			headmap = (byte*)zalloc(trackinfo.sectorspertrack, "IMDIMAGE_HEADMAP", NULL); //Allocate the cylinder map!
+			if (headmap == NULL) goto errorOutFormat; //Error out if we can't allocate!
+			if (emufread64(headmap, 1, trackinfo.sectorspertrack, f) != trackinfo.sectorspertrack) goto errorOutFormat;
 		}
-		//Leave the map alone for easier restoring in case of errors!
+		sectorsizemap = NULL; //Default: no sector size map was present!
+		if (trackinfo.SectorSize == IMD_SECTORSIZE_SECTORSIZEMAPPRESENT) //Sector size map following?
+		{
+			sectorsizemap = zalloc((trackinfo.sectorspertrack << 1), "IMDIMAGE_SECTORSIZEMAP", NULL); //Allocate a sector map to use!
+			if (!sectorsizemap) //Failed to allocate?
+			{
+				goto errorOutFormat;
+			}
+			if (emufread64(sectorsizemap, 1, (trackinfo.sectorspertrack << 1), f) != (trackinfo.sectorspertrack << 1)) //Read the sector size map!
+			{
+				goto errorOutFormat;
+			}
+			//Leave the map alone for easier restoring in case of errors!
+		}
 	}
 
 	oldsectordatasize = 0; //Initialize the old sector data size for the track!
 	if (emuftell64(f) < 0) goto errorOutFormat; //Can't format if can't tell the size of the data!
 	oldsectordatasize = emuftell64(f); //Old sector data size!
 	oldsectordatasize = tailpos - oldsectordatasize; //The size of the old sector data!
-	oldsectordata = (byte*)zalloc(oldsectordatasize, "IMDIMAGE_OLDSECTORDATA", NULL); //Allocate the old sector data!
-	if (oldsectordata == NULL) goto errorOutFormat; //Error out if we can't allocate!
-	if (emufread64(oldsectordata, 1, oldsectordatasize, f) != oldsectordatasize) goto errorOutFormat; //Read the old sector data!
+	if (oldsectordatasize) //Gotten sector data?
+	{
+		oldsectordata = (byte*)zalloc(oldsectordatasize, "IMDIMAGE_OLDSECTORDATA", NULL); //Allocate the old sector data!
+		if (oldsectordata == NULL) goto errorOutFormat; //Error out if we can't allocate!
+		if (emufread64(oldsectordata, 1, oldsectordatasize, f) != oldsectordatasize) goto errorOutFormat; //Read the old sector data!
+	}
 
 	//Now, we have the entire track loaded in memory, along with the previous(head), the old track(both heads) and next(tail) tracks for restoration!
 
@@ -1900,8 +1915,8 @@ validIMDheaderFormat:
 	if (!f) goto errorOutFormat; //Not opened!
 	//First, create a new track header!
 	newtrackinfo.cylinder = trackinfo.cylinder; //Same cylinder!
-	newtrackinfo.head_extrabits = (trackinfo.head_extrabits&IMD_HEAD_HEADNUMBER) | IMD_HEAD_HEADMAPPRESENT | IMD_HEAD_CYLINDERMAPPRESENT; //Head of the track, with head map and cylinder map present!
-	newtrackinfo.mode = MFM?((speed<3)?(3+speed):0):((speed<3)?(speed):0); //Mode: MFM or FM in 500,300,250.
+	newtrackinfo.head_extrabits = (trackinfo.head_extrabits & IMD_HEAD_HEADNUMBER) | IMD_HEAD_HEADMAPPRESENT | IMD_HEAD_CYLINDERMAPPRESENT; //Head of the track, with head map and cylinder map present!
+	newtrackinfo.mode = MFM ? ((speed < 3) ? (3 + speed) : 0) : ((speed < 3) ? (speed) : 0); //Mode: MFM or FM in 500,300,250.
 	newtrackinfo.SectorSize = 0xFF; //Custom map!
 	newtrackinfo.sectorspertrack = numsectors; //Amount of sectors on this track!
 	if (emufwrite64(&newtrackinfo, 1, sizeof(newtrackinfo), f) != sizeof(newtrackinfo)) //Write the new track info!
@@ -2020,14 +2035,20 @@ validIMDheaderFormat:
 	emufclose64(f); //Close the image!
 	return 1; //Success!	
 
-	errorOutFormat_restore: //Error out on formatting and restore the file!
+errorOutFormat_restore: //Error out on formatting and restore the file!
 	f = emufopen64(filename, "wb+"); //Open the image and clear it!
 	if (!f) goto errorOutFormat; //Not opened!
 	//First, the previous tracks!
-	if (emufwrite64(headbuffer, 1, headbuffersize, f) != headbuffersize) goto errorOutFormat; //Write the previous tracks back!
+	if (headbuffer && headbuffersize) //Gotten a head buffer?
+	{
+		if (emufwrite64(headbuffer, 1, headbuffersize, f) != headbuffersize) goto errorOutFormat; //Write the previous tracks back!
+	}
 	//Now, reached the reformatted track!
 	if (emufwrite64(&trackinfo, 1, sizeof(trackinfo), f) != sizeof(trackinfo)) goto errorOutFormat; //Write the track header!
-	if (emufwrite64(sectornumbermap, 1, trackinfo.sectorspertrack, f) != trackinfo.sectorspertrack) goto errorOutFormat; //Write the sector number map!
+	if (sectornumbermap)
+	{
+		if (emufwrite64(sectornumbermap, 1, trackinfo.sectorspertrack, f) != trackinfo.sectorspertrack) goto errorOutFormat; //Write the sector number map!
+	}
 	if (cylindermap) //Cylinder map was present?
 	{
 		if (emufwrite64(cylindermap, 1, trackinfo.sectorspertrack, f) != trackinfo.sectorspertrack) goto errorOutFormat; //Write the cylinder number map!
@@ -2040,8 +2061,14 @@ validIMDheaderFormat:
 	{
 		if (emufwrite64(sectorsizemap, 1, (trackinfo.sectorspertrack << 1), f) != (trackinfo.sectorspertrack << 1)) goto errorOutFormat; //Write the sector size map!
 	}
-	if (emufwrite64(oldsectordata, 1, oldsectordatasize, f) != oldsectordatasize) goto errorOutFormat; //Write the sector data!
-	if (emufwrite64(tailbuffer, 1, tailbuffersize, f) != tailbuffersize) goto errorOutFormat; //Write the next tracks back!
+	if (oldsectordata)
+	{
+		if (emufwrite64(oldsectordata, 1, oldsectordatasize, f) != oldsectordatasize) goto errorOutFormat; //Write the sector data!
+	}
+	if (tailbuffer)
+	{
+		if (emufwrite64(tailbuffer, 1, tailbuffersize, f) != tailbuffersize) goto errorOutFormat; //Write the next tracks back!
+	}
 	//Now, the entire file has been restored to it's old state! Finish up the normal way below!
 
 	//Couldn't find the track!
