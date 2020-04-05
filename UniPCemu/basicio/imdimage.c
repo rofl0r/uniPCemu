@@ -249,10 +249,10 @@ validIMDheaderInfo:
 					}
 				}
 			}
-			freez((void**)&sectorsizemap, (trackinfo.sectorspertrack << 1), "IMDIMAGE_SECTORSIZEMAP"); //Free the allocated sector size map!
 			++sectornumber; //Process the next sector number!
 			--datarecordnumber; //Processed!
 		}
+		freez((void**)&sectorsizemap, (trackinfo.sectorspertrack << 1), "IMDIMAGE_SECTORSIZEMAP"); //Free the allocated sector size map!
 	}
 
 	//Now, we're at the specified track!
@@ -687,10 +687,10 @@ validIMDheaderRead:
 					}
 				}
 			}
-			freez((void**)&sectorsizemap, (trackinfo.sectorspertrack << 1), "IMDIMAGE_SECTORSIZEMAP"); //Free the allocated sector size map!
 			++sectornumber; //Process the next sector number!
 			--datarecordnumber; //Processed!
 		}
+		freez((void**)&sectorsizemap, (trackinfo.sectorspertrack << 1), "IMDIMAGE_SECTORSIZEMAP"); //Free the allocated sector size map!
 	}
 
 	//Now, we're at the specified track!
@@ -1139,10 +1139,10 @@ validIMDheaderWrite:
 					}
 				}
 			}
-			freez((void**)&sectorsizemap, (trackinfo.sectorspertrack << 1), "IMDIMAGE_SECTORSIZEMAP"); //Free the allocated sector size map!
 			++sectornumber; //Process the next sector number!
 			--datarecordnumber; //Processed!
 		}
+		freez((void**)&sectorsizemap, (trackinfo.sectorspertrack << 1), "IMDIMAGE_SECTORSIZEMAP"); //Free the allocated sector size map!
 	}
 
 	//Now, we're at the specified track!
@@ -1783,10 +1783,10 @@ validIMDheaderFormat:
 					}
 				}
 			}
-			freez((void**)&sectorsizemap, (trackinfo.sectorspertrack << 1), "IMDIMAGE_SECTORSIZEMAP"); //Free the allocated sector size map!
 			++sectornumber; //Process the next sector number!
 			--datarecordnumber; //Processed!
 		}
+		freez((void**)&sectorsizemap, (trackinfo.sectorspertrack << 1), "IMDIMAGE_SECTORSIZEMAP"); //Free the allocated sector size map!
 	}
 
 	//Save the head position!
