@@ -2387,7 +2387,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 				return;
 			}
 
-			if (FLOPPY.commandbuffer[3] != FLOPPY.geometries[drive]->SPT) //Invalid SPT?
+			if ((FLOPPY.commandbuffer[3] != FLOPPY.geometries[drive]->SPT) && (!getIMDimage((drive)?FLOPPY1:FLOPPY0))) //Invalid SPT?
 			{
 				floppy_common_sectoraccess_nomedia(); //No media!
 				return;
