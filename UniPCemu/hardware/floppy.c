@@ -1678,6 +1678,7 @@ void FLOPPY_formatsector() //Request a read sector command!
 		FLOPPY.resultbuffer[4] = FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR];
 		FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR];
 		FLOPPY.resultbuffer[6] = FLOPPY.commandbuffer[2]; //Sector size from the command buffer!
+		FLOPPY_raiseIRQ(); //Raise the IRQ!
 		return; //Finished!
 	}
 
