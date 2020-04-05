@@ -1658,7 +1658,7 @@ void FLOPPY_formatsector() //Request a read sector command!
 	{
 		if (IMDImageFile) //IMD image?
 		{
-			if (formatIMDTrack(IMDImageFile,FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR],FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR],(FLOPPY.MFM?FORMATTING_MFM:FORMATTING_FM),((FLOPPY_CCR_RATER==0)?FORMAT_SPEED_500:((FLOPPY_CCR_RATER==1)?FORMAT_SPEED_300:((FLOPPY_CCR_RATER==2)?FORMAT_SPEED_250:FORMAT_SPEED_1M))), FLOPPY.commandbuffer[5],FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]-1,&FLOPPY.formatbuffer[0])) //Error formatting the track in IMD formatting mode?
+			if (formatIMDTrack(IMDImageFile,FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR],FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR],(FLOPPY.MFM?FORMATTING_MFM:FORMATTING_FM),((FLOPPY_CCR_RATER==0)?FORMAT_SPEED_500:((FLOPPY_CCR_RATER==1)?FORMAT_SPEED_300:((FLOPPY_CCR_RATER==2)?FORMAT_SPEED_250:FORMAT_SPEED_1M))), FLOPPY.commandbuffer[5],FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]-1,&FLOPPY.formatbuffer[0])==0) //Error formatting the track in IMD formatting mode?
 			{
 				updateFloppyWriteProtected(1, FLOPPY_DOR_DRIVENUMBERR); //Tried to write!
 				goto floppy_errorformat;
