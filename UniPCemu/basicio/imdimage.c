@@ -1597,6 +1597,7 @@ byte formatIMDTrack(char* filename, byte track, byte head, byte MFM, byte speed,
 	byte b;
 	word w;
 	byte headskipped = 0;
+	byte skippingtrack = 0; //Skipping this track once?
 	uint_32 fillsector_dataleft;
 	byte* sectordataptr = NULL;
 	byte* fillsector = NULL;
@@ -1672,7 +1673,7 @@ validIMDheaderFormat:
 			emufclose64(f); //Close the image!
 			return 0; //Invalid IMD file!
 		}
-		if ((trackinfo.cylinder == track) && ((trackinfo.head_extrabits & IMD_HEAD_HEADNUMBER) == head)) //Track&head found?
+		if ((trackinfo.cylinder == track) && ((trackinfo.head_extrabits & IMD_HEAD_HEADNUMBER) == head) && (skippingtrack==0)) //Track&head found?
 		{
 			if (emufseek64(f, -((int)sizeof(trackinfo)), SEEK_CUR) < 0) //Found!
 			{
@@ -1680,6 +1681,10 @@ validIMDheaderFormat:
 				return 0; //Invalid IMD file!
 			}
 			break; //Stop searching: we're found!
+		}
+		if (skippingtrack) //Skipping a track?
+		{
+			--skippingtrack; //One track has been skipped!
 		}
 		//Track info block has been read!
 		if (emufseek64(f, trackinfo.sectorspertrack, SEEK_CUR) < 0) //Skip the sector number map!
@@ -1810,6 +1815,7 @@ validIMDheaderFormat:
 		}
 
 		searchingheadsize = 0; //Not searching the head size anymore!
+		skippingtrack = 1; //Skipping one track!
 		goto format_skipFormattedTrack; //Skip the track to format!
 	}
 
