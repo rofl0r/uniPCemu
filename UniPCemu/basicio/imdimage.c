@@ -1460,16 +1460,19 @@ validIMDheaderWrite:
 					}
 					//Now, allocate a buffer to contain it!
 					tailbuffersize = (eofpos - compressedsectorpos - 2ULL); //How large should the tail buffer be?
-					tailbuffer = (byte*)zalloc(tailbuffersize, "IMDIMAGE_FOOTERDATA", NULL); //Allocate room for the footer to be contained!
-					if (tailbuffer == NULL) //Failed to allocate?
+					if (tailbuffersize)
 					{
-						goto invalidsectordataWrite; //Error out!
-					}
-					//Tail buffer is ready, now fill it up!
-					if (emufread64(tailbuffer, 1, tailbuffersize, f) != tailbuffersize) //Failed to read?
-					{
-						freez((void**)&tailbuffer, tailbuffersize, "IMDIMAGE_FOOTERDATA"); //Release the tail buffer!
-						goto invalidsectordataWrite; //Error out!
+						tailbuffer = (byte*)zalloc(tailbuffersize, "IMDIMAGE_FOOTERDATA", NULL); //Allocate room for the footer to be contained!
+						if (tailbuffer == NULL) //Failed to allocate?
+						{
+							goto invalidsectordataWrite; //Error out!
+						}
+						//Tail buffer is ready, now fill it up!
+						if (emufread64(tailbuffer, 1, tailbuffersize, f) != tailbuffersize) //Failed to read?
+						{
+							freez((void**)&tailbuffer, tailbuffersize, "IMDIMAGE_FOOTERDATA"); //Release the tail buffer!
+							goto invalidsectordataWrite; //Error out!
+						}
 					}
 					//Tail buffer is filled, now return to the sector to write!
 					if (emufseek64(f, compressedsectorpos, SEEK_SET) < 0) //Return to the compressed sector's following data!
@@ -1511,10 +1514,13 @@ validIMDheaderWrite:
 							freez((void**)&tailbuffer, tailbuffersize, "IMDIMAGE_FOOTERDATA"); //Release the tail buffer!
 							goto invalidsectordataWrite; //Error out!
 						}
-						if (emufwrite64(tailbuffer, 1, tailbuffersize, f) != tailbuffersize) //Failed writing the original tail data back?
+						if (tailbuffer)
 						{
-							freez((void**)&tailbuffer, tailbuffersize, "IMDIMAGE_FOOTERDATA"); //Release the tail buffer!
-							goto invalidsectordataWrite; //Error out!
+							if (emufwrite64(tailbuffer, 1, tailbuffersize, f) != tailbuffersize) //Failed writing the original tail data back?
+							{
+								freez((void**)&tailbuffer, tailbuffersize, "IMDIMAGE_FOOTERDATA"); //Release the tail buffer!
+								goto invalidsectordataWrite; //Error out!
+							}
 						}
 						if (emufseek64(f, 0, SEEK_END) < 0) //Couldn't seek to EOF?
 						{
@@ -1554,9 +1560,12 @@ validIMDheaderWrite:
 						}
 						goto invalidsectordataWrite; //Error out always, since we couldn't update the real data!
 					}
-					if (emufwrite64(tailbuffer, 1, tailbuffersize, f) != tailbuffersize) //Couldn't update the remainder of the file correctly?
+					if (tailbuffer)
 					{
-						goto undoUncompressedsectorwriteWrite; //Perform an undo operation, if we can!
+						if (emufwrite64(tailbuffer, 1, tailbuffersize, f) != tailbuffersize) //Couldn't update the remainder of the file correctly?
+						{
+							goto undoUncompressedsectorwriteWrite; //Perform an undo operation, if we can!
+						}
 					}
 					//We've successfully updated the file with a new sector!
 					//The compressed sector data has been updated!
