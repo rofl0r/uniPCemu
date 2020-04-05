@@ -1939,7 +1939,7 @@ validIMDheaderFormat:
 			emufclose64(f); //Close the file!
 			goto errorOutFormat_restore; //Error out and restore!
 		}
-		b += 4; //Next record!
+		sectordataptr += 4; //Next record!
 	}
 
 	//Then, cylinder number map!
@@ -1952,7 +1952,7 @@ validIMDheaderFormat:
 			emufclose64(f); //Close the file!
 			goto errorOutFormat_restore; //Error out and restore!
 		}
-		b += 4; //Next record!
+		sectordataptr += 4; //Next record!
 	}
 	//Then, head number map!
 	sectordataptr = &sectordata[1]; //Head number used during formatting!
@@ -1964,7 +1964,7 @@ validIMDheaderFormat:
 			emufclose64(f); //Close the file!
 			goto errorOutFormat_restore; //Error out and restore!
 		}
-		b += 4; //Next record!
+		sectordataptr += 4; //Next record!
 	}
 
 	//Then, size map!
@@ -1978,7 +1978,7 @@ validIMDheaderFormat:
 			emufclose64(f); //Close the file!
 			goto errorOutFormat_restore; //Error out and restore!
 		}
-		b += 4; //Next record!
+		sectordataptr += 4; //Next record!
 	}
 
 	//Then, the sector data(is compressed for easy formatting)!
@@ -1997,7 +1997,6 @@ validIMDheaderFormat:
 			emufclose64(f); //Close the file!
 			goto errorOutFormat_restore; //Error out and restore!
 		}
-		b += 4; //Next record!
 	}
 
 	//Finally, the footer!
