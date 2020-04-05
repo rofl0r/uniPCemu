@@ -1562,7 +1562,7 @@ void FLOPPY_formatsector() //Request a read sector command!
 					return; //Error!
 				}
 				*/ //Allow any custom amount of formatting information to be used with this format!
-				sectorbuffer = &FLOPPY.formatbuffer[(FLOPPY.currentformatsector[FLOPPY_DOR_DRIVENUMBERR] - 1)<<2]; //The location of the packet containing the sector to format!
+				sectorbuffer = &FLOPPY.formatbuffer[(FLOPPY.currentformatsector[FLOPPY_DOR_DRIVENUMBERR])<<2]; //The location of the packet containing the sector to format!
 				//Construct the format information buffer for the selected sector!
 				sectorbuffer[0] = FLOPPY.databuffer[0];//Cylinder
 				sectorbuffer[1] = FLOPPY.databuffer[1];//Head
