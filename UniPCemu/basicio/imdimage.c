@@ -152,7 +152,7 @@ validIMDheaderInfo:
 	}
 	filesize = emuftell64(f); //The size of the file!
 	filedata = (byte*)zalloc(filesize, "IMDIMAGE_FILE", NULL); //Allocate a buffer for the file!
-	if (!filedata) //Couldn't allocate?
+	if (filedata == NULL) //Couldn't allocate?
 	{
 		emufclose64(f); //Close the image!
 		return 0; //Invalid IMD file!
