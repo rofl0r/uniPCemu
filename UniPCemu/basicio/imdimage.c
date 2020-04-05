@@ -1916,6 +1916,17 @@ validIMDheaderFormat:
 	emufclose64(f); //Close the old file first, we're recreating it!
 	f = emufopen64(filename, "wb+"); //Open the image and clear it!
 	if (!f) goto errorOutFormat; //Not opened!
+	//First, the head!
+	if (headbuffer)
+	{
+		if (emufwrite64(headbuffer, 1, headbuffersize, f) != headbuffersize)
+		{
+			emufclose64(f); //Close the file!
+			goto errorOutFormat_restore; //Error out and restore!
+		}
+	}
+
+	//Now the new track to create!
 	//First, create a new track header!
 	newtrackinfo.cylinder = trackinfo.cylinder; //Same cylinder!
 	newtrackinfo.head_extrabits = (trackinfo.head_extrabits & IMD_HEAD_HEADNUMBER) | IMD_HEAD_HEADMAPPRESENT | IMD_HEAD_CYLINDERMAPPRESENT; //Head of the track, with head map and cylinder map present!
@@ -1999,11 +2010,14 @@ validIMDheaderFormat:
 		}
 	}
 
-	//Finally, the footer!
-	if (emufwrite64(tailbuffer, 1, tailbuffersize, f) != tailbuffersize) //Write the tail buffer!
+	//Finally, the tail!
+	if (tailbuffer)
 	{
-		emufclose64(f); //Close the file!
-		goto errorOutFormat_restore; //Error out and restore!
+		if (emufwrite64(tailbuffer, 1, tailbuffersize, f) != tailbuffersize) //Write the tail buffer!
+		{
+			emufclose64(f); //Close the file!
+			goto errorOutFormat_restore; //Error out and restore!
+		}
 	}
 	//Finish up!
 	if (sectorsizemap) //Allocated sector size map?
