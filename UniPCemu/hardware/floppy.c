@@ -2368,6 +2368,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			break;
 		case FORMAT_TRACK: //Format sector
 			drive = (FLOPPY.commandbuffer[1] & 3); //What drive!
+			FLOPPY.RWRequestedCylinder = FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]; //What track to format!
 			FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR] = ((FLOPPY.commandbuffer[1] & 4) >> 2); //Physical head select!
 			FLOPPY.activecommand[drive] = FLOPPY.commandbuffer[0]; //Our command to execute!
 			FLOPPY.currenthead[drive] = (FLOPPY.commandbuffer[1] & 4) >> 2; //Set the new head from the parameters!
