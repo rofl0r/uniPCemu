@@ -4,7 +4,7 @@
 #include "headers/emu/directorylist.h"
 
 //Always apply memory conservation, at the cost of speed?
-#define MEMORYCONSERVATION
+//#define MEMORYCONSERVATION
 
 #ifdef IS_PSP
 #define SDL_SwapLE16(x) (x)
