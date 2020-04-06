@@ -3,9 +3,31 @@
 #include "headers/support/zalloc.h" //Memory allocation support!
 #include "headers/emu/directorylist.h"
 
+//Always apply memory conservation, at the cost of speed?
+//#define MEMORYCONSERVATION
+
 #ifdef IS_PSP
 #define SDL_SwapLE16(x) (x)
+//We don't have much memory to spare, use memory conservation!
+#ifndef MEMORYCONSERVATION
+#define MEMORYCONSERVATION
 #endif
+#endif
+
+//Move data between two files easily with error checking using disk-based buffering. Requires two files, a buffer(byte), a counter(FILEPOS) and success/fail jump labels
+#define GOTOLABEL(label) label
+#define PERFORMGOTO(label) goto GOTOLABEL(##label);
+#define COMMON_MEMORYCONSERVATION_MOVEBUFFER(src,dst,name,size,failjump,successjump) { { for (movecounter_##name=0;movecounter_##name<size;++movecounter_##name) {if (emufread64(&tmpbuf_##name,1,1,src)!=1){PERFORMGOTO(##failjump)}if (emufwrite64(&tmpbuf_##name,1,1,dst)!=1){PERFORMGOTO(##failjump)}}} PERFORMGOTO(##successjump) }
+#define COMMON_MEMORYCONSERVATION_STARTBUFFER(name,failjump,successjump) { if (emufseek64(##name, 0, SEEK_SET)<0){PERFORMGOTO(##failjump)} PERFORMGOTO(##successjump)}
+#define COMMON_MEMORYCONSERVATION_READBUFFER(src,name,size,failjump,successjump) { COMMON_MEMORYCONSERVATION_STARTBUFFER(##name,##failjump,successjump_pre_##successjump##name) successjump_pre_##successjump##name: COMMON_MEMORYCONSERVATION_MOVEBUFFER(src,##name,##name,size,##failjump,##successjump) }
+#define COMMON_MEMORYCONSERVATION_WRITEBUFFER(dst,name,size,failjump,successjump) { COMMON_MEMORYCONSERVATION_STARTBUFFER(##name,##failjump,successjump_pre_##successjump##name) successjump_pre_##successjump##name: COMMON_MEMORYCONSERVATION_MOVEBUFFER(##name,dst,##name,size,##failjump,##successjump) }
+#define COMMON_MEMORYCONSERVATION_BEGINBUFFER(name,failjump,successjump) { memset(&fn_##name, 0, sizeof(fn_##name));safestrcpy(fn_##name, sizeof(fn_##name), tmpnam(NULL)); ##name = emufopen64(fn_##name, "wb+"); { if (##name==NULL) PERFORMGOTO(##failjump) } PERFORMGOTO(##successjump) }
+#define COMMON_MEMORYCONSERVATION_ENDBUFFER(name) { emufclose64(##name); delete_file(NULL, fn_##name);}
+#define COMMON_MEMORYCONSERVATION_CLEARBUFFER(name,size,failjump,successjump) { COMMON_MEMORYCONSERVATION_ENDBUFFER(##name) COMMON_MEMORYCONSERVATION_BEGINBUFFER(f,##name,size,##failjump,##successjump) }
+#define COMMON_MEMORYCONSERVATION_buffer(name) BIGFILE *##name=NULL; \
+												char fn_##name[256]; \
+												FILEPOS movecounter_##name; \
+												byte tmpbuf_##name;
 
 //One sector information block per sector.
 #include "headers/packed.h" //PACKED support!
@@ -91,7 +113,9 @@ byte readIMDDiskInfo(char* filename, IMDIMAGE_SECTORINFO* result)
 {
 	byte maxhead = 0; //Maximum head!
 	byte maxtrack = 0; //Amount of tracks!
+#ifndef MEMORYCONSERVATION
 	byte* filedata; //Total data of the entire file!
+#endif
 	FILEPOS filesize; //The size of the file!
 	FILEPOS filepos; //The position in the file that's loaded in memory!
 	word sectornumber;
@@ -148,6 +172,7 @@ validIMDheaderInfo:
 		return 0; //Invalid IMD file!
 	}
 	filesize = emuftell64(f); //The size of the file!
+	#ifndef MEMORYCONSERVATION
 	filedata = (byte*)zalloc(filesize, "IMDIMAGE_FILE", NULL); //Allocate a buffer for the file!
 	if (filedata == NULL) //Couldn't allocate?
 	{
@@ -156,78 +181,133 @@ validIMDheaderInfo:
 	}
 	if (emufseek64(f, 0, SEEK_SET) < 0) //Can't goto BOF?
 	{
+		#ifndef MEMORYCONSERVATION
 		freez((void**)&filedata, filesize, "IMDIMAGE_FILE"); //Free the allocated file!
+		#endif
 		emufclose64(f); //Close the image!
 		return 0; //Invalid IMD file!
 	}
 	if (emufread64(filedata, 1, filesize, f) != filesize) //Can't read the file data?
 	{
+		#ifndef MEMORYCONSERVATION
 		freez((void**)&filedata, filesize, "IMDIMAGE_FILE"); //Free the allocated file!
+		#endif
 		emufclose64(f); //Close the image!
 		return 0; //Invalid IMD file!
 	}
+	#else
+	if (emufseek64(f, filepos, SEEK_SET) < 0) //Goto EOF?
+	{
+		emufclose64(f); //Close the image!
+		return 0; //Invalid IMD file!
+	}
+	#endif
 	//Now, skip tracks until we reach the selected track!
 	if (filepos == filesize) //EOF reached too soon? No tracks?
 	{
+		#ifndef MEMORYCONSERVATION
 		freez((void**)&filedata, filesize, "IMDIMAGE_FILE"); //Free the allocated file!
+		#endif	
 		emufclose64(f); //Close the image!
 		return 0; //Invalid IMD file!
 	}
 	for (;;) //Skipping left?
 	{
+		#ifdef MEMORYCONSERVATION
+		if (emufread64(&trackinfo,1,sizeof(trackinfo),f)!=sizeof(trackinfo)) //Failed to read track info?
+		#else
 		if ((filepos + sizeof(trackinfo)) > filesize) //Failed to read track info?
+		#endif
 		{
+			#ifndef MEMORYCONSERVATION
 			freez((void**)&filedata, filesize, "IMDIMAGE_FILE"); //Free the allocated file!
+			#endif
 			emufclose64(f); //Close the image!
 			return 0; //Invalid IMD file!
 		}
+		#ifndef MEMORYCONSERVATION
 		memcpy(&trackinfo, &filedata[filepos], sizeof(trackinfo)); //Get the track info
 		filepos += sizeof(trackinfo); //Read from the buffer!
+		#endif
 		//Track info block has been read!
+		#ifdef MEMORYCONSERVATION
+		if (emufseek64(f,trackinfo.sectorspertrack,SEEK_CUR)<0) //Skip the sector number map!
+		#else
 		if ((filepos + trackinfo.sectorspertrack) > filesize) //Skip the sector number map!
+		#endif
 		{
+			#ifndef MEMORYCONSERVATION
 			freez((void**)&filedata, filesize, "IMDIMAGE_FILE"); //Free the allocated file!
+			#endif
 			emufclose64(f); //Close the image!
 			return 0; //Invalid IMD file!
 		}
+		#ifndef MEMORYCONSERVATION
 		filepos += trackinfo.sectorspertrack; //Skip the sector number map!
+		#endif
 		if (trackinfo.head_extrabits & IMD_HEAD_CYLINDERMAPPRESENT) //Cylinder map following?
 		{
+			#ifdef MEMORYCONSERVATION
+			if (emufseek64(f,trackinfo.sectorspertrack,SEEK_CUR)<0) //Skip the cylinder number map!
+			#else
 			if ((filepos + trackinfo.sectorspertrack) > filesize) //Skip the cylinder number map!
+			#endif
 			{
+				#ifndef MEMORYCONSERVATION
 				freez((void**)&filedata, filesize, "IMDIMAGE_FILE"); //Free the allocated file!
+				#endif
 				emufclose64(f); //Close the image!
 				return 0; //Invalid IMD file!
 			}
+			#ifndef MEMORYCONSERVATION
 			filepos += trackinfo.sectorspertrack; //Skip the cylinder number map!
+			#endif
 		}
 		if (trackinfo.head_extrabits & IMD_HEAD_HEADMAPPRESENT) //Head map following?
 		{
+			#ifdef MEMORYCONSERVATION
+			if (emufseek64(f,trackinfo.sectorspertrack,SEEK_CUR)<0) //Skip the head number map!
+			#else
 			if ((filepos + trackinfo.sectorspertrack) > filesize) //Skip the head number map!
+			#endif
 			{
+				#ifndef MEMORYCONSERVATION
 				freez((void**)&filedata, filesize, "IMDIMAGE_FILE"); //Free the allocated file!
+				#endif
 				emufclose64(f); //Close the image!
 				return 0; //Invalid IMD file!
 			}
+			#ifndef MEMORYCONSERVATION
 			filepos += trackinfo.sectorspertrack; //Skip the head number map!
+			#endif
 		}
 		if (trackinfo.SectorSize == IMD_SECTORSIZE_SECTORSIZEMAPPRESENT) //Sector size map following?
 		{
 			sectorsizemap = zalloc((trackinfo.sectorspertrack << 1), "IMDIMAGE_SECTORSIZEMAP", NULL); //Allocate a sector map to use!
 			if (!sectorsizemap) //Failed to allocate?
 			{
+				#ifndef MEMORYCONSERVATION
 				freez((void**)&filedata, filesize, "IMDIMAGE_FILE"); //Free the allocated file!
+				#endif
 				emufclose64(f); //Close the image!
 				return 0; //Invalid IMD file!
 			}
+			#ifdef MEMORYCONSERVATION
+			if (emufread64(sectorsizemap,1,(trackinfo.sectorspertrack << 1),f)<0) //Read the sector size map!
+			#else
 			if ((filepos + (trackinfo.sectorspertrack << 1)) > filesize) //Read the sector size map!
+			#endif
 			{
+				#ifndef MEMORYCONSERVATION
 				freez((void**)&filedata, filesize, "IMDIMAGE_FILE"); //Free the allocated file!
+				#endif
 				emufclose64(f); //Close the image!
 				return 0; //Invalid IMD file!
 			}
+			#ifndef MEMORYCONSERVATION
 			memcpy(sectorsizemap, &filedata[filepos], (trackinfo.sectorspertrack << 1));
 			filepos += (trackinfo.sectorspertrack << 1);
+			#endif
 			sectornumber = 0;
 			for (sectornumber = 0; sectornumber < trackinfo.sectorspertrack; ++sectornumber) //Patch as needed!
 			{
@@ -238,20 +318,30 @@ validIMDheaderInfo:
 		sectornumber = 0; //Start at the first sector number!
 		for (; datarecordnumber;) //Process all sectors on the track!
 		{
+			#ifdef MEMORYCONSERVATION
+			if (emufread64(&data,1,sizeof(data),f)!=sizeof(data)) //Read the identifier!
+			#else
 			if (filepos >= filesize) //Read the identifier!
+			#endif
 			{
+				#ifndef MEMORYCONSERVATION
 				freez((void**)&filedata, filesize, "IMDIMAGE_FILE"); //Free the allocated file!
+				#endif
 				freez((void**)&sectorsizemap, (trackinfo.sectorspertrack << 1), "IMDIMAGE_SECTORSIZEMAP"); //Free the allocated sector size map!
 				emufclose64(f); //Close the image!
 				return 0; //Invalid IMD file!
 			}
+			#ifndef MEMORYCONSERVATION
 			data = filedata[filepos++];
+			#endif
 			//Now, we have the identifier!
 			if (data) //Not one that's unavailable?
 			{
 				if (data > 8) //Undefined value?
 				{
+					#ifndef MEMORYCONSERVATION
 					freez((void**)&filedata, filesize, "IMDIMAGE_FILE"); //Free the allocated file!
+					#endif
 					freez((void**)&sectorsizemap, (trackinfo.sectorspertrack << 1), "IMDIMAGE_SECTORSIZEMAP"); //Free the allocated sector size map!
 					emufclose64(f); //Close the image!
 					return 0; //Invalid IMD file!
@@ -261,32 +351,54 @@ validIMDheaderInfo:
 					//Skip the sector's data!
 					if (sectorsizemap) //Map used?
 					{
+						#ifdef MEMORYCONSERVATION
+						if (emufseek64(f,sectorsizemap[sectornumber],SEEK_CUR)<0) //Errored out?
+						#else
 						if ((filepos + sectorsizemap[sectornumber]) > filesize) //Errored out?
+						#endif
 						{
+							#ifndef MEMORYCONSERVATION
 							freez((void**)&filedata, filesize, "IMDIMAGE_FILE"); //Free the allocated file!
+							#endif
 							freez((void**)&sectorsizemap, (trackinfo.sectorspertrack << 1), "IMDIMAGE_SECTORSIZEMAP"); //Free the allocated sector size map!
 							emufclose64(f); //Close the image!
 							return 0; //Invalid IMD file!
 						}
+						#ifndef MEMORYCONSERVATION
 						filepos += sectorsizemap[sectornumber];
+						#endif
 					}
 					else
 					{
+						#ifdef MEMORYCONSERVATION
+						if (emufseek64(f,SECTORSIZE_BYTES(trackinfo.SectorSize),SEEK_CUR)<0)
+						#else
 						if ((filepos + SECTORSIZE_BYTES(trackinfo.SectorSize)) > filesize)
+						#endif
 						{
+							#ifndef MEMORYCONSERVATION
 							freez((void**)&filedata, filesize, "IMDIMAGE_FILE"); //Free the allocated file!
+							#endif
 							freez((void**)&sectorsizemap, (trackinfo.sectorspertrack << 1), "IMDIMAGE_SECTORSIZEMAP"); //Free the allocated sector size map!
 							emufclose64(f); //Close the image!
 							return 0; //Invalid IMD file!
 						}
+						#ifndef MEMORYCONSERVATION
 						filepos += SECTORSIZE_BYTES(trackinfo.SectorSize);
+						#endif
 					}
 				}
 				else //Compressed?
 				{
+					#ifdef MEMORYCONSERVATION
+					if (emufseek64(f,sizeof(data),SEEK_CUR)<0) //Skip the compressed data!
+					#else
 					if (filepos >= filesize) //Skip the compressed data!
+					#endif
 					{
+						#ifndef MEMORYCONSERVATION
 						freez((void**)&filedata, filesize, "IMDIMAGE_FILE"); //Free the allocated file!
+						#endif
 						if (sectorsizemap) //Allocated sector size map?
 						{
 							freez((void**)&sectorsizemap, (trackinfo.sectorspertrack << 1), "IMDIMAGE_SECTORSIZEMAP"); //Free the allocated sector size map!
@@ -294,7 +406,9 @@ validIMDheaderInfo:
 						emufclose64(f); //Close the image!
 						return 0; //Invalid IMD file!
 					}
+					#ifndef MEMORYCONSERVATION
 					++filepos; //Skip the compressed data!
+					#endif
 				}
 			}
 			++sectornumber; //Process the next sector number!
@@ -303,6 +417,9 @@ validIMDheaderInfo:
 		freez((void**)&sectorsizemap, (trackinfo.sectorspertrack << 1), "IMDIMAGE_SECTORSIZEMAP"); //Free the allocated sector size map!
 		if (trackinfo.cylinder > maxtrack) maxtrack = trackinfo.cylinder; //Maximum value!
 		if ((trackinfo.head_extrabits & IMD_HEAD_HEADNUMBER) > maxhead) maxhead = (trackinfo.head_extrabits & IMD_HEAD_HEADNUMBER); //Maximum head!
+		#ifdef MEMORYCONSERVATION
+		filepos = emuftell64(f); //New file position!
+		#endif
 		if (filepos == filesize) //EOF reached properly with at least one track?
 		{
 			result->cylinderID = maxtrack; //Last cylinder!
@@ -312,13 +429,17 @@ validIMDheaderInfo:
 			result->sectorID = trackinfo.sectorspertrack; //SPT detected?
 			result->sectorsize = 0; //Unknown!
 			result->totalsectors = trackinfo.sectorspertrack; //Last SPT detected!
+			#ifndef MEMORYCONSERVATION
 			freez((void**)&filedata, filesize, "IMDIMAGE_FILE"); //Free the allocated file!
+			#endif
 			emufclose64(f); //Close the image!
 			return 1; //Valid IMD file!
 		}
 	}
 
+	#ifndef MEMORYCONSERVATION
 	freez((void**)&filedata, filesize, "IMDIMAGE_FILE"); //Free the allocated file!
+	#endif
 
 	emufclose64(f); //Close the image!
 	return 0; //Invalid IMD file!
@@ -381,12 +502,15 @@ validIMDheaderInfo:
 		return 0; //Invalid IMD file!
 	}
 	filepos = emuftell64(f); //Save the current location within the file to use later!
+	#ifndef MEMORYCONSERVATION
 	if (emufseek64(f, 0, SEEK_END) < 0) //Goto EOF?
 	{
 		emufclose64(f); //Close the image!
 		return 0; //Invalid IMD file!
 	}
 	filesize = emuftell64(f); //The size of the file!
+	#endif
+	#ifndef MEMORYCONSERVATION
 	filedata = (byte*)zalloc(filesize, "IMDIMAGE_FILE", NULL); //Allocate a buffer for the file!
 	if (filedata == NULL) //Couldn't allocate?
 	{
@@ -395,77 +519,141 @@ validIMDheaderInfo:
 	}
 	if (emufseek64(f, 0, SEEK_SET) < 0) //Can't goto BOF?
 	{
+#ifndef MEMORYCONSERVATION
 		freez((void**)&filedata, filesize, "IMDIMAGE_FILE"); //Free the allocated file!
+#endif
 		emufclose64(f); //Close the image!
 		return 0; //Invalid IMD file!
 	}
 	if (emufread64(filedata, 1, filesize, f) != filesize) //Can't read the file data?
 	{
+#ifndef MEMORYCONSERVATION
 		freez((void**)&filedata, filesize, "IMDIMAGE_FILE"); //Free the allocated file!
+#endif
 		emufclose64(f); //Close the image!
 		return 0; //Invalid IMD file!
 	}
+	if (filepos == filesize) //EOF reached too soon? No tracks?
+	{
+#ifndef MEMORYCONSERVATION
+		freez((void**)&filedata, filesize, "IMDIMAGE_FILE"); //Free the allocated file!
+#endif
+		emufclose64(f); //Close the image!
+		return 0; //Invalid IMD file!
+	}
+#endif
 	//Now, skip tracks until we reach the selected track!
 	for (;;) //Skipping left?
 	{
+		#ifdef MEMORYCONSERVATION
+		if (emufread64(&trackinfo, 1, sizeof(trackinfo), f)!=sizeof(trackinfo)) //Failed to read track info?
+		#else
 		if ((filepos + sizeof(trackinfo)) > filesize) //Failed to read track info?
+		#endif
 		{
+			#ifndef MEMORYCONSERVATION
 			freez((void**)&filedata, filesize, "IMDIMAGE_FILE"); //Free the allocated file!
+			#endif
 			emufclose64(f); //Close the image!
 			return 0; //Invalid IMD file!
 		}
+		#ifndef MEMORYCONSERVATION
 		memcpy(&trackinfo, &filedata[filepos], sizeof(trackinfo)); //Get the track info
 		filepos += sizeof(trackinfo); //Read from the buffer!
+		#endif
+		//Track info block has been read!
 		if ((trackinfo.cylinder == track) && ((trackinfo.head_extrabits & IMD_HEAD_HEADNUMBER) == head)) //Track&head found?
 		{
-			filepos -= sizeof(trackinfo); //Go back, undo the read!
-			break; //Stop searching: we're found!
-		}
-		//Track info block has been read!
-		if ((filepos + trackinfo.sectorspertrack) > filesize) //Skip the sector number map!
-		{
-			freez((void**)&filedata, filesize, "IMDIMAGE_FILE"); //Free the allocated file!
-			emufclose64(f); //Close the image!
-			return 0; //Invalid IMD file!
-		}
-		filepos += trackinfo.sectorspertrack; //Skip the sector number map!
-		if (trackinfo.head_extrabits & IMD_HEAD_CYLINDERMAPPRESENT) //Cylinder map following?
-		{
-			if ((filepos + trackinfo.sectorspertrack) > filesize) //Skip the cylinder number map!
+			#ifdef MEMORYCONSERVATION
+			if (emufseek64(f, -((int)sizeof(trackinfo)), SEEK_CUR) < 0)
 			{
-				freez((void**)&filedata, filesize, "IMDIMAGE_FILE"); //Free the allocated file!
 				emufclose64(f); //Close the image!
 				return 0; //Invalid IMD file!
 			}
+			#else
+			filepos -= sizeof(trackinfo); //Go back, undo the read!
+			#endif
+			break; //Stop searching: we're found!
+		}
+
+		#ifdef MEMORYCONSERVATION
+		if (emufseek64(f, trackinfo.sectorspertrack, SEEK_CUR) < 0) //Skip the sector number map!
+		#else
+		if ((filepos + trackinfo.sectorspertrack) > filesize) //Skip the sector number map!
+		#endif
+		{
+			#ifndef MEMORYCONSERVATION
+			freez((void**)&filedata, filesize, "IMDIMAGE_FILE"); //Free the allocated file!
+			#endif
+			emufclose64(f); //Close the image!
+			return 0; //Invalid IMD file!
+		}
+		#ifndef MEMORYCONSERVATION
+		filepos += trackinfo.sectorspertrack; //Skip the sector number map!
+		#endif
+		if (trackinfo.head_extrabits & IMD_HEAD_CYLINDERMAPPRESENT) //Cylinder map following?
+		{
+			#ifdef MEMORYCONSERVATION
+			if (emufseek64(f, trackinfo.sectorspertrack, SEEK_CUR) < 0) //Skip the cylinder number map!
+			#else
+			if ((filepos + trackinfo.sectorspertrack) > filesize) //Skip the cylinder number map!
+			#endif
+			{
+				#ifndef MEMORYCONSERVATION
+				freez((void**)&filedata, filesize, "IMDIMAGE_FILE"); //Free the allocated file!
+				#endif
+				emufclose64(f); //Close the image!
+				return 0; //Invalid IMD file!
+			}
+			#ifndef MEMORYCONSERVATION
 			filepos += trackinfo.sectorspertrack; //Skip the cylinder number map!
+			#endif
 		}
 		if (trackinfo.head_extrabits & IMD_HEAD_HEADMAPPRESENT) //Head map following?
 		{
-			if ((filepos+trackinfo.sectorspertrack)>filesize) //Skip the head number map!
+			#ifdef MEMORYCONSERVATION
+			if (emufseek64(f, trackinfo.sectorspertrack, SEEK_CUR) < 0) //Skip the head number map!
+			#else
+			if ((filepos + trackinfo.sectorspertrack) > filesize) //Skip the head number map!
+			#endif
 			{
+				#ifndef MEMORYCONSERVATION
 				freez((void**)&filedata, filesize, "IMDIMAGE_FILE"); //Free the allocated file!
+				#endif
 				emufclose64(f); //Close the image!
 				return 0; //Invalid IMD file!
 			}
+			#ifndef MEMORYCONSERVATION
 			filepos += trackinfo.sectorspertrack; //Skip the head number map!
+			#endif
 		}
 		if (trackinfo.SectorSize == IMD_SECTORSIZE_SECTORSIZEMAPPRESENT) //Sector size map following?
 		{
 			sectorsizemap = zalloc((trackinfo.sectorspertrack << 1), "IMDIMAGE_SECTORSIZEMAP", NULL); //Allocate a sector map to use!
 			if (!sectorsizemap) //Failed to allocate?
 			{
+				#ifndef MEMORYCONSERVATION
 				freez((void**)&filedata, filesize, "IMDIMAGE_FILE"); //Free the allocated file!
+				#endif
 				emufclose64(f); //Close the image!
 				return 0; //Invalid IMD file!
 			}
-			if ((filepos+(trackinfo.sectorspertrack<<1))>filesize) //Read the sector size map!
+			#ifdef MEMORYCONSERVATION
+			if (emufread64(sectorsizemap, 1, (trackinfo.sectorspertrack << 1), f) < 0) //Read the sector size map!
+			#else
+			if ((filepos + (trackinfo.sectorspertrack << 1)) > filesize) //Read the sector size map!
+			#endif
 			{
+				#ifndef MEMORYCONSERVATION
 				freez((void**)&filedata, filesize, "IMDIMAGE_FILE"); //Free the allocated file!
+				#endif
 				emufclose64(f); //Close the image!
 				return 0; //Invalid IMD file!
 			}
+			#ifndef MEMORYCONSERVATION
 			memcpy(sectorsizemap, &filedata[filepos], (trackinfo.sectorspertrack << 1));
 			filepos += (trackinfo.sectorspertrack << 1);
+			#endif
 			sectornumber = 0;
 			for (sectornumber = 0; sectornumber < trackinfo.sectorspertrack; ++sectornumber) //Patch as needed!
 			{
@@ -474,22 +662,32 @@ validIMDheaderInfo:
 		}
 		datarecordnumber = trackinfo.sectorspertrack; //How many records to read!
 		sectornumber = 0; //Start at the first sector number!
-		for (;datarecordnumber;) //Process all sectors on the track!
+		for (; datarecordnumber;) //Process all sectors on the track!
 		{
-			if (filepos>=filesize) //Read the identifier!
+			#ifdef MEMORYCONSERVATION
+			if (emufread64(&data, 1, sizeof(data), f) != sizeof(data)) //Read the identifier!
+			#else
+			if (filepos >= filesize) //Read the identifier!
+			#endif
 			{
+				#ifndef MEMORYCONSERVATION
 				freez((void**)&filedata, filesize, "IMDIMAGE_FILE"); //Free the allocated file!
+				#endif
 				freez((void**)&sectorsizemap, (trackinfo.sectorspertrack << 1), "IMDIMAGE_SECTORSIZEMAP"); //Free the allocated sector size map!
 				emufclose64(f); //Close the image!
 				return 0; //Invalid IMD file!
 			}
+			#ifndef MEMORYCONSERVATION
 			data = filedata[filepos++];
+			#endif
 			//Now, we have the identifier!
 			if (data) //Not one that's unavailable?
 			{
 				if (data > 8) //Undefined value?
 				{
+					#ifndef MEMORYCONSERVATION
 					freez((void**)&filedata, filesize, "IMDIMAGE_FILE"); //Free the allocated file!
+					#endif
 					freez((void**)&sectorsizemap, (trackinfo.sectorspertrack << 1), "IMDIMAGE_SECTORSIZEMAP"); //Free the allocated sector size map!
 					emufclose64(f); //Close the image!
 					return 0; //Invalid IMD file!
@@ -499,32 +697,54 @@ validIMDheaderInfo:
 					//Skip the sector's data!
 					if (sectorsizemap) //Map used?
 					{
-						if ((filepos+sectorsizemap[sectornumber])>filesize) //Errored out?
+						#ifdef MEMORYCONSERVATION
+						if (emufseek64(f, sectorsizemap[sectornumber], SEEK_CUR) < 0) //Errored out?
+						#else
+						if ((filepos + sectorsizemap[sectornumber]) > filesize) //Errored out?
+						#endif
 						{
+							#ifndef MEMORYCONSERVATION
 							freez((void**)&filedata, filesize, "IMDIMAGE_FILE"); //Free the allocated file!
+							#endif
 							freez((void**)&sectorsizemap, (trackinfo.sectorspertrack << 1), "IMDIMAGE_SECTORSIZEMAP"); //Free the allocated sector size map!
 							emufclose64(f); //Close the image!
 							return 0; //Invalid IMD file!
 						}
+						#ifndef MEMORYCONSERVATION
 						filepos += sectorsizemap[sectornumber];
+						#endif
 					}
 					else
 					{
-						if ((filepos+SECTORSIZE_BYTES(trackinfo.SectorSize))>filesize)
+						#ifdef MEMORYCONSERVATION
+						if (emufseek64(f, SECTORSIZE_BYTES(trackinfo.SectorSize), SEEK_CUR) < 0)
+						#else
+						if ((filepos + SECTORSIZE_BYTES(trackinfo.SectorSize)) > filesize)
+						#endif
 						{
+							#ifndef MEMORYCONSERVATION
 							freez((void**)&filedata, filesize, "IMDIMAGE_FILE"); //Free the allocated file!
+							#endif
 							freez((void**)&sectorsizemap, (trackinfo.sectorspertrack << 1), "IMDIMAGE_SECTORSIZEMAP"); //Free the allocated sector size map!
 							emufclose64(f); //Close the image!
 							return 0; //Invalid IMD file!
 						}
+						#ifndef MEMORYCONSERVATION
 						filepos += SECTORSIZE_BYTES(trackinfo.SectorSize);
+						#endif
 					}
 				}
 				else //Compressed?
 				{
-					if (filepos>=filesize) //Skip the compressed data!
+					#ifdef MEMORYCONSERVATION
+					if (emufseek64(f, sizeof(data), SEEK_CUR) < 0) //Skip the compressed data!
+					#else
+					if (filepos >= filesize) //Skip the compressed data!
+					#endif
 					{
+						#ifndef MEMORYCONSERVATION
 						freez((void**)&filedata, filesize, "IMDIMAGE_FILE"); //Free the allocated file!
+						#endif
 						if (sectorsizemap) //Allocated sector size map?
 						{
 							freez((void**)&sectorsizemap, (trackinfo.sectorspertrack << 1), "IMDIMAGE_SECTORSIZEMAP"); //Free the allocated sector size map!
@@ -532,7 +752,9 @@ validIMDheaderInfo:
 						emufclose64(f); //Close the image!
 						return 0; //Invalid IMD file!
 					}
+					#ifndef MEMORYCONSERVATION
 					++filepos; //Skip the compressed data!
+					#endif
 				}
 			}
 			++sectornumber; //Process the next sector number!
@@ -541,12 +763,14 @@ validIMDheaderInfo:
 		freez((void**)&sectorsizemap, (trackinfo.sectorspertrack << 1), "IMDIMAGE_SECTORSIZEMAP"); //Free the allocated sector size map!
 	}
 
+	#ifndef MEMORYCONSERVATION
 	freez((void**)&filedata, filesize, "IMDIMAGE_FILE"); //Free the allocated file!
 	if (emufseek64(f, filepos, SEEK_SET)) //Couldn't goto the file's real position that isn't buffered?
 	{
 		emufclose64(f); //Close the image!
 		return 0; //Invalid IMD file!
 	}
+	#endif
 
 	//Now, we're at the specified track!
 	if (emufread64(&trackinfo, 1, sizeof(trackinfo), f) != sizeof(trackinfo)) //Failed to read track info?
@@ -1261,8 +1485,13 @@ byte writeIMDSector(char* filename, byte track, byte head, byte sector, word sec
 {
 	uint_32 fillsector_dataleft;
 	byte *fillsector=NULL;
-	byte *tailbuffer=NULL; //Buffer for the compressed sector until the end!
-	byte *headbuffer=NULL; //Buffer for the compressed sector until the end!
+	#ifdef MEMORYCONSERVATION
+	COMMON_MEMORYCONSERVATION_buffer(tailbuffer)
+	COMMON_MEMORYCONSERVATION_buffer(headbuffer)
+	#else
+	byte* tailbuffer = NULL; //Buffer for the compressed sector until the end!
+	byte* headbuffer = NULL; //Buffer for the compressed sector until the end!
+	#endif
 	FILEPOS tailbuffersize; //Size of the tail buffer!
 	FILEPOS compressedsectorpos=0; //Position of the compressed sector!
 	FILEPOS eofpos; //EOF position!
@@ -1594,7 +1823,12 @@ validIMDheaderWrite:
 	{
 		compressedsectorpos = emuftell64(f); //What is the location of the compressed sector in the original file, if it's compressed!
 		if (compressedsectorpos < 0) goto failedcompressedposWrite; //Failed detecting the compressed location?
+		#ifdef MEMORYCONSERVATION
+		COMMON_MEMORYCONSERVATION_BEGINBUFFER(headbuffer,failedcompressedposWrite,headbufferReady)
+		headbufferReady:
+		#else
 		headbuffer = (byte*)zalloc(compressedsectorpos, "IMDIMAGE_FAILEDHEADBUFFER",NULL);
+		#endif
 		if (emufread64(&data, 1, sizeof(data), f) != sizeof(data)) //Read the identifier!
 		{
 			failedcompressedposWrite:
@@ -1604,7 +1838,11 @@ validIMDheaderWrite:
 			}
 			if (headbuffer) //Head buffer allocated?
 			{
+				#ifdef MEMORYCONSERVATION
+				COMMON_MEMORYCONSERVATION_ENDBUFFER(headbuffer)
+				#else
 				freez((void**)&headbuffer, compressedsectorpos, "IMDIMAGE_FAILEDHEADBUFFER"); //Free the allocated sector size map!
+				#endif
 			}
 			emufclose64(f); //Close the image!
 			return 0; //Invalid IMD file!
@@ -1621,7 +1859,11 @@ validIMDheaderWrite:
 				}
 				if (headbuffer) //Head buffer allocated?
 				{
+					#ifdef MEMORYCONSERVATION
+					COMMON_MEMORYCONSERVATION_ENDBUFFER(headbuffer)
+					#else
 					freez((void**)&headbuffer, compressedsectorpos, "IMDIMAGE_FAILEDHEADBUFFER"); //Free the allocated sector size map!
+					#endif
 				}
 				emufclose64(f); //Close the image!
 				return 0; //Invalid IMD file!
@@ -1659,7 +1901,11 @@ validIMDheaderWrite:
 					}
 					if (headbuffer) //Head buffer allocated?
 					{
+						#ifdef MEMORYCONSERVATION
+						COMMON_MEMORYCONSERVATION_ENDBUFFER(headbuffer)
+						#else
 						freez((void**)&headbuffer, compressedsectorpos, "IMDIMAGE_FAILEDHEADBUFFER"); //Free the allocated sector size map!
+						#endif
 					}
 					emufclose64(f); //Close the image!
 					return 1; //Gotten information about the record!
@@ -1689,7 +1935,11 @@ validIMDheaderWrite:
 					}
 					if (headbuffer) //Head buffer allocated?
 					{
+						#ifdef MEMORYCONSERVATION
+						COMMON_MEMORYCONSERVATION_ENDBUFFER(headbuffer);
+						#else
 						freez((void**)&headbuffer, compressedsectorpos, "IMDIMAGE_FAILEDHEADBUFFER"); //Free the allocated sector size map!
+						#endif
 					}
 					emufclose64(f); //Close the image!
 					return 0; //Invalid IMD file!
@@ -1751,18 +2001,31 @@ validIMDheaderWrite:
 					tailbuffersize = (eofpos - compressedsectorpos - 2ULL); //How large should the tail buffer be?
 					if (tailbuffersize)
 					{
+						#ifdef MEMORYCONSERVATION
+						COMMON_MEMORYCONSERVATION_BEGINBUFFER(tailbuffer,invalidsectordataWrite,tailbufferallocatedWrite)
+						tailbufferallocatedWrite:
+						#else
 						tailbuffer = (byte*)zalloc(tailbuffersize, "IMDIMAGE_FOOTERDATA", NULL); //Allocate room for the footer to be contained!
 						if (tailbuffer == NULL) //Failed to allocate?
 						{
 							goto invalidsectordataWrite; //Error out!
 						}
+						#endif
 						//Tail buffer is ready, now fill it up!
+						#ifdef MEMORYCONSERVATION
+						COMMON_MEMORYCONSERVATION_READBUFFER(f,tailbuffer,tailbuffersize,tailbufferfilledFailed,tailbufferfilledWrite)
+						tailbufferfilledFailed:
+						#else
 						if (emufread64(tailbuffer, 1, tailbuffersize, f) != tailbuffersize) //Failed to read?
+						#endif
 						{
 							freez((void**)&tailbuffer, tailbuffersize, "IMDIMAGE_FOOTERDATA"); //Release the tail buffer!
 							goto invalidsectordataWrite; //Error out!
 						}
 					}
+					#ifdef MEMORYCONSERVATION
+					tailbufferfilledWrite:
+					#endif
 					//Tail buffer is filled, now return to the sector to write!
 					if (emufseek64(f, compressedsectorpos, SEEK_SET) < 0) //Return to the compressed sector's following data!
 					{
@@ -1782,35 +2045,63 @@ validIMDheaderWrite:
 						{
 							goto invalidsectordataWrite; //Error out!
 						}
+						#ifdef MEMORYCONSERVATION
+						COMMON_MEMORYCONSERVATION_READBUFFER(f,headbuffer,compressedsectorpos,invalidsectordataWrite,successreadheadbufferWrite)
+						#else
 						if (emufread64(headbuffer, 1, compressedsectorpos, f) != compressedsectorpos) //Failed reading the head?
+						#endif
 						{
 							goto invalidsectordataWrite; //Error out!
 						}
+						#ifdef MEMORYCONSERVATION
+						successreadheadbufferWrite:
+						#endif
 						if (emufseek64(f, compressedsectorpos, SEEK_SET) < 0) //Failed to seek?
 						{
+							#ifdef MEMORYCONSERVATION
+							COMMON_MEMORYCONSERVATION_ENDBUFFER(tailbuffer)
+							#else
 							freez((void**)&tailbuffer, tailbuffersize, "IMDIMAGE_FOOTERDATA"); //Release the tail buffer!
+							#endif
 							goto invalidsectordataWrite; //Error out!
 						}
 						retryingheaderror = 1; //Allow retrying rewrite once!
 					retryclearedendWrite: //After writing the head buffer when not having reached EOF at the end of this!
 						if (emufwrite64(&data, 1, sizeof(data), f) != sizeof(data)) //Failed to write the compressed ID?
 						{
+							#ifdef MEMORYCONSERVATION
+							COMMON_MEMORYCONSERVATION_ENDBUFFER(tailbuffer)
+							#else
 							freez((void**)&tailbuffer, tailbuffersize, "IMDIMAGE_FOOTERDATA"); //Release the tail buffer!
+							#endif
 							goto invalidsectordataWrite; //Error out!
 						}
 						if (emufwrite64(&filldata, 1, sizeof(filldata), f) != sizeof(filldata)) //Failed writing the original data back?
 						{
+							#ifdef MEMORYCONSERVATION
+							COMMON_MEMORYCONSERVATION_ENDBUFFER(tailbuffer)
+							#else
 							freez((void**)&tailbuffer, tailbuffersize, "IMDIMAGE_FOOTERDATA"); //Release the tail buffer!
+							#endif
 							goto invalidsectordataWrite; //Error out!
 						}
 						if (tailbuffer)
 						{
+							#ifdef MEMORYCONSERVATION
+							COMMON_MEMORYCONSERVATION_WRITEBUFFER(f,tailbuffer,tailbuffersize,invalidsectordataWrite,tailbufferWrittenWrite)
+							#else
 							if (emufwrite64(tailbuffer, 1, tailbuffersize, f) != tailbuffersize) //Failed writing the original tail data back?
+							#endif
 							{
+								#ifndef MEMORYCONSERVATION
 								freez((void**)&tailbuffer, tailbuffersize, "IMDIMAGE_FOOTERDATA"); //Release the tail buffer!
+								#endif
 								goto invalidsectordataWrite; //Error out!
 							}
 						}
+						#ifdef  MEMORYCONSERVATION
+						tailbufferWrittenWrite:
+						#endif
 						if (emufseek64(f, 0, SEEK_END) < 0) //Couldn't seek to EOF?
 						{
 							freez((void**)&tailbuffer, tailbuffersize, "IMDIMAGE_FOOTERDATA"); //Release the tail buffer!
@@ -1824,12 +2115,25 @@ validIMDheaderWrite:
 							{
 								if (headbuffer) //Head buffer allocated?
 								{
+									#ifdef MEMORYCONSERVATION
+									dofailheadbufferWrite:
+									COMMON_MEMORYCONSERVATION_ENDBUFFER(headbuffer)
+									#else
 									freez((void**)&headbuffer, compressedsectorpos, "IMDIMAGE_FAILEDHEADBUFFER"); //Free the allocated sector size map!
+									#endif
 								}
+								#ifdef MEMORYCONSERVATION
+								COMMON_MEMORYCONSERVATION_ENDBUFFER(tailbuffer)
+								#else
 								freez((void**)&tailbuffer, tailbuffersize, "IMDIMAGE_FOOTERDATA"); //Release the tail buffer!
+								#endif
 								goto invalidsectordataWrite; //Error out!
 							}
+							#ifdef MEMORYCONSERVATION
+							COMMON_MEMORYCONSERVATION_WRITEBUFFER(f,headbuffer,compressedsectorpos,dofailheadbufferWrite,successWriteHeadBufferRetry)
+							#else
 							if (emufwrite64(headbuffer, 1, compressedsectorpos, f) != compressedsectorpos) //Failed writing the original head data back?
+							#endif
 							{
 								if (headbuffer) //Head buffer allocated?
 								{
@@ -1838,30 +2142,55 @@ validIMDheaderWrite:
 								freez((void**)&tailbuffer, tailbuffersize, "IMDIMAGE_FOOTERDATA"); //Release the tail buffer!
 								goto invalidsectordataWrite; //Error out!
 							}
+							#ifdef MEMORYCONSERVATION
+							successWriteHeadBufferRetry:
+							#endif
 							retryingheaderror = 0; //Fail if this occurs again, prevent infinite loop!
 							goto retryclearedendWrite; //Retry with the end having been cleared!
 						}
-
+						#ifdef MEMORYCONSERVATION
+						COMMON_MEMORYCONSERVATION_ENDBUFFER(tailbuffer)
+						#else
 						freez((void**)&tailbuffer, tailbuffersize, "IMDIMAGE_FOOTERDATA"); //Release the tail buffer!
+						#endif
 						if (headbuffer) //Head buffer allocated?
 						{
+							#ifdef MEMORYCONSERVATION
+							COMMON_MEMORYCONSERVATION_ENDBUFFER(headbuffer)
+							#else
 							freez((void**)&headbuffer, compressedsectorpos, "IMDIMAGE_FAILEDHEADBUFFER"); //Free the allocated sector size map!
+							#endif
 						}
 						goto invalidsectordataWrite; //Error out always, since we couldn't update the real data!
 					}
 					if (tailbuffer)
 					{
+						#ifdef MEMORYCONSERVATION
+						COMMON_MEMORYCONSERVATION_WRITEBUFFER(f,tailbuffer,tailbuffersize,undoUncompressedsectorwriteWrite,successWriteTailBufferWrite)
+						#else
 						if (emufwrite64(tailbuffer, 1, tailbuffersize, f) != tailbuffersize) //Couldn't update the remainder of the file correctly?
+						#endif
 						{
 							goto undoUncompressedsectorwriteWrite; //Perform an undo operation, if we can!
 						}
 					}
+					#ifdef MEMORYCONSERVATION
+					successWriteTailBufferWrite:
+					#endif
 					//We've successfully updated the file with a new sector!
 					//The compressed sector data has been updated!
+					#ifdef MEMORYCONSERVATION
+					COMMON_MEMORYCONSERVATION_ENDBUFFER(tailbuffer)
+					#else
 					freez((void**)&tailbuffer, tailbuffersize, "IMDIMAGE_FOOTERDATA"); //Release the tail buffer!
+					#endif
 					if (headbuffer) //Head buffer allocated?
 					{
+						#ifdef MEMORYCONSERVATION
+						COMMON_MEMORYCONSERVATION_ENDBUFFER(headbuffer)
+						#else
 						freez((void**)&headbuffer, compressedsectorpos, "IMDIMAGE_FAILEDHEADBUFFER"); //Free the allocated sector size map!
+						#endif
 					}
 					goto sectorreadyWrite; //Success!
 				}
@@ -1883,7 +2212,11 @@ validIMDheaderWrite:
 	}
 	if (headbuffer) //Head buffer allocated?
 	{
+		#ifdef MEMORYCONSERVATION
+		COMMON_MEMORYCONSERVATION_ENDBUFFER(headbuffer)
+		#else
 		freez((void**)&headbuffer, compressedsectorpos, "IMDIMAGE_FAILEDHEADBUFFER"); //Free the allocated sector size map!
+		#endif
 	}
 	emufclose64(f); //Close the image!
 	return 0; //Invalid IMD file!
