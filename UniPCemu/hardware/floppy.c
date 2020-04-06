@@ -558,10 +558,7 @@ extern CMOS_Type CMOS;
 
 OPTINLINE void updateFloppyGeometries(byte floppy, byte side, byte track)
 {
-	word IMDimage_tracks=0;
-	byte IMDimage_sides;
-	word IMDimage_sector;
-	IMDIMAGE_SECTORINFO IMDImage_sectorinfo;
+	IMDIMAGE_SECTORINFO IMDImage_sectorinfo, IMDImage_diskinfo;
 	uint_64 floppysize = disksize(floppy); //Retrieve disk size for reference!
 	byte i;
 	char *DSKImageFile = NULL; //DSK image file to use?
@@ -612,56 +609,29 @@ OPTINLINE void updateFloppyGeometries(byte floppy, byte side, byte track)
 
 	if ((IMDImageFile = getIMDimage((floppy) ? FLOPPY1 : FLOPPY0))) //Are we a IMD image file?
 	{
-		IMDimage_sides = 1; //Single sided by default!
-		if ((!readIMDSectorInfo(IMDImageFile, 0,0, 0, &IMDImage_sectorinfo)) && (!readIMDSectorInfo(IMDImageFile, 0, 1, 0, &IMDImage_sectorinfo))) //Failed to read the track? Doesn't exist!
+		if (readIMDDiskInfo(IMDImageFile, &IMDImage_diskinfo)) //Gotten disk info?
 		{
-			IMDimage_tracks = 0; //No tracks found!
-			goto IMDimage_tracksfound; //Stop searching!
-		}
-		for (IMDimage_tracks = 0; IMDimage_tracks < 0x100;) //Determine the amount of tracks!
-		{
-			if (!((readIMDSectorInfo(IMDImageFile, IMDimage_tracks, 0,0, &IMDImage_sectorinfo)) || (readIMDSectorInfo(IMDImageFile, IMDimage_tracks, 1, 0, &IMDImage_sectorinfo)))) //Failed to read the track? Doesn't exist!
+			if (readIMDSectorInfo(IMDImageFile, track, side, 0, &IMDImage_sectorinfo)) //Gotten information about the IMD image?
 			{
-				break; //Stop searching!
+				FLOPPY.geometries[floppy] = &FLOPPY.customgeometry[floppy]; //Apply custom geometry!
+				FLOPPY.customgeometry[floppy].sides = (IMDImage_diskinfo.headnumber+1); //Number of sides!
+				FLOPPY.customgeometry[floppy].tracks = (IMDImage_diskinfo.cylinderID+1); //Number of tracks!
+				FLOPPY.customgeometry[floppy].SPT = IMDImage_sectorinfo.totalsectors; //Number of sectors in this track and side!
+				//Fill in the remaining information with defaults!
+				FLOPPY.customgeometry[floppy].RPM = 300; //Default to 300 RPM!
+				FLOPPY.customgeometry[floppy].boardjumpersetting = 0; //Unknown, leave at 0!
+				FLOPPY.customgeometry[floppy].ClusterSize = 0; //Unknown!
+				FLOPPY.customgeometry[floppy].DirectorySize = 0; //Unknown!
+				FLOPPY.customgeometry[floppy].DoubleDensity = (IMDImage_sectorinfo.MFM_speedmode & FORMATTED_MFM) ? 1 : 0; //Probably double density?
+				FLOPPY.customgeometry[floppy].FATSize = 0; //Unknown!
+				FLOPPY.customgeometry[floppy].GAPLength = GAPLENGTH_IGNORE; //Our GAP3 length used! Unknown!
+				FLOPPY.customgeometry[floppy].KB = 0; //Raw size! Unknown!
+				FLOPPY.customgeometry[floppy].measurement = (IMDImage_diskinfo.cylinderID >= 40) ? 1 : 0; //Unknown, take 3,5" when >40 tracks!
+				FLOPPY.customgeometry[floppy].MediaDescriptorByte = 0x00; //Unknown!
+				FLOPPY.customgeometry[floppy].supportedrates = 0x1B; //Support all rates for now!
+				FLOPPY.customgeometry[floppy].TapeDriveRegister = 0x00; //Unknown!
+				return; //Geometry obtained!
 			}
-			if (IMDimage_sides == 1) //Not double sided detected yet?
-			{
-				for (IMDimage_sector = 0; IMDimage_sector < IMDImage_sectorinfo.totalsectors;) //Check all sectors on the track!
-				{
-					if (readIMDSectorInfo(IMDImageFile, IMDimage_tracks,1, IMDimage_sector, &IMDImage_sectorinfo)) //Gotten sector information?
-					{
-						if (IMDImage_sectorinfo.headnumber) //Double sided has side 1 in it's track's sectors?
-						{
-							IMDimage_sides = 2; //Double sided!
-							goto nexttrack; //Next track!
-						}
-					}
-				}
-			}
-			nexttrack: //Process next track!
-			++IMDimage_tracks; //Next track and found a track!
-		}
-		IMDimage_tracksfound:
-		if (readIMDSectorInfo(IMDImageFile, track,side, 0, &IMDImage_sectorinfo)) //Gotten information about the IMD image?
-		{
-			FLOPPY.geometries[floppy] = &FLOPPY.customgeometry[floppy]; //Apply custom geometry!
-			FLOPPY.customgeometry[floppy].sides = IMDimage_sides; //Number of sides!
-			FLOPPY.customgeometry[floppy].tracks = IMDimage_tracks; //Number of tracks!
-			FLOPPY.customgeometry[floppy].SPT = IMDImage_sectorinfo.totalsectors; //Number of sectors in this track and side!
-			//Fill in the remaining information with defaults!
-			FLOPPY.customgeometry[floppy].RPM = 300; //Default to 300 RPM!
-			FLOPPY.customgeometry[floppy].boardjumpersetting = 0; //Unknown, leave at 0!
-			FLOPPY.customgeometry[floppy].ClusterSize = 0; //Unknown!
-			FLOPPY.customgeometry[floppy].DirectorySize = 0; //Unknown!
-			FLOPPY.customgeometry[floppy].DoubleDensity = (IMDImage_sectorinfo.MFM_speedmode&FORMATTED_MFM)?1:0; //Probably double density?
-			FLOPPY.customgeometry[floppy].FATSize = 0; //Unknown!
-			FLOPPY.customgeometry[floppy].GAPLength = GAPLENGTH_IGNORE; //Our GAP3 length used! Unknown!
-			FLOPPY.customgeometry[floppy].KB = 0; //Raw size! Unknown!
-			FLOPPY.customgeometry[floppy].measurement = (IMDimage_tracks > 40) ? 1 : 0; //Unknown, take 3,5" when >40 tracks!
-			FLOPPY.customgeometry[floppy].MediaDescriptorByte = 0x00; //Unknown!
-			FLOPPY.customgeometry[floppy].supportedrates = 0x1B; //Support all rates for now!
-			FLOPPY.customgeometry[floppy].TapeDriveRegister = 0x00; //Unknown!
-			return; //Geometry obtained!
 		}
 	}
 	//Another try, find biggest fit!
