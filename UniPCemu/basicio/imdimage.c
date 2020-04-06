@@ -50,12 +50,12 @@ Each data record starts with a ID, followed by one byte for compressed records(e
 byte is_IMDimage(char* filename) //Are we a IMD image?
 {
 	byte identifier[3];
+	BIGFILE* f;
 	if (strcmp(filename, "") == 0) return 0; //Unexisting: don't even look at it!
 	if (!isext(filename, "imd")) //Not our IMD image file?
 	{
 		return 0; //Not a IMD image!
 	}
-	BIGFILE* f;
 	f = emufopen64(filename, "rb"); //Open the image!
 	if (!f) return 0; //Not opened!
 	if (emufread64(&identifier, 1, sizeof(identifier), f) != sizeof(identifier)) //Try to read the header?
@@ -94,23 +94,18 @@ byte readIMDDiskInfo(char* filename, IMDIMAGE_SECTORINFO* result)
 	byte* filedata; //Total data of the entire file!
 	FILEPOS filesize; //The size of the file!
 	FILEPOS filepos; //The position in the file that's loaded in memory!
-	byte physicalsectornr;
-	byte physicalheadnr;
-	byte physicalcylindernr;
-	word physicalsectorsize; //Effective sector size!
 	word sectornumber;
 	word* sectorsizemap = NULL; //Sector size map!
 	uint_32 datarecordnumber;
 	TRACKINFORMATIONBLOCK trackinfo;
-	word trackskipleft;
 	byte identifier[3];
 	byte data;
+	BIGFILE* f;
 	if (strcmp(filename, "") == 0) return 0; //Unexisting: don't even look at it!
 	if (!isext(filename, "imd")) //Not our IMD image file?
 	{
 		return 0; //Not a IMD image!
 	}
-	BIGFILE* f;
 	f = emufopen64(filename, "rb"); //Open the image!
 	if (!f) return 0; //Not opened!
 	if (emufread64(&identifier, 1, sizeof(identifier), f) != sizeof(identifier)) //Try to read the header?
@@ -342,15 +337,14 @@ byte readIMDSectorInfo(char* filename, byte track, byte head, byte sector, IMDIM
 	word* sectorsizemap=NULL; //Sector size map!
 	uint_32 datarecordnumber;
 	TRACKINFORMATIONBLOCK trackinfo;
-	word trackskipleft;
 	byte identifier[3];
 	byte data;
+	BIGFILE* f;
 	if (strcmp(filename, "") == 0) return 0; //Unexisting: don't even look at it!
 	if (!isext(filename, "imd")) //Not our IMD image file?
 	{
 		return 0; //Not a IMD image!
 	}
-	BIGFILE* f;
 	f = emufopen64(filename, "rb"); //Open the image!
 	if (!f) return 0; //Not opened!
 	if (emufread64(&identifier, 1, sizeof(identifier), f) != sizeof(identifier)) //Try to read the header?
@@ -412,7 +406,6 @@ validIMDheaderInfo:
 		return 0; //Invalid IMD file!
 	}
 	//Now, skip tracks until we reach the selected track!
-	trackskipleft = track; //How many tracks to skip!
 	for (;;) //Skipping left?
 	{
 		if ((filepos + sizeof(trackinfo)) > filesize) //Failed to read track info?
@@ -835,15 +828,14 @@ byte readIMDSector(char* filename, byte track, byte head, byte sector, word sect
 	word* sectorsizemap=NULL; //Sector size map!
 	uint_32 datarecordnumber;
 	TRACKINFORMATIONBLOCK trackinfo;
-	word trackskipleft;
 	byte identifier[3];
 	byte data;
+	BIGFILE* f;
 	if (strcmp(filename, "") == 0) return 0; //Unexisting: don't even look at it!
 	if (!isext(filename, "imd")) //Not our IMD image file?
 	{
 		return 0; //Not a IMD image!
 	}
-	BIGFILE* f;
 	f = emufopen64(filename, "rb"); //Open the image!
 	if (!f) return 0; //Not opened!
 	if (emufread64(&identifier, 1, sizeof(identifier), f) != sizeof(identifier)) //Try to read the header?
@@ -875,7 +867,6 @@ byte readIMDSector(char* filename, byte track, byte head, byte sector, word sect
 
 validIMDheaderRead:
 	//Now, skip tracks until we reach the selected track!
-	trackskipleft = track; //How many tracks to skip!
 	for (;;) //Skipping left?
 	{
 		if (emufread64(&trackinfo, 1, sizeof(trackinfo), f) != sizeof(trackinfo)) //Failed to read track info?
@@ -1286,16 +1277,15 @@ byte writeIMDSector(char* filename, byte track, byte head, byte sector, word sec
 	word* sectorsizemap=NULL; //Sector size map!
 	uint_32 datarecordnumber;
 	TRACKINFORMATIONBLOCK trackinfo;
-	word trackskipleft;
 	byte identifier[3];
 	byte data;
+	BIGFILE* f;
 	if (strcmp(filename, "") == 0) return 0; //Unexisting: don't even look at it!
 	if (!isext(filename, "imd")) //Not our IMD image file?
 	{
 		return 0; //Not a IMD image!
 	}
 	fillsector = (byte*)sectordata; //What sector is supposed to be filled with this byte!
-	BIGFILE* f;
 	f = emufopen64(filename, "rb+"); //Open the image!
 	if (!f) return 0; //Not opened!
 	if (emufread64(&identifier, 1, sizeof(identifier), f) != sizeof(identifier)) //Try to read the header?
@@ -1327,7 +1317,6 @@ byte writeIMDSector(char* filename, byte track, byte head, byte sector, word sec
 
 validIMDheaderWrite:
 	//Now, skip tracks until we reach the selected track!
-	trackskipleft = track; //How many tracks to skip!
 	for (;;) //Skipping left?
 	{
 		if (emufread64(&trackinfo, 1, sizeof(trackinfo), f) != sizeof(trackinfo)) //Failed to read track info?
@@ -1906,43 +1895,31 @@ byte formatIMDTrack(char* filename, byte track, byte head, byte MFM, byte speed,
 	word currentsector;
 	byte b;
 	word w;
-	byte headskipped = 0;
 	byte skippingtrack = 0; //Skipping this track once?
-	uint_32 fillsector_dataleft;
 	byte* sectordataptr = NULL;
-	byte* fillsector = NULL;
 	byte* tailbuffer = NULL; //Buffer for the compressed sector until the end!
 	byte* headbuffer = NULL; //Buffer for the compressed sector until the end!
 	byte* sectornumbermap = NULL; //Original sector number map!
 	byte* cylindermap = NULL; //Original cylinder map!
 	byte* headmap = NULL; //Original head map!
 	byte* oldsectordata = NULL; //Old sector data!
-	FILEPOS oldsectordatasize;
+	FILEPOS oldsectordatasize=0;
 	FILEPOS tailbuffersize; //Size of the tail buffer!
 	FILEPOS headbuffersize = 0; //Position of the compressed sector!
 	FILEPOS tailpos; //Tail position!
-	FILEPOS eofpos; //EOF position!
 	byte searchingheadsize = 1; //Were we searching the head size?
-	byte retryingheaderror; //Prevents infinite loop on file rewrite!
-	byte compresseddata_byteval; //What is the compressed data, if it's compressed?
-	byte physicalsectornr;
-	byte physicalheadnr;
-	byte physicalcylindernr;
-	word physicalsectorsize; //Effective sector size!
 	word sectornumber;
 	word* sectorsizemap = NULL; //Original sector size map!
 	uint_32 datarecordnumber;
 	TRACKINFORMATIONBLOCK trackinfo, newtrackinfo; //Original and new track info!
-	word trackskipleft;
 	byte identifier[3];
 	byte data;
+	BIGFILE* f;
 	if (strcmp(filename, "") == 0) return 0; //Unexisting: don't even look at it!
 	if (!isext(filename, "imd")) //Not our IMD image file?
 	{
 		return 0; //Not a IMD image!
 	}
-	fillsector = (byte*)sectordata; //What sector is supposed to be filled with this byte!
-	BIGFILE* f;
 	f = emufopen64(filename, "rb+"); //Open the image!
 	if (!f) return 0; //Not opened!
 	if (emufread64(&identifier, 1, sizeof(identifier), f) != sizeof(identifier)) //Try to read the header?
@@ -1974,7 +1951,6 @@ byte formatIMDTrack(char* filename, byte track, byte head, byte MFM, byte speed,
 
 validIMDheaderFormat:
 	//Now, skip tracks until we reach the selected track!
-	trackskipleft = track; //How many tracks to skip!
 	for (;;) //Skipping left?
 	{
 	format_skipFormattedTrack: //Skip the formatted track when formatting!
