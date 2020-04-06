@@ -4,7 +4,7 @@
 #include "headers/emu/directorylist.h"
 
 //Always apply memory conservation, at the cost of speed?
-//#define MEMORYCONSERVATION
+#define MEMORYCONSERVATION
 
 #ifdef IS_PSP
 #define SDL_SwapLE16(x) (x)
@@ -14,20 +14,32 @@
 #endif
 #endif
 
+typedef struct
+{
+	BIGFILE* f; //The file!
+	char fn[256]; //Filename!
+	FILEPOS movecounter; //Movement counter!
+	byte tmpbuf; //Temporary buffer for movement operations!
+} MEMORYCONSERVATION_BUFFER;
+
 //Move data between two files easily with error checking using disk-based buffering. Requires two files, a buffer(byte), a counter(FILEPOS) and success/fail jump labels
 #define GOTOLABEL(label) label
-#define PERFORMGOTO(label) goto GOTOLABEL(##label);
-#define COMMON_MEMORYCONSERVATION_MOVEBUFFER(src,dst,name,size,failjump,successjump) { { for (movecounter_##name=0;movecounter_##name<size;++movecounter_##name) {if (emufread64(&tmpbuf_##name,1,1,src)!=1){PERFORMGOTO(##failjump)}if (emufwrite64(&tmpbuf_##name,1,1,dst)!=1){PERFORMGOTO(##failjump)}}} PERFORMGOTO(##successjump) }
-#define COMMON_MEMORYCONSERVATION_STARTBUFFER(name,failjump,successjump) { if (emufseek64(##name, 0, SEEK_SET)<0){PERFORMGOTO(##failjump)} PERFORMGOTO(##successjump)}
-#define COMMON_MEMORYCONSERVATION_READBUFFER(src,name,size,failjump,successjump) { COMMON_MEMORYCONSERVATION_STARTBUFFER(##name,##failjump,successjump_pre_##successjump##name) successjump_pre_##successjump##name: COMMON_MEMORYCONSERVATION_MOVEBUFFER(src,##name,##name,size,##failjump,##successjump) }
-#define COMMON_MEMORYCONSERVATION_WRITEBUFFER(dst,name,size,failjump,successjump) { COMMON_MEMORYCONSERVATION_STARTBUFFER(##name,##failjump,successjump_pre_##successjump##name) successjump_pre_##successjump##name: COMMON_MEMORYCONSERVATION_MOVEBUFFER(##name,dst,##name,size,##failjump,##successjump) }
-#define COMMON_MEMORYCONSERVATION_BEGINBUFFER(name,failjump,successjump) { memset(&fn_##name, 0, sizeof(fn_##name));safestrcpy(fn_##name, sizeof(fn_##name), tmpnam(NULL)); ##name = emufopen64(fn_##name, "wb+"); { if (##name==NULL) PERFORMGOTO(##failjump) } PERFORMGOTO(##successjump) }
-#define COMMON_MEMORYCONSERVATION_ENDBUFFER(name) { emufclose64(##name); delete_file(NULL, fn_##name);}
-#define COMMON_MEMORYCONSERVATION_CLEARBUFFER(name,size,failjump,successjump) { COMMON_MEMORYCONSERVATION_ENDBUFFER(##name) COMMON_MEMORYCONSERVATION_BEGINBUFFER(f,##name,size,##failjump,##successjump) }
-#define COMMON_MEMORYCONSERVATION_buffer(name) BIGFILE *##name=NULL; \
-												char fn_##name[256]; \
-												FILEPOS movecounter_##name; \
-												byte tmpbuf_##name;
+#define PERFORMGOTO(label) goto GOTOLABEL(label);
+#define COMMON_MEMORYCONSERVATION_MOVEBUFFER(src,dst,name,size,failjump,successjump) { { for (name.movecounter=0;name.movecounter<size;++name.movecounter) {if (emufread64(&name.tmpbuf,1,1,src)!=1){PERFORMGOTO(failjump)}if (emufwrite64(&name.tmpbuf,1,1,dst)!=1){PERFORMGOTO(failjump)}}} PERFORMGOTO(successjump) }
+#define COMMON_MEMORYCONSERVATION_STARTBUFFER(name,failjump,successjump) { if (emufseek64(name.f, 0, SEEK_SET)<0){PERFORMGOTO(failjump)} PERFORMGOTO(successjump)}
+#define COMMON_MEMORYCONSERVATION_READBUFFER(src,name,size,failjump,successjump) { COMMON_MEMORYCONSERVATION_STARTBUFFER(name,failjump,successjump_pre_##successjump##name) successjump_pre_##successjump##name: COMMON_MEMORYCONSERVATION_MOVEBUFFER(src,name.f,name,size,failjump,successjump) }
+#define COMMON_MEMORYCONSERVATION_WRITEBUFFER(dst,name,size,failjump,successjump) { COMMON_MEMORYCONSERVATION_STARTBUFFER(name,failjump,successjump_pre_##successjump##name) successjump_pre_##successjump##name: COMMON_MEMORYCONSERVATION_MOVEBUFFER(name.f,dst,name,size,failjump,successjump) }
+#define COMMON_MEMORYCONSERVATION_BEGINBUFFER(name,failjump,successjump) { memset(&name.fn, 0, sizeof(name.fn));safestrcpy(name.fn, sizeof(name.fn), tmpnam(NULL)); name.f = emufopen64(name.fn, "wb+"); { if (name.f==NULL) PERFORMGOTO(failjump) } PERFORMGOTO(successjump) }
+#define COMMON_MEMORYCONSERVATION_ENDBUFFER(name) {emufclose64(name.f); name.f = NULL; delete_file(NULL, name.fn);}
+#define COMMON_MEMORYCONSERVATION_CLEARBUFFER(name,size,failjump,successjump) { COMMON_MEMORYCONSERVATION_ENDBUFFER(name) COMMON_MEMORYCONSERVATION_BEGINBUFFER(f,name,size,##failjump,##successjump) }
+#define COMMON_MEMORYCONSERVATION_buffer(name) MEMORYCONSERVATION_BUFFER name; memset(&name,0,sizeof(name));
+
+//Simple cross-compatible check for conservative dynamic storage
+#ifdef MEMORYCONSERVATION
+#define COMMON_MEMORYCONSERVATION_ALLOCATED(name) name.f
+#else
+#define COMMON_MEMORYCONSERVATION_ALLOCATED(name) name
+#endif
 
 //One sector information block per sector.
 #include "headers/packed.h" //PACKED support!
@@ -1836,7 +1848,7 @@ validIMDheaderWrite:
 			{
 				freez((void**)&sectorsizemap, (trackinfo.sectorspertrack << 1), "IMDIMAGE_SECTORSIZEMAP"); //Free the allocated sector size map!
 			}
-			if (headbuffer) //Head buffer allocated?
+			if (COMMON_MEMORYCONSERVATION_ALLOCATED(headbuffer)) //Head buffer allocated?
 			{
 				#ifdef MEMORYCONSERVATION
 				COMMON_MEMORYCONSERVATION_ENDBUFFER(headbuffer)
@@ -1857,7 +1869,7 @@ validIMDheaderWrite:
 				{
 					freez((void**)&sectorsizemap, (trackinfo.sectorspertrack << 1), "IMDIMAGE_SECTORSIZEMAP"); //Free the allocated sector size map!
 				}
-				if (headbuffer) //Head buffer allocated?
+				if (COMMON_MEMORYCONSERVATION_ALLOCATED(headbuffer)) //Head buffer allocated?
 				{
 					#ifdef MEMORYCONSERVATION
 					COMMON_MEMORYCONSERVATION_ENDBUFFER(headbuffer)
@@ -1899,7 +1911,7 @@ validIMDheaderWrite:
 					{
 						freez((void**)&sectorsizemap, (trackinfo.sectorspertrack << 1), "IMDIMAGE_SECTORSIZEMAP"); //Free the allocated sector size map!
 					}
-					if (headbuffer) //Head buffer allocated?
+					if (COMMON_MEMORYCONSERVATION_ALLOCATED(headbuffer)) //Head buffer allocated?
 					{
 						#ifdef MEMORYCONSERVATION
 						COMMON_MEMORYCONSERVATION_ENDBUFFER(headbuffer)
@@ -1933,7 +1945,7 @@ validIMDheaderWrite:
 					{
 						freez((void**)&sectorsizemap, (trackinfo.sectorspertrack << 1), "IMDIMAGE_SECTORSIZEMAP"); //Free the allocated sector size map!
 					}
-					if (headbuffer) //Head buffer allocated?
+					if (COMMON_MEMORYCONSERVATION_ALLOCATED(headbuffer)) //Head buffer allocated?
 					{
 						#ifdef MEMORYCONSERVATION
 						COMMON_MEMORYCONSERVATION_ENDBUFFER(headbuffer);
@@ -2085,7 +2097,7 @@ validIMDheaderWrite:
 							#endif
 							goto invalidsectordataWrite; //Error out!
 						}
-						if (tailbuffer)
+						if (COMMON_MEMORYCONSERVATION_ALLOCATED(tailbuffer))
 						{
 							#ifdef MEMORYCONSERVATION
 							COMMON_MEMORYCONSERVATION_WRITEBUFFER(f,tailbuffer,tailbuffersize,invalidsectordataWrite,tailbufferWrittenWrite)
@@ -2113,7 +2125,7 @@ validIMDheaderWrite:
 							f = emufopen64(filename, "wb"); //Open the image!
 							if (!f) //Failed to reopen?
 							{
-								if (headbuffer) //Head buffer allocated?
+								if (COMMON_MEMORYCONSERVATION_ALLOCATED(headbuffer)) //Head buffer allocated?
 								{
 									#ifdef MEMORYCONSERVATION
 									dofailheadbufferWrite:
@@ -2135,7 +2147,7 @@ validIMDheaderWrite:
 							if (emufwrite64(headbuffer, 1, compressedsectorpos, f) != compressedsectorpos) //Failed writing the original head data back?
 							#endif
 							{
-								if (headbuffer) //Head buffer allocated?
+								if (COMMON_MEMORYCONSERVATION_ALLOCATED(headbuffer)) //Head buffer allocated?
 								{
 									freez((void**)&headbuffer, compressedsectorpos, "IMDIMAGE_FAILEDHEADBUFFER"); //Free the allocated sector size map!
 								}
@@ -2153,7 +2165,7 @@ validIMDheaderWrite:
 						#else
 						freez((void**)&tailbuffer, tailbuffersize, "IMDIMAGE_FOOTERDATA"); //Release the tail buffer!
 						#endif
-						if (headbuffer) //Head buffer allocated?
+						if (COMMON_MEMORYCONSERVATION_ALLOCATED(headbuffer)) //Head buffer allocated?
 						{
 							#ifdef MEMORYCONSERVATION
 							COMMON_MEMORYCONSERVATION_ENDBUFFER(headbuffer)
@@ -2163,7 +2175,7 @@ validIMDheaderWrite:
 						}
 						goto invalidsectordataWrite; //Error out always, since we couldn't update the real data!
 					}
-					if (tailbuffer)
+					if (COMMON_MEMORYCONSERVATION_ALLOCATED(tailbuffer))
 					{
 						#ifdef MEMORYCONSERVATION
 						COMMON_MEMORYCONSERVATION_WRITEBUFFER(f,tailbuffer,tailbuffersize,undoUncompressedsectorwriteWrite,successWriteTailBufferWrite)
@@ -2184,7 +2196,7 @@ validIMDheaderWrite:
 					#else
 					freez((void**)&tailbuffer, tailbuffersize, "IMDIMAGE_FOOTERDATA"); //Release the tail buffer!
 					#endif
-					if (headbuffer) //Head buffer allocated?
+					if (COMMON_MEMORYCONSERVATION_ALLOCATED(headbuffer)) //Head buffer allocated?
 					{
 						#ifdef MEMORYCONSERVATION
 						COMMON_MEMORYCONSERVATION_ENDBUFFER(headbuffer)
@@ -2210,7 +2222,7 @@ validIMDheaderWrite:
 	{
 		freez((void**)&sectorsizemap, (trackinfo.sectorspertrack << 1), "IMDIMAGE_SECTORSIZEMAP"); //Free the allocated sector size map!
 	}
-	if (headbuffer) //Head buffer allocated?
+	if (COMMON_MEMORYCONSERVATION_ALLOCATED(headbuffer)) //Head buffer allocated?
 	{
 		#ifdef MEMORYCONSERVATION
 		COMMON_MEMORYCONSERVATION_ENDBUFFER(headbuffer)
@@ -2243,7 +2255,7 @@ byte formatIMDTrack(char* filename, byte track, byte head, byte MFM, byte speed,
 	byte* cylindermap = NULL; //Original cylinder map!
 	byte* headmap = NULL; //Original head map!
 	FILEPOS oldsectordatasize=0;
-	FILEPOS tailbuffersize; //Size of the tail buffer!
+	FILEPOS tailbuffersize = 0; //Size of the tail buffer!
 	FILEPOS headbuffersize = 0; //Position of the compressed sector!
 	FILEPOS tailpos; //Tail position!
 	byte searchingheadsize = 1; //Were we searching the head size?
@@ -2477,7 +2489,7 @@ validIMDheaderFormat:
 	#ifdef MEMORYCONSERVATION
 	headbufferallocated:
 	#endif
-	if ((headbuffer == NULL) && headbuffersize) goto errorOutFormat; //Error out if we can't allocate!
+	if ((COMMON_MEMORYCONSERVATION_ALLOCATED(headbuffer) == NULL) && headbuffersize) goto errorOutFormat; //Error out if we can't allocate!
 	if (emufseek64(f, 0, SEEK_SET) < 0) //Failed to get to BOF?
 	{
 		goto errorOutFormat;
@@ -2495,7 +2507,7 @@ validIMDheaderFormat:
 		#else
 		tailbuffer = (byte*)zalloc(tailbuffersize, "IMDIMAGE_TAILBUFFER", NULL); //Allocate a tail buffer!
 		#endif
-		if ((tailbuffer == NULL) && tailbuffersize) goto errorOutFormat; //Error out if we can't allocate!
+		if ((COMMON_MEMORYCONSERVATION_ALLOCATED(tailbuffer) == NULL) && tailbuffersize) goto errorOutFormat; //Error out if we can't allocate!
 	}
 	#ifdef MEMORYCONSERVATION
 	tailbufferallocated:
@@ -2504,7 +2516,7 @@ validIMDheaderFormat:
 	{
 		goto errorOutFormat;
 	}
-	if (tailbuffer) //Have a tail buffer?
+	if (COMMON_MEMORYCONSERVATION_ALLOCATED(tailbuffer)) //Have a tail buffer?
 	{
 		#ifdef MEMORYCONSERVATION
 		COMMON_MEMORYCONSERVATION_READBUFFER(f,tailbuffer,tailbuffersize,errorOutFormat,tailbufferReadFormat)
@@ -2577,7 +2589,7 @@ validIMDheaderFormat:
 	f = emufopen64(filename, "wb+"); //Open the image and clear it!
 	if (!f) goto errorOutFormat; //Not opened!
 	//First, the head!
-	if (headbuffer)
+	if (COMMON_MEMORYCONSERVATION_ALLOCATED(headbuffer))
 	{
 		#ifdef MEMORYCONSERVATION
 		COMMON_MEMORYCONSERVATION_WRITEBUFFER(f,headbuffer,headbuffersize,failedwritingheadbufferFormat,wroteHeadBufferFormat)
@@ -2682,7 +2694,7 @@ validIMDheaderFormat:
 	}
 
 	//Finally, the tail!
-	if (tailbuffer)
+	if (COMMON_MEMORYCONSERVATION_ALLOCATED(tailbuffer))
 	{
 		#ifdef MEMORYCONSERVATION
 		COMMON_MEMORYCONSERVATION_WRITEBUFFER(f,tailbuffer,tailbuffersize,tailbufferfailedFormat,tailbufferwrittenFormat)
@@ -2703,7 +2715,7 @@ validIMDheaderFormat:
 	{
 		freez((void**)&sectorsizemap, (trackinfo.sectorspertrack << 1), "IMDIMAGE_SECTORSIZEMAP"); //Free the allocated sector size map!
 	}
-	if (headbuffer) //Head buffer allocated?
+	if (COMMON_MEMORYCONSERVATION_ALLOCATED(headbuffer)) //Head buffer allocated?
 	{
 		#ifdef MEMORYCONSERVATION
 		COMMON_MEMORYCONSERVATION_ENDBUFFER(headbuffer)
@@ -2711,7 +2723,7 @@ validIMDheaderFormat:
 		freez((void**)&headbuffer, headbuffersize, "IMDIMAGE_HEADBUFFER"); //Free the allocated head!
 		#endif
 	}
-	if (tailbuffer) //Tail buffer allocated?
+	if (COMMON_MEMORYCONSERVATION_ALLOCATED(tailbuffer)) //Tail buffer allocated?
 	{
 		#ifdef MEMORYCONSERVATION
 		COMMON_MEMORYCONSERVATION_ENDBUFFER(tailbuffer)
@@ -2731,7 +2743,7 @@ validIMDheaderFormat:
 	{
 		freez((void**)&headmap, trackinfo.sectorspertrack, "IMDIMAGE_HEADMAP"); //Free the allocated head map!
 	}
-	if (oldsectordata) //Sector data allocated?
+	if (COMMON_MEMORYCONSERVATION_ALLOCATED(oldsectordata)) //Sector data allocated?
 	{
 		#ifdef MEMORYCONSERVATION
 		COMMON_MEMORYCONSERVATION_ENDBUFFER(oldsectordata)
@@ -2746,7 +2758,7 @@ errorOutFormat_restore: //Error out on formatting and restore the file!
 	f = emufopen64(filename, "wb+"); //Open the image and clear it!
 	if (!f) goto errorOutFormat; //Not opened!
 	//First, the previous tracks!
-	if (headbuffer && headbuffersize) //Gotten a head buffer?
+	if (COMMON_MEMORYCONSERVATION_ALLOCATED(headbuffer) && headbuffersize) //Gotten a head buffer?
 	{
 		#ifdef MEMORYCONSERVATION
 		COMMON_MEMORYCONSERVATION_WRITEBUFFER(f,headbuffer,headbuffersize,errorOutFormat,wroteHeadBufferRestoreFormat)
@@ -2775,7 +2787,7 @@ errorOutFormat_restore: //Error out on formatting and restore the file!
 	{
 		if (emufwrite64(sectorsizemap, 1, (trackinfo.sectorspertrack << 1), f) != (trackinfo.sectorspertrack << 1)) goto errorOutFormat; //Write the sector size map!
 	}
-	if (oldsectordata)
+	if (COMMON_MEMORYCONSERVATION_ALLOCATED(oldsectordata))
 	{
 		#ifdef MEMORYCONSERVATION
 		COMMON_MEMORYCONSERVATION_WRITEBUFFER(f,oldsectordata,oldsectordatasize,errorOutFormat,wroteoldsectordataRestoreFormat)
@@ -2786,7 +2798,7 @@ errorOutFormat_restore: //Error out on formatting and restore the file!
 	#ifdef MEMORYCONSERVATION
 	wroteoldsectordataRestoreFormat:
 	#endif
-	if (tailbuffer)
+	if (COMMON_MEMORYCONSERVATION_ALLOCATED(tailbuffer))
 	{
 		#ifdef MEMORYCONSERVATION
 		COMMON_MEMORYCONSERVATION_WRITEBUFFER(f, tailbuffer, tailbuffersize, errorOutFormat, wrotetailbufferRestoreFormat)
@@ -2805,7 +2817,7 @@ errorOutFormat_restore: //Error out on formatting and restore the file!
 	{
 		freez((void**)&sectorsizemap, (trackinfo.sectorspertrack << 1), "IMDIMAGE_SECTORSIZEMAP"); //Free the allocated sector size map!
 	}
-	if (headbuffer) //Head buffer allocated?
+	if (COMMON_MEMORYCONSERVATION_ALLOCATED(headbuffer)) //Head buffer allocated?
 	{
 		#ifdef MEMORYCONSERVATION
 		COMMON_MEMORYCONSERVATION_ENDBUFFER(headbuffer)
@@ -2813,7 +2825,7 @@ errorOutFormat_restore: //Error out on formatting and restore the file!
 		freez((void**)&headbuffer, headbuffersize, "IMDIMAGE_HEADBUFFER"); //Free the allocated head!
 		#endif
 	}
-	if (tailbuffer) //Tail buffer allocated?
+	if (COMMON_MEMORYCONSERVATION_ALLOCATED(tailbuffer)) //Tail buffer allocated?
 	{
 		#ifdef MEMORYCONSERVATION
 		COMMON_MEMORYCONSERVATION_ENDBUFFER(tailbuffer)
@@ -2833,7 +2845,7 @@ errorOutFormat_restore: //Error out on formatting and restore the file!
 	{
 		freez((void**)&headmap, trackinfo.sectorspertrack, "IMDIMAGE_HEADMAP"); //Free the allocated head map!
 	}
-	if (oldsectordata) //Sector data allocated?
+	if (COMMON_MEMORYCONSERVATION_ALLOCATED(oldsectordata)) //Sector data allocated?
 	{
 		#ifdef MEMORYCONSERVATION
 		COMMON_MEMORYCONSERVATION_ENDBUFFER(oldsectordata)
