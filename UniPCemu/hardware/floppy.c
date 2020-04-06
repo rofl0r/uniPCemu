@@ -1234,14 +1234,24 @@ void floppy_readsector() //Request a read sector command!
 	if ((!FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]) || ((FLOPPY_DOR_DRIVENUMBERR<2)?(!is_mounted(FLOPPY_DOR_DRIVENUMBERR?FLOPPY1:FLOPPY0)):1)) //Not inserted or valid?
 	{
 		FLOPPY_LOGD("FLOPPY: Error: Invalid drive!")
-		floppy_common_sectoraccess_nomedia(); //No media!
+		if (FLOPPY_DOR_DRIVENUMBERR > 1) //Invalid drive?
+		{
+			floppy_common_sectoraccess_nomedia(); //No media!
+		}
+		else //Invalid media?
+		{
+			FLOPPY.ST1 = 0x04 | 0x01; //Couldn't find any sector!
+			FLOPPY.ST2 = 0x01; //Data address mark not found!
+			goto floppy_errorread; //Error out!
+		}
 		return;
 	}
 	if ((FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->DoubleDensity!=(FLOPPY.MFM&~DENSITY_IGNORE)) && (!(FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->DoubleDensity&DENSITY_IGNORE) || density_forced) && EMULATE_DENSITY) //Wrong density?
 	{
 		FLOPPY_LOGD("FLOPPY: Error: Invalid density!")
-		floppy_common_sectoraccess_nomedia(); //No media!
-		return;
+		FLOPPY.ST1 = 0x04 | 0x01; //Couldn't find any sector!
+		FLOPPY.ST2 = 0x01; //Data address mark not found!
+		goto floppy_errorread; //Error out!
 	}
 
 	FLOPPY.databuffersize = translateSectorSize(FLOPPY.commandbuffer[5]); //Sector size into data buffer!
@@ -1258,8 +1268,9 @@ void floppy_readsector() //Request a read sector command!
 	if (!(FLOPPY_DOR_MOTORCONTROLR&(1 << FLOPPY_DOR_DRIVENUMBERR))) //Not motor ON?
 	{
 		FLOPPY_LOGD("FLOPPY: Error: drive motor not ON!")
-		floppy_common_sectoraccess_nomedia(); //No media!
-		return;
+		FLOPPY.ST1 = 0x04 | 0x01; //Couldn't find any sector!
+		FLOPPY.ST2 = 0x01; //Data address mark not found!
+		goto floppy_errorread; //Error out!
 	}
 
 	FLOPPY_ST0_UNITSELECTW(FLOPPY_DOR_DRIVENUMBERR); //Current unit!
@@ -1287,9 +1298,13 @@ void floppy_readsector() //Request a read sector command!
 
 	if (FLOPPY.RWRequestedCylinder!=FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]) //Wrong cylinder to access?
 	{
+		FLOPPY.ST1 = 0x04 | 0x01; //Couldn't find any sector!
+		FLOPPY.ST2 = 0x01; //Data address mark not found!
 		goto floppy_errorread; //Error out!
 	}
 
+	FLOPPY.ST1 = 0x04; //Couldn't find any sector!
+	FLOPPY.ST2 = 0x01; //Data address mark not found!
 	if (readdata(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0, &FLOPPY.databuffer, FLOPPY.disk_startpos, FLOPPY.databuffersize)) //Read the data into memory?
 	{
 		if ((FLOPPY.commandbuffer[7]!=FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->GAPLength) && (FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->GAPLength!=GAPLENGTH_IGNORE) && EMULATE_GAPLENGTH) //Wrong GAP length?
@@ -1297,6 +1312,8 @@ void floppy_readsector() //Request a read sector command!
 			floppy_common_sectoraccess_nomedia(); //No media!
 			return;
 		}
+		FLOPPY.ST1 &= ~4; //Found!
+		FLOPPY.ST2 &= ~1; //Found!
 		FLOPPY.readID_lastsectornumber = FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]; //Last sector accessed!
 		//FLOPPY_ST0_SEEKENDW(1); //Successfull read with implicit seek!
 		FLOPPY_startData();
@@ -1309,6 +1326,8 @@ void floppy_readsector() //Request a read sector command!
 			{
 				if (readDSKTrackInfo(DSKImageFile, FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], &trackinfo) == 0) //Read?
 				{
+					FLOPPY.ST1 = 0x04 | 0x01; //Couldn't find any sector!
+					FLOPPY.ST2 = 0x01; //Data address mark not found!
 					goto floppy_errorread;
 				}
 			}
@@ -1316,9 +1335,13 @@ void floppy_readsector() //Request a read sector command!
 			{
 				if (readIMDSectorInfo(IMDImageFile, FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR],FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR],0, &IMD_sectorinfo) == 0) //Read track info?
 				{
+					FLOPPY.ST1 = 0x04 | 0x01; //Couldn't find any sector!
+					FLOPPY.ST2 = 0x01; //Data address mark not found!
 					goto floppy_errorread;
 				}
 			}
+			FLOPPY.ST1 = 0x04; //Couldn't find any sector!
+			FLOPPY.ST2 = 0x01; //Data address mark not found!
 			for (sectornr = 0; sectornr < (IMDImageFile?IMD_sectorinfo.totalsectors:(word)trackinfo.numberofsectors); ++sectornr) //Find the sector that's to be requested!
 			{
 				if (DSKImageFile) //DSK file format?
@@ -1327,6 +1350,8 @@ void floppy_readsector() //Request a read sector command!
 					{
 						if ((sectorinfo.SectorID == FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]) && (sectorinfo.side == FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]) && (sectorinfo.track == FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR])) //Found the requested sector as indicated?
 						{
+							FLOPPY.ST1 &= ~4; //Found!
+							FLOPPY.ST2 &= ~1; //Found!
 							goto foundsectorIDread; //Found it!
 						}
 					}
@@ -1339,6 +1364,8 @@ void floppy_readsector() //Request a read sector command!
 						{
 							if ((IMD_sectorinfo.sectorID == FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]) && (IMD_sectorinfo.headnumber == FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]) && (IMD_sectorinfo.cylinderID == FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR])) //Found the requested sector as indicated?
 							{
+								FLOPPY.ST1 &= ~4; //Found!
+								FLOPPY.ST2 &= ~1; //Found!
 								goto foundsectorIDread; //Found it!
 							}
 						}
@@ -1353,6 +1380,7 @@ void floppy_readsector() //Request a read sector command!
 			{
 				FLOPPY.readID_lastsectornumber = (IMD_sectorinfo.totalsectors - 1); //Last sector reached, go back to the first one!
 			}
+			FLOPPY.ST1 = 0x04 | 0x01; //Couldn't find any sector!
 			goto floppy_errorread;
 		foundsectorIDread: //Found the sector ID for the write!
 			if (DSKImageFile) //DSK image file?
@@ -1384,10 +1412,28 @@ void floppy_readsector() //Request a read sector command!
 				}
 			}
 		}
+		else //Not found?
+		{
+			FLOPPY.ST1 = 0x04 | 0x01; //Couldn't find any sector!
+			FLOPPY.ST2 = 0x01; //Data address mark not found!
+		}
 
 		floppy_errorread: //Error reading data?
 		//Plain error reading the sector!
-		floppy_common_sectoraccess_nomedia(); //No media!
+		//ENTER RESULT PHASE
+		FLOPPY_LOGD("FLOPPY: Finished transfer of data (%u sector(s)).", FLOPPY.sectorstransferred) //Log the completion of the sectors written!
+		FLOPPY.resultposition = 0;
+		FLOPPY_fillST0(FLOPPY_DOR_DRIVENUMBERR); //Setup ST0!
+		FLOPPY.resultbuffer[0] = FLOPPY.ST0 = 0x40 | ((FLOPPY.ST0 & 0x3B) | FLOPPY_DOR_DRIVENUMBERR) | ((FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR] & 1) << 2); //Abnormal termination! ST0!
+		FLOPPY.resultbuffer[1] = FLOPPY.ST1;
+		FLOPPY.resultbuffer[2] = FLOPPY.ST2;
+		FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]; //Error cylinder!
+		FLOPPY.resultbuffer[4] = FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]; //Error head!
+		FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]; //Error sector!
+		FLOPPY.resultbuffer[6] = FLOPPY.commandbuffer[2]; //Sector size from the command buffer!
+		FLOPPY.commandstep = 3; //Move to result phrase and give the result!
+		FLOPPY_raiseIRQ(); //Entering result phase!
+		return; //Abort!
 	}
 }
 
@@ -1627,6 +1673,9 @@ void FLOPPY_formatsector() //Request a read sector command!
 			}
 		}
 
+		FLOPPY.ST1 = 0; //No errors!
+		FLOPPY.ST2 = 0; //No errors!
+
 		FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR] = 1; //Reset sector number!
 		//Enter result phase!
 		FLOPPY.resultposition = 0; //Reset result position!
@@ -1665,14 +1714,31 @@ void floppy_writesector() //Request a write sector command!
 	if (!(FLOPPY_DOR_MOTORCONTROLR&(1 << FLOPPY_DOR_DRIVENUMBERR))) //Not motor ON?
 	{
 		FLOPPY_LOGD("FLOPPY: Error: drive motor not ON!")
-		floppy_common_sectoraccess_nomedia(); //No media!
-		return;
+		FLOPPY.ST1 = 0x04 | 0x01; //Couldn't find any sector!
+		FLOPPY.ST2 = 0x01; //Data address mark not found!
+		floppy_errorwrite: //Error out!
+		FLOPPY_LOGD("FLOPPY: Finished transfer of data (%u sector(s)).", FLOPPY.sectorstransferred) //Log the completion of the sectors written!
+		FLOPPY.resultposition = 0;
+		FLOPPY_fillST0(FLOPPY_DOR_DRIVENUMBERR); //Setup ST0!
+		FLOPPY.ST1 = 0; //OK!
+		FLOPPY.ST2 = 0; //OK!
+		FLOPPY.resultbuffer[0] = FLOPPY.ST0; //ST0!
+		FLOPPY.resultbuffer[1] = FLOPPY.ST1; //ST1!
+		FLOPPY.resultbuffer[2] = FLOPPY.ST2; //ST2!
+		//The cylinder is set by floppy_increasesector!
+		//The head is set by floppy_increasesector!
+		FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR];
+		FLOPPY.resultbuffer[6] = FLOPPY.commandbuffer[5]; //Sector size from the command buffer!
+		FLOPPY.commandstep = 3; //Move to result phrase and give the result!
+		FLOPPY_raiseIRQ(); //Entering result phase!
+		return; //Abort!
 	}
 
 	if (!FLOPPY_supportsrate(FLOPPY_DOR_DRIVENUMBERR) || !FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR] || ((FLOPPY_DOR_DRIVENUMBERR < 2) ? (!is_mounted(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0)) : 1)) //We don't support the rate or geometry?
 	{
-		floppy_common_sectoraccess_nomedia(); //No media!
-		return;
+		FLOPPY.ST1 = 0x04 | 0x01; //Couldn't find any sector!
+		FLOPPY.ST2 = 0x01; //Data address mark not found!
+		goto floppy_errorwrite; //Error out!
 	}
 
 	FLOPPY_ST0_UNITSELECTW(FLOPPY_DOR_DRIVENUMBERR); //Current unit!
@@ -1684,8 +1750,9 @@ void floppy_writesector() //Request a write sector command!
 
 	if (!(FLOPPY_DOR_MOTORCONTROLR&(1 << FLOPPY_DOR_DRIVENUMBERR))) //Not motor ON?
 	{
-		floppy_common_sectoraccess_nomedia(); //No media!
-		return;
+		FLOPPY.ST1 = 0x04 | 0x01; //Couldn't find any sector!
+		FLOPPY.ST2 = 0x01; //Data address mark not found!
+		goto floppy_errorwrite; //Error out!
 	}
 
 	FLOPPY_startData(); //Start the DMA transfer if needed!
@@ -1704,14 +1771,16 @@ void floppy_executeWriteData()
 	if (!FLOPPY_supportsrate(FLOPPY_DOR_DRIVENUMBERR) || !FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR] || ((FLOPPY_DOR_DRIVENUMBERR < 2) ? (!is_mounted(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0)) : 1)) //We don't support the rate or geometry?
 	{
 		FLOPPY_LOGD("FLOPPY: Error: Invalid disk rate/geometry!")
-		floppy_common_sectoraccess_nomedia(); //No media!
-		return;
+		FLOPPY.ST1 = 0x04 | 0x01; //Couldn't find any sector!
+		FLOPPY.ST2 = 0x01; //Data address mark not found!
+		goto floppy_errorwrite; //Error out!
 	}
 	if ((FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->DoubleDensity!=(FLOPPY.MFM&~DENSITY_IGNORE)) && (!(FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->DoubleDensity&DENSITY_IGNORE) || density_forced) && EMULATE_DENSITY) //Wrong density?
 	{
 		FLOPPY_LOGD("FLOPPY: Error: Invalid density!")
-		floppy_common_sectoraccess_nomedia(); //No media!
-		return;
+		FLOPPY.ST1 = 0x04 | 0x01; //Couldn't find any sector!
+		FLOPPY.ST2 = 0x01; //Data address mark not found!
+		goto floppy_errorwrite; //Error out!
 	}
 
 	if (FLOPPY_IMPLIEDSEEKENABLER) //Implied seek?
@@ -1727,6 +1796,8 @@ void floppy_executeWriteData()
 
 	if (FLOPPY.RWRequestedCylinder!=FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]) //Wrong cylinder to access?
 	{
+		FLOPPY.ST1 = 0x04 | 0x01; //Couldn't find any sector!
+		FLOPPY.ST2 = 0x01; //Data address mark not found!
 		goto floppy_errorwrite; //Error out!
 	}
 
@@ -1745,7 +1816,6 @@ void floppy_executeWriteData()
 			break;
 		case 0: //OK?
 		default: //Unknown?
-			floppy_errorwrite:
 			//FLOPPY_ST0_SEEKENDW(1); //Successfull write with implicit seek!
 			FLOPPY_ST0_INTERRUPTCODEW(0); //Normal termination!
 			FLOPPY_ST0_NOTREADYW(0); //We're ready!
@@ -1754,6 +1824,8 @@ void floppy_executeWriteData()
 		FLOPPY_LOGD("FLOPPY: Finished transfer of data (%u sector(s)).", FLOPPY.sectorstransferred) //Log the completion of the sectors written!
 		FLOPPY.resultposition = 0;
 		FLOPPY_fillST0(FLOPPY_DOR_DRIVENUMBERR); //Setup ST0!
+		FLOPPY.ST1 = 0; //OK!
+		FLOPPY.ST2 = 0; //OK!
 		FLOPPY.resultbuffer[0] = FLOPPY.ST0; //ST0!
 		FLOPPY.resultbuffer[1] = FLOPPY.ST1; //ST1!
 		FLOPPY.resultbuffer[2] = FLOPPY.ST2; //ST2!
@@ -1788,12 +1860,15 @@ void floppy_executeWriteData()
 		else //DSK/IMD or error?
 		{
 			updateFloppyWriteProtected(1, FLOPPY_DOR_DRIVENUMBERR); //Tried to write!
+			FLOPPY.ST1 = 0x04; //Couldn't find any sector!
+			FLOPPY.ST2 = 0x01; //Data address mark not found!
 			if ((DSKImageFile = getDSKimage((FLOPPY_DOR_DRIVENUMBERR) ? FLOPPY1 : FLOPPY0)) || (IMDImageFile = getIMDimage((FLOPPY_DOR_DRIVENUMBERR) ? FLOPPY1 : FLOPPY0))) //Are we a DSK image file?
 			{
 				if (DSKImageFile) //DSK image?
 				{
 					if (readDSKTrackInfo(DSKImageFile, FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], &trackinfo) == 0) //Read?
 					{
+						FLOPPY.ST1 = 0x04 | 0x01; //Not found!
 						goto didntfindsectoridwrite;
 					}
 				}
@@ -1801,6 +1876,7 @@ void floppy_executeWriteData()
 				{
 					if (readIMDSectorInfo(IMDImageFile, FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR], 0, &IMD_sectorinfo) == 0) //Read?
 					{
+						FLOPPY.ST1 = 0x04 | 0x01; //Not found!
 						goto didntfindsectoridwrite;
 					}
 				}
@@ -1812,6 +1888,8 @@ void floppy_executeWriteData()
 						{
 							if ((sectorinfo.SectorID == FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]) && (sectorinfo.side == FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]) && (sectorinfo.track == FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR])) //Found the requested sector as indicated?
 							{
+								FLOPPY.ST1 &= ~(0x04 | 0x01); //Found!
+								FLOPPY.ST2 &= ~1; //Found!
 								goto foundsectorIDwrite; //Found it!
 							}
 						}
@@ -1835,6 +1913,7 @@ void floppy_executeWriteData()
 				{
 					FLOPPY.readID_lastsectornumber = (IMD_sectorinfo.totalsectors - 1); //Last sector reached, go back to the first one!
 				}
+				FLOPPY.ST2 = 0x04 | 0x01; //Not found!
 				goto didntfindsectoridwrite;
 				foundsectorIDwrite: //Found the sector ID for the write!
 				FLOPPY.readID_lastsectornumber = (byte)sectornr; //This was the last sector we've read!
@@ -1866,6 +1945,7 @@ void floppy_executeWriteData()
 					}
 					FLOPPY_LOGD("FLOPPY: Finished transfer of data (%u sector(s)).", FLOPPY.sectorstransferred) //Log the completion of the sectors written!
 					//FLOPPY_ST0_SEEKENDW(1); //Successfull write with implicit seek!
+					enterFloppyWriteResultPhase:
 					FLOPPY.resultposition = 0;
 					FLOPPY.resultbuffer[0] = FLOPPY.ST0 = ((FLOPPY.ST0 & 0x3B) | FLOPPY_DOR_DRIVENUMBERR) | ((FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR] & 1) << 2); //Abnormal termination! ST0!
 					FLOPPY.resultbuffer[1] = FLOPPY.ST1; //Drive write-protected! ST1!
@@ -1879,9 +1959,16 @@ void floppy_executeWriteData()
 					return;
 				}
 			}
-			didntfindsectoridwrite: //Couldn't find the sector ID!
+			else
+			{
+				FLOPPY.ST1 = 0x04 | 0x01; //Couldn't find any sector!
+				FLOPPY.ST2 = 0x01; //Data address mark not found!
+			}
+		floppy_errorwrite:
+		didntfindsectoridwrite: //Couldn't find the sector ID!
 			//Plain error!
-			floppy_common_sectoraccess_nomedia(); //No media!
+			FLOPPY.ST0 |= 0x40; //Error out!
+			goto enterFloppyWriteResultPhase; //Result phase starts!
 		}
 	}
 }
@@ -2172,6 +2259,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 				{
 					if (readDSKTrackInfo(DSKImageFile, FLOPPY.currentphysicalhead[drive], FLOPPY.physicalcylinder[drive], &trackinfo) == 0) //Read?
 					{
+						FLOPPY.ST1 = 0x04 | 0x01; //Couldn't find any sector!
 						goto didntfindsectoridreadid;
 					}
 				}
@@ -2179,6 +2267,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 				{
 					if (readIMDSectorInfo(IMDImageFile, FLOPPY.physicalcylinder[drive], FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR], 0, &IMD_sectorinfo) == 0) //Read?
 					{
+						FLOPPY.ST1 = 0x04 | 0x01; //Couldn't find any sector!
 						goto didntfindsectoridreadid;
 					}
 				}
@@ -2231,6 +2320,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 				{
 					goto retryReadID; //Try again, from the index hole!
 				}
+				FLOPPY.ST1 = 0x04 | 0x01; //Couldn't find any sector!
 				goto didntfindsectoridreadid; //Couldn't find a sector to give!
 			foundsectorIDreadid: //Found the sector ID for the write!
 				if (DSKImageFile) //DSK image?
