@@ -459,8 +459,10 @@ validIMDheaderInfo:
 
 byte readIMDSectorInfo(char* filename, byte track, byte head, byte sector, IMDIMAGE_SECTORINFO* result)
 {
+	#ifndef MEMORYCONSERVATION
 	byte* filedata; //Total data of the entire file!
 	FILEPOS filesize; //The size of the file!
+	#endif
 	FILEPOS filepos; //The position in the file that's loaded in memory!
 	byte physicalsectornr;
 	byte physicalheadnr;
