@@ -1397,7 +1397,7 @@ void FLOPPY_formatsector() //Request a read sector command!
 	char *DSKImageFile;
 	char *IMDImageFile=NULL;
 	SECTORINFORMATIONBLOCK sectorinfo;
-	IMDIMAGE_SECTORINFO IMD_sectorinfo; //Information about the sector!
+	//IMDIMAGE_SECTORINFO IMD_sectorinfo; //Information about the sector!
 	++FLOPPY.sectorstransferred; //A sector has been transferred!
 	if (!FLOPPY_supportsrate(FLOPPY_DOR_DRIVENUMBERR) || !FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR] || ((FLOPPY_DOR_DRIVENUMBERR < 2) ? (!is_mounted(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0)) : 1)) //We don't support the rate or geometry?
 	{
