@@ -1309,8 +1309,9 @@ void floppy_readsector() //Request a read sector command!
 	{
 		if ((FLOPPY.commandbuffer[7]!=FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->GAPLength) && (FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->GAPLength!=GAPLENGTH_IGNORE) && EMULATE_GAPLENGTH) //Wrong GAP length?
 		{
-			floppy_common_sectoraccess_nomedia(); //No media!
-			return;
+			FLOPPY.ST1 = 0x04 | 0x01; //Couldn't find any sector!
+			FLOPPY.ST2 = 0x01; //Data address mark not found!
+			goto floppy_errorread; //Error out!
 		}
 		FLOPPY.ST1 &= ~4; //Found!
 		FLOPPY.ST2 &= ~1; //Found!
@@ -2244,8 +2245,8 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			if ((FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->DoubleDensity != (FLOPPY.MFM & ~DENSITY_IGNORE)) && (!(FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->DoubleDensity & DENSITY_IGNORE) || density_forced) && EMULATE_DENSITY) //Wrong density?
 			{
 				FLOPPY_LOGD("FLOPPY: Error: Invalid density!")
-				floppy_common_sectoraccess_nomedia(); //No media!
-				return;
+				FLOPPY.ST1 = 0x04 | 0x01; //Couldn't find any sector!
+				goto didntfindsectoridreadid;
 			}
 
 			FLOPPY_ST0_UNITCHECKW(0); //Not faulted!
@@ -2321,7 +2322,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 					goto retryReadID; //Try again, from the index hole!
 				}
 				FLOPPY.ST1 = 0x04 | 0x01; //Couldn't find any sector!
-				goto didntfindsectoridreadid; //Couldn't find a sector to give!
+				goto didntfindsectoridreadidresult; //Couldn't find a sector to give!
 			foundsectorIDreadid: //Found the sector ID for the write!
 				if (DSKImageFile) //DSK image?
 				{
@@ -2337,9 +2338,10 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 					}
 					else
 					{
-					didntfindsectoridreadid:
+						didntfindsectoridreadid:
 						FLOPPY.ST1 = 0x00; //Not found!
 						FLOPPY.ST2 = 0x00; //Not found!
+						didntfindsectoridreadidresult:
 						FLOPPY.resultbuffer[6] = 0; //Unknown sector size!
 						goto floppy_errorReadID; //Error out!
 					}
@@ -2366,7 +2368,8 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 					}
 					else //Couldn't read sector information?
 					{
-						goto didntfindsectoridreadid; //Same as above!
+						FLOPPY.ST1 = 0x04 | 0x01; //Couldn't find any sector!
+						goto didntfindsectoridreadidresult; //Same as above!
 					}
 				}
 			}
