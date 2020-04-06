@@ -2230,12 +2230,18 @@ byte formatIMDTrack(char* filename, byte track, byte head, byte MFM, byte speed,
 	word w;
 	byte skippingtrack = 0; //Skipping this track once?
 	byte* sectordataptr = NULL;
+	#ifdef MEMORYCONSERVATION
+	COMMON_MEMORYCONSERVATION_buffer(tailbuffer)
+	COMMON_MEMORYCONSERVATION_buffer(headbuffer)
+	COMMON_MEMORYCONSERVATION_buffer(oldsectordata)
+	#else
 	byte* tailbuffer = NULL; //Buffer for the compressed sector until the end!
 	byte* headbuffer = NULL; //Buffer for the compressed sector until the end!
+	byte* oldsectordata = NULL; //Old sector data!
+	#endif
 	byte* sectornumbermap = NULL; //Original sector number map!
 	byte* cylindermap = NULL; //Original cylinder map!
 	byte* headmap = NULL; //Original head map!
-	byte* oldsectordata = NULL; //Old sector data!
 	FILEPOS oldsectordatasize=0;
 	FILEPOS tailbuffersize; //Size of the tail buffer!
 	FILEPOS headbuffersize = 0; //Position of the compressed sector!
@@ -2462,27 +2468,53 @@ validIMDheaderFormat:
 	//Now, we have the start of the track, end of the track and end of the following tracks! We need to load the head, current track's data and following tracks into memory!
 	if (headbuffersize)
 	{
+		#ifdef MEMORYCONSERVATION
+		COMMON_MEMORYCONSERVATION_BEGINBUFFER(headbuffer,errorOutFormat,headbufferallocated)
+		#else
 		headbuffer = (byte*)zalloc(headbuffersize, "IMDIMAGE_HEADBUFFER", NULL); //Allocate a head buffer!
+		#endif
 	}
+	#ifdef MEMORYCONSERVATION
+	headbufferallocated:
+	#endif
 	if ((headbuffer == NULL) && headbuffersize) goto errorOutFormat; //Error out if we can't allocate!
 	if (emufseek64(f, 0, SEEK_SET) < 0) //Failed to get to BOF?
 	{
 		goto errorOutFormat;
 	}
+#ifdef MEMORYCONSERVATION
+	COMMON_MEMORYCONSERVATION_READBUFFER(f,headbuffer,headbuffersize,errorOutFormat,headbufferReadFormat)
+	headbufferReadFormat:
+#else
 	if (emufread64(headbuffer, 1, headbuffersize, f) != headbuffersize) goto errorOutFormat; //Couldn't read the old head!
+#endif
 	if (tailbuffersize) //Gotten a size to use?
 	{
+		#ifdef MEMORYCONSERVATION
+		COMMON_MEMORYCONSERVATION_BEGINBUFFER(tailbuffer,errorOutFormat,tailbufferallocated)
+		#else
 		tailbuffer = (byte*)zalloc(tailbuffersize, "IMDIMAGE_TAILBUFFER", NULL); //Allocate a tail buffer!
+		#endif
 		if ((tailbuffer == NULL) && tailbuffersize) goto errorOutFormat; //Error out if we can't allocate!
 	}
+	#ifdef MEMORYCONSERVATION
+	tailbufferallocated:
+	#endif
 	if (emufseek64(f, tailpos, SEEK_SET) < 0) //Failed to get to next track?
 	{
 		goto errorOutFormat;
 	}
 	if (tailbuffer) //Have a tail buffer?
 	{
+		#ifdef MEMORYCONSERVATION
+		COMMON_MEMORYCONSERVATION_READBUFFER(f,tailbuffer,tailbuffersize,errorOutFormat,tailbufferReadFormat)
+		#else
 		if (emufread64(tailbuffer, 1, tailbuffersize, f) != tailbuffersize) goto errorOutFormat; //Couldn't read the old tail!
+		#endif
 	}
+	#ifdef MEMORYCONSERVATION
+	tailbufferReadFormat:
+	#endif
 	if (emufseek64(f, headbuffersize + sizeof(trackinfo), SEEK_SET) < 0) goto errorOutFormat; //Couldn't goto sector number map!
 	if (trackinfo.sectorspertrack) //Gotten sectors per track?
 	{
@@ -2523,10 +2555,20 @@ validIMDheaderFormat:
 	oldsectordatasize = tailpos - oldsectordatasize; //The size of the old sector data!
 	if (oldsectordatasize) //Gotten sector data?
 	{
+		#ifdef MEMORYCONSERVATION
+		COMMON_MEMORYCONSERVATION_BEGINBUFFER(oldsectordata,errorOutFormat,oldsectordataRead_ReadingFormat)
+		oldsectordataRead_ReadingFormat:
+		COMMON_MEMORYCONSERVATION_READBUFFER(f,oldsectordata,oldsectordatasize,errorOutFormat,oldsectordataReadFormat)
+		#else
 		oldsectordata = (byte*)zalloc(oldsectordatasize, "IMDIMAGE_OLDSECTORDATA", NULL); //Allocate the old sector data!
 		if (oldsectordata == NULL) goto errorOutFormat; //Error out if we can't allocate!
 		if (emufread64(oldsectordata, 1, oldsectordatasize, f) != oldsectordatasize) goto errorOutFormat; //Read the old sector data!
+		#endif
 	}
+
+	#ifdef MEMORYCONSERVATION
+	oldsectordataReadFormat:
+	#endif
 
 	//Now, we have the entire track loaded in memory, along with the previous(head), the old track(both heads) and next(tail) tracks for restoration!
 
@@ -2537,12 +2579,23 @@ validIMDheaderFormat:
 	//First, the head!
 	if (headbuffer)
 	{
+		#ifdef MEMORYCONSERVATION
+		COMMON_MEMORYCONSERVATION_WRITEBUFFER(f,headbuffer,headbuffersize,failedwritingheadbufferFormat,wroteHeadBufferFormat)
+		failedwritingheadbufferFormat:
+		emufclose64(f); //Close the file!
+		goto errorOutFormat_restore; //Error out and restore!
+		#else
 		if (emufwrite64(headbuffer, 1, headbuffersize, f) != headbuffersize)
 		{
 			emufclose64(f); //Close the file!
 			goto errorOutFormat_restore; //Error out and restore!
 		}
+		#endif
 	}
+
+	#ifdef MEMORYCONSERVATION
+	wroteHeadBufferFormat:
+	#endif
 
 	//Now the new track to create!
 	//First, create a new track header!
@@ -2631,12 +2684,20 @@ validIMDheaderFormat:
 	//Finally, the tail!
 	if (tailbuffer)
 	{
+		#ifdef MEMORYCONSERVATION
+		COMMON_MEMORYCONSERVATION_WRITEBUFFER(f,tailbuffer,tailbuffersize,tailbufferfailedFormat,tailbufferwrittenFormat)
+		tailbufferfailedFormat:
+		#else
 		if (emufwrite64(tailbuffer, 1, tailbuffersize, f) != tailbuffersize) //Write the tail buffer!
+		#endif
 		{
 			emufclose64(f); //Close the file!
 			goto errorOutFormat_restore; //Error out and restore!
 		}
 	}
+	#ifdef MEMORYCONSERVATION
+	tailbufferwrittenFormat:
+	#endif
 	//Finish up!
 	if (sectorsizemap) //Allocated sector size map?
 	{
@@ -2644,11 +2705,19 @@ validIMDheaderFormat:
 	}
 	if (headbuffer) //Head buffer allocated?
 	{
+		#ifdef MEMORYCONSERVATION
+		COMMON_MEMORYCONSERVATION_ENDBUFFER(headbuffer)
+		#else
 		freez((void**)&headbuffer, headbuffersize, "IMDIMAGE_HEADBUFFER"); //Free the allocated head!
+		#endif
 	}
 	if (tailbuffer) //Tail buffer allocated?
 	{
-		freez((void**)&headbuffer, tailbuffersize, "IMDIMAGE_TAILBUFFER"); //Free the allocated tail!
+		#ifdef MEMORYCONSERVATION
+		COMMON_MEMORYCONSERVATION_ENDBUFFER(tailbuffer)
+		#else
+		freez((void**)&tailbuffer, tailbuffersize, "IMDIMAGE_TAILBUFFER"); //Free the allocated tail!
+		#endif
 	}
 	if (sectornumbermap) //Map allocated?
 	{
@@ -2664,7 +2733,11 @@ validIMDheaderFormat:
 	}
 	if (oldsectordata) //Sector data allocated?
 	{
+		#ifdef MEMORYCONSERVATION
+		COMMON_MEMORYCONSERVATION_ENDBUFFER(oldsectordata)
+		#else
 		freez((void**)&oldsectordata, oldsectordatasize, "IMDIMAGE_OLDSECTORDATA"); //Free the allocated sector data map!
+		#endif
 	}
 	emufclose64(f); //Close the image!
 	return 1; //Success!	
@@ -2675,8 +2748,15 @@ errorOutFormat_restore: //Error out on formatting and restore the file!
 	//First, the previous tracks!
 	if (headbuffer && headbuffersize) //Gotten a head buffer?
 	{
+		#ifdef MEMORYCONSERVATION
+		COMMON_MEMORYCONSERVATION_WRITEBUFFER(f,headbuffer,headbuffersize,errorOutFormat,wroteHeadBufferRestoreFormat)
+		#else
 		if (emufwrite64(headbuffer, 1, headbuffersize, f) != headbuffersize) goto errorOutFormat; //Write the previous tracks back!
+		#endif
 	}
+	#ifdef MEMORYCONSERVATION
+	wroteHeadBufferRestoreFormat:
+	#endif
 	//Now, reached the reformatted track!
 	if (emufwrite64(&trackinfo, 1, sizeof(trackinfo), f) != sizeof(trackinfo)) goto errorOutFormat; //Write the track header!
 	if (sectornumbermap)
@@ -2697,12 +2777,26 @@ errorOutFormat_restore: //Error out on formatting and restore the file!
 	}
 	if (oldsectordata)
 	{
+		#ifdef MEMORYCONSERVATION
+		COMMON_MEMORYCONSERVATION_WRITEBUFFER(f,oldsectordata,oldsectordatasize,errorOutFormat,wroteoldsectordataRestoreFormat)
+		#else
 		if (emufwrite64(oldsectordata, 1, oldsectordatasize, f) != oldsectordatasize) goto errorOutFormat; //Write the sector data!
+		#endif
 	}
+	#ifdef MEMORYCONSERVATION
+	wroteoldsectordataRestoreFormat:
+	#endif
 	if (tailbuffer)
 	{
+		#ifdef MEMORYCONSERVATION
+		COMMON_MEMORYCONSERVATION_WRITEBUFFER(f, tailbuffer, tailbuffersize, errorOutFormat, wrotetailbufferRestoreFormat)
+		#else
 		if (emufwrite64(tailbuffer, 1, tailbuffersize, f) != tailbuffersize) goto errorOutFormat; //Write the next tracks back!
+		#endif
 	}
+	#ifdef MEMORYCONSERVATION
+	wrotetailbufferRestoreFormat:
+	#endif
 	//Now, the entire file has been restored to it's old state! Finish up the normal way below!
 
 	//Couldn't find the track!
@@ -2713,11 +2807,19 @@ errorOutFormat_restore: //Error out on formatting and restore the file!
 	}
 	if (headbuffer) //Head buffer allocated?
 	{
+		#ifdef MEMORYCONSERVATION
+		COMMON_MEMORYCONSERVATION_ENDBUFFER(headbuffer)
+		#else
 		freez((void**)&headbuffer, headbuffersize, "IMDIMAGE_HEADBUFFER"); //Free the allocated head!
+		#endif
 	}
 	if (tailbuffer) //Tail buffer allocated?
 	{
-		freez((void**)&headbuffer, tailbuffersize, "IMDIMAGE_TAILBUFFER"); //Free the allocated tail!
+		#ifdef MEMORYCONSERVATION
+		COMMON_MEMORYCONSERVATION_ENDBUFFER(tailbuffer)
+		#else
+		freez((void**)&tailbuffer, tailbuffersize, "IMDIMAGE_TAILBUFFER"); //Free the allocated tail!
+		#endif
 	}
 	if (sectornumbermap) //Map allocated?
 	{
@@ -2733,7 +2835,11 @@ errorOutFormat_restore: //Error out on formatting and restore the file!
 	}
 	if (oldsectordata) //Sector data allocated?
 	{
+		#ifdef MEMORYCONSERVATION
+		COMMON_MEMORYCONSERVATION_ENDBUFFER(oldsectordata)
+		#else
 		freez((void**)&oldsectordata, oldsectordatasize, "IMDIMAGE_OLDSECTORDATA"); //Free the allocated sector data map!
+		#endif
 	}
 	emufclose64(f); //Close the image!
 	return 0; //Invalid IMD file!
