@@ -1234,16 +1234,18 @@ void floppy_readsector() //Request a read sector command!
 	if ((!FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]) || ((FLOPPY_DOR_DRIVENUMBERR<2)?(!is_mounted(FLOPPY_DOR_DRIVENUMBERR?FLOPPY1:FLOPPY0)):1)) //Not inserted or valid?
 	{
 		FLOPPY_LOGD("FLOPPY: Error: Invalid drive!")
-		if (FLOPPY_DOR_DRIVENUMBERR > 1) //Invalid drive?
+		//if (FLOPPY_DOR_DRIVENUMBERR > 1) //Invalid drive?
 		{
 			floppy_common_sectoraccess_nomedia(); //No media!
 		}
+		/*
 		else //Invalid media?
 		{
 			FLOPPY.ST1 = 0x04 | 0x01; //Couldn't find any sector!
 			FLOPPY.ST2 = 0x01; //Data address mark not found!
 			goto floppy_errorread; //Error out!
 		}
+		*/
 		return;
 	}
 	if ((FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->DoubleDensity!=(FLOPPY.MFM&~DENSITY_IGNORE)) && (!(FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->DoubleDensity&DENSITY_IGNORE) || density_forced) && EMULATE_DENSITY) //Wrong density?
@@ -1771,6 +1773,12 @@ void floppy_executeWriteData()
 
 	if (!FLOPPY_supportsrate(FLOPPY_DOR_DRIVENUMBERR) || !FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR] || ((FLOPPY_DOR_DRIVENUMBERR < 2) ? (!is_mounted(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0)) : 1)) //We don't support the rate or geometry?
 	{
+		if (!FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR] || ((FLOPPY_DOR_DRIVENUMBERR < 2) ? (!is_mounted(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0)) : 1)) //Not mounted?
+		{
+			floppy_common_sectoraccess_nomedia(); //No media result!
+			return; //Abort!
+		}
+		//Normal result?
 		FLOPPY_LOGD("FLOPPY: Error: Invalid disk rate/geometry!")
 		FLOPPY.ST1 = 0x04 | 0x01; //Couldn't find any sector!
 		FLOPPY.ST2 = 0x01; //Data address mark not found!
@@ -2223,6 +2231,11 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			FLOPPY.activecommand[drive] = FLOPPY.commandbuffer[0]; //Our command to execute!
 			FLOPPY.currenthead[drive] = ((FLOPPY.commandbuffer[1] & 4) >> 2); //The head to use!
 			FLOPPY.ST0 &= 0x20; //Clear ST0 by default! Keep the Seek End flag intact!
+			if (!FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR] || ((FLOPPY_DOR_DRIVENUMBERR < 2) ? (!is_mounted(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0)) : 1)) //Not mounted?
+			{
+				floppy_common_sectoraccess_nomedia();
+				return;
+			}
 			if (!FLOPPY_supportsrate(drive)) //We don't support the rate?
 			{
 				goto floppy_errorReadID; //Error out!
