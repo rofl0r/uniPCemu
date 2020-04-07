@@ -1005,7 +1005,7 @@ byte floppy_increasesector(byte floppy) //Increase the sector number automatical
 	useMT = FLOPPY.MT&FLOPPY.MTMask; //Used MT?
 	++FLOPPY.currentsector[floppy]; //Next sector!
 	result |= (floppy_getTC(floppy,FLOPPY.commandbuffer[6])) ? 0 : 1; //No terminal count triggered? Then we read the next sector!
-	if ((FLOPPY.currentsector[floppy] > (FLOPPY.geometries[floppy]?FLOPPY.geometries[floppy]->SPT:0)) || (FLOPPY.currentsector[floppy]>FLOPPY.commandbuffer[6])) //Overflow next sector by parameter?
+	if ((FLOPPY.currentsector[floppy] > (FLOPPY.geometries[floppy]?FLOPPY.geometries[floppy]->SPT:0)) || ((FLOPPY.currentsector[floppy]>FLOPPY.commandbuffer[6]) && (!(useMT&&FLOPPY_useDMA())))) //Overflow next sector by parameter?
 	{
 		FLOPPY.currentsector[floppy] = 1; //Reset sector number!
 
