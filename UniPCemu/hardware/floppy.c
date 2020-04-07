@@ -1946,11 +1946,12 @@ void floppy_executeWriteData()
 					}
 					FLOPPY_LOGD("FLOPPY: Finished transfer of data (%u sector(s)).", FLOPPY.sectorstransferred) //Log the completion of the sectors written!
 					//FLOPPY_ST0_SEEKENDW(1); //Successfull write with implicit seek!
+					FLOPPY.ST2 = 0x00;
 					enterFloppyWriteResultPhase:
 					FLOPPY.resultposition = 0;
 					FLOPPY.resultbuffer[0] = FLOPPY.ST0 = ((FLOPPY.ST0 & 0x3B) | FLOPPY_DOR_DRIVENUMBERR) | ((FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR] & 1) << 2); //Abnormal termination! ST0!
 					FLOPPY.resultbuffer[1] = FLOPPY.ST1; //Drive write-protected! ST1!
-					FLOPPY.resultbuffer[2] = FLOPPY.ST2 = 0x00; //ST2!
+					FLOPPY.resultbuffer[2] = FLOPPY.ST2; //ST2!
 					//The cylinder is set by floppy_increasesector!
 					//The head is set by floppy_increasesector!
 					FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR];
