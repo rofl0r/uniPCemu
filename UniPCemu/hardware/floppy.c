@@ -1632,7 +1632,7 @@ void FLOPPY_formatsector() //Request a read sector command!
 				}
 				/*
 				memset(&FLOPPY.databuffer, FLOPPY.commandbuffer[5], MIN(((size_t)0x80 << FLOPPY.databuffer[3]), sizeof(FLOPPY.databuffer))); //Clear our buffer with the fill byte!
-				if (!writeIMDSector(IMDImageFile, FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR],FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.currentformatsector[FLOPPY_DOR_DRIVENUMBERR], (0x80<<FLOPPY.databuffer[3]), &FLOPPY.databuffer)) //Failed writing the formatted sector?
+				if (!writeIMDSector(IMDImageFile, FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR],FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.currentformatsector[FLOPPY_DOR_DRIVENUMBERR], 0, (0x80<<FLOPPY.databuffer[3]), &FLOPPY.databuffer)) //Failed writing the formatted sector?
 				{
 					updateFloppyWriteProtected(1, FLOPPY_DOR_DRIVENUMBERR); //Tried to write!
 					goto floppy_errorformat;
@@ -1953,7 +1953,7 @@ void floppy_executeWriteData()
 				}
 				else if (IMDImageFile)
 				{
-					DSKIMDsuccess = writeIMDSector(IMDImageFile, FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR], (byte)sectornr, FLOPPY.databuffersize, &FLOPPY.databuffer); //Try to read the sector as requested!
+					DSKIMDsuccess = writeIMDSector(IMDImageFile, FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR], (byte)sectornr, (FLOPPY.datamark?1:0), FLOPPY.databuffersize, &FLOPPY.databuffer); //Try to read the sector as requested!
 				}
 				if (DSKIMDsuccess) //Read the data into memory?
 				{
@@ -2125,8 +2125,12 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 	updateFloppyGeometries(FLOPPY_DOR_DRIVENUMBERR, FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]); //Update the floppy geometries!
 	switch (FLOPPY.commandbuffer[0]) //What command!
 	{
-		case WRITE_DATA: //Write sector
 		case WRITE_DELETED_DATA: //Write deleted sector
+			FLOPPY.datamark = 1; //Deleted!
+			goto skipwritedatamark_deleted;
+		case WRITE_DATA: //Write sector
+			FLOPPY.datamark = 0; //Not deleted!
+			skipwritedatamark_deleted:
 			FLOPPY.activecommand[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[0]; //Our command to execute!
 			FLOPPY.RWRequestedCylinder = FLOPPY.commandbuffer[2]; //Requested cylinder!
 			FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[3]; //Current head!
