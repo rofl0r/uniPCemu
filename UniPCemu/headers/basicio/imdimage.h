@@ -43,7 +43,7 @@ byte is_IMDimage(char* filename); //Are we a IMD image?
 byte readIMDDiskInfo(char* filename, IMDIMAGE_SECTORINFO* result);
 byte readIMDSectorInfo(char* filename, byte track, byte head, byte sector, IMDIMAGE_SECTORINFO* result);
 byte readIMDSector(char* filename, byte track, byte head, byte sector, word sectorsize, void* result);
-byte writeIMDSector(char* filename, byte track, byte head, byte sector, word sectorsize, void* sectordata);
+byte writeIMDSector(char* filename, byte track, byte head, byte sector, byte deleted, word sectorsize, void* sectordata);
 byte formatIMDTrack(char* filename, byte track, byte head, byte MFM, byte speed, byte filldata, byte numsectors, byte* sectordata);
 
 #endif

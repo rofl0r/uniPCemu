@@ -1499,8 +1499,10 @@ validIMDheaderRead:
 	return 0; //Invalid IMD file!
 }
 
-byte writeIMDSector(char* filename, byte track, byte head, byte sector, word sectorsize, void* sectordata)
+byte writeIMDSector(char* filename, byte track, byte head, byte sector, byte deleted, word sectorsize, void* sectordata)
 {
+	byte newdatamark = 0x01; //Non-compressed data mark!
+	byte newdatamarkcompressed = 0x02; //Compressed data mark!
 	uint_32 fillsector_dataleft;
 	byte *fillsector=NULL;
 	#ifdef MEMORYCONSERVATION
@@ -1563,6 +1565,11 @@ byte writeIMDSector(char* filename, byte track, byte head, byte sector, word sec
 	return 0; //Invalid IMD file!
 
 validIMDheaderWrite:
+	if (deleted)
+	{
+		newdatamark = 0x03; //Deleted data mark!
+		newdatamarkcompressed = 0x04; //Compressed data mark!
+	}
 	//Now, skip tracks until we reach the selected track!
 	for (;;) //Skipping left?
 	{
@@ -1871,6 +1878,18 @@ validIMDheaderWrite:
 			if (data > 8) //Undefined value?
 			{
 			invalidsectordataWrite:
+				if (((data & 1) == 0) && (data <= 8)) //Needs restoration of the compressed type information?
+				{
+					if (emufseek64(f, compressedsectorpos, SEEK_SET) < 0) //Could seek?
+					{
+						goto failedrestoringsectortypeWrite; //Error out!
+					}
+					if (emufwrite64(&data, 1, sizeof(data), f) != sizeof(data)) //Failed restoring it?
+					{
+						goto failedrestoringsectortypeWrite; //Error out!
+					}
+				}
+				failedrestoringsectortypeWrite:
 				if (sectorsizemap) //Allocated sector size map?
 				{
 					freez((void**)&sectorsizemap, (trackinfo.sectorspertrack << 1), "IMDIMAGE_SECTORSIZEMAP"); //Free the allocated sector size map!
@@ -1888,6 +1907,14 @@ validIMDheaderWrite:
 			}
 			if (data & 1) //Normal sector with or without mark, data error or deleted?
 			{
+				if (emufseek64(f, -1, SEEK_CUR) < 0) //Could goto sector mark?
+				{
+					goto invalidsectordataWrite;
+				}
+				if (emufwrite64(&newdatamark, 1, sizeof(newdatamark), f) != sizeof(newdatamark)) //Couldn't write new data mark?
+				{
+					goto invalidsectordataWrite;
+				}
 				//Skip the sector's data!
 				if (sectorsizemap) //Map used?
 				{
@@ -1988,9 +2015,13 @@ validIMDheaderWrite:
 				}
 				if (fillsector_dataleft == 0) //Compressed data stays compressed?
 				{
-					if (emufseek64(f, -1, SEEK_CUR) < 0) //Go back to the compressed byte!
+					if (emufseek64(f, -2, SEEK_CUR) < 0) //Go back to the compressed byte!
 					{
 						goto invalidsectordataWrite; //Error out!
+					}
+					if (emufwrite64(&newdatamarkcompressed, 1, sizeof(newdatamarkcompressed), f) != sizeof(newdatamark)) //Couldn't write new data mark?
+					{
+						goto invalidsectordataWrite;
 					}
 					if (emufwrite64(&compresseddata_byteval, 1, sizeof(compresseddata_byteval), f) != sizeof(compresseddata_byteval)) //Update the compressed data!
 					{
@@ -2050,7 +2081,7 @@ validIMDheaderWrite:
 						goto invalidsectordataWrite;
 					}
 					//Now, try to write the sector ID and data!
-					compresseddata_byteval = 0x01; //A valid sector ID!
+					compresseddata_byteval = newdatamark; //A valid sector ID!
 					if (emufwrite64(&compresseddata_byteval, 1, sizeof(compresseddata_byteval), f) != sizeof(compresseddata_byteval)) //Write the sector ID!
 					{
 						goto invalidsectordataWrite; //Error out!
