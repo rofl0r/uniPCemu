@@ -145,6 +145,8 @@ struct
 	byte readIDerror; //Error condition on read ID command?
 	byte readIDdrive; //Read ID command's drive!
 	byte readID_lastsectornumber; //Current sector, increasing number as a physical disk value from the index hole!
+	byte datamark; //What datamark is required to be read by the command? Set for Deleted, cleared for normal.
+	byte floppy_abort; //Abort the command after finishing the data phase?
 } FLOPPY; //Our floppy drive data!
 
 //DOR
@@ -1347,6 +1349,7 @@ void floppy_readsector() //Request a read sector command!
 			FLOPPY.ST2 = 0x01; //Data address mark not found!
 			for (sectornr = 0; sectornr < (IMDImageFile?IMD_sectorinfo.totalsectors:(word)trackinfo.numberofsectors); ++sectornr) //Find the sector that's to be requested!
 			{
+				skipdatamark:
 				if (DSKImageFile) //DSK file format?
 				{
 					if (readDSKSectorInfo(DSKImageFile, FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], (byte)sectornr, &sectorinfo)) //Read?
@@ -1363,7 +1366,7 @@ void floppy_readsector() //Request a read sector command!
 				{
 					if (readIMDSectorInfo(IMDImageFile, FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR], (byte)sectornr, &IMD_sectorinfo)) //Found some sector information?
 					{
-						if (IMD_sectorinfo.datamark == DATAMARK_NORMALDATA) //Normal data mark found?
+						if ((IMD_sectorinfo.datamark == DATAMARK_NORMALDATA) || (IMD_sectorinfo.datamark==DATAMARK_DELETEDDATA)) //Normal data mark found?
 						{
 							if ((IMD_sectorinfo.sectorID == FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]) && (IMD_sectorinfo.headnumber == FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]) && (IMD_sectorinfo.cylinderID == FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR])) //Found the requested sector as indicated?
 							{
@@ -1406,9 +1409,27 @@ void floppy_readsector() //Request a read sector command!
 				{
 					if (readIMDSectorInfo(IMDImageFile, FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR],FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR], (byte)sectornr, &IMD_sectorinfo)) //Read the sector information too!
 					{
+						if ((IMD_sectorinfo.datamark == DATAMARK_DELETEDDATA) && FLOPPY.Skip) //Skipping deleted data?
+						{
+							++sectornr; //Next sector to process!
+							FLOPPY.ST1 |= 0x04; //Couldn't find any sector!
+							FLOPPY.ST2 |= 0x01; //Data address mark not found!
+							goto skipdatamark; //Skip this data mark!
+						}
+						if (((IMD_sectorinfo.datamark == DATAMARK_DELETEDDATA) ? 1 : 0) != FLOPPY.datamark) //Different data mark than requested?
+						{
+							//Invalid data mark being read!
+							FLOPPY.ST1 |= 0x40; //DDAM is requested to be read and found, but can't read!
+							FLOPPY.readID_lastsectornumber = (byte)sectornr; //This was the last sector we've read!
+							//Give the result data, but report it's deleted!
+							FLOPPY.floppy_abort = 1; //Abort after giving the result!
+						}
+						else //Valid address to read?
+						{
+							FLOPPY.ST1 = 0x00; //Load ST1!
+							FLOPPY.ST2 = 0x00; //Load ST2!
+						}
 						FLOPPY.readID_lastsectornumber = (byte)sectornr; //This was the last sector we've read!
-						FLOPPY.ST1 = 0x00; //Load ST1!
-						FLOPPY.ST2 = 0x00; //Load ST2!
 					}
 					FLOPPY_startData();
 					return; //Just execute it!
@@ -1989,8 +2010,11 @@ void floppy_executeReadData()
 	{
 	case 1: //Read more?
 		//More to be written?
-		floppy_readsector(); //Read another sector!
-		return; //Finished!
+		if (FLOPPY.floppy_abort == 0) //Not aborting?
+		{
+			floppy_readsector(); //Read another sector!
+			return; //Finished!
+		}
 	case 2: //Error during transfer?
 		//Let the floppy_increasesector determine the error!
 		break;
@@ -2001,6 +2025,7 @@ void floppy_executeReadData()
 		FLOPPY_ST0_NOTREADYW(0); //We're ready!
 		break;
 	}
+	FLOPPY.floppy_abort = 0; //Finished aborting if aborting!
 	FLOPPY.resultposition = 0;
 	FLOPPY_fillST0(FLOPPY_DOR_DRIVENUMBERR); //Setup ST0!
 	FLOPPY.resultbuffer[0] = FLOPPY.ST0;
@@ -2095,6 +2120,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 	FLOPPY.TC = 0; //Reset TC flag!
 	FLOPPY.resultposition = 0; //Default: start of the result!
 	FLOPPY.databuffersize = 0; //Default: nothing to write/read!
+	FLOPPY.floppy_abort = 0; //Not aborting the command after the data by default!
 	FLOPPY_LOGD("FLOPPY: executing command: %02X", FLOPPY.commandbuffer[0]) //Executing this command!
 	updateFloppyGeometries(FLOPPY_DOR_DRIVENUMBERR, FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]); //Update the floppy geometries!
 	switch (FLOPPY.commandbuffer[0]) //What command!
@@ -2110,12 +2136,16 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			updateST3(FLOPPY_DOR_DRIVENUMBERR); //Update ST3 only!
 			floppy_writesector(); //Start writing a sector!
 			break;
-		case READ_DATA: //Read sector
 		case READ_DELETED_DATA: //Read deleted sector
+			FLOPPY.datamark = 1; //Deleted!
+			goto skipreaddatamark_deleted;
+		case READ_DATA: //Read sector
 		case SCAN_EQUAL:
 		case SCAN_LOW_OR_EQUAL:
 		case SCAN_HIGH_OR_EQUAL:
 		case VERIFY: //Verify doesn't transfer data directly!
+			FLOPPY.datamark = 0; //Not deleted!
+			skipreaddatamark_deleted:
 			FLOPPY.activecommand[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.commandbuffer[0]; //Our command to execute!
 			FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR] = ((FLOPPY.commandbuffer[1] & 4) >> 2); //Physical head select!
 			FLOPPY.RWRequestedCylinder = FLOPPY.commandbuffer[2]; //Requested cylinder!
