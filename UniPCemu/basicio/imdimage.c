@@ -14,18 +14,22 @@
 #endif
 #endif
 
+#ifdef MEMORYCONSERVATION
+byte IMDimage_tmpbuf[0x10000]; //Temporary buffer for movement operations!
+#endif
+
 typedef struct
 {
 	BIGFILE* f; //The file!
 	char fn[256]; //Filename!
 	FILEPOS movecounter; //Movement counter!
-	byte tmpbuf; //Temporary buffer for movement operations!
+	FILEPOS bytesleft; //How much data is left to read?
 } MEMORYCONSERVATION_BUFFER;
 
 //Move data between two files easily with error checking using disk-based buffering. Requires two files, a buffer(byte), a counter(FILEPOS) and success/fail jump labels
 #define GOTOLABEL(label) label
 #define PERFORMGOTO(label) goto GOTOLABEL(label);
-#define COMMON_MEMORYCONSERVATION_MOVEBUFFER(src,dst,name,size,failjump,successjump) { { for (name.movecounter=0;name.movecounter<size;++name.movecounter) {if (emufread64(&name.tmpbuf,1,1,src)!=1){PERFORMGOTO(failjump)}if (emufwrite64(&name.tmpbuf,1,1,dst)!=1){PERFORMGOTO(failjump)}}} PERFORMGOTO(successjump) }
+#define COMMON_MEMORYCONSERVATION_MOVEBUFFER(src,dst,name,size,failjump,successjump) { { for (name.movecounter=size,name.bytesleft=0;name.movecounter;name.movecounter-=name.bytesleft) { name.bytesleft=name.movecounter; name.bytesleft=MIN(name.bytesleft,sizeof(IMDimage_tmpbuf)); if (emufread64(&IMDimage_tmpbuf,1,name.bytesleft,src)!=name.bytesleft){PERFORMGOTO(failjump)}if (emufwrite64(&IMDimage_tmpbuf,1,name.bytesleft,dst)!=name.bytesleft){PERFORMGOTO(failjump)}}} PERFORMGOTO(successjump) }
 #define COMMON_MEMORYCONSERVATION_STARTBUFFER(name,failjump,successjump) { if (emufseek64(name.f, 0, SEEK_SET)<0){PERFORMGOTO(failjump)} PERFORMGOTO(successjump)}
 #define COMMON_MEMORYCONSERVATION_READBUFFER(src,name,size,failjump,successjump) { COMMON_MEMORYCONSERVATION_STARTBUFFER(name,failjump,successjump_pre_##successjump##name) successjump_pre_##successjump##name: COMMON_MEMORYCONSERVATION_MOVEBUFFER(src,name.f,name,size,failjump,successjump) }
 #define COMMON_MEMORYCONSERVATION_WRITEBUFFER(dst,name,size,failjump,successjump) { COMMON_MEMORYCONSERVATION_STARTBUFFER(name,failjump,successjump_pre_##successjump##name) successjump_pre_##successjump##name: COMMON_MEMORYCONSERVATION_MOVEBUFFER(name.f,dst,name,size,failjump,successjump) }
