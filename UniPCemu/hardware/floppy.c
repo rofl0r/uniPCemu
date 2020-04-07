@@ -988,22 +988,25 @@ OPTINLINE void updateFloppyWriteProtected(byte iswrite, byte drivenumber)
 	}
 }
 
+byte floppy_getTC(byte drive, byte EOT)
+{
+	if (!FLOPPY_useDMA()) //non-DMA mode?
+	{
+		return (FLOPPY.databufferposition == FLOPPY.databuffersize) && (FLOPPY.currentsector[drive] == EOT) && (FLOPPY.currenthead[drive] == FLOPPY.MT); //EOT reached?
+	}
+	return FLOPPY.TC; //Give DMA TC directly!
+}
+
 //result: 0=Finish, 1=Read/write another time, 2=Error out(error handled by floppy_increasesector).
 byte floppy_increasesector(byte floppy) //Increase the sector number automatically!
 {
 	byte result = 2; //Default: read/write more
 	byte useMT=0;
 	useMT = FLOPPY.MT&FLOPPY.MTMask; //Used MT?
-	if (++FLOPPY.currentsector[floppy] > ((FLOPPY_useDMA() && useMT)?(FLOPPY.geometries[floppy]?FLOPPY.geometries[floppy]->SPT:0):FLOPPY.commandbuffer[6])) //Overflow next sector by parameter?
+	++FLOPPY.currentsector[floppy]; //Next sector!
+	result |= (floppy_getTC(floppy,FLOPPY.commandbuffer[6])) ? 0 : 1; //No terminal count triggered? Then we read the next sector!
+	if ((FLOPPY.currentsector[floppy] > (FLOPPY.geometries[floppy]?FLOPPY.geometries[floppy]->SPT:0)) || (FLOPPY.currentsector[floppy]>FLOPPY.commandbuffer[6])) //Overflow next sector by parameter?
 	{
-		if (!FLOPPY_useDMA()) //non-DMA mode?
-		{
-			if ((useMT && FLOPPY.currenthead[floppy]) || !(useMT)) //Multi-track and side 1, or not Multi-track?
-			{
-				result = 0; //SPT finished!
-			}
-		}
-
 		FLOPPY.currentsector[floppy] = 1; //Reset sector number!
 
 		//Apply Multi Track accordingly!
@@ -1014,16 +1017,18 @@ byte floppy_increasesector(byte floppy) //Increase the sector number automatical
 			FLOPPY.currentphysicalhead[floppy] = ((FLOPPY.currentphysicalhead[floppy] + 1) & 1);
 			if (FLOPPY.currenthead[floppy]==0) //Overflown, EOT, switching to head 0? We were the last sector on side 1 with MT!
 			{
+				result = 0; //Finish!
 				FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[floppy]+1; //Report the next cylinder number instead!
 				FLOPPY.resultbuffer[4] = FLOPPY.currenthead[floppy]; //The flipped head number of the last sector read!
 			}
 			else //Same track?
 			{
-				FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[floppy]; //The current cylinder number!x
+				FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[floppy]; //The current cylinder number!
 			}
 		}
 		else //Single track mode reached end-of-track?
 		{
+			result = 0; //Finish!
 			FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[floppy]+1; //The next cylinder number!
 			FLOPPY.resultbuffer[4] = FLOPPY.currenthead[floppy]; //The current head number!
 		}
@@ -1040,8 +1045,7 @@ byte floppy_increasesector(byte floppy) //Increase the sector number automatical
 
 	if (FLOPPY_useDMA()) //DMA mode determines our triggering?
 	{
-		result |= (!FLOPPY.TC)?1:0; //No terminal count triggered? Then we read the next sector!
-		if (result&1) //OK to transfer more?
+		if (result&1) //OK to transfer more according to TC?
 		{
 			if (result & 2) //Not finished transferring data?
 			{
@@ -1056,6 +1060,10 @@ byte floppy_increasesector(byte floppy) //Increase the sector number automatical
 		}
 		else //Terminal count but not finished?
 		{
+			if (result & 2) //Still continuing?
+			{
+				FLOPPY_ST1_ENDOFCYCLINDER(1); //Set EN!
+			}
 			//Finished transferring! Enter result phase!
 			result = 0; //Finished!
 		}
