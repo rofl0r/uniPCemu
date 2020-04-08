@@ -2430,7 +2430,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 						}
 						if ((IMD_sectorinfo.sectorsize >> 7) == 0) //Zero? Less than 128 bytes/sector!
 						{
-							IMDsectorsizeshift = 0; //Nothing! Or is this supposed to be 0xFF since that's what's used when specifying sectors with <128 bytes per sector?
+							IMDsectorsizeshift = 0xFF; //Is this supposed to be 0xFF since that's what's used when specifying sectors with <128 bytes per sector? Otherwise perhaps 0?
 						}
 						else
 						{
