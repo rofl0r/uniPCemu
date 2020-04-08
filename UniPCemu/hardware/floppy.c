@@ -2291,6 +2291,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 				return;
 			}
 			FLOPPY.RWRequestedCylinder = FLOPPY.currentcylinder[drive]; //Cylinder to access?
+			/*
 			if (FLOPPY_IMPLIEDSEEKENABLER) //Implied seek?
 			{
 				if ((FLOPPY_MSR_BUSYINPOSITIONINGMODER(drive) == 0) && ((FLOPPY.ST0 & 0x20) == 0)) //Not in positioning mode and not finished seeking according to status?
@@ -2300,6 +2301,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 					FLOPPY_checkfinishtiming(drive); //Seek is completed!
 				}
 			}
+			*/
 			if (!FLOPPY_supportsrate(drive)) //We don't support the rate?
 			{
 				goto floppy_errorReadID; //Error out!
