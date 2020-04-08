@@ -1212,11 +1212,11 @@ void FLOPPY_fillST0(byte drive)
 	FLOPPY_ST0_CURRENTHEADW(FLOPPY.currentphysicalhead[drive]); //What head!
 }
 
-void floppy_common_sectoraccess_nomedia()
+void floppy_common_sectoraccess_nomedia(byte drive)
 {
 	FLOPPY.commandstep = 0xFE; //Lock up, according to Bochs!
 
-	FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x30) | FLOPPY_DOR_DRIVENUMBERR | (FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR] << 2); //Abnormal termination!
+	FLOPPY.ST0 = 0x40 | (FLOPPY.ST0 & 0x30) | drive | (FLOPPY.currentphysicalhead[drive] << 2); //Abnormal termination!
 	FLOPPY.ST1 = 1 /* Missing address mark */ | 4 /* No data */;
 	FLOPPY.ST2 = 1; //Missing data address mark
 
@@ -1224,9 +1224,9 @@ void floppy_common_sectoraccess_nomedia()
 	FLOPPY.resultbuffer[0] = FLOPPY.ST0; //ST0!
 	FLOPPY.resultbuffer[1] = FLOPPY.ST1; //ST1!
 	FLOPPY.resultbuffer[2] = FLOPPY.ST2; //ST2!
-	FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]; //The cylinder is set by floppy_increasesector!
-	FLOPPY.resultbuffer[4] = FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]; //The head is set by floppy_increasesector!
-	FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR];
+	FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[drive]; //The cylinder is set by floppy_increasesector!
+	FLOPPY.resultbuffer[4] = FLOPPY.currenthead[drive]; //The head is set by floppy_increasesector!
+	FLOPPY.resultbuffer[5] = FLOPPY.currentsector[drive];
 	FLOPPY.resultbuffer[6] = (FLOPPY.commandbuffer[0]==FORMAT_TRACK)?FLOPPY.commandbuffer[2]:FLOPPY.commandbuffer[5]; //Sector size from the command buffer!
 	floppy_erroringout(); //Erroring out!
 	//FLOPPY_raiseIRQ(); //Raise an IRQ because of the error!
@@ -1246,7 +1246,7 @@ void floppy_readsector() //Request a read sector command!
 		FLOPPY_LOGD("FLOPPY: Error: Invalid drive!")
 		//if (FLOPPY_DOR_DRIVENUMBERR > 1) //Invalid drive?
 		{
-			floppy_common_sectoraccess_nomedia(); //No media!
+			floppy_common_sectoraccess_nomedia(FLOPPY_DOR_DRIVENUMBERR); //No media!
 		}
 		/*
 		else //Invalid media?
@@ -1489,20 +1489,20 @@ void FLOPPY_formatsector() //Request a read sector command!
 
 	if (!FLOPPY_supportsrate(FLOPPY_DOR_DRIVENUMBERR) || !FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]) //We don't support the rate or geometry?
 	{
-		floppy_common_sectoraccess_nomedia(); //No media!
+		floppy_common_sectoraccess_nomedia(FLOPPY_DOR_DRIVENUMBERR); //No media!
 		return;
 	}
 
 	if ((FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->DoubleDensity!=(FLOPPY.MFM&~DENSITY_IGNORE)) && (!(FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->DoubleDensity&DENSITY_IGNORE) || density_forced) && EMULATE_DENSITY) //Wrong density?
 	{
 		FLOPPY_LOGD("FLOPPY: Error: Invalid density!")
-		floppy_common_sectoraccess_nomedia(); //No media!
+		floppy_common_sectoraccess_nomedia(FLOPPY_DOR_DRIVENUMBERR); //No media!
 		return;
 	}
 
 	if ((FLOPPY.commandbuffer[5]!=FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->GAPLength) && (FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->GAPLength!=GAPLENGTH_IGNORE) && EMULATE_GAPLENGTH) //Wrong GAP length?
 	{
-		floppy_common_sectoraccess_nomedia(); //No media!
+		floppy_common_sectoraccess_nomedia(FLOPPY_DOR_DRIVENUMBERR); //No media!
 		return;
 	}
 
@@ -1664,7 +1664,7 @@ void FLOPPY_formatsector() //Request a read sector command!
 			if (FLOPPY.databuffer[0] != FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]) //Not current track?
 			{
 			floppy_errorformat:
-				floppy_common_sectoraccess_nomedia(); //No media!
+				floppy_common_sectoraccess_nomedia(FLOPPY_DOR_DRIVENUMBERR); //No media!
 				return; //Error!
 			}
 			if (FLOPPY.databuffer[1] != FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR]) //Not current head?
@@ -1811,7 +1811,7 @@ void floppy_executeWriteData()
 	{
 		if (!FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR] || ((FLOPPY_DOR_DRIVENUMBERR < 2) ? (!is_mounted(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0)) : 1)) //Not mounted?
 		{
-			floppy_common_sectoraccess_nomedia(); //No media result!
+			floppy_common_sectoraccess_nomedia(FLOPPY_DOR_DRIVENUMBERR); //No media result!
 			return; //Abort!
 		}
 		//Normal result?
@@ -2289,7 +2289,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			FLOPPY.currenthead[drive] = ((FLOPPY.commandbuffer[1] & 4) >> 2); //The head to use!
 			if (!FLOPPY.geometries[drive] || ((drive < 2) ? (!is_mounted(drive ? FLOPPY1 : FLOPPY0)) : 1)) //Not mounted?
 			{
-				floppy_common_sectoraccess_nomedia();
+				floppy_common_sectoraccess_nomedia(drive);
 				return;
 			}
 			FLOPPY.RWRequestedCylinder = FLOPPY.currentcylinder[drive]; //Cylinder to access?
@@ -2518,19 +2518,19 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			if (!(FLOPPY_DOR_MOTORCONTROLR&(1 << drive))) //Not motor ON?
 			{
 				FLOPPY_LOGD("FLOPPY: Error: drive motor not ON!")
-				floppy_common_sectoraccess_nomedia(); //No media!
+				floppy_common_sectoraccess_nomedia(drive); //No media!
 				return;
 			}
 
 			if (!FLOPPY.geometries[drive] || ((drive < 2) ? (!is_mounted(drive ? FLOPPY1 : FLOPPY0)) : 1)) //No geometry?
 			{
-				floppy_common_sectoraccess_nomedia(); //No media!
+				floppy_common_sectoraccess_nomedia(drive); //No media!
 				return;
 			}
 
 			if ((FLOPPY.commandbuffer[3] != FLOPPY.geometries[drive]->SPT) && (!getIMDimage((drive)?FLOPPY1:FLOPPY0))) //Invalid SPT?
 			{
-				floppy_common_sectoraccess_nomedia(); //No media!
+				floppy_common_sectoraccess_nomedia(drive); //No media!
 				return;
 			}
 
@@ -2543,7 +2543,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			{
 				if (FLOPPY.commandbuffer[2] != 0x2) //Not 512 bytes/sector?
 				{
-					floppy_common_sectoraccess_nomedia(); //No media!
+					floppy_common_sectoraccess_nomedia(drive); //No media!
 					return;
 				}
 				else
@@ -2600,7 +2600,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			//No interrupt!
 			break;
 		case READ_TRACK: //Read complete track!
-			floppy_common_sectoraccess_nomedia(); //No media!
+			floppy_common_sectoraccess_nomedia(FLOPPY.commandbuffer[1]&3); //No media!
 			break;
 		default:
 			break;
