@@ -2727,8 +2727,10 @@ OPTINLINE void floppy_writeData(byte isDMA, byte value)
 					FLOPPY.commandbuffer[0] = value; //Set the command to use!
 					floppy_executeCommand(); //Execute the command!
 					break;
+				/*
 				case READ_TRACK: //Read complete track
 					FLOPPY.MTMask = 0; //Don't allow the MT bit to be applied during sector calculations!
+				*/ //Not supported yet!
 				case WRITE_DATA: //Write sector
 				case WRITE_DELETED_DATA: //Write deleted sector
 				case READ_DATA: //Read sector
