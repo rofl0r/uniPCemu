@@ -2420,12 +2420,21 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 						FLOPPY.ST1 = 0x00; //Load ST1!
 						FLOPPY.ST2 = 0x00; //Load ST2!
 						FLOPPY.resultbuffer[6] = 0; //Default: no shift!
+						//Convert the sector size to a valid number to give as a result!
 						IMDsectorsizerem = (IMD_sectorinfo.sectorsize >> 7); //Initialize shifting value!
 						IMDsectorsizeshift = 0; //Default: nothing shifted!
 						for (;IMDsectorsizerem;) //Bits left set?
 						{
 							IMDsectorsizerem >>= 1; //Shift one bit off!
 							++IMDsectorsizeshift; //One more set bit has been shifted off!
+						}
+						if ((IMD_sectorinfo.sectorsize >> 7) == 0) //Zero? Less than 128 bytes/sector!
+						{
+							IMDsectorsizeshift = 0; //Nothing! Or is this supposed to be 0xFF since that's what's used when specifying sectors with <128 bytes per sector?
+						}
+						else
+						{
+							--IMDsectorsizeshift; //One bit less for the 128<<n value!
 						}
 						FLOPPY.resultbuffer[6] = IMDsectorsizeshift; //Sector size in 128<<n format!
 						FLOPPY.resultbuffer[3] = IMD_sectorinfo.cylinderID; //Cylinder(exception: actually give what we read from the disk)!
