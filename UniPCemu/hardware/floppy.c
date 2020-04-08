@@ -1855,6 +1855,8 @@ void floppy_executeWriteData()
 		case 0: //OK?
 		default: //Unknown?
 			//FLOPPY_ST0_SEEKENDW(1); //Successfull write with implicit seek!
+			FLOPPY.ST1 = 0; //OK!
+			FLOPPY.ST2 = 0; //OK!
 			FLOPPY_ST0_INTERRUPTCODEW(0); //Normal termination!
 			FLOPPY_ST0_NOTREADYW(0); //We're ready!
 			break;
@@ -1862,8 +1864,6 @@ void floppy_executeWriteData()
 		FLOPPY_LOGD("FLOPPY: Finished transfer of data (%u sector(s)).", FLOPPY.sectorstransferred) //Log the completion of the sectors written!
 		FLOPPY.resultposition = 0;
 		FLOPPY_fillST0(FLOPPY_DOR_DRIVENUMBERR); //Setup ST0!
-		FLOPPY.ST1 = 0; //OK!
-		FLOPPY.ST2 = 0; //OK!
 		FLOPPY.resultbuffer[0] = FLOPPY.ST0; //ST0!
 		FLOPPY.resultbuffer[1] = FLOPPY.ST1; //ST1!
 		FLOPPY.resultbuffer[2] = FLOPPY.ST2; //ST2!
