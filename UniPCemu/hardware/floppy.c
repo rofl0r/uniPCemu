@@ -2452,10 +2452,12 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			}
 			else //Normal disk? Generate valid data!
 			{
+				/*
 				if (FLOPPY.RWRequestedCylinder != FLOPPY.physicalcylinder[drive]) //Wrong cylinder?
 				{
 					goto floppy_errorReadID; //Error out!
 				}
+				*/
 				FLOPPY.ST1 = 0x00; //Clear ST1!
 				FLOPPY.ST2 = 0x00; //Clear ST2!
 				updateST3(drive); //Update track 0!
