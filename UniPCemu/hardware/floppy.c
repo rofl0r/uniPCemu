@@ -878,6 +878,7 @@ OPTINLINE void updateFloppyMSR() //Update the floppy MSR!
 		case WRITE_DELETED_DATA: //Write deleted sector?
 		case FORMAT_TRACK: //Format sector?
 		case READ_DATA: //Read sector?
+		case READ_TRACK: //Read track?
 		case READ_DELETED_DATA: //Read deleted sector?
 		case SCAN_EQUAL:
 		case SCAN_LOW_OR_EQUAL:
@@ -908,6 +909,7 @@ OPTINLINE void updateFloppyMSR() //Update the floppy MSR!
 			FLOPPY_MSR_HAVEDATAFORCPUW(0); //We request data from the CPU!
 			break;
 		case READ_DATA: //Read sector?
+		case READ_TRACK: //Read track?
 		case READ_DELETED_DATA: //Read deleted sector?
 		case READ_ID: //Read ID?
 		case VERIFY: //Verify doesn't transfer data directly!
@@ -1240,6 +1242,7 @@ void floppy_readsector() //Request a read sector command!
 	TRACKINFORMATIONBLOCK trackinfo;
 	IMDIMAGE_SECTORINFO IMD_sectorinfo; //Information about the sector!
 	word sectornr;
+	byte retryingloop = 0;
 
 	if ((!FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]) || ((FLOPPY_DOR_DRIVENUMBERR<2)?(!is_mounted(FLOPPY_DOR_DRIVENUMBERR?FLOPPY1:FLOPPY0)):1)) //Not inserted or valid?
 	{
@@ -1354,14 +1357,23 @@ void floppy_readsector() //Request a read sector command!
 			}
 			FLOPPY.ST1 = 0x04; //Couldn't find any sector!
 			FLOPPY.ST2 = 0x01; //Data address mark not found!
-			for (sectornr = 0; sectornr < (IMDImageFile?IMD_sectorinfo.totalsectors:(word)trackinfo.numberofsectors); ++sectornr) //Find the sector that's to be requested!
+			retryread:
+			if (FLOPPY.readID_lastsectornumber >= (MIN((IMDImageFile ? IMD_sectorinfo.totalsectors : (word)trackinfo.numberofsectors),1)-1)) //End of range?
+			{
+				FLOPPY.readID_lastsectornumber = 0; //Start at the beginning!
+			}
+			else
+			{
+				++FLOPPY.readID_lastsectornumber; //Next sector number to parse!
+			}
+			for (sectornr = FLOPPY.readID_lastsectornumber; sectornr < (IMDImageFile?IMD_sectorinfo.totalsectors:(word)trackinfo.numberofsectors); ++sectornr) //Find the sector that's to be requested!
 			{
 				skipdatamark:
 				if (DSKImageFile) //DSK file format?
 				{
 					if (readDSKSectorInfo(DSKImageFile, FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], (byte)sectornr, &sectorinfo)) //Read?
 					{
-						if ((sectorinfo.SectorID == FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]) && (sectorinfo.side == FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]) && (sectorinfo.track == FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR])) //Found the requested sector as indicated?
+						if (((sectorinfo.SectorID == FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]) && (FLOPPY.commandbuffer[0]!=READ_TRACK)) && (sectorinfo.side == FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]) && (sectorinfo.track == FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR])) //Found the requested sector as indicated?
 						{
 							FLOPPY.ST1 &= ~4; //Found!
 							FLOPPY.ST2 &= ~1; //Found!
@@ -1375,7 +1387,7 @@ void floppy_readsector() //Request a read sector command!
 					{
 						if ((IMD_sectorinfo.datamark == DATAMARK_NORMALDATA) || (IMD_sectorinfo.datamark==DATAMARK_DELETEDDATA)) //Normal data mark found?
 						{
-							if ((IMD_sectorinfo.sectorID == FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]) && (IMD_sectorinfo.headnumber == FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]) && (IMD_sectorinfo.cylinderID == FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR])) //Found the requested sector as indicated?
+							if (((IMD_sectorinfo.sectorID == FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]) && (FLOPPY.commandbuffer[0] != READ_TRACK)) && (IMD_sectorinfo.headnumber == FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]) && (IMD_sectorinfo.cylinderID == FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR])) //Found the requested sector as indicated?
 							{
 								FLOPPY.ST1 &= ~4; //Found!
 								FLOPPY.ST2 &= ~1; //Found!
@@ -1392,6 +1404,11 @@ void floppy_readsector() //Request a read sector command!
 			else if (IMDImageFile) //IMD image file?
 			{
 				FLOPPY.readID_lastsectornumber = (IMD_sectorinfo.totalsectors - 1); //Last sector reached, go back to the first one!
+			}
+			if (retryingloop == 0) //Not retrying the loop?
+			{
+				retryingloop = 1; //Retrying the loop!
+				goto retryread;
 			}
 			FLOPPY.ST1 = 0x04 | 0x01; //Couldn't find any sector!
 			goto floppy_errorread;
@@ -2164,6 +2181,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 		case READ_DELETED_DATA: //Read deleted sector
 			FLOPPY.datamark = 1; //Deleted!
 			goto skipreaddatamark_deleted;
+		case READ_TRACK: //Read track
 		case READ_DATA: //Read sector
 		case SCAN_EQUAL:
 		case SCAN_LOW_OR_EQUAL:
@@ -2599,9 +2617,6 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			FLOPPY.commandstep = 0; //Ready for a new command!
 			//No interrupt!
 			break;
-		case READ_TRACK: //Read complete track!
-			//floppy_common_sectoraccess_nomedia(FLOPPY.commandbuffer[1]&3); //No media!
-			//We don't support this command yet!
 		default: //Unknown command?
 			FLOPPY.commandstep = 0xFF; //Move to error phrase!
 			FLOPPY.ST0 = 0x80 | (FLOPPY.ST0 & 0x30) | FLOPPY_DOR_DRIVENUMBERR | (FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR] << 2); //Invalid command!
@@ -2727,10 +2742,8 @@ OPTINLINE void floppy_writeData(byte isDMA, byte value)
 					FLOPPY.commandbuffer[0] = value; //Set the command to use!
 					floppy_executeCommand(); //Execute the command!
 					break;
-				/*
 				case READ_TRACK: //Read complete track
 					FLOPPY.MTMask = 0; //Don't allow the MT bit to be applied during sector calculations!
-				*/ //Not supported yet!
 				case WRITE_DATA: //Write sector
 				case WRITE_DELETED_DATA: //Write deleted sector
 				case READ_DATA: //Read sector
