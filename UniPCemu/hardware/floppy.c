@@ -2199,6 +2199,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			FLOPPY_MSR_BUSYINPOSITIONINGMODEW((FLOPPY.commandbuffer[1] & 3),1); //Seeking!
 			if (!FLOPPY.physicalcylinder[FLOPPY.commandbuffer[1] & 3]) //Already there?
 			{
+				FLOPPY.readID_lastsectornumber = 0; //Act like the track has changed!
 				FLOPPY_finishrecalibrate(FLOPPY_DOR_DRIVENUMBERR); //Finish the recalibration automatically(we're eating up the command)!
 				FLOPPY_checkfinishtiming(FLOPPY_DOR_DRIVENUMBERR); //Finish if required!
 			}
@@ -2262,6 +2263,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			FLOPPY_MSR_BUSYINPOSITIONINGMODEW(FLOPPY.commandbuffer[1] & 3,1); //Seeking!
 			if (((FLOPPY.commandbuffer[1] & 3)<2) && (((FLOPPY.currentcylinder[FLOPPY.commandbuffer[1] & 3]==FLOPPY.seekdestination[FLOPPY.commandbuffer[1] & 3]) && (FLOPPY.currentcylinder[FLOPPY.commandbuffer[1] & 3] < FLOPPY.geometries[FLOPPY.commandbuffer[1] & 3]->tracks) && (FLOPPY.seekrel[FLOPPY.commandbuffer[1] & 3]==0)) || (FLOPPY.seekrel[FLOPPY.commandbuffer[1] & 3] && (FLOPPY.seekdestination[FLOPPY.commandbuffer[1] & 3]==0)))) //Found and existant?
 			{
+				FLOPPY.readID_lastsectornumber = 0; //Act like the track has changed!
 				FLOPPY_finishseek(FLOPPY.commandbuffer[1] & 3,1); //Finish the recalibration automatically(we're eating up the command)!
 				FLOPPY_checkfinishtiming(FLOPPY.commandbuffer[1] & 3); //Finish if required!
 			}
