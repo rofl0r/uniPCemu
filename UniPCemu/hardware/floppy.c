@@ -2285,7 +2285,8 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			FLOPPY.currentphysicalhead[drive] = ((FLOPPY.commandbuffer[1] & 4) >> 2); //Physical head select!
 			FLOPPY.activecommand[drive] = FLOPPY.commandbuffer[0]; //Our command to execute!
 			FLOPPY.currenthead[drive] = ((FLOPPY.commandbuffer[1] & 4) >> 2); //The head to use!
-			FLOPPY.ST0 &= 0x20; //Clear ST0 by default! Keep the Seek End flag intact!
+			//FLOPPY.ST0 &= 0x20; //Clear ST0 by default! Keep the Seek End flag intact!
+			FLOPPY.ST0 = 0; //According to Bochs, ST0 gets fully cleared, including the Seek End bit!
 			if (!FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR] || ((FLOPPY_DOR_DRIVENUMBERR < 2) ? (!is_mounted(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0)) : 1)) //Not mounted?
 			{
 				floppy_common_sectoraccess_nomedia();
