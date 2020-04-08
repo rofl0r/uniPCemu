@@ -2341,6 +2341,10 @@ validIMDheaderFormat:
 	//Now, skip tracks until we reach the selected track!
 	for (;;) //Skipping left?
 	{
+		if ((wasskippingtrack) && (skippingtrack==0)) //Were we skipping a track?
+		{
+			break; //Finished skipping the track!
+		}
 	format_skipFormattedTrack: //Skip the formatted track when formatting!
 		if (emufread64(&trackinfo, 1, sizeof(trackinfo), f) != sizeof(trackinfo)) //Failed to read track info?
 		{
