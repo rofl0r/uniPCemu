@@ -1977,13 +1977,14 @@ void floppy_executeWriteData()
 					case 0: //OK?
 					default: //Unknown?
 						//FLOPPY_ST0_SEEKENDW(1); //Successfull write with implicit seek!
+						FLOPPY.ST1 = 0x00;
+						FLOPPY.ST2 = 0x00;
 						FLOPPY_ST0_INTERRUPTCODEW(0); //Normal termination!
 						FLOPPY_ST0_NOTREADYW(0); //We're ready!
 						break;
 					}
 					FLOPPY_LOGD("FLOPPY: Finished transfer of data (%u sector(s)).", FLOPPY.sectorstransferred) //Log the completion of the sectors written!
 					//FLOPPY_ST0_SEEKENDW(1); //Successfull write with implicit seek!
-					FLOPPY.ST2 = 0x00;
 					enterFloppyWriteResultPhase:
 					FLOPPY.resultposition = 0;
 					FLOPPY.resultbuffer[0] = FLOPPY.ST0 = ((FLOPPY.ST0 & 0x3B) | FLOPPY_DOR_DRIVENUMBERR) | ((FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR] & 1) << 2); //Abnormal termination! ST0!
