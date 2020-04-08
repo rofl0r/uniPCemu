@@ -1086,7 +1086,7 @@ OPTINLINE void FLOPPY_dataReady() //Data transfer ready to transfer!
 	}
 }
 
-OPTINLINE void FLOPPY_startData() //Start a Data transfer if needed!
+OPTINLINE void FLOPPY_startData(byte drive) //Start a Data transfer if needed!
 {
 	FLOPPY.databufferposition = 0; //Start with the new buffer!
 	if (FLOPPY.commandstep != 2) //Entering data phase?
@@ -1107,10 +1107,10 @@ OPTINLINE void FLOPPY_startData() //Start a Data transfer if needed!
 	FLOPPY.commandstep = 2; //Move to data phrase!
 	if ((FLOPPY.commandbuffer[0]==VERIFY) || (FLOPPY.commandbuffer[0]==READ_ID)) //Verify and Read ID doesn't transfer data directly?
 	{
-		FLOPPY_supportsrate(FLOPPY_DOR_DRIVENUMBERR); //Make sure we have a rate set!
+		FLOPPY_supportsrate(drive); //Make sure we have a rate set!
 		FLOPPY.DMArate = FLOPPY.DMAratePending; //Start running at the specified speed!		
-		floppytimer[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY_DMA_TIMEOUT; //Time the timeout for floppy!
-		floppytiming |= (1<<FLOPPY_DOR_DRIVENUMBERR); //Make sure we're timing on the specified disk channel!
+		floppytimer[drive] = FLOPPY_DMA_TIMEOUT; //Time the timeout for floppy!
+		floppytiming |= (1<<drive); //Make sure we're timing on the specified disk channel!
 		FLOPPY.DMAPending = 0; //Not pending DMA!
 	}
 	else //Normal data transfer?
@@ -1118,7 +1118,7 @@ OPTINLINE void FLOPPY_startData() //Start a Data transfer if needed!
 		if (FLOPPY_useDMA()) //DMA mode?
 		{
 			FLOPPY.DMAPending = 1; //Pending DMA! Start when available!
-			FLOPPY_supportsrate(FLOPPY_DOR_DRIVENUMBERR); //Make sure we have a rate set!
+			FLOPPY_supportsrate(drive); //Make sure we have a rate set!
 			FLOPPY.DMArate = FLOPPY.DMAratePending; //Start running at the specified speed!
 		}
 		else //Non-DMA transfer!
@@ -1328,7 +1328,7 @@ void floppy_readsector() //Request a read sector command!
 		FLOPPY.ST2 &= ~1; //Found!
 		FLOPPY.readID_lastsectornumber = FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]; //Last sector accessed!
 		//FLOPPY_ST0_SEEKENDW(1); //Successfull read with implicit seek!
-		FLOPPY_startData();
+		FLOPPY_startData(FLOPPY_DOR_DRIVENUMBERR);
 	}
 	else //DSK or error?
 	{
@@ -1406,7 +1406,7 @@ void floppy_readsector() //Request a read sector command!
 						FLOPPY.ST1 = sectorinfo.ST1; //Load ST1!
 						FLOPPY.ST2 = sectorinfo.ST2; //Load ST2!
 					}
-					FLOPPY_startData();
+					FLOPPY_startData(FLOPPY_DOR_DRIVENUMBERR);
 					return; //Just execute it!
 				}
 			}
@@ -1438,7 +1438,7 @@ void floppy_readsector() //Request a read sector command!
 						}
 						FLOPPY.readID_lastsectornumber = (byte)sectornr; //This was the last sector we've read!
 					}
-					FLOPPY_startData();
+					FLOPPY_startData(FLOPPY_DOR_DRIVENUMBERR);
 					return; //Just execute it!
 				}
 			}
@@ -1530,6 +1530,7 @@ void FLOPPY_formatsector() //Request a read sector command!
 	else //Writeable disk?
 	{
 		//Check normal error conditions that applies to all disk images!
+		/*
 		if (FLOPPY_IMPLIEDSEEKENABLER) //Implied seek?
 		{
 			if (FLOPPY.RWRequestedCylinder<FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->tracks) //Valid track?
@@ -1540,6 +1541,7 @@ void FLOPPY_formatsector() //Request a read sector command!
 				FLOPPY_checkfinishtiming(FLOPPY_DOR_DRIVENUMBERR); //Seek is completed!
 			}
 		}
+		*/
 
 		//Check disk specific information!
 		if ((DSKImageFile = getDSKimage((FLOPPY_DOR_DRIVENUMBERR) ? FLOPPY1 : FLOPPY0)) || (IMDImageFile = getIMDimage((FLOPPY_DOR_DRIVENUMBERR) ? FLOPPY1 : FLOPPY0))) //Are we a DSK/IMD image file?
@@ -1730,7 +1732,7 @@ void FLOPPY_formatsector() //Request a read sector command!
 	}
 
 	//Start transfer of the next sector!
-	FLOPPY_startData();
+	FLOPPY_startData(FLOPPY_DOR_DRIVENUMBERR);
 }
 
 void floppy_writesector() //Request a write sector command!
@@ -1792,7 +1794,7 @@ void floppy_writesector() //Request a write sector command!
 		goto floppy_errorwrite; //Error out!
 	}
 
-	FLOPPY_startData(); //Start the DMA transfer if needed!
+	FLOPPY_startData(FLOPPY_DOR_DRIVENUMBERR); //Start the DMA transfer if needed!
 }
 
 void floppy_executeWriteData()
@@ -2189,7 +2191,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			break;
 		case RECALIBRATE: //Calibrate drive
 			FLOPPY.commandstep = 0; //Start our timed execution!
-			FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR] = 0; //Physical head select!
+			FLOPPY.currentphysicalhead[FLOPPY.commandbuffer[1]&3] = 0; //Physical head select!
 			FLOPPY.activecommand[FLOPPY.commandbuffer[1]&3] = FLOPPY.commandbuffer[0]; //Our command to execute timing!
 			FLOPPY.ST0 &= ~0x20; //We start to seek!
 			floppytime[FLOPPY.commandbuffer[1] & 3] = 0.0;
@@ -2200,8 +2202,8 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			if (!FLOPPY.physicalcylinder[FLOPPY.commandbuffer[1] & 3]) //Already there?
 			{
 				FLOPPY.readID_lastsectornumber = 0; //Act like the track has changed!
-				FLOPPY_finishrecalibrate(FLOPPY_DOR_DRIVENUMBERR); //Finish the recalibration automatically(we're eating up the command)!
-				FLOPPY_checkfinishtiming(FLOPPY_DOR_DRIVENUMBERR); //Finish if required!
+				FLOPPY_finishrecalibrate(FLOPPY.commandbuffer[1] & 3); //Finish the recalibration automatically(we're eating up the command)!
+				FLOPPY_checkfinishtiming(FLOPPY.commandbuffer[1] & 3); //Finish if required!
 			}
 			else
 			{
@@ -2250,7 +2252,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			break;
 		case SEEK: //Seek/park head
 			FLOPPY.commandstep = 0; //Start our timed execution!
-			FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR] = ((FLOPPY.commandbuffer[1] & 4) >> 2); //Physical head select!
+			FLOPPY.currentphysicalhead[FLOPPY.commandbuffer[1] & 3] = ((FLOPPY.commandbuffer[1] & 4) >> 2); //Physical head select!
 			FLOPPY.currenthead[FLOPPY.commandbuffer[1] & 3] = ((FLOPPY.commandbuffer[1] & 4) >> 2); //The selected head!
 			FLOPPY.activecommand[FLOPPY.commandbuffer[1] & 3] = FLOPPY.commandbuffer[0]; //Our command to execute!
 			FLOPPY.seekdestination[FLOPPY.commandbuffer[1] & 3] = FLOPPY.commandbuffer[2]; //Our destination!
@@ -2285,7 +2287,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			FLOPPY.currentphysicalhead[drive] = ((FLOPPY.commandbuffer[1] & 4) >> 2); //Physical head select!
 			FLOPPY.activecommand[drive] = FLOPPY.commandbuffer[0]; //Our command to execute!
 			FLOPPY.currenthead[drive] = ((FLOPPY.commandbuffer[1] & 4) >> 2); //The head to use!
-			if (!FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR] || ((FLOPPY_DOR_DRIVENUMBERR < 2) ? (!is_mounted(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0)) : 1)) //Not mounted?
+			if (!FLOPPY.geometries[drive] || ((drive < 2) ? (!is_mounted(drive ? FLOPPY1 : FLOPPY0)) : 1)) //Not mounted?
 			{
 				floppy_common_sectoraccess_nomedia();
 				return;
@@ -2310,7 +2312,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			FLOPPY.ST0 = 0; //According to Bochs, ST0 gets fully cleared, including the Seek End bit!
 			updateFloppyGeometries(drive, FLOPPY.currentphysicalhead[drive], FLOPPY.physicalcylinder[drive]); //Update our geometry to use!
 
-			if ((FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->DoubleDensity != (FLOPPY.MFM & ~DENSITY_IGNORE)) && (!(FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->DoubleDensity & DENSITY_IGNORE) || density_forced) && EMULATE_DENSITY) //Wrong density?
+			if ((FLOPPY.geometries[drive]->DoubleDensity != (FLOPPY.MFM & ~DENSITY_IGNORE)) && (!(FLOPPY.geometries[drive]->DoubleDensity & DENSITY_IGNORE) || density_forced) && EMULATE_DENSITY) //Wrong density?
 			{
 				FLOPPY_LOGD("FLOPPY: Error: Invalid density!")
 				FLOPPY.ST1 = 0x04 | 0x01; //Couldn't find any sector!
@@ -2334,7 +2336,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 				}
 				else if (IMDImageFile) //IMD image?
 				{
-					if (readIMDSectorInfo(IMDImageFile, FLOPPY.physicalcylinder[drive], FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR], 0, &IMD_sectorinfo) == 0) //Read?
+					if (readIMDSectorInfo(IMDImageFile, FLOPPY.physicalcylinder[drive], FLOPPY.currentphysicalhead[drive], 0, &IMD_sectorinfo) == 0) //Read?
 					{
 						FLOPPY.ST1 = 0x04 | 0x01; //Couldn't find any sector!
 						goto didntfindsectoridreadid;
@@ -2495,19 +2497,19 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			FLOPPY.databuffersize = 0x200; //Sector size into data buffer!
 			FLOPPY.readIDdrive = drive; //Setup ST0!
 			FLOPPY.readIDerror = 0; //No error!
-			FLOPPY_startData(); //Start the data phase!
+			FLOPPY_startData(drive); //Start the data phase!
 			return; //Correct read!
 		floppy_errorReadID:
 			FLOPPY.databuffersize = 0x200; //Sector size into data buffer!
 			FLOPPY.readIDdrive = drive; //Setup ST0!
 			FLOPPY.readIDerror = 1; //Error!
-			FLOPPY_startData(); //Start the data phase!
+			FLOPPY_startData(drive); //Start the data phase!
 			return; //Incorrect read!
 			break;
 		case FORMAT_TRACK: //Format sector
 			drive = (FLOPPY.commandbuffer[1] & 3); //What drive!
-			FLOPPY.RWRequestedCylinder = FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]; //What track to format!
-			FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR] = ((FLOPPY.commandbuffer[1] & 4) >> 2); //Physical head select!
+			FLOPPY.RWRequestedCylinder = FLOPPY.physicalcylinder[drive]; //What track to format!
+			FLOPPY.currentphysicalhead[drive] = ((FLOPPY.commandbuffer[1] & 4) >> 2); //Physical head select!
 			FLOPPY.activecommand[drive] = FLOPPY.commandbuffer[0]; //Our command to execute!
 			FLOPPY.currenthead[drive] = (FLOPPY.commandbuffer[1] & 4) >> 2; //Set the new head from the parameters!
 			FLOPPY.currentsector[drive] = 1; //Start out with sector #1(first sector of the track on DSK images)!
@@ -2535,7 +2537,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			if ((DSKImageFile = getDSKimage((drive) ? FLOPPY1 : FLOPPY0)) || (IMDImageFile = getIMDimage((drive) ? FLOPPY1 : FLOPPY0))) //Are we a DSK image file?
 			{
 				FLOPPY.databuffersize = 4; //We're 4 bytes per sector!
-				FLOPPY_startData(); //Start the data transfer!
+				FLOPPY_startData(drive); //Start the data transfer!
 			}
 			else //Normal standard emulated sector?
 			{
@@ -2547,7 +2549,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 				else
 				{
 					FLOPPY.databuffersize = 4; //We're 4 bytes per sector!
-					FLOPPY_startData(); //Start the data transfer!
+					FLOPPY_startData(drive); //Start the data transfer!
 				}
 			}
 			break;
