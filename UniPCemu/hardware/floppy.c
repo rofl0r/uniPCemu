@@ -3033,6 +3033,7 @@ void updateFloppy(DOUBLE timepassed)
 						case SEEK: //Seek/park head
 							if ((drive>=2) || (!FLOPPY.geometries[drive])) //Floppy not inserted?
 							{
+								FLOPPY.readID_lastsectornumber = 0; //New track has been selected, search again!
 								FLOPPY.ST0 = 0x20 | (FLOPPY.currentphysicalhead[drive]<<2) | drive; //Error: drive not ready!
 								clearDiskChanged(drive); //Clear the disk changed flag for the new command!
 								FLOPPY_raiseIRQ(); //Finished executing phase!
@@ -3043,12 +3044,14 @@ void updateFloppy(DOUBLE timepassed)
 						
 							if ((FLOPPY.currentcylinder[drive]>FLOPPY.seekdestination[drive] && (FLOPPY.seekrel[drive]==0)) || (FLOPPY.seekrel[drive] && (FLOPPY.seekrelup[drive]==0) && FLOPPY.seekdestination[drive])) //Step out towards smaller cylinder numbers?
 							{
+								FLOPPY.readID_lastsectornumber = 0; //New track has been selected, search again!
 								--FLOPPY.currentcylinder[drive]; //Step up!
 								if (FLOPPY.physicalcylinder[drive]) --FLOPPY.physicalcylinder[drive]; //Decrease when available!
 								movedcylinder = 1;
 							}
 							else if ((FLOPPY.currentcylinder[drive]<FLOPPY.seekdestination[drive] && (FLOPPY.seekrel[drive]==0)) || (FLOPPY.seekrel[drive] && FLOPPY.seekrelup[drive] && FLOPPY.seekdestination[drive])) //Step in towards bigger cylinder numbers?
 							{
+								FLOPPY.readID_lastsectornumber = 0; //New track has been selected, search again!
 								++FLOPPY.currentcylinder[drive]; //Step down!
 								if (FLOPPY.geometries[drive])
 								{
@@ -3081,6 +3084,7 @@ void updateFloppy(DOUBLE timepassed)
 						case RECALIBRATE: //Calibrate drive
 							if (FLOPPY.physicalcylinder[drive] && (drive<2)) //Not there yet?
 							{
+								FLOPPY.readID_lastsectornumber = 0; //New track has been selected, search again!
 								--FLOPPY.physicalcylinder[drive]; //Step down!
 							}
 							if (((FLOPPY.physicalcylinder[drive]) || (drive>=2)) && FLOPPY.recalibratestepsleft[drive]) //Not there yet?
