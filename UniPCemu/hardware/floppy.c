@@ -2285,16 +2285,10 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			FLOPPY.currentphysicalhead[drive] = ((FLOPPY.commandbuffer[1] & 4) >> 2); //Physical head select!
 			FLOPPY.activecommand[drive] = FLOPPY.commandbuffer[0]; //Our command to execute!
 			FLOPPY.currenthead[drive] = ((FLOPPY.commandbuffer[1] & 4) >> 2); //The head to use!
-			//FLOPPY.ST0 &= 0x20; //Clear ST0 by default! Keep the Seek End flag intact!
-			FLOPPY.ST0 = 0; //According to Bochs, ST0 gets fully cleared, including the Seek End bit!
 			if (!FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR] || ((FLOPPY_DOR_DRIVENUMBERR < 2) ? (!is_mounted(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0)) : 1)) //Not mounted?
 			{
 				floppy_common_sectoraccess_nomedia();
 				return;
-			}
-			if (!FLOPPY_supportsrate(drive)) //We don't support the rate?
-			{
-				goto floppy_errorReadID; //Error out!
 			}
 			FLOPPY.RWRequestedCylinder = FLOPPY.currentcylinder[drive]; //Cylinder to access?
 			if (FLOPPY_IMPLIEDSEEKENABLER) //Implied seek?
@@ -2302,10 +2296,16 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 				if ((FLOPPY_MSR_BUSYINPOSITIONINGMODER(drive) == 0) && ((FLOPPY.ST0 & 0x20) == 0)) //Not in positioning mode and not finished seeking according to status?
 				{
 					clearDiskChanged(drive); //Clear the disk changed flag for the new command!
-					FLOPPY_finishseek(drive,0); //Simulate seek complete!
+					FLOPPY_finishseek(drive, 0); //Simulate seek complete!
 					FLOPPY_checkfinishtiming(drive); //Seek is completed!
 				}
 			}
+			if (!FLOPPY_supportsrate(drive)) //We don't support the rate?
+			{
+				goto floppy_errorReadID; //Error out!
+			}
+			//FLOPPY.ST0 &= 0x20; //Clear ST0 by default! Keep the Seek End flag intact!
+			FLOPPY.ST0 = 0; //According to Bochs, ST0 gets fully cleared, including the Seek End bit!
 			updateFloppyGeometries(drive, FLOPPY.currentphysicalhead[drive], FLOPPY.physicalcylinder[drive]); //Update our geometry to use!
 
 			if ((FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->DoubleDensity != (FLOPPY.MFM & ~DENSITY_IGNORE)) && (!(FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->DoubleDensity & DENSITY_IGNORE) || density_forced) && EMULATE_DENSITY) //Wrong density?
