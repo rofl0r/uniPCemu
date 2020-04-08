@@ -2447,9 +2447,9 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 				updateST3(drive); //Update track 0!
 				//Clip the sector number first!
 				if (!FLOPPY.readID_lastsectornumber) FLOPPY.readID_lastsectornumber = 1; //Sector number from 1 to SPT!
-				if (FLOPPY.readID_lastsectornumber > (FLOPPY.geometries[drive] ? FLOPPY.geometries[drive]->SPT : 0)) FLOPPY.readID_lastsectornumber = 1; //Limit to SPT!
+				else if (FLOPPY.readID_lastsectornumber > (FLOPPY.geometries[drive] ? FLOPPY.geometries[drive]->SPT : 0)) FLOPPY.readID_lastsectornumber = 1; //Limit to SPT!
 				//Simulate the sectors moving for the software to see!
-				if (FLOPPY.readID_lastsectornumber < (FLOPPY.geometries[drive] ? FLOPPY.geometries[drive]->SPT : 0)) //Gotten next?
+				else if (FLOPPY.readID_lastsectornumber < (FLOPPY.geometries[drive] ? FLOPPY.geometries[drive]->SPT : 0)) //Gotten next?
 				{
 					++FLOPPY.readID_lastsectornumber; //Next sector!
 				}
