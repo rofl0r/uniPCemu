@@ -1308,17 +1308,16 @@ void floppy_readsector() //Request a read sector command!
 		}
 	}
 
-	if (FLOPPY.RWRequestedCylinder!=FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]) //Wrong cylinder to access?
-	{
-		FLOPPY.ST1 = 0x04 | 0x01; //Couldn't find any sector!
-		FLOPPY.ST2 = 0x01; //Data address mark not found!
-		goto floppy_errorread; //Error out!
-	}
-
 	FLOPPY.ST1 = 0x04; //Couldn't find any sector!
 	FLOPPY.ST2 = 0x01; //Data address mark not found!
 	if (readdata(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0, &FLOPPY.databuffer, FLOPPY.disk_startpos, FLOPPY.databuffersize)) //Read the data into memory?
 	{
+		if (FLOPPY.RWRequestedCylinder != FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]) //Wrong cylinder to access?
+		{
+			FLOPPY.ST1 = 0x04 | 0x01; //Couldn't find any sector!
+			FLOPPY.ST2 = 0x01; //Data address mark not found!
+			goto floppy_errorread; //Error out!
+		}
 		if ((FLOPPY.commandbuffer[7]!=FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->GAPLength) && (FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->GAPLength!=GAPLENGTH_IGNORE) && EMULATE_GAPLENGTH) //Wrong GAP length?
 		{
 			FLOPPY.ST1 = 0x04 | 0x01; //Couldn't find any sector!
@@ -1446,6 +1445,12 @@ void floppy_readsector() //Request a read sector command!
 		}
 		else //Not found?
 		{
+			if (FLOPPY.RWRequestedCylinder != FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]) //Wrong cylinder to access?
+			{
+				FLOPPY.ST1 = 0x04 | 0x01; //Couldn't find any sector!
+				FLOPPY.ST2 = 0x01; //Data address mark not found!
+				goto floppy_errorread; //Error out!
+			}
 			FLOPPY.ST1 = 0x04 | 0x01; //Couldn't find any sector!
 			FLOPPY.ST2 = 0x01; //Data address mark not found!
 		}
@@ -1534,10 +1539,6 @@ void FLOPPY_formatsector() //Request a read sector command!
 				FLOPPY_finishseek(FLOPPY_DOR_DRIVENUMBERR,0); //Simulate seek complete!
 				FLOPPY_checkfinishtiming(FLOPPY_DOR_DRIVENUMBERR); //Seek is completed!
 			}
-		}
-		if (FLOPPY.RWRequestedCylinder!=FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]) //Wrong cylinder to access?
-		{
-			goto floppy_errorformat; //Error out!
 		}
 
 		//Check disk specific information!
@@ -1653,6 +1654,10 @@ void FLOPPY_formatsector() //Request a read sector command!
 		}
 		else //Are we a normal image file?
 		{
+			if (FLOPPY.RWRequestedCylinder != FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]) //Wrong cylinder to access?
+			{
+				goto floppy_errorformat; //Error out!
+			}
 			FLOPPY.readID_lastsectornumber = FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]; //This was the last sector we've accessed!
 			if (FLOPPY.databuffer[0] != FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]) //Not current track?
 			{
@@ -1832,15 +1837,14 @@ void floppy_executeWriteData()
 		}
 	}
 
-	if (FLOPPY.RWRequestedCylinder!=FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]) //Wrong cylinder to access?
-	{
-		FLOPPY.ST1 = 0x04 | 0x01; //Couldn't find any sector!
-		FLOPPY.ST2 = 0x01; //Data address mark not found!
-		goto floppy_errorwrite; //Error out!
-	}
-
 	if (writedata(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0, &FLOPPY.databuffer, FLOPPY.disk_startpos, FLOPPY.databuffersize)) //Written the data to disk?
 	{
+		if (FLOPPY.RWRequestedCylinder != FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]) //Wrong cylinder to access?
+		{
+			FLOPPY.ST1 = 0x04 | 0x01; //Couldn't find any sector!
+			FLOPPY.ST2 = 0x01; //Data address mark not found!
+			goto floppy_errorwrite; //Error out!
+		}
 		updateFloppyWriteProtected(1, FLOPPY_DOR_DRIVENUMBERR); //Tried to write!
 		FLOPPY.readID_lastsectornumber = (FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]); //Last accessed sector!
 		switch (floppy_increasesector(FLOPPY_DOR_DRIVENUMBERR)) //Goto next sector!
@@ -2001,6 +2005,12 @@ void floppy_executeWriteData()
 			}
 			else
 			{
+				if (FLOPPY.RWRequestedCylinder != FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]) //Wrong cylinder to access?
+				{
+					FLOPPY.ST1 = 0x04 | 0x01; //Couldn't find any sector!
+					FLOPPY.ST2 = 0x01; //Data address mark not found!
+					goto floppy_errorwrite; //Error out!
+				}
 				FLOPPY.ST1 = 0x04 | 0x01; //Couldn't find any sector!
 				FLOPPY.ST2 = 0x01; //Data address mark not found!
 			}
@@ -2284,10 +2294,6 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 				goto floppy_errorReadID; //Error out!
 			}
 			FLOPPY.RWRequestedCylinder = FLOPPY.currentcylinder[drive]; //Cylinder to access?
-			if (FLOPPY.RWRequestedCylinder != FLOPPY.physicalcylinder[drive]) //Wrong cylinder?
-			{
-				goto floppy_errorReadID; //Error out!
-			}
 			if (FLOPPY_IMPLIEDSEEKENABLER) //Implied seek?
 			{
 				if ((FLOPPY_MSR_BUSYINPOSITIONINGMODER(drive) == 0) && ((FLOPPY.ST0 & 0x20) == 0)) //Not in positioning mode and not finished seeking according to status?
@@ -2432,6 +2438,10 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			}
 			else //Normal disk? Generate valid data!
 			{
+				if (FLOPPY.RWRequestedCylinder != FLOPPY.physicalcylinder[drive]) //Wrong cylinder?
+				{
+					goto floppy_errorReadID; //Error out!
+				}
 				FLOPPY.ST1 = 0x00; //Clear ST1!
 				FLOPPY.ST2 = 0x00; //Clear ST2!
 				updateST3(drive); //Update track 0!
