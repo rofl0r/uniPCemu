@@ -2251,7 +2251,15 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			FLOPPY_MSR_BUSYINPOSITIONINGMODEW((FLOPPY.commandbuffer[1] & 3),1); //Seeking!
 			if (!FLOPPY.physicalcylinder[FLOPPY.commandbuffer[1] & 3]) //Already there?
 			{
-				FLOPPY.readID_lastsectornumber = 0; //Act like the track has changed!
+				updateFloppyGeometries((FLOPPY.commandbuffer[1] & 3), FLOPPY.currentphysicalhead[FLOPPY.commandbuffer[1] & 3], FLOPPY.physicalcylinder[FLOPPY.commandbuffer[1] & 3]); //Up
+				if (FLOPPY.geometries[(FLOPPY.commandbuffer[1] & 3)])
+				{
+					FLOPPY.readID_lastsectornumber = FLOPPY.geometries[(FLOPPY.commandbuffer[1] & 3)]->SPT+1; //Act like the track has changed!
+				}
+				else
+				{
+					FLOPPY.readID_lastsectornumber = 0; //Act like the track has changed!
+				}
 				FLOPPY_finishrecalibrate(FLOPPY.commandbuffer[1] & 3); //Finish the recalibration automatically(we're eating up the command)!
 				FLOPPY_checkfinishtiming(FLOPPY.commandbuffer[1] & 3); //Finish if required!
 			}
@@ -2315,7 +2323,15 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			FLOPPY_MSR_BUSYINPOSITIONINGMODEW(FLOPPY.commandbuffer[1] & 3,1); //Seeking!
 			if (((FLOPPY.commandbuffer[1] & 3)<2) && (((FLOPPY.currentcylinder[FLOPPY.commandbuffer[1] & 3]==FLOPPY.seekdestination[FLOPPY.commandbuffer[1] & 3]) && (FLOPPY.currentcylinder[FLOPPY.commandbuffer[1] & 3] < FLOPPY.geometries[FLOPPY.commandbuffer[1] & 3]->tracks) && (FLOPPY.seekrel[FLOPPY.commandbuffer[1] & 3]==0)) || (FLOPPY.seekrel[FLOPPY.commandbuffer[1] & 3] && (FLOPPY.seekdestination[FLOPPY.commandbuffer[1] & 3]==0)))) //Found and existant?
 			{
-				FLOPPY.readID_lastsectornumber = 0; //Act like the track has changed!
+				updateFloppyGeometries((FLOPPY.commandbuffer[1]&3), FLOPPY.currentphysicalhead[FLOPPY.commandbuffer[1] & 3], FLOPPY.physicalcylinder[FLOPPY.commandbuffer[1] & 3]); //Up
+				if (FLOPPY.geometries[(FLOPPY.commandbuffer[1] & 3)])
+				{
+					FLOPPY.readID_lastsectornumber = FLOPPY.geometries[(FLOPPY.commandbuffer[1] & 3)]->SPT + 1; //Act like the track has changed!
+				}
+				else
+				{
+					FLOPPY.readID_lastsectornumber = 0; //Act like the track has changed!
+				}
 				FLOPPY_finishseek(FLOPPY.commandbuffer[1] & 3,1); //Finish the recalibration automatically(we're eating up the command)!
 				FLOPPY_checkfinishtiming(FLOPPY.commandbuffer[1] & 3); //Finish if required!
 			}
@@ -3113,14 +3129,30 @@ void updateFloppy(DOUBLE timepassed)
 						
 							if ((FLOPPY.currentcylinder[drive]>FLOPPY.seekdestination[drive] && (FLOPPY.seekrel[drive]==0)) || (FLOPPY.seekrel[drive] && (FLOPPY.seekrelup[drive]==0) && FLOPPY.seekdestination[drive])) //Step out towards smaller cylinder numbers?
 							{
-								FLOPPY.readID_lastsectornumber = 0; //New track has been selected, search again!
+								updateFloppyGeometries(drive, FLOPPY.currentphysicalhead[drive], FLOPPY.physicalcylinder[drive]); //Up
+								if (FLOPPY.geometries[drive])
+								{
+									FLOPPY.readID_lastsectornumber = FLOPPY.geometries[drive]->SPT + 1; //Act like the track has changed!
+								}
+								else
+								{
+									FLOPPY.readID_lastsectornumber = 0; //Act like the track has changed!
+								}
 								--FLOPPY.currentcylinder[drive]; //Step up!
 								if (FLOPPY.physicalcylinder[drive]) --FLOPPY.physicalcylinder[drive]; //Decrease when available!
 								movedcylinder = 1;
 							}
 							else if ((FLOPPY.currentcylinder[drive]<FLOPPY.seekdestination[drive] && (FLOPPY.seekrel[drive]==0)) || (FLOPPY.seekrel[drive] && FLOPPY.seekrelup[drive] && FLOPPY.seekdestination[drive])) //Step in towards bigger cylinder numbers?
 							{
-								FLOPPY.readID_lastsectornumber = 0; //New track has been selected, search again!
+								updateFloppyGeometries(drive, FLOPPY.currentphysicalhead[drive], FLOPPY.physicalcylinder[drive]); //Up
+								if (FLOPPY.geometries[drive])
+								{
+									FLOPPY.readID_lastsectornumber = FLOPPY.geometries[drive]->SPT + 1; //Act like the track has changed!
+								}
+								else
+								{
+									FLOPPY.readID_lastsectornumber = 0; //Act like the track has changed!
+								}
 								++FLOPPY.currentcylinder[drive]; //Step down!
 								if (FLOPPY.geometries[drive])
 								{
@@ -3153,8 +3185,16 @@ void updateFloppy(DOUBLE timepassed)
 						case RECALIBRATE: //Calibrate drive
 							if (FLOPPY.physicalcylinder[drive] && (drive<2)) //Not there yet?
 							{
-								FLOPPY.readID_lastsectornumber = 0; //New track has been selected, search again!
 								--FLOPPY.physicalcylinder[drive]; //Step down!
+								updateFloppyGeometries(drive, FLOPPY.currentphysicalhead[drive], FLOPPY.physicalcylinder[drive]); //Up
+								if (FLOPPY.geometries[drive])
+								{
+									FLOPPY.readID_lastsectornumber = FLOPPY.geometries[drive]->SPT + 1; //Act like the track has changed!
+								}
+								else
+								{
+									FLOPPY.readID_lastsectornumber = 0; //Act like the track has changed!
+								}
 							}
 							if (((FLOPPY.physicalcylinder[drive]) || (drive>=2)) && FLOPPY.recalibratestepsleft[drive]) //Not there yet?
 							{
