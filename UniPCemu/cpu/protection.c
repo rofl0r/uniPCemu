@@ -85,7 +85,7 @@ void CPU_doublefault()
 	++CPU[activeCPU].faultlevel; //Raise the fault level to cause triple faults!
 	CPU_resetOP();
 	CPU_onResettingFault();
-	CPU_executionphase_startinterrupt(EXCEPTION_DOUBLEFAULT,2,zerovalue); //Execute the double fault handler!
+	CPU_executionphase_startinterrupt(EXCEPTION_DOUBLEFAULT,2|8,zerovalue); //Execute the double fault handler!
 }
 
 extern byte CPU_interruptraised; //Interrupt raised flag?
@@ -256,7 +256,7 @@ void CPU_GP(int_64 errorcode)
 	{
 		CPU_resetOP(); //Point to the faulting instruction!
 		CPU_onResettingFault(); //Apply reset to fault!
-		CPU_executionphase_startinterrupt(EXCEPTION_GENERALPROTECTIONFAULT,2,errorcode); //Call IVT entry #13 decimal!
+		CPU_executionphase_startinterrupt(EXCEPTION_GENERALPROTECTIONFAULT,2|8,errorcode); //Call IVT entry #13 decimal!
 		//Execute the interrupt!
 	}
 }
@@ -278,7 +278,7 @@ void CPU_AC(int_64 errorcode)
 	{
 		CPU_resetOP(); //Point to the faulting instruction!
 		CPU_onResettingFault(); //Apply reset to fault!
-		CPU_executionphase_startinterrupt(EXCEPTION_ALIGNMENTCHECK,2,errorcode); //Call IVT entry #13 decimal!
+		CPU_executionphase_startinterrupt(EXCEPTION_ALIGNMENTCHECK,2|8,errorcode); //Call IVT entry #13 decimal!
 		//Execute the interrupt!
 	}
 }
@@ -300,7 +300,7 @@ void CPU_SegNotPresent(int_64 errorcode)
 	{
 		CPU_resetOP(); //Point to the faulting instruction!
 		CPU_onResettingFault(); //Apply reset to fault!
-		CPU_executionphase_startinterrupt(EXCEPTION_SEGMENTNOTPRESENT,2,errorcode); //Call IVT entry #11 decimal!
+		CPU_executionphase_startinterrupt(EXCEPTION_SEGMENTNOTPRESENT,2|8,errorcode); //Call IVT entry #11 decimal!
 		//Execute the interrupt!
 	}
 }
@@ -323,7 +323,7 @@ void CPU_StackFault(int_64 errorcode)
 	{
 		CPU_resetOP(); //Point to the faulting instruction!
 		CPU_onResettingFault(); //Apply reset to fault!
-		CPU_executionphase_startinterrupt(EXCEPTION_STACKFAULT,2,errorcode); //Call IVT entry #12 decimal!
+		CPU_executionphase_startinterrupt(EXCEPTION_STACKFAULT,2|8,errorcode); //Call IVT entry #12 decimal!
 		//Execute the interrupt!
 	}
 }
@@ -2005,7 +2005,7 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 	RAWSEGMENTDESCRIPTOR idtentry; //The loaded IVT entry!
 	memcpy(&idtentry,theidtentry,sizeof(idtentry)); //Make a copy for our own use!
 
-	if ((is_interrupt&1) && (IDTENTRY_DPL(idtentry) < getCPL())) //Not enough rights on software interrupt?
+	if ((is_interrupt&1) && ((is_interrupt&0x10)==0) && (IDTENTRY_DPL(idtentry) < getCPL())) //Not enough rights on software interrupt?
 	{
 		THROWDESCGP(base,EXT,table); //#GP!
 		return 0;
