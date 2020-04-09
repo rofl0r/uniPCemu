@@ -1359,7 +1359,7 @@ void floppy_readsector() //Request a read sector command!
 			FLOPPY.ST1 = 0x04; //Couldn't find any sector!
 			FLOPPY.ST2 = 0x01; //Data address mark not found!
 		retryread:
-			if (FLOPPY.readID_lastsectornumber >= (MIN((IMDImageFile ? IMD_sectorinfo.totalsectors : (word)trackinfo.numberofsectors),1)-1)) //End of range?
+			if (FLOPPY.readID_lastsectornumber >= (MAX((IMDImageFile ? IMD_sectorinfo.totalsectors : (word)trackinfo.numberofsectors),1)-1)) //End of range?
 			{
 				FLOPPY.readID_lastsectornumber = 0; //Start at the beginning!
 			}
