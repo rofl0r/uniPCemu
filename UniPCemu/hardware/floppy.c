@@ -1381,6 +1381,10 @@ void floppy_readsector() //Request a read sector command!
 						}
 						else if (!FLOPPY.floppy_scanningforSectorID) //Not scanning for the sector ID? Mismatch on the exact sector ID we're searching!
 						{
+							if ((IMD_sectorinfo.cylinderID != FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR])) //Cylindere mismatch?
+							{
+								FLOPPY.ST2 |= 0x10; //WC set!
+							}
 							FLOPPY.readID_lastsectornumber = sectornr; //We're the last that has been read!
 							goto floppy_errorread; //Error out!
 						}
@@ -1401,6 +1405,10 @@ void floppy_readsector() //Request a read sector command!
 						}
 						else if (!FLOPPY.floppy_scanningforSectorID) //Not scanning for the sector ID? Mismatch on the exact sector ID we're searching!
 						{
+							if ((IMD_sectorinfo.cylinderID != FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR])) //Cylindere mismatch?
+							{
+								FLOPPY.ST2 |= 0x10; //WC set!
+							}
 							FLOPPY.readID_lastsectornumber = sectornr; //We're the last that has been read!
 							goto floppy_errorread; //Error out!
 						}
@@ -1463,8 +1471,8 @@ void floppy_readsector() //Request a read sector command!
 						}
 						else //Valid address to read?
 						{
-							FLOPPY.ST1 = 0x00; //Load ST1!
-							FLOPPY.ST2 = 0x00; //Load ST2!
+							FLOPPY.ST1 &= ~4; //Load ST1!
+							FLOPPY.ST2 &= ~1; //Load ST2!
 						}
 						FLOPPY.floppy_scanningforSectorID = 0; //Not scanning anymore!
 						FLOPPY.readID_lastsectornumber = (byte)sectornr; //This was the last sector we've read!
