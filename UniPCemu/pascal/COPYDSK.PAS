@@ -5,7 +5,7 @@ var
 function readtrack(track: byte): boolean;
 var
   regs: registers;
-  buffer: array[1..512] of byte;
+  buffer: array[0..511] of byte;
   b,c,d: integer;
 begin
   for c := 1 to 18 do
