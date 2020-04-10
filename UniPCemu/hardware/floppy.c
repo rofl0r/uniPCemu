@@ -1383,7 +1383,7 @@ void floppy_readsector() //Request a read sector command!
 						{
 							if ((sectorinfo.track != FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR])) //Cylindere mismatch?
 							{
-								if ((IMD_sectorinfo.cylinderID == 0xFF)) //Cylinder says, according to IBM Soft Sector Format, Bad Track with a physical error?
+								if (IMD_sectorinfo.cylinderID == 0xFF) //Cylinder says, according to IBM Soft Sector Format, Bad Track with a physical error?
 								{
 									FLOPPY.ST2 |= 0x2; //BC set!
 								}
@@ -1418,7 +1418,7 @@ void floppy_readsector() //Request a read sector command!
 						{
 							if ((IMD_sectorinfo.cylinderID != FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR])) //Cylindere mismatch?
 							{
-								if ((IMD_sectorinfo.cylinderID == 0xFF)) //Cylinder says, according to IBM Soft Sector Format, Bad Track with a physical error?
+								if (IMD_sectorinfo.cylinderID == 0xFF) //Cylinder says, according to IBM Soft Sector Format, Bad Track with a physical error?
 								{
 									FLOPPY.ST2 |= 0x2; //BC set!
 								}
