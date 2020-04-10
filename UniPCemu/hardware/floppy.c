@@ -1400,11 +1400,18 @@ void floppy_readsector() //Request a read sector command!
 					{
 						if (((IMD_sectorinfo.sectorID == FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]) && (FLOPPY.commandbuffer[0] != READ_TRACK)) && (IMD_sectorinfo.headnumber == FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR]) && (IMD_sectorinfo.cylinderID == FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR])) //Found the requested sector as indicated?
 						{
-							if ((IMD_sectorinfo.datamark == DATAMARK_NORMALDATA) || (IMD_sectorinfo.datamark==DATAMARK_DELETEDDATA)) //Normal data mark or deleted data mark found?
+							if ((IMD_sectorinfo.datamark == DATAMARK_NORMALDATA) || (IMD_sectorinfo.datamark==DATAMARK_DELETEDDATA) || (IMD_sectorinfo.datamark == DATAMARK_NORMALDATA_DATAERROR) || (IMD_sectorinfo.datamark == DATAMARK_DELETEDDATA_DATAERROR)) //Normal data mark or deleted data mark found?
 							{
 								FLOPPY.ST1 &= ~4; //Found!
 								FLOPPY.ST2 &= ~1; //Found!
 								goto foundsectorIDread; //Found it!
+							}
+							else //Invalid data mark encountered?
+							{
+								FLOPPY.ST1 &= ~4; //Found!
+								FLOPPY.ST2 &= ~1; //Found!
+								FLOPPY.ST1 |= 0x20; //CRC error!
+								goto floppy_errorread; //Error out!
 							}
 						}
 						else if (!FLOPPY.floppy_scanningforSectorID) //Not scanning for the sector ID? Mismatch on the exact sector ID we're searching!
@@ -1461,7 +1468,7 @@ void floppy_readsector() //Request a read sector command!
 				{
 					if (readIMDSectorInfo(IMDImageFile, FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR],FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR], (byte)sectornr, &IMD_sectorinfo)) //Read the sector information too!
 					{
-						if ((IMD_sectorinfo.datamark == DATAMARK_DELETEDDATA) && FLOPPY.Skip) //Skipping deleted data?
+						if (((IMD_sectorinfo.datamark == DATAMARK_DELETEDDATA) || (IMD_sectorinfo.datamark == DATAMARK_DELETEDDATA_DATAERROR)) && FLOPPY.Skip) //Skipping deleted data?
 						{
 							skippingreaddata:
 							FLOPPY.readID_lastsectornumber = sectornr; //Next sector to process(Important to advance here, because otherwise it would be an infinite loop)!
@@ -1469,18 +1476,25 @@ void floppy_readsector() //Request a read sector command!
 							FLOPPY.ST2 |= 0x01; //Data address mark not found!
 							goto retryread; //Skip this data mark!
 						}
-						if (((IMD_sectorinfo.datamark == DATAMARK_DELETEDDATA) ? 1 : 0) != FLOPPY.datamark) //Different data mark than requested?
+						if ((((IMD_sectorinfo.datamark == DATAMARK_DELETEDDATA) || (IMD_sectorinfo.datamark == DATAMARK_DELETEDDATA_DATAERROR)) ? 1 : 0) != FLOPPY.datamark) //Different data mark than requested?
 						{
 							//Invalid data mark being read!
 							FLOPPY.ST1 |= 0x40; //DDAM is requested to be read and found, but can't read!
 							FLOPPY.readID_lastsectornumber = (byte)sectornr; //This was the last sector we've read!
 							//Give the result data, but report it's deleted!
 							FLOPPY.floppy_abort = 1; //Abort after giving the result!
+							FLOPPY.ST1 &= ~4; //Load ST1!
+							FLOPPY.ST2 &= ~1; //Load ST2!
 						}
 						else //Valid address to read?
 						{
 							FLOPPY.ST1 &= ~4; //Load ST1!
 							FLOPPY.ST2 &= ~1; //Load ST2!
+						}
+						if ((IMD_sectorinfo.datamark == DATAMARK_DELETEDDATA_DATAERROR) || (IMD_sectorinfo.datamark == DATAMARK_NORMALDATA_DATAERROR)) //Data error?
+						{
+							FLOPPY.ST1 |= 0x20; //Data error!
+							FLOPPY.floppy_abort = 1; //Abort after giving the result!
 						}
 						FLOPPY.floppy_scanningforSectorID = 0; //Not scanning anymore!
 						FLOPPY.readID_lastsectornumber = (byte)sectornr; //This was the last sector we've read!
@@ -2363,8 +2377,14 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			FLOPPY.currenthead[drive] = ((FLOPPY.commandbuffer[1] & 4) >> 2); //The head to use!
 			if (!FLOPPY.geometries[drive] || ((drive < 2) ? (!is_mounted(drive ? FLOPPY1 : FLOPPY0)) : 1)) //Not mounted?
 			{
+				/*
 				floppy_common_sectoraccess_nomedia(drive);
 				return;
+				*/
+				FLOPPY.ST0 = 0; //Init ST0!
+				FLOPPY.ST1 = 0x4 | 0x1; //No DAM found or readable!
+				FLOPPY.ST2 = 0x01; //No DAM found!
+				goto floppy_errorReadID; //Error out!
 			}
 			FLOPPY.RWRequestedCylinder = FLOPPY.currentcylinder[drive]; //Cylinder to access?
 			/*
