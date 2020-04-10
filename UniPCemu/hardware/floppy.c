@@ -2377,10 +2377,8 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			FLOPPY.currenthead[drive] = ((FLOPPY.commandbuffer[1] & 4) >> 2); //The head to use!
 			if (!FLOPPY.geometries[drive] || ((drive < 2) ? (!is_mounted(drive ? FLOPPY1 : FLOPPY0)) : 1)) //Not mounted?
 			{
-				/*
 				floppy_common_sectoraccess_nomedia(drive);
 				return;
-				*/
 				FLOPPY.ST0 = 0; //Init ST0!
 				FLOPPY.ST1 = 0x4 | 0x1; //No DAM found or readable!
 				FLOPPY.ST2 = 0x01; //No DAM found!
