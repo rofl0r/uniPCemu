@@ -66,7 +66,7 @@ Begin
     halt;
   end;
   writeln('Starting track read.');
-  writeln('This recalibrates and then seeks to all available tracks on a 80-track disk.');
+  writeln('This recalibrates and then reads to all available tracks on a 80-track disk.');
   for track := 0 to 79 do
   begin
     write('Reading track ',track,'...');
