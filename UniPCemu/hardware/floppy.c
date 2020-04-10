@@ -1381,7 +1381,7 @@ void floppy_readsector() //Request a read sector command!
 						}
 						else if (!FLOPPY.floppy_scanningforSectorID) //Not scanning for the sector ID? Mismatch on the exact sector ID we're searching!
 						{
-							if ((IMD_sectorinfo.cylinderID != FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR])) //Cylindere mismatch?
+							if ((sectorinfo.track != FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR])) //Cylindere mismatch?
 							{
 								FLOPPY.ST2 |= 0x10; //WC set!
 							}
