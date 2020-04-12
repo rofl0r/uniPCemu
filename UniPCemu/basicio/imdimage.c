@@ -2656,15 +2656,24 @@ validIMDheaderFormat:
 	newtrackinfo.cylinder = trackinfo.cylinder; //Same cylinder!
 	newtrackinfo.head_extrabits = (trackinfo.head_extrabits & IMD_HEAD_HEADNUMBER) | IMD_HEAD_HEADMAPPRESENT | IMD_HEAD_CYLINDERMAPPRESENT; //Head of the track, with head map and cylinder map present!
 	newtrackinfo.mode = MFM ? ((speed < 3) ? (3 + speed) : 0) : ((speed < 3) ? (speed) : 0); //Mode: MFM or FM in 500,300,250.
-	newtrackinfo.sectorspertrack = numsectors; //Amount of sectors on this track!
+	newtrackinfo.sectorspertrack = MIN(numsectors,1); //Amount of sectors on this track! Minimum value is 1, according to the specification!
 
 	//Then, size map determination, if it's to be used or not!
 	sectordataptr = &sectordata[3]; //Size number used during formatting!
 	firstsectorsize = *sectordataptr; //First byte for reference!
 	newtrackinfo.SectorSize = firstsectorsize; //Not a custom size map by default(to be compatible with the original specification when possible)!
+	if (!numsectors) //No sectors?
+	{
+		newtrackinfo.SectorSize = 0; //No sector size default without sectors!
+	}
 	for (currentsector = 0; currentsector < numsectors; ++currentsector) //Process all size numbers!
 	{
 		b = *sectordataptr; //The size number!
+		if (b == 0xFF) //Invalid sector size specified that's a reserved value in the track header?
+		{
+			newtrackinfo.SectorSize = 0xFF; //Custom map is to be used!
+			break; //Finish searching!
+		}
 		if (b != firstsectorsize) //Different sector size encountered?
 		{
 			newtrackinfo.SectorSize = 0xFF; //Custom map is to be used!
@@ -2693,6 +2702,15 @@ validIMDheaderFormat:
 		}
 		sectordataptr += 4; //Next record!
 	}
+	if (!numsectors) //No sectors specified?
+	{
+		b = 0; //The sector number!
+		if (emufwrite64(&b, 1, sizeof(b), f) != sizeof(b))
+		{
+			emufclose64(f); //Close the file!
+			goto errorOutFormat_restore; //Error out and restore!
+		}
+	}
 
 	//Then, cylinder number map!
 	sectordataptr = &sectordata[0]; //Cylinder number used during formatting!
@@ -2706,6 +2724,15 @@ validIMDheaderFormat:
 		}
 		sectordataptr += 4; //Next record!
 	}
+	if (!numsectors) //No sectors specified?
+	{
+		b = newtrackinfo.cylinder; //The cylinder number!
+		if (emufwrite64(&b, 1, sizeof(b), f) != sizeof(b))
+		{
+			emufclose64(f); //Close the file!
+			goto errorOutFormat_restore; //Error out and restore!
+		}
+	}
 	//Then, head number map!
 	sectordataptr = &sectordata[1]; //Head number used during formatting!
 	for (currentsector = 0; currentsector < numsectors; ++currentsector) //Process all head numbers!
@@ -2717,6 +2744,15 @@ validIMDheaderFormat:
 			goto errorOutFormat_restore; //Error out and restore!
 		}
 		sectordataptr += 4; //Next record!
+	}
+	if (!numsectors) //No sectors specified?
+	{
+		b = (newtrackinfo.head_extrabits&IMD_HEAD_HEADNUMBER); //The head number!
+		if (emufwrite64(&b, 1, sizeof(b), f) != sizeof(b))
+		{
+			emufclose64(f); //Close the file!
+			goto errorOutFormat_restore; //Error out and restore!
+		}
 	}
 
 	//Then, sector size map, if need to be used!
@@ -2734,6 +2770,16 @@ validIMDheaderFormat:
 			}
 			sectordataptr += 4; //Next record!
 		}
+		if (!numsectors) //No sectors specified?
+		{
+			b = 0; //The sector size!
+			w = (0x80 << b); //128*2^x is the cylinder size!
+			if (emufwrite64(&w, 1, sizeof(w), f) != sizeof(w))
+			{
+				emufclose64(f); //Close the file!
+				goto errorOutFormat_restore; //Error out and restore!
+			}
+		}
 	}
 
 	//Then, the sector data(is compressed for easy formatting)!
@@ -2747,6 +2793,15 @@ validIMDheaderFormat:
 			goto errorOutFormat_restore; //Error out and restore!
 		}
 		b = filldata; //What kind of byte to fill!
+		if (emufwrite64(&b, 1, sizeof(b), f) != sizeof(b))
+		{
+			emufclose64(f); //Close the file!
+			goto errorOutFormat_restore; //Error out and restore!
+		}
+	}
+	if (!numsectors) //No sectors specified?
+	{
+		b = 0x00; //What kind of sector to write: not a readable sector!
 		if (emufwrite64(&b, 1, sizeof(b), f) != sizeof(b))
 		{
 			emufclose64(f); //Close the file!
