@@ -1544,7 +1544,7 @@ void floppy_readsector() //Request a read sector command!
 	}
 }
 
-void FLOPPY_formatsector() //Request a read sector command!
+void FLOPPY_formatsector(byte nodata) //Request a read sector command!
 {
 	byte* sectorbuffer;
 	char *DSKImageFile;
@@ -1614,6 +1614,7 @@ void FLOPPY_formatsector() //Request a read sector command!
 		*/
 
 		//Check disk specific information!
+		if (nodata) goto format_havenodata;
 		if ((DSKImageFile = getDSKimage((FLOPPY_DOR_DRIVENUMBERR) ? FLOPPY1 : FLOPPY0)) || (IMDImageFile = getIMDimage((FLOPPY_DOR_DRIVENUMBERR) ? FLOPPY1 : FLOPPY0))) //Are we a DSK/IMD image file?
 		{
 			if (DSKImageFile) //DSK image file?
@@ -1784,9 +1785,13 @@ void FLOPPY_formatsector() //Request a read sector command!
 		}
 	}
 
+	format_havenodata:
 	FLOPPY_ST0_CURRENTHEADW(FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR]); //Our idea of the current head!
 
-	++FLOPPY.currentformatsector[FLOPPY_DOR_DRIVENUMBERR]; //Handled this raw sector for the formats requiring it!
+	if (!nodata) //Not no data?
+	{
+		++FLOPPY.currentformatsector[FLOPPY_DOR_DRIVENUMBERR]; //Handled this raw sector for the formats requiring it!
+	}
 	switch (floppy_increasesector(FLOPPY_DOR_DRIVENUMBERR, FLOPPY.commandbuffer[3]))
 	{
 	case 1: //OK?
@@ -2213,7 +2218,7 @@ void floppy_executeData() //Execute a floppy command. Data is fully filled!
 			break;
 		case FORMAT_TRACK: //Format sector
 			updateFloppyWriteProtected(1,FLOPPY_DOR_DRIVENUMBERR); //Try to write with(out) protection!
-			FLOPPY_formatsector(); //Execute a format sector command!
+			FLOPPY_formatsector(0); //Execute a format sector command!
 			break;
 		default: //Unknown command?
 			FLOPPY.commandstep = 0xFF; //Move to error phrase!
@@ -2672,6 +2677,16 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 					FLOPPY_startData(drive); //Start the data transfer!
 				}
 			}
+
+			if (FLOPPY.commandbuffer[3] == 0) //Nothing to transfer?
+			{
+				//Make any DMA transfer stop immediately, for applying the result phase using the timer instead!
+				FLOPPY.DMAPending |= 2; //We're not pending anymore, until timed out!
+				floppytimer[FLOPPY.commandbuffer[1] & 3] = FLOPPY_DMA_TIMEOUT * 4.0; //Time the timeout for floppy! Take it 4 times as high to simulate one sector using the rate conversion for 4 bytes being processed at once(instead of in 1/4th the time for the entire IDX search)!
+				floppytiming |= (1 << (FLOPPY.commandbuffer[1] & 3)); //Make sure we're timing on the specified disk channel!
+				floppytime[FLOPPY.commandbuffer[1] & 3] = 0.0;
+			}
+			floppytimer[FLOPPY.commandbuffer[1] & 3] = (floppytimer[FLOPPY.commandbuffer[1] & 3] * 128.0); //times 512 bytes per sector(for getting the sector rate) divided by 4(for the new sector rate) = times 128 for the sector's ID rate!
 			break;
 		case VERSION: //Version command?
 			FLOPPY.resultposition = 0; //Start our result phase!
@@ -3304,6 +3319,23 @@ void updateFloppy(DOUBLE timepassed)
 								//We're finished with this timing now!
 							}
 							else break; //Still processing?
+						case FORMAT_TRACK: //Formatting track?
+							if (FLOPPY.activecommand[drive] == FORMAT_TRACK) //Our command is timed(needed because of the above code)?
+							{
+								if (FLOPPY.commandstep != 2) //Not execute phase? We're not timing yet!
+									break; //Don't finish us yet!
+								else //Active command?
+								{
+									if (FLOPPY.commandbuffer[3] == 0) //Finish us because of the IDX line being raised?
+									{
+										FLOPPY_formatsector(1); //Execute the execution phase, immediate IDX line raised!
+										//Let us finish the timer, so fall through!
+									}
+									else //Continue on?
+										break; //Don't handle here!
+									//Let us finish normally!
+								}
+							}
 						default: //Unsupported command?
 							if ((FLOPPY.commandstep==2) && FLOPPY_useDMA() && (FLOPPY.DMAPending&2) && (drive==FLOPPY_DOR_DRIVENUMBERR)) //DMA transfer busy on this channel?
 							{
