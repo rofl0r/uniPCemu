@@ -2669,7 +2669,7 @@ validIMDheaderFormat:
 	for (currentsector = 0; currentsector < numsectors; ++currentsector) //Process all size numbers!
 	{
 		b = *sectordataptr; //The size number!
-		if (b == 0xFF) //Invalid sector size specified that's a reserved value in the track header?
+		if ((b == 0xFF) || (sectorsizeformat==0xFF)) //Invalid sector size specified that's a reserved value in the track header or formatting is set up to be custom?
 		{
 			newtrackinfo.SectorSize = 0xFF; //Custom map is to be used!
 			break; //Finish searching!
@@ -2762,7 +2762,29 @@ validIMDheaderFormat:
 		for (currentsector = 0; currentsector < numsectors; ++currentsector) //Process all size numbers!
 		{
 			b = *sectordataptr; //The head number!
-			w = (0x80 << b); //128*2^x is the cylinder size!
+			if ((sectorsizeformat==0xFF) || (b==0xFF)) //Differently specified in the format command?
+			{
+				if ((sectorsizeformat == 0xFF) && (b==0xFF)) //Both 0xFF specified?
+				{
+					w = 0xFF; //Use the direct sector size specified!
+				}
+				else if (sectorsizeformat == 0xFF) //Use b?
+				{
+					w = b; //Use b directly!
+				}
+				else if (b==0xFF) //Use format command?
+				{
+					w = sectorsizeformat; //Use sector size format!
+				}
+				else //Default behaviour, use b!
+				{
+					w = (0x80 << b); //Use compatiblity!
+				}
+			}
+			else //Normal behaviour, use b?
+			{
+				w = (0x80 << b); //128*2^x is the cylinder size!
+			}
 			if (emufwrite64(&w, 1, sizeof(w), f) != sizeof(w))
 			{
 				emufclose64(f); //Close the file!
