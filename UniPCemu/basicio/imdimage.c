@@ -2271,7 +2271,7 @@ validIMDheaderWrite:
 	return 0; //Invalid IMD file!
 }
 
-byte formatIMDTrack(char* filename, byte track, byte head, byte MFM, byte speed, byte filldata, byte numsectors, byte* sectordata)
+byte formatIMDTrack(char* filename, byte track, byte head, byte MFM, byte speed, byte filldata, byte sectorsizeformat, byte numsectors, byte* sectordata)
 {
 	byte wasskippingtrack=0;
 	word currentsector;
