@@ -1716,15 +1716,6 @@ void FLOPPY_formatsector() //Request a read sector command!
 					goto floppy_errorformat;
 					return; //Error!
 				}
-				/*
-				memset(&FLOPPY.databuffer, FLOPPY.commandbuffer[5], MIN(((size_t)0x80 << FLOPPY.databuffer[3]), sizeof(FLOPPY.databuffer))); //Clear our buffer with the fill byte!
-				if (!writeIMDSector(IMDImageFile, FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR],FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.currentformatsector[FLOPPY_DOR_DRIVENUMBERR], 0, (0x80<<FLOPPY.databuffer[3]), &FLOPPY.databuffer)) //Failed writing the formatted sector?
-				{
-					updateFloppyWriteProtected(1, FLOPPY_DOR_DRIVENUMBERR); //Tried to write!
-					goto floppy_errorformat;
-					return; //Error!
-				}
-				*/
 				//Formatting is performed at the end of the track, having collected all sector information!
 			}
 			updateFloppyWriteProtected(1, FLOPPY_DOR_DRIVENUMBERR); //Tried to write!
@@ -1738,9 +1729,25 @@ void FLOPPY_formatsector() //Request a read sector command!
 			FLOPPY.readID_lastsectornumber = FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]; //This was the last sector we've accessed!
 			if (FLOPPY.databuffer[0] != FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]) //Not current track?
 			{
-			floppy_errorformat:
 				floppy_common_sectoraccess_nomedia(FLOPPY_DOR_DRIVENUMBERR); //No media!
 				return; //Error!
+			floppy_errorformat:
+				FLOPPY_LOGD("FLOPPY: Finished transfer of data (%u sector(s)).", FLOPPY.sectorstransferred) //Log the completion of the sectors written!
+				FLOPPY.resultposition = 0;
+				FLOPPY_fillST0(FLOPPY_DOR_DRIVENUMBERR); //Setup ST0!
+				FLOPPY.resultbuffer[0] = FLOPPY.ST0 = 0x40 | ((FLOPPY.ST0 & 0x3B) | FLOPPY_DOR_DRIVENUMBERR) | 0x10 | ((FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR] & 1) << 2); //Abnormal termination! ST0!
+				FLOPPY.resultbuffer[1] = FLOPPY.ST1 = 0; //Drive write-protected! ST1!
+				FLOPPY.resultbuffer[2] = FLOPPY.ST2 = 0; //ST2!
+				FLOPPY.resultbuffer[0] = FLOPPY.ST0;
+				FLOPPY.resultbuffer[1] = FLOPPY.ST1;
+				FLOPPY.resultbuffer[2] = FLOPPY.ST2;
+				FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR];
+				FLOPPY.resultbuffer[4] = FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR];
+				FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR];
+				FLOPPY.resultbuffer[6] = FLOPPY.commandbuffer[2]; //Sector size from the command buffer!
+				FLOPPY.commandstep = 3; //Move to result phrase and give the result!
+				FLOPPY_raiseIRQ(); //Entering result phase!
+				return; //Abort!
 			}
 			if (FLOPPY.databuffer[1] != FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR]) //Not current head?
 			{
