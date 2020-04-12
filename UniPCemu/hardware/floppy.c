@@ -1001,14 +1001,14 @@ byte floppy_getTC(byte drive, byte EOT)
 }
 
 //result: 0=Finish, 1=Read/write another time, 2=Error out(error handled by floppy_increasesector).
-byte floppy_increasesector(byte floppy) //Increase the sector number automatically!
+byte floppy_increasesector(byte floppy, byte EOTfield) //Increase the sector number automatically!
 {
 	byte result = 2; //Default: read/write more
 	byte useMT=0;
 	useMT = FLOPPY.MT&FLOPPY.MTMask; //Used MT?
 	++FLOPPY.currentsector[floppy]; //Next sector!
-	result |= (floppy_getTC(floppy,FLOPPY.commandbuffer[6])) ? 0 : 1; //No terminal count triggered? Then we read the next sector!
-	if ((FLOPPY.currentsector[floppy] > (FLOPPY.geometries[floppy]?FLOPPY.geometries[floppy]->SPT:0)) || ((FLOPPY.currentsector[floppy]>FLOPPY.commandbuffer[6]) && (!(useMT&&FLOPPY_useDMA())))) //Overflow next sector by parameter?
+	result |= (floppy_getTC(floppy,EOTfield)) ? 0 : 1; //No terminal count triggered? Then we read the next sector!
+	if ((FLOPPY.currentsector[floppy] > (FLOPPY.geometries[floppy]?FLOPPY.geometries[floppy]->SPT:0)) || ((FLOPPY.currentsector[floppy]>EOTfield) && (!(useMT&&FLOPPY_useDMA())))) //Overflow next sector by parameter?
 	{
 		FLOPPY.currentsector[floppy] = 1; //Reset sector number!
 
@@ -1787,39 +1787,51 @@ void FLOPPY_formatsector() //Request a read sector command!
 	FLOPPY_ST0_CURRENTHEADW(FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR]); //Our idea of the current head!
 
 	++FLOPPY.currentformatsector[FLOPPY_DOR_DRIVENUMBERR]; //Handled this raw sector for the formats requiring it!
-	if (++FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR] > FLOPPY.commandbuffer[3]) //Track length specified passed? We're finished!
+	switch (floppy_increasesector(FLOPPY_DOR_DRIVENUMBERR, FLOPPY.commandbuffer[3]))
 	{
+	case 1: //OK?
+		//More to be written?
+		//Start transfer of the next sector!
+		FLOPPY_startData(FLOPPY_DOR_DRIVENUMBERR);
+		return; //Continue onwards!
+	case 2: //Error during transfer?
+		//Let the floppy_increasesector determine the error!
+		break;
+	case 0: //OK? Finished correctly?
 		if (IMDImageFile) //IMD image?
 		{
-			if (formatIMDTrack(IMDImageFile,FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR],FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR],(FLOPPY.MFM?FORMATTING_MFM:FORMATTING_FM),((FLOPPY_CCR_RATER==0)?FORMAT_SPEED_500:((FLOPPY_CCR_RATER==1)?FORMAT_SPEED_300:((FLOPPY_CCR_RATER==2)?FORMAT_SPEED_250:FORMAT_SPEED_1M))), FLOPPY.commandbuffer[5],FLOPPY.commandbuffer[2],FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]-1,&FLOPPY.formatbuffer[0])==0) //Error formatting the track in IMD formatting mode?
+			if (formatIMDTrack(IMDImageFile, FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR], FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR], (FLOPPY.MFM ? FORMATTING_MFM : FORMATTING_FM), ((FLOPPY_CCR_RATER == 0) ? FORMAT_SPEED_500 : ((FLOPPY_CCR_RATER == 1) ? FORMAT_SPEED_300 : ((FLOPPY_CCR_RATER == 2) ? FORMAT_SPEED_250 : FORMAT_SPEED_1M))), FLOPPY.commandbuffer[5], FLOPPY.commandbuffer[2], FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR] - 1, &FLOPPY.formatbuffer[0]) == 0) //Error formatting the track in IMD formatting mode?
 			{
 				updateFloppyWriteProtected(1, FLOPPY_DOR_DRIVENUMBERR); //Tried to write!
 				goto floppy_errorformat;
 				return; //Error!
 			}
 		}
-
 		FLOPPY.ST1 = 0; //No errors!
 		FLOPPY.ST2 = 0; //No errors!
-
 		FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR] = 1; //Reset sector number!
-		//Enter result phase!
-		FLOPPY.resultposition = 0; //Reset result position!
-		FLOPPY.commandstep = 3; //Enter the result phase!
-		FLOPPY_fillST0(FLOPPY_DOR_DRIVENUMBERR); //Setup ST0!
-		FLOPPY.resultbuffer[0] = FLOPPY.ST0;
-		FLOPPY.resultbuffer[1] = FLOPPY.ST1;
-		FLOPPY.resultbuffer[2] = FLOPPY.ST2;
-		FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR];
-		FLOPPY.resultbuffer[4] = FLOPPY.currenthead[FLOPPY_DOR_DRIVENUMBERR];
-		FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR];
-		FLOPPY.resultbuffer[6] = FLOPPY.commandbuffer[2]; //Sector size from the command buffer!
-		FLOPPY_raiseIRQ(); //Raise the IRQ!
-		return; //Finished!
+	default: //Unknown?
+		//FLOPPY_ST0_SEEKENDW(1); //Successfull write with implicit seek!
+		FLOPPY.ST1 = 0; //OK!
+		FLOPPY.ST2 = 0; //OK!
+		FLOPPY_ST0_INTERRUPTCODEW(0); //Normal termination!
+		FLOPPY_ST0_NOTREADYW(0); //We're ready!
+		break;
 	}
 
-	//Start transfer of the next sector!
-	FLOPPY_startData(FLOPPY_DOR_DRIVENUMBERR);
+	//Enter result phase!
+	FLOPPY.resultposition = 0; //Reset result position!
+	FLOPPY.commandstep = 3; //Enter the result phase!
+	FLOPPY_fillST0(FLOPPY_DOR_DRIVENUMBERR); //Setup ST0!
+	FLOPPY.resultbuffer[0] = FLOPPY.ST0;
+	FLOPPY.resultbuffer[1] = FLOPPY.ST1;
+	FLOPPY.resultbuffer[2] = FLOPPY.ST2;
+	//The cylinder is set by floppy_increasesector!
+	//The head is set by floppy_increasesector!
+	FLOPPY.resultbuffer[5] = FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR];
+	FLOPPY.resultbuffer[6] = FLOPPY.commandbuffer[2]; //Sector size from the command buffer!
+	FLOPPY_raiseIRQ(); //Raise the IRQ!
+	return; //Finished!
 }
 
 void floppy_writesector() //Request a write sector command!
@@ -1936,7 +1948,7 @@ void floppy_executeWriteData()
 		}
 		updateFloppyWriteProtected(1, FLOPPY_DOR_DRIVENUMBERR); //Tried to write!
 		FLOPPY.readID_lastsectornumber = (FLOPPY.currentsector[FLOPPY_DOR_DRIVENUMBERR]); //Last accessed sector!
-		switch (floppy_increasesector(FLOPPY_DOR_DRIVENUMBERR)) //Goto next sector!
+		switch (floppy_increasesector(FLOPPY_DOR_DRIVENUMBERR, FLOPPY.commandbuffer[6])) //Goto next sector!
 		{
 		case 1: //OK?
 			//More to be written?
@@ -2058,7 +2070,7 @@ void floppy_executeWriteData()
 				}
 				if (DSKIMDsuccess) //Read the data into memory?
 				{
-					switch (floppy_increasesector(FLOPPY_DOR_DRIVENUMBERR)) //Goto next sector!
+					switch (floppy_increasesector(FLOPPY_DOR_DRIVENUMBERR, FLOPPY.commandbuffer[6])) //Goto next sector!
 					{
 					case 1: //OK?
 						//More to be written?
@@ -2114,7 +2126,7 @@ void floppy_executeWriteData()
 
 void floppy_executeReadData()
 {
-	switch (floppy_increasesector(FLOPPY_DOR_DRIVENUMBERR)) //Goto next sector!
+	switch (floppy_increasesector(FLOPPY_DOR_DRIVENUMBERR, FLOPPY.commandbuffer[6])) //Goto next sector!
 	{
 	case 1: //Read more?
 		//More to be written?
