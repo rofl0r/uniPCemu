@@ -2275,6 +2275,7 @@ byte formatIMDTrack(char* filename, byte track, byte head, byte MFM, byte speed,
 {
 	byte wasskippingtrack=0;
 	word currentsector;
+	byte firstsectorsize;
 	byte b;
 	word w;
 	byte skippingtrack = 0; //Skipping this track once?
@@ -2655,8 +2656,24 @@ validIMDheaderFormat:
 	newtrackinfo.cylinder = trackinfo.cylinder; //Same cylinder!
 	newtrackinfo.head_extrabits = (trackinfo.head_extrabits & IMD_HEAD_HEADNUMBER) | IMD_HEAD_HEADMAPPRESENT | IMD_HEAD_CYLINDERMAPPRESENT; //Head of the track, with head map and cylinder map present!
 	newtrackinfo.mode = MFM ? ((speed < 3) ? (3 + speed) : 0) : ((speed < 3) ? (speed) : 0); //Mode: MFM or FM in 500,300,250.
-	newtrackinfo.SectorSize = 0xFF; //Custom map!
 	newtrackinfo.sectorspertrack = numsectors; //Amount of sectors on this track!
+
+	//Then, size map determination, if it's to be used or not!
+	sectordataptr = &sectordata[3]; //Size number used during formatting!
+	firstsectorsize = *sectordataptr; //First byte for reference!
+	newtrackinfo.SectorSize = firstsectorsize; //Not a custom size map by default(to be compatible with the original specification when possible)!
+	for (currentsector = 0; currentsector < numsectors; ++currentsector) //Process all size numbers!
+	{
+		b = *sectordataptr; //The size number!
+		if (b != firstsectorsize) //Different sector size encountered?
+		{
+			newtrackinfo.SectorSize = 0xFF; //Custom map is to be used!
+			break; //Finish searching!
+		}
+		sectordataptr += 4; //Next record!
+	}
+
+	//Write the track header!
 	if (emufwrite64(&newtrackinfo, 1, sizeof(newtrackinfo), f) != sizeof(newtrackinfo)) //Write the new track info!
 	{
 		emufclose64(f); //Close the file!
@@ -2702,18 +2719,21 @@ validIMDheaderFormat:
 		sectordataptr += 4; //Next record!
 	}
 
-	//Then, size map!
-	sectordataptr = &sectordata[3]; //Size number used during formatting!
-	for (currentsector = 0; currentsector < numsectors; ++currentsector) //Process all size numbers!
+	//Then, sector size map, if need to be used!
+	if (newtrackinfo.SectorSize == 0xFF) //Use sector size map, which is a proposed extension to the specification?
 	{
-		b = *sectordataptr; //The head number!
-		w = (0x80 << b); //128*2^x is the cylinder size!
-		if (emufwrite64(&w, 1, sizeof(w), f) != sizeof(w))
+		sectordataptr = &sectordata[3]; //Size number used during formatting!
+		for (currentsector = 0; currentsector < numsectors; ++currentsector) //Process all size numbers!
 		{
-			emufclose64(f); //Close the file!
-			goto errorOutFormat_restore; //Error out and restore!
+			b = *sectordataptr; //The head number!
+			w = (0x80 << b); //128*2^x is the cylinder size!
+			if (emufwrite64(&w, 1, sizeof(w), f) != sizeof(w))
+			{
+				emufclose64(f); //Close the file!
+				goto errorOutFormat_restore; //Error out and restore!
+			}
+			sectordataptr += 4; //Next record!
 		}
-		sectordataptr += 4; //Next record!
 	}
 
 	//Then, the sector data(is compressed for easy formatting)!
