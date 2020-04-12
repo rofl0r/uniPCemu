@@ -2846,6 +2846,7 @@ OPTINLINE void floppy_writeData(byte isDMA, byte value)
 					floppy_executeCommand(); //Execute the command!
 					break;
 				case READ_TRACK: //Read complete track
+				case FORMAT_TRACK: //Format track
 					FLOPPY.MTMask = 0; //Don't allow the MT bit to be applied during sector calculations!
 				case WRITE_DATA: //Write sector
 				case WRITE_DELETED_DATA: //Write deleted sector
@@ -2857,7 +2858,6 @@ OPTINLINE void floppy_writeData(byte isDMA, byte value)
 				case RECALIBRATE: //Calibrate drive
 				case SEEK: //Seek/park head
 				case READ_ID: //Read sector ID
-				case FORMAT_TRACK: //Format sector
 				case CONFIGURE: //Configure
 				case SCAN_EQUAL:
 				case SCAN_LOW_OR_EQUAL:
