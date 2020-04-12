@@ -2656,7 +2656,7 @@ validIMDheaderFormat:
 	newtrackinfo.cylinder = trackinfo.cylinder; //Same cylinder!
 	newtrackinfo.head_extrabits = (trackinfo.head_extrabits & IMD_HEAD_HEADNUMBER) | IMD_HEAD_HEADMAPPRESENT | IMD_HEAD_CYLINDERMAPPRESENT; //Head of the track, with head map and cylinder map present!
 	newtrackinfo.mode = MFM ? ((speed < 3) ? (3 + speed) : 0) : ((speed < 3) ? (speed) : 0); //Mode: MFM or FM in 500,300,250.
-	newtrackinfo.sectorspertrack = MIN(numsectors,1); //Amount of sectors on this track! Minimum value is 1, according to the specification!
+	newtrackinfo.sectorspertrack = MAX(numsectors,1); //Amount of sectors on this track! Minimum value is 1, according to the specification!
 
 	//Then, size map determination, if it's to be used or not!
 	sectordataptr = &sectordata[3]; //Size number used during formatting!
