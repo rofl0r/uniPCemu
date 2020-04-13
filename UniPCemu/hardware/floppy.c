@@ -1123,6 +1123,10 @@ OPTINLINE void FLOPPY_startData(byte drive) //Start a Data transfer if needed!
 			FLOPPY.DMAPending = 1; //Pending DMA! Start when available!
 			FLOPPY_supportsrate(drive); //Make sure we have a rate set!
 			FLOPPY.DMArate = FLOPPY.DMAratePending; //Start running at the specified speed!
+			if (FLOPPY.activecommand[drive] == FORMAT_TRACK) //Different rate?
+			{
+				floppytimer[drive] *= 128.0; //Different rate(see format track command)!
+			}
 		}
 		else //Non-DMA transfer!
 		{
@@ -2682,11 +2686,11 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			{
 				//Make any DMA transfer stop immediately, for applying the result phase using the timer instead!
 				FLOPPY.DMAPending |= 2; //We're not pending anymore, until timed out!
-				floppytimer[FLOPPY.commandbuffer[1] & 3] = FLOPPY_DMA_TIMEOUT * 4.0; //Time the timeout for floppy! Take it 4 times as high to simulate one sector using the rate conversion for 4 bytes being processed at once(instead of in 1/4th the time for the entire IDX search)!
+				floppytimer[FLOPPY.commandbuffer[1] & 3] = FLOPPY_DMA_TIMEOUT; //Time the timeout for floppy! Take it 4 times as high to simulate one sector using the rate conversion for 4 bytes being processed at once(instead of in 1/4th the time for the entire IDX search)!
+				floppytimer[FLOPPY.commandbuffer[1] & 3] *= 512.0; //times 512 sector byte times for a full sector to be transferred!
 				floppytiming |= (1 << (FLOPPY.commandbuffer[1] & 3)); //Make sure we're timing on the specified disk channel!
 				floppytime[FLOPPY.commandbuffer[1] & 3] = 0.0;
 			}
-			floppytimer[FLOPPY.commandbuffer[1] & 3] = (floppytimer[FLOPPY.commandbuffer[1] & 3] * 128.0); //times 512 bytes per sector(for getting the sector rate) divided by 4(for the new sector rate) = times 128 for the sector's ID rate!
 			break;
 		case VERSION: //Version command?
 			FLOPPY.resultposition = 0; //Start our result phase!
@@ -3339,6 +3343,10 @@ void updateFloppy(DOUBLE timepassed)
 							{
 								FLOPPY.DMAPending &= ~2; //Start up DMA again!
 								floppytimer[drive] = FLOPPY_DMA_TIMEOUT; //How long for a DMA transfer to take?
+								if (FLOPPY.activecommand[drive] == FORMAT_TRACK) //Different rate?
+								{
+									floppytimer[drive] *= 128.0; //Different rate(see format track command)!
+								}
 							}
 							else //Unsupported?
 							{
