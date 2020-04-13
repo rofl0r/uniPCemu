@@ -7,4 +7,5 @@ set whatversion=%version1%%version2%%version3%
 if NOT "%whatversion%"=="" echo %whatversion%>gitcommitversion.h
 rem Make sure the file isn't committed to the repository anymore!
 if NOT "%whatversion%"=="" git update-index --assume-unchanged gitcommitversion.h
+if NOT "%whatversion%"=="" ..\commonemuframework\touch ..\commonemuframework\emu\main.c
 if NOT "%whatversion%"=="" echo Version information is updated!
