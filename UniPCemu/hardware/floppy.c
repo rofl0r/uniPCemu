@@ -3343,10 +3343,6 @@ void updateFloppy(DOUBLE timepassed)
 							{
 								FLOPPY.DMAPending &= ~2; //Start up DMA again!
 								floppytimer[drive] = FLOPPY_DMA_TIMEOUT; //How long for a DMA transfer to take?
-								if (FLOPPY.activecommand[drive] == FORMAT_TRACK) //Different rate?
-								{
-									floppytimer[drive] *= (DOUBLE)128.0; //Different rate(see format track command)!
-								}
 							}
 							else //Unsupported?
 							{
