@@ -3331,9 +3331,7 @@ void updateFloppy(DOUBLE timepassed)
 										FLOPPY_formatsector(1); //Execute the execution phase, immediate IDX line raised!
 										//Let us finish the timer, so fall through!
 									}
-									else //Continue on?
-										break; //Don't handle here!
-									//Let us finish normally!
+									//Let us finish normally! Handle DMA transfers normally!
 								}
 							}
 						default: //Unsupported command?
