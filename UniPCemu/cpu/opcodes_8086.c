@@ -2704,7 +2704,7 @@ OPTINLINE byte CPU8086_internal_MOV8(byte *dest, byte val, byte flags)
 	{
 		if (custommem)
 		{
-			if (CPU8086_internal_stepwritedirectb(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),customoffset,val,!CPU_Address_size[activeCPU])) return 1; //Write to memory directly!
+			if (CPU8086_internal_stepwritedirectb(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(customoffset&CPU[activeCPU].address_size),val,!CPU_Address_size[activeCPU])) return 1; //Write to memory directly!
 		}
 		else //ModR/M?
 		{
@@ -2855,7 +2855,7 @@ OPTINLINE byte CPU8086_internal_MOV16(word *dest, word val, byte flags)
 	{
 		if (custommem)
 		{
-			if (CPU8086_internal_stepwritedirectw(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),customoffset,val,!CPU_Address_size[activeCPU])) return 1; //Write to memory directly!
+			if (CPU8086_internal_stepwritedirectw(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(customoffset&CPU[activeCPU].address_size),val,!CPU_Address_size[activeCPU])) return 1; //Write to memory directly!
 		}
 		else //ModR/M?
 		{
