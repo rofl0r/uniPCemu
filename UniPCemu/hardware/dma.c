@@ -55,6 +55,8 @@ typedef struct
 	DMATickHandler DREQHandler; //Tick handler for DMA DREQ!
 	DMATickHandler DACKHandler; //DACK handler for DMA channel!
 	DMATickHandler TCHandler; //TC handler for DMA channel!
+	DMAEOPHandler EOPHandler; //EOP handler for DMA channel!
+	byte DMA_EOPresult;
 } DMAChannelTYPE; //Contains all info about an DMA channel!
 
 typedef struct
@@ -730,6 +732,13 @@ void DMA_StateHandler_S4()
 		{
 			DMAController[DMAcontroller].DACK &= ~DMAchannelindex; //Finished!
 		}
+		if ((DMAmoderegister & 0x10) && (DMAController[DMAcontroller].DMAChannel[DMAchannel].EOPHandler)) //Auto and handler registered?
+		{
+			if ((DMAController[DMAcontroller].DMAChannel[DMAchannel].DMA_EOPresult = DMAController[DMAcontroller].DMAChannel[DMAchannel].EOPHandler())) //EOP triggered?
+			{
+				DMA_autoinit(DMAcontroller, DMAchannel); //Perform autoinit!
+			}
+		}
 		break;
 	case 1: //Single Transfer Mode
 		DMAController[DMAcontroller].DACK &= ~DMAchannelindex; //Finished, wait for the next time we're requested!
@@ -737,9 +746,23 @@ void DMA_StateHandler_S4()
 		if (DMAprocessed&FLAG_TC) //Complete on Terminal count?
 		{
 			DMAController[DMAcontroller].DACK &= ~DMAchannelindex; //Finished!
+			if ((DMAController[DMAcontroller].DMAChannel[DMAchannel].EOPHandler) && (((DMAmoderegister >> 6) & 3) != 1)) //Check for EOP in Block Transfer mode?
+			{
+				if (DMAController[DMAcontroller].DMAChannel[DMAchannel].EOPHandler) //EOP handler registered?
+				{
+					DMAController[DMAcontroller].DMAChannel[DMAchannel].DMA_EOPresult = DMAController[DMAcontroller].DMAChannel[DMAchannel].EOPHandler(); //Execute it, discard it's result!
+				}
+			}
 			if ((DMAmoderegister&0x10)) //Auto?
 			{
 				DMA_autoinit(DMAcontroller,DMAchannel); //Perform autoinit!
+			}
+		}
+		else if ((DMAController[DMAcontroller].DMAChannel[DMAchannel].EOPHandler) && (((DMAmoderegister >> 6) & 3)!=1)) //Check for EOP in Block Transfer mode?
+		{
+			if ((DMAController[DMAcontroller].DMAChannel[DMAchannel].DMA_EOPresult = DMAController[DMAcontroller].DMAChannel[DMAchannel].EOPHandler())) //EOP triggered?
+			{
+				DMA_autoinit(DMAcontroller, DMAchannel); //Perform autoinit!
 			}
 		}
 		break;
@@ -850,9 +873,10 @@ void registerDMA16(byte channel, DMAReadWHandler readhandler, DMAWriteWHandler w
 	DMAController[channel >> 2].DMAChannel[channel & 3].WriteWHandler = writehandler; //Assign the read handler!
 }
 
-void registerDMATick(byte channel, DMATickHandler DREQHandler, DMATickHandler DACKHandler, DMATickHandler TCHandler)
+void registerDMATick(byte channel, DMATickHandler DREQHandler, DMATickHandler DACKHandler, DMATickHandler TCHandler, DMAEOPHandler EOPHandler)
 {
 	DMAController[channel >> 2].DMAChannel[channel & 3].DREQHandler = DREQHandler; //Assign the tick handler!
 	DMAController[channel >> 2].DMAChannel[channel & 3].DACKHandler = DACKHandler; //Assign the tick handler!
 	DMAController[channel >> 2].DMAChannel[channel & 3].TCHandler = TCHandler; //Assign the tick handler!
+	DMAController[channel >> 2].DMAChannel[channel & 3].EOPHandler = EOPHandler; //Assign the tick handler!
 }
