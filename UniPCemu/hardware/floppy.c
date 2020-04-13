@@ -3508,6 +3508,11 @@ void FLOPPY_DMATC() //Terminal count triggered?
 	FLOPPY.TC = 1; //Terminal count triggered!
 }
 
+byte FLOPPY_DMAEOP() //EOP triggered?
+{
+	return FLOPPY.TC; //Are we terminal count? Then we finish!
+}
+
 void initFDC()
 {
 	byte drive;
@@ -3520,7 +3525,7 @@ void initFDC()
 	//Initialise DMA controller settings for the FDC!
 	DMA_SetDREQ(FLOPPY_DMA,0); //No DREQ!
 	registerDMA8(FLOPPY_DMA, &DMA_floppyread, &DMA_floppywrite); //Register our DMA channels!
-	registerDMATick(FLOPPY_DMA, &FLOPPY_DMADREQ, &FLOPPY_DMADACK, &FLOPPY_DMATC); //Our handlers for DREQ, DACK and TC!
+	registerDMATick(FLOPPY_DMA, &FLOPPY_DMADREQ, &FLOPPY_DMADACK, &FLOPPY_DMATC, &FLOPPY_DMAEOP); //Our handlers for DREQ, DACK and TC!
 
 	//Set basic I/O ports
 	register_PORTIN(&PORT_IN_floppy);

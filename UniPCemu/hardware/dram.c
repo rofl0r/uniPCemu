@@ -57,7 +57,7 @@ DRAM_accessHandler doDRAM_access = NULL; //DRAM access?
 void initDRAM()
 {
 	registerPIT1Ticker(&DRAM_setDREQ); //Register our ticker for timing DRAM ticks!
-	registerDMATick(0, &DRAM_DMADREQ, &DRAM_DACK, NULL); //Our handlers for DREQ, DACK and TC of the DRAM refresh! Don't handle DACK and TC!
+	registerDMATick(0, &DRAM_DMADREQ, &DRAM_DACK, NULL, NULL); //Our handlers for DREQ, DACK and TC of the DRAM refresh! Don't handle DACK and TC!
 	DRAM_DREQ = 0; //Init us!
 	//doDRAM_access = &DRAM_access; //Access DRAM handler?
 }

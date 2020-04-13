@@ -110,6 +110,7 @@ struct
 	byte timeconstantdirty; //Time constant is changed since the last load?
 	word timer; //The timer we're counting down! 0=Finished and tick a sample!
 	byte DMAfinishtimer; //DMA finished timer!
+	byte TC; //Terminal count has been reached?
 } SOUNDBLASTER; //The Sound Blaster data!
 
 extern byte specialdebugger; //Enable special debugger input?
@@ -1202,6 +1203,7 @@ void SoundBlaster_DREQ()
 void SoundBlaster_DACK()
 {
 	//We're transferring something?
+	SOUNDBLASTER.TC = 0; //Reset the TC signal! We're running again!
 	SOUNDBLASTER.DREQ |= 4; //We're acnowledged, inhabit more transfers until we're done(by timer)!
 	SoundBlaster_DREQ(); //Set the DREQ signal accordingly!
 }
@@ -1209,6 +1211,12 @@ void SoundBlaster_DACK()
 void SoundBlaster_TC()
 {
 	//We're finished?
+	SOUNDBLASTER.TC = 1; //Terminal count has been reached!
+}
+
+byte SoundBlaster_EOP()
+{
+	return SOUNDBLASTER.TC; //When terminal count has been reached, EOP is triggered!
 }
 
 void initSoundBlaster(word baseaddr, byte version)
@@ -1284,7 +1292,7 @@ void initSoundBlaster(word baseaddr, byte version)
 	register_PORTOUT(&outSoundBlaster); //Address port (W)
 	registerIRQ(__SOUNDBLASTER_IRQ8,&StartPendingSoundBlasterIRQ,NULL); //Pending SB IRQ only!
 	registerDMA8(__SOUNDBLASTER_DMA8,&SoundBlaster_readDMA8,&SoundBlaster_writeDMA8); //DMA access of the Sound Blaster!
-	registerDMATick(__SOUNDBLASTER_DMA8,&SoundBlaster_DREQ,&SoundBlaster_DACK,&SoundBlaster_TC);
+	registerDMATick(__SOUNDBLASTER_DMA8,&SoundBlaster_DREQ,&SoundBlaster_DACK,&SoundBlaster_TC,&SoundBlaster_EOP);
 
 	DSP_HWreset(); //Hardware reset!
 
