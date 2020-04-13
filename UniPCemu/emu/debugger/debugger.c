@@ -1254,7 +1254,7 @@ void debugger_screen() //Show debugger info on-screen!
 
 		//Now: Rest segments!
 		GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 16, debuggerrow++); //Second debug row!
-		GPU_textprintf(frameratesurface, fontcolor, backcolor, "DS:%04X; ES:%04X", REGD_CS(debuggerregisters), REGD_ES(debuggerregisters)); //Debug DS&ES!
+		GPU_textprintf(frameratesurface, fontcolor, backcolor, "DS:%04X; ES:%04X", REGD_DS(debuggerregisters), REGD_ES(debuggerregisters)); //Debug DS&ES!
 		GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 7, debuggerrow++); //Second debug row!
 		GPU_textprintf(frameratesurface, fontcolor, backcolor, "SS:%04X", REGD_SS(debuggerregisters)); //Debug SS!
 		if (EMULATED_CPU >= CPU_80386) //386+ has more plain segment registers(F segment and G segment)?
