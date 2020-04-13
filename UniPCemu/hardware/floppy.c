@@ -1125,7 +1125,7 @@ OPTINLINE void FLOPPY_startData(byte drive) //Start a Data transfer if needed!
 			FLOPPY.DMArate = FLOPPY.DMAratePending; //Start running at the specified speed!
 			if (FLOPPY.activecommand[drive] == FORMAT_TRACK) //Different rate?
 			{
-				floppytimer[drive] *= 128.0; //Different rate(see format track command)!
+				FLOPPY.DMArate *= (DOUBLE)128.0; //Different rate(see format track command)!
 			}
 		}
 		else //Non-DMA transfer!
@@ -3345,7 +3345,7 @@ void updateFloppy(DOUBLE timepassed)
 								floppytimer[drive] = FLOPPY_DMA_TIMEOUT; //How long for a DMA transfer to take?
 								if (FLOPPY.activecommand[drive] == FORMAT_TRACK) //Different rate?
 								{
-									floppytimer[drive] *= 128.0; //Different rate(see format track command)!
+									floppytimer[drive] *= (DOUBLE)128.0; //Different rate(see format track command)!
 								}
 							}
 							else //Unsupported?
