@@ -2,6 +2,8 @@
 #include "headers/fopen64.h" //64-bit fopen support!
 #include "headers/support/zalloc.h" //Memory allocation support!
 #include "headers/emu/directorylist.h"
+#include "headers/support/highrestimer.h" //Time support!
+#include "headers/emu/gpu/gpu_emu.h" //Text locking and output support!
 
 //Always apply memory conservation, at the cost of speed?
 //#define MEMORYCONSERVATION
@@ -2993,4 +2995,234 @@ errorOutFormat_restore: //Error out on formatting and restore the file!
 	}
 	emufclose64(f); //Close the image!
 	return 0; //Invalid IMD file!
+}
+
+//Our accurate time support:
+
+typedef struct
+{
+	uint_64 year;
+	byte month;
+	byte day;
+	byte hour;
+	byte minute;
+	byte second;
+	byte s100; //100th seconds(use either this or microseconds, since they both give the same time, only this one is rounded down!)
+	byte s10000; //10000th seconds!
+	uint_64 us; //Microseconds?
+	byte dst;
+	byte weekday;
+} accuratetime;
+
+//Our accuratetime epoch support!
+
+//Epoch time values for supported OS!
+#define EPOCH_YR 1970
+#define SECS_DAY (3600*24)
+#define YEAR0 0
+//Is this a leap year?
+#define LEAPYEAR(year) ( (year % 4 == 0 && year % 100 != 0) || ( year % 400 == 0))
+//What is the size of this year in days?
+#define YEARSIZE(year) (LEAPYEAR(year)?366:365)
+
+byte _IMD_ytab[2][12] = { //Days within months!
+	{ 31,28,31,30,31,30,31,31,30,31,30,31 }, //Normal year
+	{ 31,29,31,30,31,30,31,31,30,31,30,31 } //Leap year
+};
+OPTINLINE byte epochtoaccuratetime_IMD(UniversalTimeOfDay* curtime, accuratetime* datetime)
+{
+	//More accurate timing than default!
+	datetime->us = curtime->tv_usec;
+	datetime->s100 = (byte)(curtime->tv_usec / 10000); //10000us=1/100 second!
+	datetime->s10000 = (byte)((curtime->tv_usec % 10000) / 100); //100us=1/10000th second!
+
+	//Further is directly taken from the http://stackoverflow.com/questions/1692184/converting-epoch-time-to-real-date-time gmtime source code.
+	uint_64 dayclock, dayno;
+	uint_32 year = EPOCH_YR;
+
+	dayclock = (uint_64)curtime->tv_sec % SECS_DAY;
+	dayno = (uint_64)curtime->tv_sec / SECS_DAY;
+
+	datetime->second = dayclock % 60;
+	datetime->minute = (byte)((dayclock % 3600) / 60);
+	datetime->hour = (byte)(dayclock / 3600);
+	datetime->weekday = (dayno + 4) % 7;       /* day 0 was a thursday */
+	for (; dayno >= (unsigned long)YEARSIZE(year);)
+	{
+		dayno -= YEARSIZE(year);
+		year++;
+	}
+	datetime->year = year - YEAR0;
+	datetime->day = (byte)dayno;
+	datetime->month = 0;
+	while (dayno >= _IMD_ytab[LEAPYEAR(year)][datetime->month]) {
+		dayno -= _IMD_ytab[LEAPYEAR(year)][datetime->month];
+		++datetime->month;
+	}
+	++datetime->month; //We're one month further(months start at one, not zero)!
+	datetime->day = (byte)(dayno + 1);
+	datetime->dst = 0;
+
+	return 1; //Always successfully converted!
+}
+
+extern char diskpath[256]; //Disk path!
+
+byte generateIMDImage(char* filename, byte tracks, byte heads, byte MFM, byte speed, int percentagex, int percentagey)
+{
+	byte track;
+	byte head;
+	byte b;
+	word w;
+	TRACKINFORMATIONBLOCK newtrackinfo; //Original and new track info!
+	byte identifier[256];
+	char* identifierp;
+	BIGFILE* f;
+	word headersize;
+	DOUBLE percentage;
+	UniversalTimeOfDay tp;
+	accuratetime currenttime;
+	char fullfilename[256];
+	memset(&fullfilename[0], 0, sizeof(fullfilename)); //Init!
+	safestrcpy(fullfilename, sizeof(fullfilename), diskpath); //Disk path!
+	safestrcat(fullfilename, sizeof(fullfilename), "/");
+	safestrcat(fullfilename, sizeof(fullfilename), filename); //The full filename!
+	domkdir(diskpath); //Make sure our directory we're creating an image in exists!
+
+	if (strcmp(fullfilename, "") == 0) return 0; //Unexisting: don't even look at it!
+	if (!isext(fullfilename, "imd")) //Not our IMD image file?
+	{
+		return 0; //Not a IMD image!
+	}
+	f = emufopen64(fullfilename, "wb"); //Open the image!
+	if (!f) return 0; //Not opened!
+
+	if ((percentagex != -1) && (percentagey != -1)) //To show percentage?
+	{
+		EMU_locktext();
+		GPU_EMU_printscreen(percentagex, percentagey, "%2.1f%%", 0.0f); //Show first percentage!
+		EMU_unlocktext();
+	}
+
+	//First, create the file header!
+
+	memset(&identifier, 0, sizeof(identifier)); //Init identifier!
+	identifierp = (char*)&identifier;
+	safescatnprintf(identifierp, sizeof(identifier), "IMD 1.18: %02i/%02i/%04i %02i:%02i:%02i\r\n",0,0,0,0,0,0); //Default if we can't get the current date/time!
+	//First, the identifier!
+	if (getUniversalTimeOfDay(&tp) == 0) //Time gotten?
+	{
+		if (epochtoaccuratetime_IMD(&tp, &currenttime)) //Converted?
+		{
+			safestrcpy(identifierp, sizeof(identifier), ""); //Clear it!
+			safescatnprintf(identifierp, sizeof(identifier), "IMD 1.18: %02i/%02i/%04i %02i:%02i:%02i\r\n", currenttime.month, currenttime.day, currenttime.year, currenttime.hour, currenttime.minute, currenttime.second); //Set the header accordingly!
+		}
+	}
+	headersize = safe_strlen(identifierp, sizeof(identifier)); //Length!
+	identifier[headersize] = 0x1A; //End of string marker!
+	++headersize; //The size includes the finish byte!
+
+	//Write the identifier to the file!
+	if (emufwrite64(&identifier, 1, headersize, f) != headersize) //Write the new header!
+	{
+		emufclose64(f); //Close the file!
+		delete_file(NULL, fullfilename); //Remove it, it's invalid!
+		return 0; //Error out!
+	}
+
+	//Create all unformatted tracks!
+	for (track = 0; track < tracks; ++track)
+	{
+		for (head = 0; head < heads; ++head)
+		{
+			//Now the new track to create!
+//First, create a new track header!
+			newtrackinfo.cylinder = track; //Same cylinder!
+			newtrackinfo.head_extrabits = (head & IMD_HEAD_HEADNUMBER) | IMD_HEAD_HEADMAPPRESENT | IMD_HEAD_CYLINDERMAPPRESENT; //Head of the track, with head map and cylinder map present!
+			newtrackinfo.mode = MFM ? ((speed < 3) ? (3 + speed) : 0) : ((speed < 3) ? (speed) : 0); //Mode: MFM or FM in 500,300,250.
+			newtrackinfo.sectorspertrack = 1; //Amount of sectors on this track! Minimum value is 1, according to the specification!
+
+			//Then, size map determination, if it's to be used or not!
+			newtrackinfo.SectorSize = 0; //No sector size default without sectors!
+
+			//Write the track header!
+			if (emufwrite64(&newtrackinfo, 1, sizeof(newtrackinfo), f) != sizeof(newtrackinfo)) //Write the new track info!
+			{
+				emufclose64(f); //Close the file!
+				delete_file(NULL, fullfilename); //Remove it, it's invalid!
+				return 0; //Error out!
+			}
+			//Sector data bytes is in packet format: track,head,number,size!
+
+			//First, sector number map!
+			b = 0; //The sector number!
+			if (emufwrite64(&b, 1, sizeof(b), f) != sizeof(b))
+			{
+				emufclose64(f); //Close the file!
+				delete_file(NULL, fullfilename); //Remove it, it's invalid!
+				return 0; //Error out!
+			}
+
+			//Then, cylinder number map!
+			b = newtrackinfo.cylinder; //The cylinder number!
+			if (emufwrite64(&b, 1, sizeof(b), f) != sizeof(b))
+			{
+				emufclose64(f); //Close the file!
+				delete_file(NULL, fullfilename); //Remove it, it's invalid!
+				return 0; //Error out!
+			}
+			//Then, head number map!
+			b = (newtrackinfo.head_extrabits & IMD_HEAD_HEADNUMBER); //The head number!
+			if (emufwrite64(&b, 1, sizeof(b), f) != sizeof(b))
+			{
+				emufclose64(f); //Close the file!
+				delete_file(NULL, fullfilename); //Remove it, it's invalid!
+				return 0; //Error out!
+			}
+
+			//Then, sector size map, if need to be used!
+			b = 0; //The sector size!
+			w = (0x80 << b); //128*2^x is the cylinder size!
+			if (emufwrite64(&w, 1, sizeof(w), f) != sizeof(w))
+			{
+				emufclose64(f); //Close the file!
+				delete_file(NULL, fullfilename); //Remove it, it's invalid!
+				return 0; //Error out!
+			}
+
+			//Then, the sector data(is compressed for easy formatting)!
+
+			b = 0x00; //What kind of sector to write: not a readable sector!
+			if (emufwrite64(&b, 1, sizeof(b), f) != sizeof(b))
+			{
+				emufclose64(f); //Close the file!
+				delete_file(NULL, fullfilename); //Remove it, it's invalid!
+				return 0; //Error out!
+			}
+
+			if ((percentagex != -1) && (percentagey != -1)) //To show percentage?
+			{
+				percentage = (DOUBLE)((track*heads)+head);
+				percentage /= (DOUBLE)(tracks*heads);
+				percentage *= 100.0f;
+				EMU_locktext();
+				GPU_EMU_printscreen(percentagex, percentagey, "%2.1f%%", (float)percentage); //Show percentage!
+				EMU_unlocktext();
+#ifdef IS_PSP
+				delay(0); //Allow update of the screen, if needed!
+#endif
+			}
+		}
+	}
+
+	emufclose64(f); //Close the image!
+
+	if ((percentagex != -1) && (percentagey != -1)) //To show percentage?
+	{
+		EMU_locktext();
+		GPU_EMU_printscreen(percentagex, percentagey, "%2.1f%%", 100.0f); //Show percentage!
+		EMU_unlocktext();
+	}
+
+	return 1; //Created IMD file!
 }

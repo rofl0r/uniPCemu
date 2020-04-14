@@ -45,5 +45,6 @@ byte readIMDSectorInfo(char* filename, byte track, byte head, byte sector, IMDIM
 byte readIMDSector(char* filename, byte track, byte head, byte sector, word sectorsize, void* result);
 byte writeIMDSector(char* filename, byte track, byte head, byte sector, byte deleted, word sectorsize, void* sectordata);
 byte formatIMDTrack(char* filename, byte track, byte head, byte MFM, byte speed, byte filldata, byte sectorsizeformat, byte numsectors, byte* sectordata);
+byte generateIMDImage(char* filename, byte tracks, byte heads, byte MFM, byte speed, int percentagex, int percentagey);
 
 #endif
