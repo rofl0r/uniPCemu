@@ -233,7 +233,7 @@ void BIOS_DirectInput_remap_NUM0_to_Delete(); //Remap NUM0 to Delete!
 void BIOS_floppy0_nodisk_type();
 void BIOS_floppy1_nodisk_type();
 void BIOS_DirectInput_Disable_RALT(); //Disable RALT during Direct Input mode!
-
+void BIOS_GenerateIMDFloppyDisk(); //Generate an IMD floppy disk image!
 
 //First, global handler!
 Handler BIOS_Menus[] =
@@ -316,6 +316,7 @@ Handler BIOS_Menus[] =
 	,BIOS_floppy1_nodisk_type //Floppy B without disk type is #75!
 	,BIOS_DirectInput_Disable_RALT //Disable RALT during Direct Input mode is #76!
 	,BIOS_DirectInput_remap_NUM0_to_Delete //Remap NUM0 to Delete is #77!
+	,BIOS_GenerateIMDFloppyDisk //Generate IMD floppy disk is #78!
 };
 
 //Not implemented?
@@ -1532,7 +1533,7 @@ extern FLOPPY_GEOMETRY floppygeometries[NUMFLOPPYGEOMETRIES];
 void BIOS_InitDisksText()
 {
 	int i;
-	for (i=0; i<14; i++)
+	for (i=0; i<15; i++)
 	{
 		memset(&menuoptions[i][0],0,sizeof(menuoptions[i])); //Init!
 	}
@@ -1543,13 +1544,14 @@ void BIOS_InitDisksText()
 	safestrcpy(menuoptions[4],sizeof(menuoptions[0]),"First CD-ROM: ");
 	safestrcpy(menuoptions[5],sizeof(menuoptions[0]),"Second CD-ROM: ");
 	safestrcpy(menuoptions[6],sizeof(menuoptions[0]),"Generate Floppy Image");
-	safestrcpy(menuoptions[7],sizeof(menuoptions[0]),"Generate Static HDD Image");
-	safestrcpy(menuoptions[8],sizeof(menuoptions[0]),"Generate Dynamic HDD Image");
-	safestrcpy(menuoptions[9],sizeof(menuoptions[0]), "Convert static to dynamic HDD Image");
-	safestrcpy(menuoptions[10],sizeof(menuoptions[0]), "Convert dynamic to static HDD Image");
-	safestrcpy(menuoptions[11],sizeof(menuoptions[0]), "Defragment a dynamic HDD Image");
-	safestrcpy(menuoptions[12], sizeof(menuoptions[0]), "Floppy A without disk type: ");
-	safestrcpy(menuoptions[13], sizeof(menuoptions[0]), "Floppy B without disk type: ");
+	safestrcpy(menuoptions[7],sizeof(menuoptions[0]),"Generate IMD Floppy Image");
+	safestrcpy(menuoptions[8],sizeof(menuoptions[0]),"Generate Static HDD Image");
+	safestrcpy(menuoptions[9],sizeof(menuoptions[0]),"Generate Dynamic HDD Image");
+	safestrcpy(menuoptions[10],sizeof(menuoptions[0]), "Convert static to dynamic HDD Image");
+	safestrcpy(menuoptions[11],sizeof(menuoptions[0]), "Convert dynamic to static HDD Image");
+	safestrcpy(menuoptions[12],sizeof(menuoptions[0]), "Defragment a dynamic HDD Image");
+	safestrcpy(menuoptions[13], sizeof(menuoptions[0]), "Floppy A without disk type: ");
+	safestrcpy(menuoptions[14], sizeof(menuoptions[0]), "Floppy B without disk type: ");
 
 //FLOPPY0
 	if (strcmp(BIOS_Settings.floppy0,"")==0) //No disk?
@@ -1645,8 +1647,8 @@ void BIOS_InitDisksText()
 		currentCMOS = &BIOS_Settings.ATCMOS; //We've used!
 	}
 
-	safestrcat(menuoptions[12],sizeof(menuoptions[12]),floppygeometries[currentCMOS->floppy0_nodisk_type].text);
-	safestrcat(menuoptions[13],sizeof(menuoptions[13]),floppygeometries[currentCMOS->floppy1_nodisk_type].text);
+	safestrcat(menuoptions[13],sizeof(menuoptions[12]),floppygeometries[currentCMOS->floppy0_nodisk_type].text);
+	safestrcat(menuoptions[14],sizeof(menuoptions[13]),floppygeometries[currentCMOS->floppy1_nodisk_type].text);
 }
 
 
@@ -1655,7 +1657,7 @@ void BIOS_DisksMenu() //Manages the mounted disks!
 	byte allowsaveresume;
 	BIOS_Title("Manage mounted drives");
 	BIOS_InitDisksText(); //First, initialise texts!
-	int menuresult = ExecuteMenu(14,4,BIOSMENU_SPEC_LR|BIOSMENU_SPEC_SQUAREOPTION|BIOSMENU_SPEC_RETURN,&Menu_Stat); //Show the menu options, allow SQUARE!
+	int menuresult = ExecuteMenu(15,4,BIOSMENU_SPEC_LR|BIOSMENU_SPEC_SQUAREOPTION|BIOSMENU_SPEC_RETURN,&Menu_Stat); //Show the menu options, allow SQUARE!
 	switch (menuresult)
 	{
 	case BIOSMENU_SPEC_CANCEL: //Return?
@@ -1744,7 +1746,13 @@ void BIOS_DisksMenu() //Manages the mounted disks!
 			BIOS_Menu = 43; //Generate Floppy Image!
 		}
 		break;
-	case 7: //Generate Static HDD?
+	case 7: //Generate IMD Floppy Image?
+		if (Menu_Stat == BIOSMENU_STAT_OK) //Plain status?
+		{
+			BIOS_Menu = 78; //Generate IMD Floppy Image!
+		}
+		break;
+	case 8: //Generate Static HDD?
 		if (Menu_Stat==BIOSMENU_STAT_OK) //Bochs type?
 		{
 			generateHDD_type = 1; //Bochs type!
@@ -1756,7 +1764,7 @@ void BIOS_DisksMenu() //Manages the mounted disks!
 			BIOS_Menu = 11; //Generate Static HDD!
 		}
 		break;
-	case 8: //Generate Dynamic HDD?
+	case 9: //Generate Dynamic HDD?
 		if (Menu_Stat==BIOSMENU_STAT_OK) //Bochs type?
 		{
 			generateHDD_type = 3; //Bochs type!
@@ -1768,31 +1776,31 @@ void BIOS_DisksMenu() //Manages the mounted disks!
 			BIOS_Menu = 12; //Generate Dynamic HDD!
 		}
 		break;
-	case 9: //Convert static to dynamic HDD?
+	case 10: //Convert static to dynamic HDD?
 		if (Menu_Stat==BIOSMENU_STAT_OK) //Plain status?
 		{
 			BIOS_Menu = 19; //Convert static to dynamic HDD!
 		}
 		break;
-	case 10: //Convert dynamic to static HDD?
+	case 11: //Convert dynamic to static HDD?
 		if (Menu_Stat==BIOSMENU_STAT_OK) //Plain status?
 		{
 			BIOS_Menu = 20; //Convert dynamic to static HDD!
 		}
 		break;
-	case 11: //Defragment a dynamic HDD Image?
+	case 12: //Defragment a dynamic HDD Image?
 		if (Menu_Stat==BIOSMENU_STAT_OK) //Plain status?
 		{
 			BIOS_Menu = 21; //Defragment a dynamic HDD Image!
 		}
 		break;
-	case 12: //Floppy A without disk type?
+	case 13: //Floppy A without disk type?
 		if (Menu_Stat == BIOSMENU_STAT_OK) //Plain status?
 		{
 			BIOS_Menu = 74; //Floppy A without disk type!
 		}
 		break;
-	case 13: //Floppy B without disk type?
+	case 14: //Floppy B without disk type?
 		if (Menu_Stat == BIOSMENU_STAT_OK) //Plain status?
 		{
 			BIOS_Menu = 75; //Floppy B without disk type!
@@ -6497,6 +6505,83 @@ void BIOS_GenerateFloppyDisk()
 	}
 	BIOS_Menu = 1; //Return to Disk Menu!
 }
+
+void BIOS_GenerateIMDFloppyDisk()
+{
+	char fullfilename[256];
+	word size; //The size to generate, in KB!
+	byte i;
+	char filename[256]; //Filename container!
+	cleardata(&filename[0], sizeof(filename)); //Init!
+	for (i = 0; i < NUMFLOPPYGEOMETRIES; i++) //Process all geometries into a list!
+	{
+		memset(&itemlist[i], 0, sizeof(itemlist[i])); //Reset!
+		strcpy(itemlist[i], floppygeometries[i].text);
+	}
+	numlist = NUMFLOPPYGEOMETRIES; //The size of the list!
+
+	BIOS_Title("Generate IMD floppy image");
+	EMU_locktext();
+	EMU_gotoxy(0, 4); //Goto 4th row!
+	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
+	GPU_EMU_printscreen(0, 4, "Floppy image size: "); //Show selection init!
+	EMU_unlocktext();
+	int result;
+	result = ExecuteList(19, 4, itemlist[0], 256, NULL); //Get our result!
+	if ((result >= 0) && (result < NUMFLOPPYGEOMETRIES)) //Valid item?
+	{
+		EMU_locktext();
+		EMU_gotoxy(0, 4); //Goto position for info!
+		GPU_EMU_printscreen(0, 5, "Name: "); //Show the filename!
+		EMU_unlocktext();
+		if (BIOS_InputText(6, 5, &filename[0], 255 - 4)) //Input text confirmed?
+		{
+			if (strcmp(filename, "") != 0) //Got input?
+			{
+				if (safestrlen(filename, sizeof(filename)) <= (255 - 4)) //Not too long?
+				{
+					safestrcat(filename, sizeof(filename), ".imd"); //Add the extension!
+					EMU_locktext();
+					EMU_gotoxy(0, 5); //Goto position for info!
+					GPU_EMU_printscreen(0, 5, "Filename: %s", filename); //Show the filename!
+					EMU_gotoxy(0, 5); //Next row!
+					GPU_EMU_printscreen(0, 6, "Image size: "); //Show image size selector!!
+					EMU_unlocktext();
+					size = floppygeometries[result].KB; //The size of the floppy in KB!
+					if (size != 0) //Got size?
+					{
+						EMU_locktext();
+						GPU_EMU_printscreen(12, 6, "%s", itemlist[result]); //Show size we selected!
+						EMU_gotoxy(0, 6); //Next row!
+						GPU_EMU_printscreen(0, 7, "Generating image: "); //Start of percentage!
+						EMU_unlocktext();
+
+						memset(&fullfilename, 0, sizeof(fullfilename));
+						safestrcpy(fullfilename, sizeof(fullfilename), diskpath);
+						safestrcat(fullfilename, sizeof(fullfilename), "/");
+						safestrcat(fullfilename, sizeof(fullfilename), filename);
+
+						i = generateIMDImage(filename, floppygeometries[result].tracks, floppygeometries[result].sides, (floppygeometries[result].DoubleDensity ? FORMATTING_MFM : FORMATTING_FM), FORMAT_SPEED_500, 18, 7); //Generate a floppy image according to geometry data!
+						//Check for disk changes on mounted floppy disks (we might be getting a new size, when we're recreaten)!
+						if (!memcmp(disks[FLOPPY0].rawfilename, filename, sizeof(disks[FLOPPY0].rawfilename))) //Floppy #0 changed?
+						{
+							iofloppy0("", 0, BIOS_Settings.floppy0_readonly, 0); //Unmount!
+							iofloppy0(BIOS_Settings.floppy0, 0, BIOS_Settings.floppy0_readonly, 0); //Remount to update!
+						}
+						if (!memcmp(disks[FLOPPY1].rawfilename, filename, sizeof(disks[FLOPPY0].rawfilename))) //Floppy #1 changed?
+						{
+							iofloppy1("", 0, BIOS_Settings.floppy1_readonly, 0); //Unmount!
+							iofloppy1(BIOS_Settings.floppy1, 0, BIOS_Settings.floppy1_readonly, 0); //Remount to update!
+						}
+					}
+				}
+				//If we're too long, ignore it!
+			}
+		}
+	}
+	BIOS_Menu = 1; //Return to Disk Menu!
+}
+
 
 void BIOS_usePCSpeaker()
 {
