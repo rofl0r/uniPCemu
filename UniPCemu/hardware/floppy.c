@@ -704,8 +704,11 @@ void FLOPPY_notifyDiskChanged(int disk)
 
 OPTINLINE void FLOPPY_raiseIRQ() //Execute an IRQ!
 {
-	FLOPPY.IRQPending = 1; //We're waiting for an IRQ!
-	if (FLOPPY_DOR_DMA_IRQR) raiseirq(FLOPPY_IRQ); //Execute the IRQ when enabled!
+	if (FLOPPY_DOR_DMA_IRQR)
+	{
+		FLOPPY.IRQPending = 1; //We're waiting for an IRQ!
+		raiseirq(FLOPPY_IRQ); //Execute the IRQ when enabled!
+	}
 }
 
 OPTINLINE void FLOPPY_lowerIRQ()
@@ -3142,6 +3145,7 @@ void FLOPPY_finishrecalibrate(byte drive)
 		FLOPPY.ST0 |= 0x50; //Completed command! 0x10: Unit Check, cannot find track 0 after 79 pulses.
 	}
 	FLOPPY_raiseIRQ(); //We're finished!
+	FLOPPY.IRQPending = 2; //Force pending!
 	FLOPPY_MSR_BUSYINPOSITIONINGMODEW(drive,0); //Not seeking anymore!
 	floppytimer[drive] = 0.0; //Don't time anymore!
 }
@@ -3157,6 +3161,7 @@ void FLOPPY_finishseek(byte drive, byte finishIRQ)
 	if (finishIRQ) //Finishing with IRQ?
 	{
 		FLOPPY_raiseIRQ(); //Finished executing phase!
+		FLOPPY.IRQPending = 2; //Force pending!
 	}
 	floppytimer[drive] = 0.0; //Don't time anymore!
 	FLOPPY_MSR_BUSYINPOSITIONINGMODEW(drive,0); //Not seeking anymore!
@@ -3195,6 +3200,7 @@ void updateFloppy(DOUBLE timepassed)
 								FLOPPY.ST0 = 0x20 | (FLOPPY.currentphysicalhead[drive]<<2) | drive; //Error: drive not ready!
 								clearDiskChanged(drive); //Clear the disk changed flag for the new command!
 								FLOPPY_raiseIRQ(); //Finished executing phase!
+								FLOPPY.IRQPending = 2; //Force pending!
 								floppytimer[drive] = 0.0; //Don't time anymore!
 								FLOPPY_MSR_BUSYINPOSITIONINGMODEW(drive,0); //Not seeking anymore!
 								goto finishdrive; //Abort!
@@ -3249,6 +3255,7 @@ void updateFloppy(DOUBLE timepassed)
 								//Invalid track?
 								FLOPPY.ST0 = (FLOPPY.ST0 & 0x30) | 0x00 | drive | (FLOPPY.currentphysicalhead[drive]<<2); //Valid command! Just don't report completion(invalid track to seek to)!
 								FLOPPY.ST2 = 0x00; //Nothing to report! We're not completed!
+								FLOPPY.IRQPending = 2; //Force pending!
 								FLOPPY_raiseIRQ(); //Finished executing phase!
 								floppytimer[drive] = 0.0; //Don't time anymore!
 								FLOPPY_MSR_BUSYINPOSITIONINGMODEW(drive,0); //Not seeking anymore!
