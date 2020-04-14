@@ -2711,6 +2711,18 @@ void BIOS_GenerateStaticHDD() //Generate Static HDD Image!
 						BIOS_Changed = 1; //We've changed!
 						reboot_needed |= 2; //We're in need of a reboot!
 					}
+					//This can be a floppy disk image being overwritten as well!
+					if (!memcmp(disks[FLOPPY0].rawfilename, filename, sizeof(BIOS_Settings.floppy0))) //Floppy #0 changed?
+					{
+						iofloppy0("", 0, BIOS_Settings.floppy0_readonly, 0); //Unmount!
+						iofloppy0(BIOS_Settings.floppy0, 0, BIOS_Settings.floppy0_readonly, 0); //Remount to update!
+					}
+					if (!memcmp(disks[FLOPPY1].rawfilename, filename, sizeof(BIOS_Settings.floppy1))) //Floppy #1 changed?
+					{
+						iofloppy1("", 0, BIOS_Settings.floppy1_readonly, 0); //Unmount!
+						iofloppy1(BIOS_Settings.floppy1, 0, BIOS_Settings.floppy1_readonly, 0); //Remount to update!
+					}
+
 				}
 			}
 			//If we're too long, ignore it!
@@ -6467,12 +6479,12 @@ void BIOS_GenerateFloppyDisk()
 
 						generateFloppyImage(filename, &floppygeometries[result], 18, 7); //Generate a floppy image according to geometry data!
 						//Check for disk changes on mounted floppy disks (we might be getting a new size, when we're recreaten)!
-						if (!memcmp(BIOS_Settings.floppy0,filename,sizeof(BIOS_Settings.floppy0))) //Floppy #0 changed?
+						if (!memcmp(disks[FLOPPY0].rawfilename,filename,sizeof(disks[FLOPPY0].rawfilename))) //Floppy #0 changed?
 						{
 							iofloppy0("",0,BIOS_Settings.floppy0_readonly,0); //Unmount!
 							iofloppy0(BIOS_Settings.floppy0,0,BIOS_Settings.floppy0_readonly,0); //Remount to update!
 						}
-						if (!memcmp(BIOS_Settings.floppy1,filename,sizeof(BIOS_Settings.floppy1))) //Floppy #1 changed?
+						if (!memcmp(disks[FLOPPY1].rawfilename,filename,sizeof(disks[FLOPPY0].rawfilename))) //Floppy #1 changed?
 						{
 							iofloppy1("",0,BIOS_Settings.floppy1_readonly,0); //Unmount!
 							iofloppy1(BIOS_Settings.floppy1,0,BIOS_Settings.floppy1_readonly,0); //Remount to update!
