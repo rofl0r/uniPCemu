@@ -1479,7 +1479,7 @@ void CPU_tickBIU()
 
 byte BIU_Busy() //Is the BIU busy on something? It's not ready at T1 state?
 {
-	return ((BIU[activeCPU].requestready == 0) || (BIU[activeCPU].cycleinfo.currentTimingHandler != BIU_activeCycleHandler) || (BIU[activeCPU].cycleinfo.cycles_stallBIU) || ((BIU[activeCPU].prefetchclock & BIU_numcyclesmask))); //Not ready for anything new?
+	return ((BIU[activeCPU].requestready == 0) || ((BIU[activeCPU].cycleinfo.currentTimingHandler != BIU_activeCycleHandler) && BIU[activeCPU].cycleinfo.currentTimingHandler) || (BIU[activeCPU].cycleinfo.cycles_stallBIU) || ((BIU[activeCPU].prefetchclock & BIU_numcyclesmask))); //Not ready for anything new?
 }
 
 byte BIU_Ready() //Are we ready to continue execution?
