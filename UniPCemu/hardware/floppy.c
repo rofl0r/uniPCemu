@@ -2884,6 +2884,11 @@ OPTINLINE void floppy_writeData(byte isDMA, byte value)
 				case SCAN_LOW_OR_EQUAL:
 				case SCAN_HIGH_OR_EQUAL:
 				case PERPENDICULAR_MODE:	// * used during initialization, once, maybe
+					if (is_XT) //XT somehow needs lowering of the IRQ?
+					{
+						FLOPPY_hadIRQ = FLOPPY.IRQPending; //Was an IRQ Pending?
+						FLOPPY_lowerIRQ(); //Lower the IRQ!
+					}
 					FLOPPY.reset_pending = 0; //Stop pending reset if we're pending it: we become active!
 					if (FLOPPY.reset_pended) //Finished reset?
 					{
