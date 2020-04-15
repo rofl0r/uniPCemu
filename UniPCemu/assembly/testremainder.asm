@@ -397,7 +397,7 @@ repeating: dec eax
 loopnz repeating
 
 mov ecx,0x200
-mov eax,0
+mov eax,0x200
 repeating2:
 dec eax
 a32 loopnz repeating2
