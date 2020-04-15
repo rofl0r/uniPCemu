@@ -467,14 +467,14 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 		break;
 	case 2: //LGDT
 		debugger_setcommand("LGDT %s", info.text);
-		if (params.info[MODRM_src0].isreg==1) //We're storing to a register? Invalid!
-		{
-			unkOP0F_286();
-			return; //Abort!
-		}
 		if ((getCPL() && (getcpumode() != CPU_MODE_REAL)) || (getcpumode()==CPU_MODE_8086)) //Privilege level isn't 0 or invalid in V86 mode?
 		{
 			THROWDESCGP(0,0,0); //Throw #GP!
+			return; //Abort!
+		}
+		if (params.info[MODRM_src0].isreg==1) //We're storing to a register? Invalid!
+		{
+			unkOP0F_286();
 			return; //Abort!
 		}
 
@@ -515,14 +515,14 @@ void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
 		break;
 	case 3: //LIDT
 		debugger_setcommand("LIDT %s", info.text);
-		if (params.info[MODRM_src0].isreg==1) //We're storing to a register? Invalid!
-		{
-			unkOP0F_286();
-			return; //Abort!
-		}
 		if ((getCPL() && (getcpumode() != CPU_MODE_REAL)) || (getcpumode()==CPU_MODE_8086)) //Privilege level isn't 0 or invalid in V86-mode?
 		{
 			THROWDESCGP(0,0,0); //Throw #GP!
+			return; //Abort!
+		}
+		if (params.info[MODRM_src0].isreg==1) //We're storing to a register? Invalid!
+		{
+			unkOP0F_286();
 			return; //Abort!
 		}
 

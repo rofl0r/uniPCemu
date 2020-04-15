@@ -105,6 +105,11 @@ void CPU486_OP0F01_32()
 	if (thereg==7) //INVLPG?
 	{
 		modrm_generateInstructionTEXT("INVLPG",16,0,PARAM_MODRM_1);
+		if ((modrm_isregister(params)) /*&& (getcpumode()!=CPU_MODE_8086)*/) //Register (not for V86 mode)? #UD
+		{
+			unkOP0F_286(); //We're not recognized in real mode!
+			return;
+		}
 		if (getcpumode()!=CPU_MODE_REAL) //Protected mode?
 		{
 			if (getCPL())
@@ -128,6 +133,11 @@ void CPU486_OP0F01_16()
 	if (thereg==7) //INVLPG?
 	{
 		modrm_generateInstructionTEXT("INVLPG",32,0,PARAM_MODRM2);
+		if ((modrm_isregister(params)) /* && (getcpumode()!=CPU_MODE_8086)*/) //Register (not for V86 mode)? #UD
+		{
+			unkOP0F_286(); //We're not recognized in real mode!
+			return;
+		}
 		if (getcpumode()!=CPU_MODE_REAL) //Protected mode?
 		{
 			if (getCPL())
