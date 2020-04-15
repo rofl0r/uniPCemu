@@ -392,7 +392,7 @@ mov eax,[0]
 
 
 mov ecx,0x100
-mov eax,0
+mov eax,0x100
 repeating: dec eax
 loopnz repeating
 
