@@ -2845,6 +2845,10 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 			safestrcpy(srcdisk, sizeof(srcdisk), filename); //Save!
 			iohdd0(filename, 0, 1, 0); //Mount the source disk!
 			size = getdisksize(HDD0); //Get the original size!
+			EMU_locktext();
+			GPU_EMU_printscreen(12, 5, "      "); //Clear the creation process!
+			GPU_EMU_printscreen(12, 5, "%uMB", (size / MBMEMORY)); //Image size
+			EMU_unlocktext();
 			if (BIOS_InputText(22, 6, &filename[0], (sizeof(filename) - 1) - strlen(".sfdimg")))
 			{
 				if (safestrlen(filename, sizeof(filename)) > (sizeof(filename) - strlen(".sfdimg") - 1)) //Too long filename?
@@ -2855,8 +2859,8 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 				if (size != 0) //Got size?
 				{
 					EMU_locktext();
-					EMU_gotoxy(0, 6); //Next row!
-					GPU_EMU_printscreen(0, 6, "Generating image: "); //Start of percentage!
+					EMU_gotoxy(0, 7); //Next row!
+					GPU_EMU_printscreen(0, 7, "Generating image: "); //Start of percentage!
 					EMU_unlocktext();
 					FILEPOS sizecreated;
 					domkdir(diskpath);
@@ -2864,7 +2868,7 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 					safestrcpy(fullfilename, sizeof(fullfilename), diskpath);
 					safestrcat(fullfilename, sizeof(fullfilename), "/");
 					safestrcat(fullfilename, sizeof(fullfilename), filename);
-					sizecreated = generateDynamicImage(filename, size, 18, 6, statictodynamic_imagetype(srcdisk)); //Generate a dynamic image!
+					sizecreated = generateDynamicImage(filename, size, 18, 7, statictodynamic_imagetype(srcdisk)); //Generate a dynamic image!
 					if (sizecreated >= size) //Correct size?
 					{
 						if (!strcmp(filename, BIOS_Settings.hdd0) || !strcmp(filename, BIOS_Settings.hdd1)) //Harddisk changed?
@@ -2873,15 +2877,13 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 							reboot_needed |= 2; //We're in need of a reboot!
 						}
 						EMU_locktext();
-						GPU_EMU_printscreen(18, 6, "      "); //Clear the creation process!
-						GPU_EMU_printscreen(12, 5, "      "); //Clear the creation process!
-						GPU_EMU_printscreen(12, 5, "%uMB", (sizecreated / MBMEMORY)); //Image size
+						GPU_EMU_printscreen(18, 7, "      "); //Clear the creation process!
 						EMU_unlocktext();
 						iohdd1(filename, 0, 0, 0); //Mount the destination disk, allow writing!
 						FILEPOS sectornr;
 						EMU_locktext();
 						EMU_gotoxy(0, 6); //Next row!
-						GPU_EMU_printscreen(0, 6, "Generating image: "); //Start of percentage!
+						GPU_EMU_printscreen(0, 7, "Generating image: "); //Start of percentage!
 						EMU_unlocktext();
 						byte error = 0;
 						sectorupdateinterval = MAX((sizecreated / 100), sizeof(sector)); //Update interval!
@@ -2922,20 +2924,20 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 								sectorupdateintervalcnt %= sectorupdateinterval; //Reset counter as much as is needed!
 								firstupdate = 0; //Not first update anymore!
 								EMU_locktext();
-								GPU_EMU_printscreen(18, 6, "%u%%", (int)(((float)sectornr / (float)size) * 100.0f)); //Current progress!
+								GPU_EMU_printscreen(18, 7, "%u%%", (int)(((float)sectornr / (float)size) * 100.0f)); //Current progress!
 								EMU_unlocktext();
 							}
 							sectornr += datatotransfer; //Next sector block!
 						}
 						EMU_locktext();
-						GPU_EMU_printscreen(18, 6, "%u%%", (int)(((float)sectornr / (float)size) * 100.0f)); //Current progress!
+						GPU_EMU_printscreen(18, 7, "%u%%", (int)(((float)sectornr / (float)size) * 100.0f)); //Current progress!
 						EMU_unlocktext();
 
 						//Verification!
 						if (!error) //OK?
 						{
 							EMU_locktext();
-							GPU_EMU_printscreen(0, 7, "Validating image: "); //Start of percentage!
+							GPU_EMU_printscreen(0, 8, "Validating image: "); //Start of percentage!
 							EMU_unlocktext();
 							iohdd1(filename, 0, 1, 0); //Mount!
 							sectorupdateinterval = MAX((sizecreated / 100), sizeof(sector)); //Update interval!
@@ -2981,13 +2983,13 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 									sectorupdateintervalcnt %= sectorupdateinterval; //Reset counter as much as is needed!
 									firstupdate = 0; //Not first anymore!
 									EMU_locktext();
-									GPU_EMU_printscreen(18, 7, "%u%%", (int)(((float)sectornr / (float)size) * 100.0f)); //Current progress!
+									GPU_EMU_printscreen(18, 8, "%u%%", (int)(((float)sectornr / (float)size) * 100.0f)); //Current progress!
 									EMU_unlocktext();
 								}
 								sectornr += datatotransfer; //Next sector!
 							}
 							EMU_locktext();
-							GPU_EMU_printscreen(18, 7, "%u%%", (int)(((float)sectornr / (float)size) * 100.0f)); //Current progress!
+							GPU_EMU_printscreen(18, 8, "%u%%", (int)(((float)sectornr / (float)size) * 100.0f)); //Current progress!
 							EMU_unlocktext();
 							if (error) //Error occurred?
 							{
@@ -3048,6 +3050,7 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 			GPU_EMU_printscreen(0, 4, "Filename: %s  ", filename); //Show the filename!
 			EMU_gotoxy(0, 5); //Next row!
 			GPU_EMU_printscreen(0, 5, "Image size: "); //Show image size selector!!
+			GPU_EMU_printscreen(0, 6, "Destination filename: ");
 			EMU_unlocktext();
 			iohdd0(filename, 0, 1, 0); //Mount the source disk!
 
@@ -3060,6 +3063,10 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 			dynamicimage_type = dynamictostatic_imagetype(fullfilename);
 
 			size = getdisksize(HDD0); //Get the original size!
+			EMU_locktext();
+			GPU_EMU_printscreen(12, 5, "      "); //Clear the creation process!
+			GPU_EMU_printscreen(12, 5, "%uMB", (size / MBMEMORY)); //Image size
+			EMU_unlocktext();
 			if (BIOS_InputText(22, 6, &filename[0], (sizeof(filename) - 1) - strlen(".img")))
 			{
 				if (safestrlen(filename, sizeof(filename)) > (sizeof(filename) - strlen(".img") - 1)) //Too long filename?
@@ -3087,13 +3094,11 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 					}
 					EMU_locktext();
 					EMU_gotoxy(0, 6); //Next row!
-					GPU_EMU_printscreen(0, 6, "Generating image: "); //Start of percentage!
-					GPU_EMU_printscreen(18, 6, "      "); //Clear the creation process!
-					GPU_EMU_printscreen(12, 5, "      "); //Clear the creation process!
-					GPU_EMU_printscreen(12, 5, "%uMB", (size / MBMEMORY)); //Image size
+					GPU_EMU_printscreen(0, 7, "Generating image: "); //Start of percentage!
+					GPU_EMU_printscreen(18, 7, "      "); //Clear the creation process!
 					FILEPOS sectornr = 0;
-					EMU_gotoxy(0, 6); //Next row!
-					GPU_EMU_printscreen(0, 6, "Generating image: "); //Start of percentage!
+					EMU_gotoxy(0, 7); //Next row!
+					GPU_EMU_printscreen(0, 7, "Generating image: "); //Start of percentage!
 					EMU_unlocktext();
 					byte error = 0;
 					sectorupdateinterval = MAX((size / 100), sizeof(sector)); //Update interval!
@@ -3148,7 +3153,7 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 							sectorupdateintervalcnt %= sectorupdateinterval; //Reset counter as much as is needed!
 							firstupdate = 0; //Not first update anymore!
 							EMU_locktext();
-							GPU_EMU_printscreen(18, 6, "%u%%", (int)(((float)sectornr / (float)size) * 100.0f)); //Current progress!
+							GPU_EMU_printscreen(18, 7, "%u%%", (int)(((float)sectornr / (float)size) * 100.0f)); //Current progress!
 							EMU_unlocktext();
 						}
 						sectornr += datatotransfer; //Next sector!
@@ -3156,14 +3161,14 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 					emufclose64(dest); //Close the file!
 
 					EMU_locktext();
-					GPU_EMU_printscreen(18, 6, "%u%%", (int)(((float)sectornr / (float)size) * 100.0f)); //Current progress!
+					GPU_EMU_printscreen(18, 7, "%u%%", (int)(((float)sectornr / (float)size) * 100.0f)); //Current progress!
 					EMU_unlocktext();
 
 					//Verification!
 					if (!error) //OK?
 					{
 						EMU_locktext();
-						GPU_EMU_printscreen(0, 7, "Validating image: "); //Start of percentage!
+						GPU_EMU_printscreen(0, 8, "Validating image: "); //Start of percentage!
 						EMU_unlocktext();
 						iohdd1(filename, 0, 1, 0); //Mount!
 						sectorupdateinterval = MAX((size / 100), sizeof(sector)); //Update interval!
@@ -3209,13 +3214,13 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 								sectorupdateintervalcnt %= sectorupdateinterval; //Reset counter as much as is needed!
 								firstupdate = 0; //Not first update anymore!
 								EMU_locktext();
-								GPU_EMU_printscreen(18, 7, "%u%%", (int)(((float)sectornr / (float)size) * 100.0f)); //Current progress!
+								GPU_EMU_printscreen(18, 8, "%u%%", (int)(((float)sectornr / (float)size) * 100.0f)); //Current progress!
 								EMU_unlocktext();
 							}
 							sectornr += datatotransfer; //Next sector!
 						}
 						EMU_locktext();
-						GPU_EMU_printscreen(18, 6, "%u%%", (int)(((float)sectornr / (float)size) * 100.0f)); //Current progress!
+						GPU_EMU_printscreen(18, 7, "%u%%", (int)(((float)sectornr / (float)size) * 100.0f)); //Current progress!
 						EMU_unlocktext();
 						if (error) //Error occurred?
 						{
