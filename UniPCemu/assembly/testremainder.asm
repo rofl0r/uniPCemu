@@ -466,9 +466,58 @@ ret
 
 succeedretfar:
 
+; Check IN/OUT instructions! Use the DMA controller ports as an example
+mov al,0x55
+out 0,al
+out 0,al
+mov al,0xAA
+in al,0
+cmp al,0x55
+jnz failinout
+mov al,0xAA
+in al,0
+cmp al,0x55
+jnz failinout
+mov ax,0x5555
+out 0,ax
+out 0,ax
+mov ax,0xAAAA
+in ax,0
+cmp ax,0x5555
+jnz failinout
+mov ax,0xAAAA
+in ax,0
+cmp ax,0x5555
+jnz failinout
+mov dx,2
+mov al,0x22
+out 2,al
+out 2,al
+mov al,0x44
+in al,2
+cmp al,0x22
+jnz failinout
+mov al,0x44
+in al,2
+cmp al,0x22
+jnz failinout
+mov ax,0x2222
+out 2,ax
+out 2,ax
+mov ax,0x4444
+in ax,2
+cmp ax,0x2222
+jnz failinout
+mov ax,0x4444
+in ax,2
+cmp ax,0x2222
+jnz failinout
 
+succeedinout:
+jmp finishup
 
-jmp finishup 
+failinout:
+jmp failvector
 
 failvector:
 cli
