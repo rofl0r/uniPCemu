@@ -2720,12 +2720,12 @@ void BIOS_GenerateStaticHDD() //Generate Static HDD Image!
 						reboot_needed |= 2; //We're in need of a reboot!
 					}
 					//This can be a floppy disk image being overwritten as well!
-					if (!memcmp(disks[FLOPPY0].rawfilename, filename, sizeof(BIOS_Settings.floppy0))) //Floppy #0 changed?
+					if (!strcmp(disks[FLOPPY0].rawfilename, filename)) //Floppy #0 changed?
 					{
 						iofloppy0("", 0, BIOS_Settings.floppy0_readonly, 0); //Unmount!
 						iofloppy0(BIOS_Settings.floppy0, 0, BIOS_Settings.floppy0_readonly, 0); //Remount to update!
 					}
-					if (!memcmp(disks[FLOPPY1].rawfilename, filename, sizeof(BIOS_Settings.floppy1))) //Floppy #1 changed?
+					if (!strcmp(disks[FLOPPY1].rawfilename, filename)) //Floppy #1 changed?
 					{
 						iofloppy1("", 0, BIOS_Settings.floppy1_readonly, 0); //Unmount!
 						iofloppy1(BIOS_Settings.floppy1, 0, BIOS_Settings.floppy1_readonly, 0); //Remount to update!
@@ -2838,103 +2838,56 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 			GPU_EMU_printscreen(0, 4, "Filename: %s  ", filename); //Show the filename!
 			EMU_gotoxy(0, 5); //Next row!
 			GPU_EMU_printscreen(0, 5, "Image size: "); //Show image size selector!!
+			GPU_EMU_printscreen(0, 6, "Destination filename: ");
 			EMU_unlocktext();
 			char srcdisk[256];
-			memset(&srcdisk,0,sizeof(srcdisk));
-			safestrcpy(srcdisk,sizeof(srcdisk),filename); //Save!
+			memset(&srcdisk, 0, sizeof(srcdisk));
+			safestrcpy(srcdisk, sizeof(srcdisk), filename); //Save!
 			iohdd0(filename, 0, 1, 0); //Mount the source disk!
-			safestrcat(filename,sizeof(filename), ".sfdimg"); //Generate destination filename!
 			size = getdisksize(HDD0); //Get the original size!
-			if (size != 0) //Got size?
+			if (BIOS_InputText(22, 6, &filename[0], (sizeof(filename) - 1) - strlen(".sfdimg")))
 			{
-				EMU_locktext();
-				EMU_gotoxy(0, 6); //Next row!
-				GPU_EMU_printscreen(0, 6, "Generating image: "); //Start of percentage!
-				EMU_unlocktext();
-				FILEPOS sizecreated;
-				domkdir(diskpath);
-				memset(&fullfilename, 0, sizeof(fullfilename));
-				safestrcpy(fullfilename,sizeof(fullfilename), diskpath);
-				safestrcat(fullfilename,sizeof(fullfilename), "/");
-				safestrcat(fullfilename,sizeof(fullfilename), filename);
-				sizecreated = generateDynamicImage(filename, size, 18, 6,statictodynamic_imagetype(srcdisk)); //Generate a dynamic image!
-				if (sizecreated >= size) //Correct size?
+				if (safestrlen(filename, sizeof(filename)) > (sizeof(filename) - strlen(".sfdimg") - 1)) //Too long filename?
 				{
-					if (!strcmp(filename, BIOS_Settings.hdd0) || !strcmp(filename, BIOS_Settings.hdd1)) //Harddisk changed?
-					{
-						BIOS_Changed = 1; //We've changed!
-						reboot_needed |= 2; //We're in need of a reboot!
-					}
-					EMU_locktext();
-					GPU_EMU_printscreen(18, 6, "      "); //Clear the creation process!
-					GPU_EMU_printscreen(12, 5, "      "); //Clear the creation process!
-					GPU_EMU_printscreen(12, 5, "%uMB", (sizecreated / MBMEMORY)); //Image size
-					EMU_unlocktext();
-					iohdd1(filename, 0, 0, 0); //Mount the destination disk, allow writing!
-					FILEPOS sectornr;
+					size = 0; //Abort!
+				}
+				safestrcat(filename, sizeof(filename), ".sfdimg"); //Generate destination filename!
+				if (size != 0) //Got size?
+				{
 					EMU_locktext();
 					EMU_gotoxy(0, 6); //Next row!
 					GPU_EMU_printscreen(0, 6, "Generating image: "); //Start of percentage!
 					EMU_unlocktext();
-					byte error = 0;
-					sectorupdateinterval = MAX((sizecreated/100),sizeof(sector)); //Update interval!
-					sectorupdateintervalcnt = 0; //Reset counter for the first update!
-					byte firstupdate = 1; //First update!
-					for (sectornr = 0; sectornr < sizecreated;) //Process all sectors!
+					FILEPOS sizecreated;
+					domkdir(diskpath);
+					memset(&fullfilename, 0, sizeof(fullfilename));
+					safestrcpy(fullfilename, sizeof(fullfilename), diskpath);
+					safestrcat(fullfilename, sizeof(fullfilename), "/");
+					safestrcat(fullfilename, sizeof(fullfilename), filename);
+					sizecreated = generateDynamicImage(filename, size, 18, 6, statictodynamic_imagetype(srcdisk)); //Generate a dynamic image!
+					if (sizecreated >= size) //Correct size?
 					{
-						if (shuttingdown())
+						if (!strcmp(filename, BIOS_Settings.hdd0) || !strcmp(filename, BIOS_Settings.hdd1)) //Harddisk changed?
 						{
-							error = 4; //Give the fourth error!
-							break;
+							BIOS_Changed = 1; //We've changed!
+							reboot_needed |= 2; //We're in need of a reboot!
 						}
-						if ((sizecreated - sectornr) > sizeof(sector)) //Too much to handle?
-						{
-							datatotransfer = sizeof(sector); //Limit to max!
-						}
-						else
-						{
-							datatotransfer = sizecreated;
-							datatotransfer -= sectornr; //How many bytes of data to transfer?
-						}
-						if (readdata(HDD0, &sector, sectornr, (uint_32)datatotransfer)) //Read a sector?
-						{
-							if (!writedata(HDD1, &sector, sectornr, (uint_32)datatotransfer)) //Error writing a sector?
-							{
-								error = 2;
-								break; //Stop reading!
-							}
-						}
-						else //Error reading sector?
-						{
-							error = 1;
-							break; //Stop reading!
-						}
-						sectorupdateintervalcnt += datatotransfer; //Transferred data!
-						if ((sectorupdateintervalcnt>=sectorupdateinterval) || firstupdate) //Update every 10000 sectors!
-						{
-							sectorupdateintervalcnt %= sectorupdateinterval; //Reset counter as much as is needed!
-							firstupdate = 0; //Not first update anymore!
-							EMU_locktext();
-							GPU_EMU_printscreen(18, 6, "%u%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
-							EMU_unlocktext();
-						}
-						sectornr += datatotransfer; //Next sector block!
-					}
-					EMU_locktext();
-					GPU_EMU_printscreen(18, 6, "%u%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
-					EMU_unlocktext();
-
-					//Verification!
-					if (!error) //OK?
-					{
 						EMU_locktext();
-						GPU_EMU_printscreen(0, 7, "Validating image: "); //Start of percentage!
+						GPU_EMU_printscreen(18, 6, "      "); //Clear the creation process!
+						GPU_EMU_printscreen(12, 5, "      "); //Clear the creation process!
+						GPU_EMU_printscreen(12, 5, "%uMB", (sizecreated / MBMEMORY)); //Image size
 						EMU_unlocktext();
-						iohdd1(filename, 0, 1, 0); //Mount!
-						sectorupdateinterval = MAX((sizecreated/100),sizeof(sector)); //Update interval!
+						iohdd1(filename, 0, 0, 0); //Mount the destination disk, allow writing!
+						FILEPOS sectornr;
+						EMU_locktext();
+						EMU_gotoxy(0, 6); //Next row!
+						GPU_EMU_printscreen(0, 6, "Generating image: "); //Start of percentage!
+						EMU_unlocktext();
+						byte error = 0;
+						sectorupdateinterval = MAX((sizecreated / 100), sizeof(sector)); //Update interval!
 						sectorupdateintervalcnt = 0; //Reset counter for the first update!
-						firstupdate = 1; //First update!
-						for (sectornr = 0; sectornr < size;) //Process all sectors!
+						byte firstupdate = 1; //First update!
+						for (sectornr = 0; sectornr < sizecreated;) //Process all sectors!
 						{
 							if (shuttingdown())
 							{
@@ -2952,14 +2905,9 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 							}
 							if (readdata(HDD0, &sector, sectornr, (uint_32)datatotransfer)) //Read a sector?
 							{
-								if (!readdata(HDD1, &verificationsector, sectornr, (uint_32)datatotransfer)) //Error reading a sector?
+								if (!writedata(HDD1, &sector, sectornr, (uint_32)datatotransfer)) //Error writing a sector?
 								{
 									error = 2;
-									break; //Stop reading!
-								}
-								else if ((sectorposition = memcmp(&sector, &verificationsector, (size_t)datatotransfer)) != 0)
-								{
-									error = 3; //Verification error!
 									break; //Stop reading!
 								}
 							}
@@ -2969,31 +2917,91 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 								break; //Stop reading!
 							}
 							sectorupdateintervalcnt += datatotransfer; //Transferred data!
-							if ((sectorupdateintervalcnt>=sectorupdateinterval) || firstupdate) //Update every 10000 sectors!
+							if ((sectorupdateintervalcnt >= sectorupdateinterval) || firstupdate) //Update every 10000 sectors!
 							{
 								sectorupdateintervalcnt %= sectorupdateinterval; //Reset counter as much as is needed!
-								firstupdate = 0; //Not first anymore!
+								firstupdate = 0; //Not first update anymore!
 								EMU_locktext();
-								GPU_EMU_printscreen(18, 7, "%u%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
+								GPU_EMU_printscreen(18, 6, "%u%%", (int)(((float)sectornr / (float)size) * 100.0f)); //Current progress!
 								EMU_unlocktext();
 							}
-							sectornr += datatotransfer; //Next sector!
+							sectornr += datatotransfer; //Next sector block!
 						}
 						EMU_locktext();
-						GPU_EMU_printscreen(18, 7, "%u%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
+						GPU_EMU_printscreen(18, 6, "%u%%", (int)(((float)sectornr / (float)size) * 100.0f)); //Current progress!
 						EMU_unlocktext();
-						if (error) //Error occurred?
+
+						//Verification!
+						if (!error) //OK?
 						{
-							remove(fullfilename); //Try to remove the generated file!
-							dolog(filename, "Error %u validating dynamic image sector %u/%u@byte %u", error, sectornr / 512, size / 512, sectorposition?sectorposition-1:0); //Error at this sector!
+							EMU_locktext();
+							GPU_EMU_printscreen(0, 7, "Validating image: "); //Start of percentage!
+							EMU_unlocktext();
+							iohdd1(filename, 0, 1, 0); //Mount!
+							sectorupdateinterval = MAX((sizecreated / 100), sizeof(sector)); //Update interval!
+							sectorupdateintervalcnt = 0; //Reset counter for the first update!
+							firstupdate = 1; //First update!
+							for (sectornr = 0; sectornr < size;) //Process all sectors!
+							{
+								if (shuttingdown())
+								{
+									error = 4; //Give the fourth error!
+									break;
+								}
+								if ((sizecreated - sectornr) > sizeof(sector)) //Too much to handle?
+								{
+									datatotransfer = sizeof(sector); //Limit to max!
+								}
+								else
+								{
+									datatotransfer = sizecreated;
+									datatotransfer -= sectornr; //How many bytes of data to transfer?
+								}
+								if (readdata(HDD0, &sector, sectornr, (uint_32)datatotransfer)) //Read a sector?
+								{
+									if (!readdata(HDD1, &verificationsector, sectornr, (uint_32)datatotransfer)) //Error reading a sector?
+									{
+										error = 2;
+										break; //Stop reading!
+									}
+									else if ((sectorposition = memcmp(&sector, &verificationsector, (size_t)datatotransfer)) != 0)
+									{
+										error = 3; //Verification error!
+										break; //Stop reading!
+									}
+								}
+								else //Error reading sector?
+								{
+									error = 1;
+									break; //Stop reading!
+								}
+								sectorupdateintervalcnt += datatotransfer; //Transferred data!
+								if ((sectorupdateintervalcnt >= sectorupdateinterval) || firstupdate) //Update every 10000 sectors!
+								{
+									sectorupdateintervalcnt %= sectorupdateinterval; //Reset counter as much as is needed!
+									firstupdate = 0; //Not first anymore!
+									EMU_locktext();
+									GPU_EMU_printscreen(18, 7, "%u%%", (int)(((float)sectornr / (float)size) * 100.0f)); //Current progress!
+									EMU_unlocktext();
+								}
+								sectornr += datatotransfer; //Next sector!
+							}
+							EMU_locktext();
+							GPU_EMU_printscreen(18, 7, "%u%%", (int)(((float)sectornr / (float)size) * 100.0f)); //Current progress!
+							EMU_unlocktext();
+							if (error) //Error occurred?
+							{
+								remove(fullfilename); //Try to remove the generated file!
+								dolog(filename, "Error %u validating dynamic image sector %u/%u@byte %u", error, sectornr / 512, size / 512, sectorposition ? sectorposition - 1 : 0); //Error at this sector!
+							}
 						}
-					}
-					else //Error occurred?
-					{
-						dolog(filename, "Error #%u copying static image sector %u/%u", error, sectornr / 512, sizecreated / 512); //Error at this sector!
-						if (!remove(fullfilename)) //Defragmented file can be removed?
+						else //Error occurred?
 						{
-							dolog(filename, "Error cleaning up the new defragmented image!");
+							dolog(filename, "Error #%u copying static image sector %u/%u", error, sectornr / 512, sizecreated / 512); //Error at this sector!
+							if (!remove(fullfilename)) //Defragmented file can be removed?
+							{
+								dolog(filename, "Error cleaning up the new defragmented image!");
+							}
 						}
 					}
 				}
@@ -3044,107 +3052,67 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 			iohdd0(filename, 0, 1, 0); //Mount the source disk!
 
 			byte dynamicimage_type;
-			memset(&fullfilename,0,sizeof(fullfilename)); //Init!
-			safestrcpy(fullfilename,sizeof(fullfilename), diskpath); //Disk path!
-			safestrcat(fullfilename,sizeof(fullfilename), "/");
-			safestrcat(fullfilename,sizeof(fullfilename), filename); //The full filename!
+			memset(&fullfilename, 0, sizeof(fullfilename)); //Init!
+			safestrcpy(fullfilename, sizeof(fullfilename), diskpath); //Disk path!
+			safestrcat(fullfilename, sizeof(fullfilename), "/");
+			safestrcat(fullfilename, sizeof(fullfilename), filename); //The full filename!
 
 			dynamicimage_type = dynamictostatic_imagetype(fullfilename);
 
-			safestrcat(filename,sizeof(filename), ".img"); //Generate destination filename!
 			size = getdisksize(HDD0); //Get the original size!
-			//dolog("BIOS", "Dynamic disk size: %u bytes = %u sectors", size, (size >> 9));
-			if (size != 0) //Got size?
+			if (BIOS_InputText(22, 6, &filename[0], (sizeof(filename) - 1) - strlen(".img")))
 			{
-				if (!strcmp(filename, BIOS_Settings.hdd0) || !strcmp(filename, BIOS_Settings.hdd1)) //Harddisk changed?
+				if (safestrlen(filename, sizeof(filename)) > (sizeof(filename) - strlen(".img") - 1)) //Too long filename?
 				{
-					BIOS_Changed = 1; //We've changed!
-					reboot_needed |= 2; //We're in need of a reboot!
+					size = 0; //Abort!
 				}
-				EMU_locktext();
-				EMU_gotoxy(0, 6); //Next row!
-				GPU_EMU_printscreen(0, 6, "Generating image: "); //Start of percentage!
-				GPU_EMU_printscreen(18, 6, "      "); //Clear the creation process!
-				GPU_EMU_printscreen(12, 5, "      "); //Clear the creation process!
-				GPU_EMU_printscreen(12, 5, "%uMB", (size / MBMEMORY)); //Image size
-				FILEPOS sectornr=0;
-				EMU_gotoxy(0, 6); //Next row!
-				GPU_EMU_printscreen(0, 6, "Generating image: "); //Start of percentage!
-				EMU_unlocktext();
-				byte error = 0;
-				sectorupdateinterval = MAX((size/100),sizeof(sector)); //Update interval!
-				sectorupdateintervalcnt = 0; //Reset counter for the first update!
-				byte firstupdate = 1; //First update!
-				BIGFILE *dest;
-				domkdir(diskpath); //Make sure our directory we're creating an image in exists!
-				memset(&fullfilename, 0, sizeof(fullfilename));
-				safestrcpy(fullfilename,sizeof(fullfilename), diskpath);
-				safestrcat(fullfilename,sizeof(fullfilename), "/");
-				safestrcat(fullfilename,sizeof(fullfilename), filename);
-
-				if (!generateStaticImageFormat(fullfilename,dynamicimage_type)) //Failed generating the format to use?
+				safestrcat(filename, sizeof(filename), ".img"); //Generate destination filename!
+				//dolog("BIOS", "Dynamic disk size: %u bytes = %u sectors", size, (size >> 9));
+				if (size != 0) //Got size?
 				{
-					error = 2; //Error #2!
-					goto handleDynamicStaticCreationError;
-				}
-
-				dest = emufopen64(fullfilename, "wb"); //Open the destination!
-				for (sectornr = 0; sectornr < size;) //Process all sectors!
-				{
-					if (shuttingdown())
+					if (!strcmp(filename, BIOS_Settings.hdd0) || !strcmp(filename, BIOS_Settings.hdd1)) //Harddisk changed?
 					{
-						error = 4; //Give the fourth error!
-						break;
+						BIOS_Changed = 1; //We've changed!
+						reboot_needed |= 2; //We're in need of a reboot!
 					}
-					if ((size - sectornr) > sizeof(sector)) //Too much to handle?
+					if (!strcmp(disks[FLOPPY0].rawfilename, filename)) //Floppy #0 changed?
 					{
-						datatotransfer = sizeof(sector); //Limit to max!
+						iofloppy0("", 0, BIOS_Settings.floppy0_readonly, 0); //Unmount!
+						iofloppy0(BIOS_Settings.floppy0, 0, BIOS_Settings.floppy0_readonly, 0); //Remount to update!
 					}
-					else //What's left?
+					if (!strcmp(disks[FLOPPY1].rawfilename, filename)) //Floppy #1 changed?
 					{
-						datatotransfer = size;
-						datatotransfer -= sectornr; //How many bytes of data to transfer?
+						iofloppy1("", 0, BIOS_Settings.floppy1_readonly, 0); //Unmount!
+						iofloppy1(BIOS_Settings.floppy1, 0, BIOS_Settings.floppy1_readonly, 0); //Remount to update!
 					}
-					if (readdata(HDD0, &sector, sectornr, (uint_32)datatotransfer)) //Read a sector?
-					{
-						if (emufwrite64(&sector,1,datatotransfer,dest)!=(int_64)datatotransfer) //Error writing a sector?
-						{
-							error = 2;
-							break; //Stop reading!
-						}
-					}
-					else //Error reading sector?
-					{
-						error = 1;
-						break; //Stop reading!
-					}
-					sectorupdateintervalcnt += datatotransfer; //Transferred data!
-					if ((sectorupdateintervalcnt>=sectorupdateinterval) || firstupdate) //Update every 10000 sectors!
-					{
-						sectorupdateintervalcnt %= sectorupdateinterval; //Reset counter as much as is needed!
-						firstupdate = 0; //Not first update anymore!
-						EMU_locktext();
-						GPU_EMU_printscreen(18, 6, "%u%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
-						EMU_unlocktext();
-					}
-					sectornr += datatotransfer; //Next sector!
-				}
-				emufclose64(dest); //Close the file!
-
-				EMU_locktext();
-				GPU_EMU_printscreen(18, 6, "%u%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
-				EMU_unlocktext();
-
-				//Verification!
-				if (!error) //OK?
-				{
 					EMU_locktext();
-					GPU_EMU_printscreen(0, 7, "Validating image: "); //Start of percentage!
+					EMU_gotoxy(0, 6); //Next row!
+					GPU_EMU_printscreen(0, 6, "Generating image: "); //Start of percentage!
+					GPU_EMU_printscreen(18, 6, "      "); //Clear the creation process!
+					GPU_EMU_printscreen(12, 5, "      "); //Clear the creation process!
+					GPU_EMU_printscreen(12, 5, "%uMB", (size / MBMEMORY)); //Image size
+					FILEPOS sectornr = 0;
+					EMU_gotoxy(0, 6); //Next row!
+					GPU_EMU_printscreen(0, 6, "Generating image: "); //Start of percentage!
 					EMU_unlocktext();
-					iohdd1(filename, 0, 1, 0); //Mount!
-					sectorupdateinterval = MAX((size/100),sizeof(sector)); //Update interval!
+					byte error = 0;
+					sectorupdateinterval = MAX((size / 100), sizeof(sector)); //Update interval!
 					sectorupdateintervalcnt = 0; //Reset counter for the first update!
-					firstupdate = 1; //First update!
+					byte firstupdate = 1; //First update!
+					BIGFILE* dest;
+					domkdir(diskpath); //Make sure our directory we're creating an image in exists!
+					memset(&fullfilename, 0, sizeof(fullfilename));
+					safestrcpy(fullfilename, sizeof(fullfilename), diskpath);
+					safestrcat(fullfilename, sizeof(fullfilename), "/");
+					safestrcat(fullfilename, sizeof(fullfilename), filename);
+
+					if (!generateStaticImageFormat(fullfilename, dynamicimage_type)) //Failed generating the format to use?
+					{
+						error = 2; //Error #2!
+						goto handleDynamicStaticCreationError;
+					}
+
+					dest = emufopen64(fullfilename, "wb"); //Open the destination!
 					for (sectornr = 0; sectornr < size;) //Process all sectors!
 					{
 						if (shuttingdown())
@@ -3156,21 +3124,16 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 						{
 							datatotransfer = sizeof(sector); //Limit to max!
 						}
-						else
+						else //What's left?
 						{
 							datatotransfer = size;
 							datatotransfer -= sectornr; //How many bytes of data to transfer?
 						}
 						if (readdata(HDD0, &sector, sectornr, (uint_32)datatotransfer)) //Read a sector?
 						{
-							if (!readdata(HDD1, &verificationsector, sectornr, (uint_32)datatotransfer)) //Error reading a sector?
+							if (emufwrite64(&sector, 1, datatotransfer, dest) != (int_64)datatotransfer) //Error writing a sector?
 							{
 								error = 2;
-								break; //Stop reading!
-							}
-							else if ((sectorposition = memcmp(&sector,&verificationsector,(size_t)datatotransfer)) != 0)
-							{
-								error = 3; //Verification error!
 								break; //Stop reading!
 							}
 						}
@@ -3180,32 +3143,94 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 							break; //Stop reading!
 						}
 						sectorupdateintervalcnt += datatotransfer; //Transferred data!
-						if ((sectorupdateintervalcnt>=sectorupdateinterval) || firstupdate) //Update every 10000 sectors!
+						if ((sectorupdateintervalcnt >= sectorupdateinterval) || firstupdate) //Update every 10000 sectors!
 						{
 							sectorupdateintervalcnt %= sectorupdateinterval; //Reset counter as much as is needed!
 							firstupdate = 0; //Not first update anymore!
 							EMU_locktext();
-							GPU_EMU_printscreen(18, 7, "%u%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
+							GPU_EMU_printscreen(18, 6, "%u%%", (int)(((float)sectornr / (float)size) * 100.0f)); //Current progress!
 							EMU_unlocktext();
 						}
 						sectornr += datatotransfer; //Next sector!
 					}
+					emufclose64(dest); //Close the file!
+
 					EMU_locktext();
-					GPU_EMU_printscreen(18, 6, "%u%%", (int)(((float)sectornr / (float)size)*100.0f)); //Current progress!
+					GPU_EMU_printscreen(18, 6, "%u%%", (int)(((float)sectornr / (float)size) * 100.0f)); //Current progress!
 					EMU_unlocktext();
-					if (error) //Error occurred?
+
+					//Verification!
+					if (!error) //OK?
 					{
-						deleteStaticImageCompletely(fullfilename); //Try to remove the generated file!
-						dolog(filename, "Error #%u validating static image sector %u/%u@byte %u", error, sectornr / 512, size / 512,sectorposition?sectorposition-1:0); //Error at this sector!
+						EMU_locktext();
+						GPU_EMU_printscreen(0, 7, "Validating image: "); //Start of percentage!
+						EMU_unlocktext();
+						iohdd1(filename, 0, 1, 0); //Mount!
+						sectorupdateinterval = MAX((size / 100), sizeof(sector)); //Update interval!
+						sectorupdateintervalcnt = 0; //Reset counter for the first update!
+						firstupdate = 1; //First update!
+						for (sectornr = 0; sectornr < size;) //Process all sectors!
+						{
+							if (shuttingdown())
+							{
+								error = 4; //Give the fourth error!
+								break;
+							}
+							if ((size - sectornr) > sizeof(sector)) //Too much to handle?
+							{
+								datatotransfer = sizeof(sector); //Limit to max!
+							}
+							else
+							{
+								datatotransfer = size;
+								datatotransfer -= sectornr; //How many bytes of data to transfer?
+							}
+							if (readdata(HDD0, &sector, sectornr, (uint_32)datatotransfer)) //Read a sector?
+							{
+								if (!readdata(HDD1, &verificationsector, sectornr, (uint_32)datatotransfer)) //Error reading a sector?
+								{
+									error = 2;
+									break; //Stop reading!
+								}
+								else if ((sectorposition = memcmp(&sector, &verificationsector, (size_t)datatotransfer)) != 0)
+								{
+									error = 3; //Verification error!
+									break; //Stop reading!
+								}
+							}
+							else //Error reading sector?
+							{
+								error = 1;
+								break; //Stop reading!
+							}
+							sectorupdateintervalcnt += datatotransfer; //Transferred data!
+							if ((sectorupdateintervalcnt >= sectorupdateinterval) || firstupdate) //Update every 10000 sectors!
+							{
+								sectorupdateintervalcnt %= sectorupdateinterval; //Reset counter as much as is needed!
+								firstupdate = 0; //Not first update anymore!
+								EMU_locktext();
+								GPU_EMU_printscreen(18, 7, "%u%%", (int)(((float)sectornr / (float)size) * 100.0f)); //Current progress!
+								EMU_unlocktext();
+							}
+							sectornr += datatotransfer; //Next sector!
+						}
+						EMU_locktext();
+						GPU_EMU_printscreen(18, 6, "%u%%", (int)(((float)sectornr / (float)size) * 100.0f)); //Current progress!
+						EMU_unlocktext();
+						if (error) //Error occurred?
+						{
+							deleteStaticImageCompletely(fullfilename); //Try to remove the generated file!
+							dolog(filename, "Error #%u validating static image sector %u/%u@byte %u", error, sectornr / 512, size / 512, sectorposition ? sectorposition - 1 : 0); //Error at this sector!
+						}
 					}
-				}
-				else //Error occurred?
-				{
-					handleDynamicStaticCreationError:
-					dolog(filename, "Error #%u copying dynamic image sector %u/%u", error, sectornr / 512, size / 512); //Error at this sector!
-					if (!deleteStaticImageCompletely(fullfilename)) //Defragmented file can be removed?
+					else //Error occurred?
 					{
-						dolog(filename, "Error cleaning up the new defragmented image!");
+					handleDynamicStaticCreationError:
+						dolog(filename, "Error #%u copying dynamic image sector %u/%u", error, sectornr / 512, size / 512); //Error at this sector!
+						if (!deleteStaticImageCompletely(fullfilename)) //Defragmented file can be removed?
+						{
+							dolog(filename, "Error cleaning up the new defragmented image!");
+						}
 					}
 				}
 			}
@@ -6487,12 +6512,17 @@ void BIOS_GenerateFloppyDisk()
 
 						generateFloppyImage(filename, &floppygeometries[result], 18, 7); //Generate a floppy image according to geometry data!
 						//Check for disk changes on mounted floppy disks (we might be getting a new size, when we're recreaten)!
-						if (!memcmp(disks[FLOPPY0].rawfilename,filename,sizeof(disks[FLOPPY0].rawfilename))) //Floppy #0 changed?
+						if (!strcmp(filename, BIOS_Settings.hdd0) || !strcmp(filename, BIOS_Settings.hdd1)) //Harddisk changed?
+						{
+							BIOS_Changed = 1; //We've changed!
+							reboot_needed |= 2; //We're in need of a reboot!
+						}
+						if (!strcmp(disks[FLOPPY0].rawfilename,filename)) //Floppy #0 changed?
 						{
 							iofloppy0("",0,BIOS_Settings.floppy0_readonly,0); //Unmount!
 							iofloppy0(BIOS_Settings.floppy0,0,BIOS_Settings.floppy0_readonly,0); //Remount to update!
 						}
-						if (!memcmp(disks[FLOPPY1].rawfilename,filename,sizeof(disks[FLOPPY0].rawfilename))) //Floppy #1 changed?
+						if (!strcmp(disks[FLOPPY1].rawfilename,filename)) //Floppy #1 changed?
 						{
 							iofloppy1("",0,BIOS_Settings.floppy1_readonly,0); //Unmount!
 							iofloppy1(BIOS_Settings.floppy1,0,BIOS_Settings.floppy1_readonly,0); //Remount to update!
@@ -6563,12 +6593,12 @@ void BIOS_GenerateIMDFloppyDisk()
 
 						i = generateIMDImage(filename, floppygeometries[result].tracks, floppygeometries[result].sides, (floppygeometries[result].DoubleDensity ? FORMATTING_MFM : FORMATTING_FM), FORMAT_SPEED_500, 18, 7); //Generate a floppy image according to geometry data!
 						//Check for disk changes on mounted floppy disks (we might be getting a new size, when we're recreaten)!
-						if (!memcmp(disks[FLOPPY0].rawfilename, filename, sizeof(disks[FLOPPY0].rawfilename))) //Floppy #0 changed?
+						if (!strcmp(disks[FLOPPY0].rawfilename, filename)) //Floppy #0 changed?
 						{
 							iofloppy0("", 0, BIOS_Settings.floppy0_readonly, 0); //Unmount!
 							iofloppy0(BIOS_Settings.floppy0, 0, BIOS_Settings.floppy0_readonly, 0); //Remount to update!
 						}
-						if (!memcmp(disks[FLOPPY1].rawfilename, filename, sizeof(disks[FLOPPY0].rawfilename))) //Floppy #1 changed?
+						if (!strcmp(disks[FLOPPY1].rawfilename, filename)) //Floppy #1 changed?
 						{
 							iofloppy1("", 0, BIOS_Settings.floppy1_readonly, 0); //Unmount!
 							iofloppy1(BIOS_Settings.floppy1, 0, BIOS_Settings.floppy1_readonly, 0); //Remount to update!
