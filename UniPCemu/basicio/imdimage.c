@@ -3181,13 +3181,16 @@ byte generateIMDImage(char* filename, byte tracks, byte heads, byte MFM, byte sp
 			}
 
 			//Then, sector size map, if need to be used!
-			b = 0; //The sector size!
-			w = (0x80 << b); //128*2^x is the cylinder size!
-			if (emufwrite64(&w, 1, sizeof(w), f) != sizeof(w))
+			if (newtrackinfo.SectorSize == 0xFF) //Sector size map used?
 			{
-				emufclose64(f); //Close the file!
-				delete_file(NULL, fullfilename); //Remove it, it's invalid!
-				return 0; //Error out!
+				b = 0; //The sector size!
+				w = (0x80 << b); //128*2^x is the cylinder size!
+				if (emufwrite64(&w, 1, sizeof(w), f) != sizeof(w))
+				{
+					emufclose64(f); //Close the file!
+					delete_file(NULL, fullfilename); //Remove it, it's invalid!
+					return 0; //Error out!
+				}
 			}
 
 			//Then, the sector data(is compressed for easy formatting)!
