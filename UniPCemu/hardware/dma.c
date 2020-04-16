@@ -57,6 +57,8 @@ typedef struct
 	DMATickHandler TCHandler; //TC handler for DMA channel!
 	DMAEOPHandler EOPHandler; //EOP handler for DMA channel!
 	byte DMA_EOPresult;
+	byte verifyreadresultb;
+	word verifyreadresultw;
 } DMAChannelTYPE; //Contains all info about an DMA channel!
 
 typedef struct
@@ -687,14 +689,28 @@ void DMA_StateHandler_S3()
 		{
 			if (DMAController[controller].DMAChannel[DMAchannel].ReadWHandler) //Valid handler?
 			{
-				memory_directww(address, DMAController[controller].DMAChannel[DMAchannel].ReadWHandler()); //Read using handler!
+				if (DMAmoderegister & 0xC) //Actually write to memory?
+				{
+					memory_directww(address, DMAController[controller].DMAChannel[DMAchannel].ReadWHandler()); //Read using handler!
+				}
+				else //Simply DACK, don't write to memory(verify mode)!
+				{
+					DMAController[controller].DMAChannel[DMAchannel].verifyreadresultw = DMAController[controller].DMAChannel[DMAchannel].ReadWHandler(); //Read using handler!
+				}
 			}
 		}
 		else //8-bits?
 		{
 			if (DMAController[controller].DMAChannel[DMAchannel].ReadBHandler) //Valid handler?
 			{
-				memory_directwb(address, DMAController[controller].DMAChannel[DMAchannel].ReadBHandler()); //Read using handler!
+				if (DMAmoderegister & 0xC) //Actually write to memory?
+				{
+					memory_directwb(address, DMAController[controller].DMAChannel[DMAchannel].ReadBHandler()); //Read using handler!
+				}
+				else //Simply DACK, don't write to memory(verify mode)!
+				{
+					DMAController[controller].DMAChannel[DMAchannel].verifyreadresultb = DMAController[controller].DMAChannel[DMAchannel].ReadBHandler(); //Read using handler!
+				}
 			}
 		}
 		break;
