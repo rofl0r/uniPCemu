@@ -5647,24 +5647,24 @@ void CPU8086_OP9F()
 void CPU8086_OPA0()
 {
 	INLINEREGISTER uint_32 theimm = immaddr32;
-	debugger_setcommand("MOV AL,byte %s:[%04X]",CPU_textsegment(CPU_SEGMENT_DS),theimm);/*MOV AL,[imm16]*/
+	debugger_setcommand("MOV AL,byte %s:[%04X]",CPU_textsegment(CPU_SEGMENT_DS), (theimm & CPU[activeCPU].address_size));/*MOV AL,[imm16]*/
 	if (unlikely(CPU[activeCPU].modrmstep==0))
 	{
 		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(theimm&CPU[activeCPU].address_size),1,getCPL(),1,0)) return;
 	}
-	if (CPU8086_instructionstepreaddirectb(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),theimm,&instructionbufferb,1)) return;
+	if (CPU8086_instructionstepreaddirectb(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS), (theimm & CPU[activeCPU].address_size),&instructionbufferb,1)) return;
 	CPU8086_internal_MOV8(&REG_AL,instructionbufferb,1);/*MOV AL,[imm16]*/
 }
 void CPU8086_OPA1()
 {
 	INLINEREGISTER uint_32 theimm = immaddr32;
-	debugger_setcommand("MOV AX,word %s:[%04X]",CPU_textsegment(CPU_SEGMENT_DS),theimm);/*MOV AX,[imm16]*/
+	debugger_setcommand("MOV AX,word %s:[%04X]",CPU_textsegment(CPU_SEGMENT_DS), (theimm & CPU[activeCPU].address_size));/*MOV AX,[imm16]*/
 	if (unlikely(CPU[activeCPU].modrmstep==0))
 	{
 		if (checkMMUaccess16(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(theimm&CPU[activeCPU].address_size),1|0x40,getCPL(),1,0|0x8)) return;
 		if (checkMMUaccess16(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (theimm&CPU[activeCPU].address_size), 1|0xA0, getCPL(), 1, 0 | 0x8)) return;
 	}
-	if (CPU8086_instructionstepreaddirectw(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),theimm,&instructionbufferw,1)) return;
+	if (CPU8086_instructionstepreaddirectw(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS), (theimm & CPU[activeCPU].address_size),&instructionbufferw,1)) return;
 	CPU8086_internal_MOV16(&REG_AX,instructionbufferw,1);/*MOV AX,[imm16]*/
 }
 void CPU8086_OPA2()
