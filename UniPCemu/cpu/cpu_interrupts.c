@@ -456,11 +456,17 @@ byte CPU_handleNMI()
 	return 0; //NMI handled!
 }
 
+extern byte is_Compaq; //Are we emulating an Compaq architecture?
+
 byte execNMI(byte causeisMemory) //Execute an NMI!
 {
 	byte doNMI = 0; //Default: no NMI is to be triggered!
-	if (causeisMemory) //I/O error on memory?
+	if (causeisMemory) //I/O error on memory or failsafe timer?
 	{
+		if (!(((causeisMemory == 2) && is_Compaq) || ((causeisMemory != 2) && (!is_Compaq)))) //Not Fail safe timer for compaq or Memory for non-Compaq?
+		{
+			return 1; //Unhandled NMI!
+		}
 		if (EMULATED_CPU >= CPU_80286) //AT?
 		{
 			if ((SystemControlPortB & 4)==0) //Parity check enabled(the enable bits are reversed according to the AT BIOS)?

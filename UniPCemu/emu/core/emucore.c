@@ -1307,6 +1307,7 @@ OPTINLINE byte coreHandler()
 			updateJoystick(MHZ14passed_ns); //Update the Joystick!
 			updateAudio(MHZ14passed_ns); //Update the general audio processing!
 			BIOSROM_updateTimers(MHZ14passed_ns); //Update any ROM(Flash ROM) timers!
+			PPI_checkfailsafetimer(); //Check for any failsafe timers to raise, if required!
 		}
 		MMU_logging &= ~2; //Are we logging hardware memory accesses again?
 		if (unlikely(--timeout==0)) //Timed out?

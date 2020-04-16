@@ -23,5 +23,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 
 void initPPI(sword useDiagnosticsportoutput_breakpoint, uint_32 breakpointtimeout);
 void checkPPIA20();
+void PPI_failsafetimer(byte line); //Triggered when the failsafe timer changes state!
+void PPI_checkfailsafetimer(); //Check for the failsafe timer to run!
 
 #endif

@@ -467,6 +467,14 @@ void tickPIT(DOUBLE timepassed, uint_32 MHZ14passed) //Ticks all PIT timers avai
 							}
 						}
 					}
+					else if (channel == 4) //2nd PIT, channel 0 is the Failsafe timer?
+					{
+						if (((PITchannels[channel].lastchannel_status ^ currentsample) & 1)) //Changed failsafe timer state?
+						{
+							//Perform the failsafe timer NMI if it's enabled!
+							PPI_failsafetimer(PITchannels->lastchannel_status); //Update the failsafe timer state!
+						}
+					}
 				}
 				else //PIT0?
 				{
@@ -686,13 +694,13 @@ byte in8254(word portnum, byte *result)
 	if (__HW_DISABLED) return 0; //Abort!
 	switch (portnum)
 	{
-		case 0x44:
+		case 0x48:
 		case 0x49:
 		case 0x4A: //Second timer on Compaq?
 			if (numPITchannels!=6) return 0; //Disabled?
 			whichtimer = 1; //Second timer to use!
 			pit = (byte)(portnum&0xFF);
-			pit -= 0x44; //PIT!
+			pit -= 0x48; //PIT!
 			pit = secondPITmapping[pit]; //Map according to the second PIT!
 			if (pit==0xFF) return 0; //Unmapped?
 			goto applyINpit;
@@ -771,7 +779,7 @@ byte in8254(word portnum, byte *result)
 			PIT_LOG("Read from data port 0x%02X=%02X", portnum, *result);
 			return 1;
 			break;
-		case 0x47: //Second timer command?
+		case 0x4B: //Second timer command?
 			if (numPITchannels!=6) return 0; //Disabled?
 			whichtimer = 1; //Second timer to use!
 		case 0x43:
@@ -804,13 +812,13 @@ byte out8254(word portnum, byte value)
 	byte currentstatus; //For read back command!
 	switch (portnum)
 	{
-		case 0x44:
+		case 0x48:
 		case 0x49:
 		case 0x4A: //Second timer on Compaq?
 			if (numPITchannels!=6) return 0; //Disabled?
 			whichtimer = 1; //Second timer to use!
 			pit = (byte)(portnum&0xFF);
-			pit -= 0x44; //PIT!
+			pit -= 0x48; //PIT!
 			pit = secondPITmapping[pit]; //Map according to the second PIT!
 			if (pit==0xFF) return 0; //Unmapped?
 			goto applyOUTpit;
@@ -880,7 +888,7 @@ byte out8254(word portnum, byte value)
 				break;
 			}
 			return 1;
-		case 0x47: //Second timer command?
+		case 0x4B: //Second timer command?
 			if (numPITchannels!=6) return 0; //Disabled?			
 			whichtimer = 1; //Second timer to use!
 		case 0x43: //pit command port
@@ -976,16 +984,12 @@ void init8253() {
 	#endif
 	registerIRQ(0,&PIT0Acnowledge,NULL); //Register our acnowledge IRQ!
 	PCSpeakerPort = 0; //Init PC speaker port!
-	/*
 	if (is_Compaq==1) //Emulating Compaq architecture?
 	{
 		numPITchannels = 6; //We're emulating all 6 channels instead!
 	}
 	else
 	{
-	*/
 		numPITchannels = 3; //We're emulating base XT+ 3 channel PIT!
-	/*
 	}
-	*/
 }

@@ -271,6 +271,31 @@ byte PPI_writeIO(word port, byte value)
 	return 0; //No PPI!
 }
 
+byte failsafe_NMIpending;
+void PPI_failsafetimer(byte line) //Triggered when the failsafe timer changes state!
+{
+	//Ignore the exact change in line status? Timer is timed after all!
+	if (SystemControlPortB & 0x4) //Fail-safe NMI enabled?
+	{
+		failsafe_NMIpending = 1; //Start pending!
+		if (execNMI(2)) //Raised?
+		{
+			failsafe_NMIpending = 0; //Not pending anymore!
+		}
+	}
+}
+
+void PPI_checkfailsafetimer()
+{
+	if (unlikely(failsafe_NMIpending)) //pending?
+	{
+		if (execNMI(2)) //Raised?
+		{
+			failsafe_NMIpending = 0; //Not pending anymore!
+		}
+	}
+}
+
 void initPPI(sword useDiagnosticsportoutput_breakpoint, uint_32 breakpointtimeout)
 {
 	SystemControlPortB = 0x3F; //Reset system control port B!
