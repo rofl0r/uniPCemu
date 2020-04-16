@@ -404,17 +404,17 @@ OPTINLINE DOUBLE FLOPPY_sectorrate(byte drivenumber)
 	if (FLOPPY.geometries[drivenumber]) //Valid geometry?
 	{
 		#ifdef IS_LONGDOUBLE
-		return (60000000000.0L/(DOUBLE)FLOPPY.geometries[drivenumber]->RPM)/((FLOPPY.activecommand[drivenumber] == 0xD) ? MIN(FLOPPY.commandbuffer[3],1) : (DOUBLE)FLOPPY.geometries[drivenumber]->SPT); //We're at a constant speed, which is RPM divided up by Sectors per Track(Each track takes one round to read always)!
+		return (60000000000.0L/(DOUBLE)FLOPPY.geometries[drivenumber]->RPM)/((FLOPPY.activecommand[drivenumber] == 0xD) ? MAX(FLOPPY.commandbuffer[3],1) : (DOUBLE)FLOPPY.geometries[drivenumber]->SPT); //We're at a constant speed, which is RPM divided up by Sectors per Track(Each track takes one round to read always)!
 		#else
-		return (60000000000.0/(DOUBLE)FLOPPY.geometries[drivenumber]->RPM)/((FLOPPY.activecommand[drivenumber] == 0xD) ? MIN(FLOPPY.commandbuffer[3], 1) : (DOUBLE)FLOPPY.geometries[drivenumber]->SPT); //We're at a constant speed, which is RPM divided up by Sectors per Track(Each track takes one round to read always)!
+		return (60000000000.0/(DOUBLE)FLOPPY.geometries[drivenumber]->RPM)/((FLOPPY.activecommand[drivenumber] == 0xD) ? MAX(FLOPPY.commandbuffer[3], 1) : (DOUBLE)FLOPPY.geometries[drivenumber]->SPT); //We're at a constant speed, which is RPM divided up by Sectors per Track(Each track takes one round to read always)!
 		#endif
 	}
 	else //Default rate for unknown disk geometries!
 	{
 		#ifdef IS_LONGDOUBLE
-		return (60000000000.0L/(DOUBLE)300)/ ((FLOPPY.activecommand[drivenumber] == 0xD) ? MIN(FLOPPY.commandbuffer[3], 1) : (DOUBLE)80); //We're at a constant speed, which is RPM divided up by Sectors per Track(Each track takes one round to read always)!
+		return (60000000000.0L/(DOUBLE)300)/ ((FLOPPY.activecommand[drivenumber] == 0xD) ? MAX(FLOPPY.commandbuffer[3], 1) : (DOUBLE)80); //We're at a constant speed, which is RPM divided up by Sectors per Track(Each track takes one round to read always)!
 		#else
-		return (60000000000.0/(DOUBLE)300)/ ((FLOPPY.activecommand[drivenumber] == 0xD) ? MIN(FLOPPY.commandbuffer[3], 1) : (DOUBLE)80); //We're at a constant speed, which is RPM divided up by Sectors per Track(Each track takes one round to read always)!
+		return (60000000000.0/(DOUBLE)300)/ ((FLOPPY.activecommand[drivenumber] == 0xD) ? MAX(FLOPPY.commandbuffer[3], 1) : (DOUBLE)80); //We're at a constant speed, which is RPM divided up by Sectors per Track(Each track takes one round to read always)!
 		#endif
 	}
 }
