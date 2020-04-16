@@ -467,7 +467,7 @@ void tickPIT(DOUBLE timepassed, uint_32 MHZ14passed) //Ticks all PIT timers avai
 							}
 						}
 					}
-					else if (channel == 4) //2nd PIT, channel 0 is the Failsafe timer?
+					else if (channel == 3) //2nd PIT, channel 0 is the Failsafe timer?
 					{
 						if (((PITchannels[channel].lastchannel_status ^ currentsample) & 1)) //Changed failsafe timer state?
 						{
