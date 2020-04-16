@@ -1257,6 +1257,7 @@ void floppy_readsector() //Request a read sector command!
 		FLOPPY_LOGD("FLOPPY: Error: Invalid drive!")
 		//if (FLOPPY_DOR_DRIVENUMBERR > 1) //Invalid drive?
 		{
+			floppy_readnomedia:
 			floppy_common_sectoraccess_nomedia(FLOPPY_DOR_DRIVENUMBERR); //No media!
 		}
 		/*
@@ -1452,6 +1453,7 @@ void floppy_readsector() //Request a read sector command!
 			}
 			FLOPPY.floppy_scanningforSectorID = 0; //Not scanning anymore!
 			FLOPPY.ST1 = 0x04 | 0x01; //Couldn't find any sector!
+			goto floppy_readnomedia; //Do the same thing as no media being present!
 			goto floppy_errorread;
 		foundsectorIDread: //Found the sector ID for the write!
 			if (DSKImageFile) //DSK image file?
