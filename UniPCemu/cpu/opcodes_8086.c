@@ -5672,7 +5672,7 @@ void CPU8086_OPA2()
 	INLINEREGISTER uint_32 theimm = immaddr32;
 	debugger_setcommand("MOV byte %s:[%04X],AL",CPU_textsegment(CPU_SEGMENT_DS),theimm);/*MOV [imm16],AL*/
 	custommem = 1;
-	customoffset = theimm;
+	customoffset = (theimm&CPU[activeCPU].address_size);
 	if (CPU8086_internal_MOV8(NULL,REG_AL,1)) return;/*MOV [imm16],AL*/
 	custommem = 0;
 }
@@ -5681,7 +5681,7 @@ void CPU8086_OPA3()
 	INLINEREGISTER uint_32 theimm = immaddr32;
 	debugger_setcommand("MOV word %s:[%04X],AX",CPU_textsegment(CPU_SEGMENT_DS),theimm);/*MOV [imm16], AX*/
 	custommem = 1;
-	customoffset = theimm;
+	customoffset = (theimm&CPU[activeCPU].address_size);
 	if (CPU8086_internal_MOV16(NULL,REG_AX,1)) return;/*MOV [imm16], AX*/
 	custommem = 0;
 }
