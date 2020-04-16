@@ -153,10 +153,14 @@ extern MODRM_PARAMS params; //For getting all params for the CPU!
 
 void reset_modrm()
 {
-	last_modrm = 0; //Last wasn't a modr/m anymore by default!
 	params.EA_cycles = 0; //Default: no cycles used!
-	modrm_addoffset = 0; //Add this offset to ModR/M reads: default to none!
 	params.notdecoded = 1; //Default: no ModR/M has been decoded!
+}
+
+void reset_modrmall()
+{
+	last_modrm = 0; //Last wasn't a modr/m anymore by default!
+	modrm_addoffset = 0; //Add this offset to ModR/M reads: default to none!
 }
 
 void modrm_notdecoded(MODRM_PARAMS *params)

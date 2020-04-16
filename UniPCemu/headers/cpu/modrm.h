@@ -253,7 +253,8 @@ void modrm_text32(MODRM_PARAMS *params, int whichregister, char *result); //32-b
 
 void halt_modrm(char *message, ...); //Modr/m error?
 
-void reset_modrm(); //Resets the modrm info for the current opcode!
+void reset_modrm(); //Resets the modrm info for the current opcode(not REP)!
+void reset_modrmall(); //Resets the modrm settings for the new opcode (both REP and not REP)!
 
 //For CPU itself:
 /*

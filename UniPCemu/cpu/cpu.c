@@ -1057,11 +1057,19 @@ uint_32 CPU_exec_EIP, CPU_debugger_EIP; //OPCode EIP
 word CPU_exec_lastCS = 0; //OPCode CS
 uint_32 CPU_exec_lastEIP = 0; //OPCode EIP
 
+extern byte custommem; //Used in some instructions!
+extern uint_32 customoffset; //Offset to use!
+
+byte blockREP = 0; //Block the instruction from executing (REP with (E)CX=0
+
 OPTINLINE void CPU_resetInstructionSteps()
 {
 	//Prepare for a (repeated) instruction to execute!
 	CPU[activeCPU].instructionstep = CPU[activeCPU].internalinstructionstep = CPU[activeCPU].modrmstep = CPU[activeCPU].internalmodrmstep = CPU[activeCPU].internalinterruptstep = CPU[activeCPU].stackchecked = 0; //Start the instruction-specific stage!
 	CPU[activeCPU].pushbusy = 0;
+	custommem = 0; //Not using custom memory addresses for MOV!
+	customoffset = 0; //See custommem!
+	blockREP = 0; //Not blocking REP!
 }
 
 void CPU_interruptcomplete()
@@ -1451,7 +1459,6 @@ void CPU_beforeexec()
 	}
 }
 
-byte blockREP = 0; //Block the instruction from executing (REP with (E)CX=0
 byte gotREP = 0; //Default: no REP-prefix used!
 byte REPPending = 0; //Pending REP reset?
 
@@ -1501,7 +1508,6 @@ extern byte didJump; //Did we jump this instruction?
 extern byte ENTER_L; //Level value of the ENTER instruction!
 extern byte hascallinterrupttaken_type; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task gate flag. Left at 0xFF when nothing is used(unknown case?)
 extern byte CPU_interruptraised; //Interrupt raised flag?
-extern byte custommem; //Used in some instructions!
 
 void CPU_prepareHWint() //Prepares the CPU for hardware interrupts!
 {
@@ -1537,6 +1543,8 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		MMU_resetaddr(); //Reset invalid address for our usage!
 		CPU_8086REPPending(0); //Process pending REP!
 		protection_nextOP(); //Prepare protection for the next instruction!
+		reset_modrmall(); //Reset all modr/m related settings that are supposed to be reset each instruction, both REP and non-REP!
+		blockREP = 0; //Default: nothing to do with REP!
 		if (!CPU[activeCPU].repeating)
 		{
 			MMU_clearOP(); //Clear the OPcode buffer in the MMU (equal to our instruction cache) when not repeating!
@@ -1568,7 +1576,6 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		ENTER_L = 0; //Default to no L depth!
 		hascallinterrupttaken_type = 0xFF; //Default to no call/interrupt taken type!
 		CPU_interruptraised = 0; //Default: no interrupt raised!
-		custommem = 0; //Used in some instructions!
 
 		//Now, starting the instruction preprocessing!
 		CPU[activeCPU].is_reset = 0; //We're not reset anymore from now on!
