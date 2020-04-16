@@ -37,6 +37,7 @@ src:http://wiki.osdev.org/Programmable_Interval_Timer#Channel_2
 #include "headers/support/wave.h" //Wave support!
 #include "headers/support/log.h" //Logging support!
 #include "headers/support/filters.h" //Filter support!
+#include "headers/hardware/ppi.h" //Failsafe timer support!
 
 //Are we disabled?
 #define __HW_DISABLED 0
