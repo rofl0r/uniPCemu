@@ -2005,7 +2005,7 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 	RAWSEGMENTDESCRIPTOR idtentry; //The loaded IVT entry!
 	memcpy(&idtentry,theidtentry,sizeof(idtentry)); //Make a copy for our own use!
 
-	if ((is_interrupt&1) && ((is_interrupt&0x10)==0) && (IDTENTRY_DPL(idtentry) < getCPL())) //Not enough rights on software interrupt?
+	if ((is_interrupt&1) && /*((is_interrupt&0x10)==0) &&*/ (IDTENTRY_DPL(idtentry) < getCPL())) //Not enough rights on software interrupt?
 	{
 		THROWDESCGP(base,EXT,table); //#GP!
 		return 0;
