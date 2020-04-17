@@ -2413,6 +2413,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 				FLOPPY.resultbuffer[1] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]; //Our idea of the current cylinder!
 				FLOPPY.resultposition = 0; //Start result!
 				FLOPPY.commandstep = 3; //Move to result phase!
+				FLOPPY.commandstep = 0xFD; //Give ST0, then hang the controller!
 				return;
 			}
 			FLOPPY_lowerIRQ(); //Lower the IRQ!
@@ -3539,6 +3540,8 @@ byte PORT_OUT_floppy(word port, byte value)
 			FLOPPY_CCR_RATEW(FLOPPY_DSR_DRATESELR); //Setting one sets the other!
 			return 1; //Finished!
 		}
+		return 0; //Not handled!
+		break;
 	case 5: //Data?
 		floppy_writeData(0,value); //Write data!
 		return 1; //Default handler!
