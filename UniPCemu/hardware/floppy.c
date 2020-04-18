@@ -1023,7 +1023,7 @@ byte floppy_increasesector(byte floppy, byte EOTfield, byte isformatcommand) //I
 			FLOPPY.currentphysicalhead[floppy] = ((FLOPPY.currentphysicalhead[floppy] + 1) & 1);
 			if (FLOPPY.currenthead[floppy]==0) //Overflown, EOT, switching to head 0? We were the last sector on side 1 with MT!
 			{
-				result = 0; //Finish!
+				result &= ~2; //Finish!
 				FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[floppy]+1; //Report the next cylinder number instead!
 				FLOPPY.resultbuffer[4] = FLOPPY.currenthead[floppy]; //The flipped head number of the last sector read!
 			}
@@ -1034,7 +1034,7 @@ byte floppy_increasesector(byte floppy, byte EOTfield, byte isformatcommand) //I
 		}
 		else //Single track mode reached end-of-track?
 		{
-			result = 0; //Finish!
+			result &= ~2; //Finish!
 			FLOPPY.resultbuffer[3] = FLOPPY.currentcylinder[floppy]+1; //The next cylinder number!
 			FLOPPY.resultbuffer[4] = FLOPPY.currenthead[floppy]; //The current head number!
 		}
@@ -1051,25 +1051,22 @@ byte floppy_increasesector(byte floppy, byte EOTfield, byte isformatcommand) //I
 
 	if (FLOPPY_useDMA()) //DMA mode determines our triggering?
 	{
-		if (result&1) //OK to transfer more according to TC?
+		if (result&1) //OK to transfer more according to TC(not set)?
 		{
 			if (result & 2) //Not finished transferring data?
 			{
 				result = 1; //Transfer more!
 			}
-			else //Error occurred during DMA transfer? Requesting more by DMA than we can handle?
+			else //Error occurred during DMA transfer? Requesting more by DMA than we can handle? EOT is reached but TC isn't set!
 			{
 				result = 2; //Abort!
 				FLOPPY_ST0_INTERRUPTCODEW(1); //Couldn't finish correctly!
 				//FLOPPY_ST0_SEEKENDW(0); //Failed!
+				FLOPPY_ST1_ENDOFCYCLINDER(1); //Set EN! Only when EOT is reached but TC isn't set!
 			}
 		}
-		else //Terminal count but not finished?
+		else //Terminal count with/without EOT?
 		{
-			if (result & 2) //Still continuing?
-			{
-				FLOPPY_ST1_ENDOFCYCLINDER(1); //Set EN!
-			}
 			//Finished transferring! Enter result phase!
 			result = 0; //Finished!
 		}
