@@ -1057,6 +1057,10 @@ byte floppy_increasesector(byte floppy, byte EOTfield, byte isformatcommand) //I
 			{
 				result = 1; //Transfer more!
 			}
+			else if (FLOPPY.activecommand[floppy] == FORMAT_TRACK) //Formatting a track? Don't error out!
+			{
+				result = 0; //Finished!
+			}
 			else //Error occurred during DMA transfer? Requesting more by DMA than we can handle? EOT is reached but TC isn't set!
 			{
 				result = 2; //Abort!
