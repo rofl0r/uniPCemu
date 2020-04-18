@@ -1315,7 +1315,7 @@ void floppy_readsector() //Request a read sector command!
 	FLOPPY_ST0_UNITCHECKW(0); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
 	//FLOPPY_ST0_SEEKENDW(0); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
 	FLOPPY_ST0_INTERRUPTCODEW(0); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
-	FLOPPY_ST0_SEEKENDW(0); //Clear seek end: we're reading a sector!
+	//FLOPPY_ST0_SEEKENDW(0); //Clear seek end: we're reading a sector!
 
 	if (!FLOPPY_supportsrate(FLOPPY_DOR_DRIVENUMBERR)) //We don't support the rate?
 	{
