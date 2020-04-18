@@ -2735,6 +2735,13 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 				return;
 			}
 
+			//Reset ST0 to have proper values!
+			FLOPPY_ST0_UNITCHECKW(0); //Not faulted!
+			FLOPPY_ST0_NOTREADYW(0); //Ready!
+			FLOPPY_ST0_INTERRUPTCODEW(0); //OK! Correctly executed!
+			FLOPPY_ST0_CURRENTHEADW(FLOPPY.currentphysicalhead[drive] & 1); //Head!
+			FLOPPY_ST0_UNITSELECTW(drive); //Unit selected!
+
 			if ((DSKImageFile = getDSKimage((drive) ? FLOPPY1 : FLOPPY0)) || (IMDImageFile = getIMDimage((drive) ? FLOPPY1 : FLOPPY0))) //Are we a DSK image file?
 			{
 				FLOPPY.databuffersize = 4; //We're 4 bytes per sector!
