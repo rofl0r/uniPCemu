@@ -2628,7 +2628,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 				}
 				if (IMDImageFile) //IMD image?
 				{
-					if ((FLOPPY.readID_lastsectornumber==0) && (IMD_sectorinfo.datamark == DATAMARK_INVALID)) //Unformatted track?
+					if ((IMD_sectorinfo.totalsectors<=1) && (IMD_sectorinfo.datamark == DATAMARK_INVALID)) //Unformatted track?
 					{
 						FLOPPY.ST1 &= ~4; //Not set!
 						FLOPPY.ST1 |= 0x01 /* | 0x80*/; //Couldn't find any sector!
