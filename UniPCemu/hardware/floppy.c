@@ -2536,6 +2536,8 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 						goto didntfindsectoridreadid;
 					}
 				}
+				FLOPPY.ST1 = 0; //Reset ST1!
+				FLOPPY.ST2 = 0; //Reset ST2!
 				ReadID_loopdetection = 2; //Allow looping back to the index hole twice(first time for the end being reached, second time for the sector not being found)!
 				retryReadID: //Try again for end-of-disc!
 				if (FLOPPY.readID_lastsectornumber >= (IMDImageFile?IMD_sectorinfo.totalsectors:trackinfo.numberofsectors)) //Out of range?
