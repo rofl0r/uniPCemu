@@ -1468,7 +1468,7 @@ void floppy_readsector() //Request a read sector command!
 				goto retryread;
 			}
 			FLOPPY.floppy_scanningforSectorID = 0; //Not scanning anymore!
-			FLOPPY.ST1 = 0x04 | 0x01 | 0x80; //Couldn't find any sector!
+			FLOPPY.ST1 |= 0x04 | 0x01 /* | 0x80*/; //Couldn't find any sector!
 			FLOPPY.ST2 |= 0x04; //Sector not found!
 			goto floppy_errorread;
 		foundsectorIDread: //Found the sector ID for the write!
@@ -2115,8 +2115,8 @@ void floppy_executeWriteData()
 				{
 					FLOPPY.readID_lastsectornumber = (IMD_sectorinfo.totalsectors - 1); //Last sector reached, go back to the first one!
 				}
-				FLOPPY.ST1 |= 0x04 | 0x80; //Not found!
-				FLOPPY.ST2 = 0x04 | 0x01; //Not found!
+				FLOPPY.ST1 |= 0x04 | 0x01 /* | 0x80*/; //Not found!
+				FLOPPY.ST2 |= 0x04; //Not found!
 				goto didntfindsectoridwrite;
 				foundsectorIDwrite: //Found the sector ID for the write!
 				FLOPPY.readID_lastsectornumber = (byte)sectornr; //This was the last sector we've read!
@@ -2590,7 +2590,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 				{
 					goto retryReadID; //Try again, from the index hole!
 				}
-				FLOPPY.ST1 = 0x04 | 0x01 | 0x80; //Couldn't find any sector!
+				FLOPPY.ST1 |= 0x04 | 0x01 /* | 0x80*/; //Couldn't find any sector!
 				FLOPPY.ST2 |= 0x04; //Sector not found!
 				goto didntfindsectoridreadidresult; //Couldn't find a sector to give!
 			foundsectorIDreadid: //Found the sector ID for the write!
