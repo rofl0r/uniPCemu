@@ -1261,7 +1261,7 @@ void floppy_readsector() //Request a read sector command!
 			FLOPPY_ST0_UNITSELECTW(FLOPPY_DOR_DRIVENUMBERR); //Current unit!
 			FLOPPY_ST0_CURRENTHEADW(FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR] & 1); //Current head!
 			FLOPPY_ST0_NOTREADYW(1); //We're not ready yet!
-			FLOPPY_ST0_UNITCHECKW(1); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
+			FLOPPY_ST0_UNITCHECKW(0); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
 			//FLOPPY_ST0_SEEKENDW(0); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
 			FLOPPY_ST0_INTERRUPTCODEW(0); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
 			FLOPPY_ST0_SEEKENDW(0); //Clear seek end: we're reading a sector!
@@ -1304,7 +1304,7 @@ void floppy_readsector() //Request a read sector command!
 		FLOPPY_ST0_UNITSELECTW(FLOPPY_DOR_DRIVENUMBERR); //Current unit!
 		FLOPPY_ST0_CURRENTHEADW(FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR] & 1); //Current head!
 		FLOPPY_ST0_NOTREADYW(1); //We're not ready yet!
-		FLOPPY_ST0_UNITCHECKW(1); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
+		FLOPPY_ST0_UNITCHECKW(0); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
 		//FLOPPY_ST0_SEEKENDW(0); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
 		FLOPPY_ST0_INTERRUPTCODEW(0); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
 		FLOPPY_ST0_SEEKENDW(0); //Clear seek end: we're reading a sector!
@@ -1606,7 +1606,7 @@ void FLOPPY_formatsector(byte nodata) //Request a read sector command!
 		FLOPPY_ST0_UNITSELECTW(FLOPPY_DOR_DRIVENUMBERR); //Current unit!
 		FLOPPY_ST0_CURRENTHEADW(FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR] & 1); //Current head!
 		FLOPPY_ST0_NOTREADYW(1); //We're not ready yet!
-		FLOPPY_ST0_UNITCHECKW(1); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
+		FLOPPY_ST0_UNITCHECKW(0); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
 		//FLOPPY_ST0_SEEKENDW(0); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
 		FLOPPY_ST0_INTERRUPTCODEW(1); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
 		FLOPPY_ST0_SEEKENDW(0); //Clear seek end: we're reading a sector!
@@ -1903,7 +1903,7 @@ void floppy_writesector() //Request a write sector command!
 		FLOPPY_ST0_UNITSELECTW(FLOPPY_DOR_DRIVENUMBERR); //Current unit!
 		FLOPPY_ST0_CURRENTHEADW(FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR] & 1); //Current head!
 		FLOPPY_ST0_NOTREADYW(1); //We're not ready yet!
-		FLOPPY_ST0_UNITCHECKW(1); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
+		FLOPPY_ST0_UNITCHECKW(0); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
 		//FLOPPY_ST0_SEEKENDW(0); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
 		FLOPPY_ST0_SEEKENDW(0); //Clear seek end: we're reading a sector!
 		FLOPPY.ST1 = 0x01; //Couldn't find any sector!
@@ -1930,7 +1930,7 @@ void floppy_writesector() //Request a write sector command!
 		FLOPPY_ST0_UNITSELECTW(FLOPPY_DOR_DRIVENUMBERR); //Current unit!
 		FLOPPY_ST0_CURRENTHEADW(FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR] & 1); //Current head!
 		FLOPPY_ST0_NOTREADYW(1); //We're not ready yet!
-		FLOPPY_ST0_UNITCHECKW(1); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
+		FLOPPY_ST0_UNITCHECKW(0); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
 		//FLOPPY_ST0_SEEKENDW(0); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
 		FLOPPY_ST0_INTERRUPTCODEW(0); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
 		FLOPPY_ST0_SEEKENDW(0); //Clear seek end: we're reading a sector!
@@ -1978,7 +1978,7 @@ void floppy_executeWriteData()
 		FLOPPY_ST0_UNITSELECTW(FLOPPY_DOR_DRIVENUMBERR); //Current unit!
 		FLOPPY_ST0_CURRENTHEADW(FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR] & 1); //Current head!
 		FLOPPY_ST0_NOTREADYW(1); //We're not ready yet!
-		FLOPPY_ST0_UNITCHECKW(1); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
+		FLOPPY_ST0_UNITCHECKW(0); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
 		//FLOPPY_ST0_SEEKENDW(0); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
 		FLOPPY_ST0_INTERRUPTCODEW(0); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
 		FLOPPY_ST0_SEEKENDW(0); //Clear seek end: we're reading a sector!
@@ -2512,7 +2512,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 				FLOPPY_ST0_UNITSELECTW(drive); //Current unit!
 				FLOPPY_ST0_CURRENTHEADW(FLOPPY.currentphysicalhead[drive] & 1); //Current head!
 				FLOPPY_ST0_NOTREADYW(1); //We're not ready yet!
-				FLOPPY_ST0_UNITCHECKW(1); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
+				FLOPPY_ST0_UNITCHECKW(0); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
 				//FLOPPY_ST0_SEEKENDW(0); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
 				FLOPPY_ST0_INTERRUPTCODEW(0); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
 				FLOPPY_ST0_SEEKENDW(0); //Clear seek end: we're reading a sector!
@@ -2777,7 +2777,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 				FLOPPY_ST0_UNITSELECTW(drive); //Current unit!
 				FLOPPY_ST0_CURRENTHEADW(FLOPPY.currentphysicalhead[drive] & 1); //Current head!
 				FLOPPY_ST0_NOTREADYW(1); //We're not ready yet!
-				FLOPPY_ST0_UNITCHECKW(1); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
+				FLOPPY_ST0_UNITCHECKW(0); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
 				//FLOPPY_ST0_SEEKENDW(0); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
 				FLOPPY_ST0_INTERRUPTCODEW(0); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
 				FLOPPY_ST0_SEEKENDW(0); //Clear seek end: we're reading a sector!
@@ -2805,7 +2805,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 				FLOPPY_ST0_UNITSELECTW(drive); //Current unit!
 				FLOPPY_ST0_CURRENTHEADW(FLOPPY.currentphysicalhead[drive] & 1); //Current head!
 				FLOPPY_ST0_NOTREADYW(1); //We're not ready yet!
-				FLOPPY_ST0_UNITCHECKW(1); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
+				FLOPPY_ST0_UNITCHECKW(0); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
 				//FLOPPY_ST0_SEEKENDW(0); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
 				FLOPPY_ST0_INTERRUPTCODEW(0); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
 				FLOPPY_ST0_SEEKENDW(0); //Clear seek end: we're reading a sector!
