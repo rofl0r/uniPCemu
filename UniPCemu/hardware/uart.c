@@ -152,7 +152,8 @@ void startUARTIRQ(byte IRQ)
 {
 	byte cause, port; //What cause are we?
 	byte portbase, actualport;
-	portbase = (IRQ == 4) ? 0 : 1; //Base port!
+	portbase = (IRQ == 4) ? 0 : (IRQ==3)?1:2; //Base port!
+	if (portbase == 2) return; //Not us?
 	for (port = 0;port < 2;port++) //List ports!
 	{
 		actualport = portbase + (port << 1); //Take the actual port!
