@@ -1256,6 +1256,8 @@ void floppy_readsector() //Request a read sector command!
 	if ((!FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]) || ((FLOPPY_DOR_DRIVENUMBERR<2)?(!is_mounted(FLOPPY_DOR_DRIVENUMBERR?FLOPPY1:FLOPPY0)):1)) //Not inserted or valid?
 	{
 		FLOPPY_LOGD("FLOPPY: Error: Invalid drive!")
+		floppy_common_sectoraccess_nomedia(FLOPPY_DOR_DRIVENUMBERR); //No media!
+		return;
 		//if (FLOPPY_DOR_DRIVENUMBERR > 1) //Invalid drive?
 		{
 			FLOPPY_ST0_UNITSELECTW(FLOPPY_DOR_DRIVENUMBERR); //Current unit!
@@ -1603,6 +1605,8 @@ void FLOPPY_formatsector(byte nodata) //Request a read sector command!
 	++FLOPPY.sectorstransferred; //A sector has been transferred!
 	if (!FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR] || ((FLOPPY_DOR_DRIVENUMBERR < 2) ? (!is_mounted(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0)) : 1)) //We don't support the rate or geometry?
 	{
+		floppy_common_sectoraccess_nomedia(FLOPPY_DOR_DRIVENUMBERR); //No media!
+		return;
 		FLOPPY_ST0_UNITSELECTW(FLOPPY_DOR_DRIVENUMBERR); //Current unit!
 		FLOPPY_ST0_CURRENTHEADW(FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR] & 1); //Current head!
 		FLOPPY_ST0_NOTREADYW(1); //We're not ready yet!
@@ -1927,6 +1931,8 @@ void floppy_writesector() //Request a write sector command!
 
 	if (!FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR] || ((FLOPPY_DOR_DRIVENUMBERR < 2) ? (!is_mounted(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0)) : 1)) //Not properly mounted?
 	{
+		floppy_common_sectoraccess_nomedia(FLOPPY_DOR_DRIVENUMBERR); //No media!
+		return;
 		FLOPPY_ST0_UNITSELECTW(FLOPPY_DOR_DRIVENUMBERR); //Current unit!
 		FLOPPY_ST0_CURRENTHEADW(FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR] & 1); //Current head!
 		FLOPPY_ST0_NOTREADYW(1); //We're not ready yet!
@@ -1975,6 +1981,8 @@ void floppy_executeWriteData()
 
 	if (!FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR] || ((FLOPPY_DOR_DRIVENUMBERR < 2) ? (!is_mounted(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0)) : 1)) //Not mounted?
 	{
+		floppy_common_sectoraccess_nomedia(FLOPPY_DOR_DRIVENUMBERR); //No media!
+		return;
 		FLOPPY_ST0_UNITSELECTW(FLOPPY_DOR_DRIVENUMBERR); //Current unit!
 		FLOPPY_ST0_CURRENTHEADW(FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR] & 1); //Current head!
 		FLOPPY_ST0_NOTREADYW(1); //We're not ready yet!
@@ -2509,6 +2517,8 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			FLOPPY.currenthead[drive] = ((FLOPPY.commandbuffer[1] & 4) >> 2); //The head to use!
 			if ((!FLOPPY.geometries[drive]) || ((drive < 2) ? (!is_mounted(drive ? FLOPPY1 : FLOPPY0)) : 1)) //Not mounted?
 			{
+				floppy_common_sectoraccess_nomedia(FLOPPY_DOR_DRIVENUMBERR); //No media!
+				return;
 				FLOPPY_ST0_UNITSELECTW(drive); //Current unit!
 				FLOPPY_ST0_CURRENTHEADW(FLOPPY.currentphysicalhead[drive] & 1); //Current head!
 				FLOPPY_ST0_NOTREADYW(1); //We're not ready yet!
@@ -2802,6 +2812,8 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 
 			if (!FLOPPY.geometries[drive] || ((drive < 2) ? (!is_mounted(drive ? FLOPPY1 : FLOPPY0)) : 1)) //No geometry?
 			{
+				floppy_common_sectoraccess_nomedia(FLOPPY_DOR_DRIVENUMBERR); //No media!
+				return;
 				FLOPPY_ST0_UNITSELECTW(drive); //Current unit!
 				FLOPPY_ST0_CURRENTHEADW(FLOPPY.currentphysicalhead[drive] & 1); //Current head!
 				FLOPPY_ST0_NOTREADYW(1); //We're not ready yet!
