@@ -1570,7 +1570,7 @@ void floppy_readsector() //Request a read sector command!
 		}
 
 	floppy_errorread: //Error reading data?
-		FLOPPY.ST0 |= 0x18; //Error out, became not ready with unit check!
+		//FLOPPY.ST0 |= 0x18; //Error out, became not ready with unit check!
 		FLOPPY.floppy_scanningforSectorID = 0; //Not scanning anymore!
 		//Plain error reading the sector!
 		//ENTER RESULT PHASE
@@ -2059,7 +2059,7 @@ void floppy_executeWriteData()
 			}
 			FLOPPY_LOGD("FLOPPY: Finished transfer of data (readonly).") //Log the completion of the sectors written!
 			FLOPPY.resultposition = 0;
-			FLOPPY.ST0 |= 0x18; //Error out, became not ready and unit check!
+			//FLOPPY.ST0 |= 0x18; //Error out, became not ready and unit check!
 			FLOPPY.resultbuffer[0] = FLOPPY.ST0 = 0x40|((FLOPPY.ST0 & 0x3B) | FLOPPY_DOR_DRIVENUMBERR) | ((FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR] & 1) << 2); //Abnormal termination! ST0!
 			FLOPPY.resultbuffer[1] = FLOPPY.ST1 = 0x27; //Drive write-protected! ST1!
 			FLOPPY.resultbuffer[2] = FLOPPY.ST2 = 0x31; //ST2!
@@ -2211,7 +2211,7 @@ void floppy_executeWriteData()
 			}
 		floppy_errorwrite:
 		didntfindsectoridwrite: //Couldn't find the sector ID!
-			FLOPPY.ST0 |= 0x18; //Error out, became not ready and unit check!
+			//FLOPPY.ST0 |= 0x18; //Error out, became not ready and unit check!
 			//Plain error!
 			FLOPPY.ST0 |= 0x40; //Error out!
 			goto enterFloppyWriteResultPhase; //Result phase starts!
@@ -2752,7 +2752,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			FLOPPY_startData(drive); //Start the data phase!
 			return; //Correct read!
 		floppy_errorReadID:
-			FLOPPY.ST0 |= 0x18; //Error out, became not ready and unit check!
+			//FLOPPY.ST0 |= 0x18; //Error out, became not ready and unit check!
 			FLOPPY.databuffersize = 0x200; //Sector size into data buffer!
 			FLOPPY.readIDdrive = drive; //Setup ST0!
 			FLOPPY.readIDerror = 1; //Error!
