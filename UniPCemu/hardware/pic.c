@@ -321,26 +321,27 @@ void raiseirq(byte irqnum)
 	byte irr2index;
 	byte hasirr = 0;
 	byte oldIRR = 0;
+	irr2index = requestingindex; //What is requested?
 	//Handle edge-triggered IRR!
 	hasirr = 0; //Init IRR state!
-	for (irr2index = 0;irr2index < 0x10;++irr2index) //Verify if anything is left!
+	//for (irr2index = 0;irr2index < 0x10;++irr2index) //Verify if anything is left!
 	{
 		if (i8259.irr2[PIC][irr2index] & (1 << (irqnum & 7))) //Request still set?
 		{
 			hasirr = 1; //We still have an IRR!
-			break; //Stop searching!
+			//break; //Stop searching!
 		}
 	}
 	oldIRR = hasirr; //Old IRR state!
 
 	i8259.irr2[PIC][requestingindex] |= (1 << (irqnum & 7)); //Add the IRQ to request!
-	hasirr = 0; //Init IRR state!
-	for (irr2index = 0;irr2index < 0x10;++irr2index) //Verify if anything is left!
+	//hasirr = 0; //Init IRR state!
+	//for (irr2index = 0;irr2index < 0x10;++irr2index) //Verify if anything is left!
 	{
-		if (i8259.irr2[PIC][irr2index] & (1 << (irqnum & 7))) //Request still set?
+		//if (i8259.irr2[PIC][irr2index] & (1 << (irqnum & 7))) //Request still set?
 		{
 			hasirr = 1; //We still have an IRR!
-			break; //Stop searching!
+			//break; //Stop searching!
 		}
 	}
 
@@ -360,22 +361,25 @@ void lowerirq(byte irqnum)
 	irqnum &= 0xF; //Only 16 IRQs!
 	requestingindex >>= 4; //What index is requesting?
 	byte PIC = (irqnum>>3); //IRQ8+ is high PIC!
-	i8259.irr2[PIC][requestingindex] &= ~(1 << (irqnum & 7)); //Lower the IRQ line to request!
-	i8259.irr3[PIC][requestingindex] &= ~(1 << (irqnum & 7)); //Remove the request being used itself!
-	i8259.irr3_a[PIC][requestingindex] &= ~(1<<(irqnum&7)); //Remove the request, if any!
-	irr3_dirty = 1; //Dirty!
-	hasirr = 0; //Init IRR state!
-	for (irr2index = 0;irr2index < 0x10;++irr2index) //Verify if anything is left!
+	if (i8259.irr2[PIC][requestingindex]&(1 << (irqnum & 7))) //Were we raised?
 	{
-		if (i8259.irr3[PIC][irr2index] & (1 << (irqnum & 7))) //Request still set?
+		i8259.irr2[PIC][requestingindex] &= ~(1 << (irqnum & 7)); //Lower the IRQ line to request!
+		i8259.irr3[PIC][requestingindex] &= ~(1 << (irqnum & 7)); //Remove the request being used itself!
+		i8259.irr3_a[PIC][requestingindex] &= ~(1<<(irqnum&7)); //Remove the request, if any!
+		irr3_dirty = 1; //Dirty!
+		hasirr = 0; //Init IRR state not pending anymore!
+		for (irr2index = 0;irr2index < 0x10;++irr2index) //Verify if anything is left!
 		{
-			hasirr = 1; //We still have an IRR!
-			break; //Stop searching!
+			if ((i8259.irr3[PIC][irr2index]&i8259.irr3_a[PIC][irr2index]) & (1 << (irqnum & 7))) //Request and acnowledged?
+			{
+				hasirr = 1; //We still have an IRR!
+				break; //Stop searching!
+			}
 		}
-	}
-	if (hasirr==0) //Were we lowered completely? We're lowered!
-	{
-		i8259.irr[PIC] &= ~(1<<(irqnum&7)); //Remove the request, if any!
+		if (hasirr==0) //Were we lowered completely? We're lowered when nothing is requested and acnowledged anymore!
+		{
+			i8259.irr[PIC] &= ~(1<<(irqnum&7)); //Remove the request, if any!
+		}
 	}
 }
 
