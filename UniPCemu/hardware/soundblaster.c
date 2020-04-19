@@ -1179,6 +1179,7 @@ byte outSoundBlaster(word port, byte value)
 
 void StartPendingSoundBlasterIRQ(byte IRQ)
 {
+	if (IRQ != __SOUNDBLASTER_IRQ8) return; //Not our IRQ?
 	if (SOUNDBLASTER.IRQ8Pending&2) //Actually pending?
 	{
 		SOUNDBLASTER.IRQ8Pending |= 1; //We're starting to execute our IRQ, which has been acnowledged!
