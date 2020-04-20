@@ -209,7 +209,7 @@ void acnowledgeirrs()
 		for (IR=0;IR<8;++IR)
 		{
 			IRQ = (PIC << 3) | IR; //The IRQ we're accepting!
-			if ((i8259.irr[PIC]&(1<<IR))==0) //Nothing acnowledged yet?
+			if (((i8259.irr[PIC]&(1<<IR))==0) || (is_XT==0)) //Nothing acnowledged yet?
 			{
 				for (source = 0;source < 0x10;++source) //Verify if anything is left!
 				{
