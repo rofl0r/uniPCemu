@@ -64,7 +64,7 @@ struct
 	UART_senddata senddata;
 	UART_hasdata hasdata;
 
-	byte interrupt_causes[4]; //All possible causes of an interrupt!
+	byte interrupt_causes[5]; //All possible causes of an interrupt!
 	uint_32 receiveTiming; //UART receive timing!
 	uint_32 sendTiming; //UART send timing!
 	byte sendPhase; //What's happening on the sending side?
@@ -85,6 +85,9 @@ struct
 #define UART_LINECONTROREGISTERL_PARITYTYPER(UART) ((UART_port[UART].LineControlRegister>>4)&3)
 //Enable address 0&1 mapping to divisor?
 #define UART_LINECONTROLREGISTER_DLABR(UART) ((UART_port[UART].LineControlRegister>>7)&1)
+
+//What cause to report for interrupt request using OUT2?
+#define IRR_INTERRUPTREQUEST_CAUSE 4
 
 //Simple cause. 0=Modem Status Interrupt, 1=Transmitter Holding Register Empty Interrupt, 2=Received Data Available Interrrupt, 3=Receiver Line Status Interrupt!
 #define UART_INTERRUPTCAUSE_SIMPLECAUSER(UART) ((UART_port[UART].InterruptIdentificationRegister>>1)&7)
@@ -126,11 +129,14 @@ void launchUARTIRQ(byte COMport, byte cause) //Simple 2-bit cause.
 	case 3: //Receiver line status changed?
 		if (!(UART_port[COMport].InterruptEnableRegister & 4)) return; //Don't trigger if it's disabled!
 		break;
+	case 4: //IRQ request
+		break; //Always valid!
 	default:
+		return; //Invalid cause!
 		break;
 	}
 	//Prepare our info!
-	UART_port[COMport].interrupt_causes[cause & 3] = 1; //We're requesting an interrupt for this cause!
+	UART_port[COMport].interrupt_causes[cause] = 1; //We're requesting an interrupt for this cause!
 
 	if (UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTNOTPENDINGR(COMport)) //Can we safely raise it(are we ready to handle it)?
 	{
@@ -155,13 +161,20 @@ void startUARTIRQ(byte IRQ)
 	for (port = 0;port < 2;port++) //List ports!
 	{
 		actualport = portbase + (port << 1); //Take the actual port!
-		for (cause = 3;cause<4;--cause) //Check all causes, in order of priority!
+		for (cause = 4;cause<5;--cause) //Check all causes, in order of priority!
 		{
 			if ((UART_port[actualport].interrupt_causes[cause]) && (UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTNOTPENDINGR(actualport))) //We're is the cause?
 			{
 				UART_port[actualport].interrupt_causes[cause] = 0; //Reset the cause!
 				UART_port[actualport].InterruptIdentificationRegister = 0; //Reset for our cause!
-				UART_INTERRUPTCAUSE_SIMPLECAUSEW(actualport,(cause & 3)); //Load the simple cause (8250 way)!
+				if (cause == 4) //IRQ request?
+				{
+					UART_INTERRUPTCAUSE_SIMPLECAUSEW(actualport, IRR_INTERRUPTREQUEST_CAUSE); //Load the simple cause (8250 way)!
+				}
+				else
+				{
+					UART_INTERRUPTCAUSE_SIMPLECAUSEW(actualport, cause); //Load the simple cause (8250 way)!
+				}
 				UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTNOTPENDINGW(actualport,0); //We've activated!
 				return; //Stop scanning!
 			}
@@ -292,7 +305,7 @@ byte PORT_readUART(word port, byte *result) //Read from the uart!
 			break;
 		case 2: //Interrupt ID registers?
 			*result = UART_port[COMport].InterruptIdentificationRegister&(~0xE0); //Give the register! Indicate no FIFO!
-			if ((!UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTNOTPENDINGR(COMport)) && (UART_INTERRUPTCAUSE_SIMPLECAUSER(COMport) == 1)) //We're to clear?
+			if ((!UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTNOTPENDINGR(COMport)) && ((UART_INTERRUPTCAUSE_SIMPLECAUSER(COMport) == 1) || (UART_INTERRUPTCAUSE_SIMPLECAUSER(COMport) == IRR_INTERRUPTREQUEST_CAUSE))) //We're to clear?
 			{
 				UART_port[COMport].InterruptIdentificationRegister = 0; //Reset the register!
 				UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTNOTPENDINGW(COMport,1); //Reset interrupt pending!
@@ -386,7 +399,7 @@ void UART_update_modemcontrol(byte COMport)
 	}
 	if ((UART_port[COMport].LiveModemControlRegister & 8) & (UART_port[COMport].LiveModemControlRegister^UART_port[COMport].oldLiveModemControlRegister)) //IRQ line raised?
 	{
-		launchUARTIRQ(COMport, 0); //Launch a Modem Status IRQ!
+		launchUARTIRQ(COMport, 4); //Launch a UART IRQ Request!
 	}
 	UART_port[COMport].oldLiveModemControlRegister = UART_port[COMport].LiveModemControlRegister; //Difference detection!
 }
@@ -572,6 +585,10 @@ void UART_handleInputs() //Handle any input to the UART!
 		if (unlikely((modemstatusinterrupt) || (UART_port[i].interrupt_causes[0]))) //Status changed or required to be raised?
 		{
 			launchUARTIRQ(i, 0); //Modem status changed!
+		}
+		if (UART_port[i].interrupt_causes[4]) //UART IRQ request?
+		{
+			launchUARTIRQ(i, 4); //IRQ request!
 		}
 		UART_port[i].oldLineStatusRegister = UART_port[i].LineStatusRegister; //Save for difference checking!
 	}
