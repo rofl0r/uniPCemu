@@ -486,6 +486,10 @@ byte PORT_writeUART(word port, byte value)
 				}
 				UART_handleInputs(); //Update the loopback status as required by updating the status register!
 			}
+			else if (UART_port[COMport].ModemControlRegister & 0x10) //Loopback is enabled? Handle status changes immediately!
+			{
+				UART_handleInputs(); //Update the loopback status as required by updating the status register!
+			}
 			UART_port[COMport].oldModemControlRegister = UART_port[COMport].ModemControlRegister; //Save the old value for reference!
 			break;
 		case 7: //Scratch register?
