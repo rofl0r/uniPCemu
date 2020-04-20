@@ -368,7 +368,7 @@ void lowerirq(byte irqnum)
 		i8259.irr3[PIC][requestingindex] &= ~(1 << (irqnum & 7)); //Remove the request being used itself!
 		if (is_XT==0) //AT and up drive it directly?
 		{
-			i8259.irr3_a[PIC][requestingindex] &= ~(1 < irqnum & 7); //Remove the acnowledge!
+			i8259.irr3_a[PIC][requestingindex] &= ~(1 << irqnum & 7); //Remove the acnowledge!
 		}
 		irr3_dirty = 1; //Dirty!
 		hasirr = 0; //Init IRR state not pending anymore!
