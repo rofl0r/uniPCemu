@@ -384,7 +384,7 @@ void UART_update_modemcontrol(byte COMport)
 	{
 		UART_port[COMport].setmodemcontrol(UART_port[COMport].LiveModemControlRegister | ((UART_port[COMport].output_is_marking & 1) << 4)); //Update the output lines for the peripheral!
 	}
-	if ((UART_port[COMport].LiveModemControlRegister & 8) & (UART_port[COMport].LiveModemControlRegister^UART_port[COMport].LiveModemControlRegister)) //IRQ line raised?
+	if ((UART_port[COMport].LiveModemControlRegister & 8) & (UART_port[COMport].LiveModemControlRegister^UART_port[COMport].oldLiveModemControlRegister)) //IRQ line raised?
 	{
 		launchUARTIRQ(COMport, 0); //Launch a Modem Status IRQ!
 	}
