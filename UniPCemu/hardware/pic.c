@@ -120,6 +120,7 @@ byte out8259(word portnum, byte value)
 			memset(&i8259.irr[pic],0,sizeof(i8259.irr[pic])); //Reset IRR raised sense!
 			memset(&i8259.irr3[pic],0,sizeof(i8259.irr3[pic])); //Reset IRR shared raised sense!
 			memset(&i8259.irr3_a[pic],0,sizeof(i8259.irr3_a[pic])); //Reset IRR shared raised sense!
+			memset(&i8259.irr3_b[pic], 0, sizeof(i8259.irr3_b[pic])); //Reset IRR shared raised sense!
 			irr3_dirty = 0; //Not dirty anymore!
 			i8259.imr[pic] = 0; //clear interrupt mask register
 			i8259.icw[pic][i8259.icwstep[pic]++] = value; //Set the ICW1!
@@ -220,6 +221,7 @@ void acnowledgeirrs()
 							i8259.acceptirq[IRQ][source](IRQ|(source<<4)); //We're accepting the IRQ from this source!
 						}
 						i8259.irr3_a[PIC][source] |= (1 << IR); //Add the IRQ to request because of the rise!
+						i8259.irr3_b[PIC][source] |= (1 << IR); //Second line for handling the interrupt itself!
 						i8259.irr[PIC] |= (1 << IR); //Add the IRQ to request because of the rise!
 						nonedirty = 0; //Acnowledged one!
 					}
@@ -253,7 +255,7 @@ byte PICInterrupt() //We have an interrupt ready to process?
 OPTINLINE byte IRRequested(byte PIC, byte IR, byte source) //We have this requested?
 {
 	if (__HW_DISABLED) return 0; //Abort!
-	return (((getunprocessedinterrupt(PIC) & (i8259.irr3_a[PIC&1][source]))>> IR) & 1); //Interrupt requested on the specified source?
+	return (((getunprocessedinterrupt(PIC) & (i8259.irr3_b[PIC&1][source]))>> IR) & 1); //Interrupt requested on the specified source?
 }
 
 OPTINLINE void ACNIR(byte PIC, byte IR, byte source) //Acnowledge request!
@@ -261,6 +263,7 @@ OPTINLINE void ACNIR(byte PIC, byte IR, byte source) //Acnowledge request!
 	if (__HW_DISABLED) return; //Abort!
 	i8259.irr3[PIC][source] &= ~(1 << IR); //Turn source IRR off!
 	i8259.irr3_a[PIC][source] &= ~(1 << IR); //Turn source IRR off!
+	i8259.irr3_b[PIC][source] &= ~(1 << IR); //Turn source IRR off!
 	irr3_dirty = 1; //Dirty!
 	i8259.irr[PIC] &= ~(1<<IR); //Clear the request!
 	//Clearing IRR only for edge-triggered interrupts!
