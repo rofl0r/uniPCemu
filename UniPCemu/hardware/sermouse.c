@@ -77,6 +77,12 @@ void SERmouse_packet_handler(MOUSE_PACKET *packet)
 	freez((void **)&temp, sizeof(*temp), "SERMouse_FlushPacket");
 }
 
+byte SERmouse_getStatus()
+{
+	//0: Clear to Send, 1: Data Set Ready, 2: Ring Indicator, 3: Carrrier detect
+	return ((SERMouse.powered ? 1 : 0) | (SERMouse.movement ? 2 : 0)); //Route RTS to CTS and DTR to DSR!
+}
+
 void SERmouse_setModemControl(byte line) //Set output lines of the Serial Mouse!
 {
 	//0: Data Terminal Ready(we can are ready to work), 1: Request to Send(UART can receive data), 4=Set during mark state of the TxD line.
@@ -121,7 +127,7 @@ void initSERMouse(byte enabled)
 			goto unsupportedUARTMouse;
 		}
 		SERMouse.buffer = allocfifobuffer(16,1); //Small input buffer!
-		UART_registerdevice(SERMouse.port,&SERmouse_setModemControl,NULL,&serMouse_hasData,&serMouse_readData,NULL); //Register our UART device!
+		UART_registerdevice(SERMouse.port,&SERmouse_setModemControl,&SERmouse_getStatus,&serMouse_hasData,&serMouse_readData,NULL); //Register our UART device!
 		setMouseRate(40.0f); //We run at 40 packets per second!
 	}
 	else
