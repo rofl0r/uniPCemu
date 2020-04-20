@@ -263,6 +263,7 @@ OPTINLINE void ACNIR(byte PIC, byte IR, byte source) //Acnowledge request!
 	i8259.irr3_a[PIC][source] &= ~(1 << IR); //Turn source IRR off!
 	irr3_dirty = 1; //Dirty!
 	i8259.irr[PIC] &= ~(1<<IR); //Clear the request!
+	//Clearing IRR only for edge-triggered interrupts!
 	i8259.isr[PIC] |= (1 << IR); //Turn in-service on!
 	i8259.isr2[PIC][source] |= (1 << IR); //Turn the source on!
 	if ((i8259.icw[PIC][3]&2)==2) //Automatic EOI?
@@ -378,7 +379,9 @@ void lowerirq(byte irqnum)
 		}
 		if (hasirr==0) //Were we lowered completely? We're lowered when nothing is requested and acnowledged anymore!
 		{
+			/*
 			i8259.irr[PIC] &= ~(1<<(irqnum&7)); //Remove the request, if any!
+			*/ //Only for level triggered interrupts
 		}
 	}
 }
