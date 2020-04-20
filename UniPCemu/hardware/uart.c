@@ -91,12 +91,6 @@ struct
 
 #define UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTPENDINGR(UART) (UART_port[UART].InterruptIdentificationRegister&1)
 #define UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTPENDINGW(UART,val) UART_port[UART].InterruptIdentificationRegister=((UART_port[UART].InterruptIdentificationRegister&(~1))|(val&1))
-#define UART_INTERRUPTIDENTIFICATIONREGISTER_TRANSMITTEREMPTYR(UART) ((UART_port[UART].InterruptIdentificationRegister>>1)&1)
-#define UART_INTERRUPTIDENTIFICATIONREGISTER_TRANSMITTEREMPTYW(UART,val) UART_port[UART].InterruptIdentificationRegister=((UART_port[UART].InterruptIdentificationRegister&(~2))|((val&1)<<1))
-#define UART_INTERRUPTIDENTIFICATIONREGISTER_BREADERRORR(UART) ((UART_port[UART].InterruptIdentificationRegister>>2)&1)
-#define UART_INTERRUPTIDENTIFICATIONREGISTER_BREADERRORW(UART,val) UART_port[UART].InterruptIdentificationRegister=((UART_port[UART].InterruptIdentificationRegister&(~4))|((val&1)<<2))
-#define UART_INTERRUPTIDENTIFICATIONREGISTER_STATUSCHANGER(UART) ((UART_port[UART].InterruptIdentificationRegister>>3)&1)
-#define UART_INTERRUPTIDENTIFICATIONREGISTER_STATUSCHANGEW(UART,val) UART_port[UART].InterruptIdentificationRegister=((UART_port[UART].InterruptIdentificationRegister&(~8))|((val&1)<<3))
 //0=No FIFO present, 1=Reserved, 2=FIFO Enabled, but not functioning, 3=FIFO Enabled.
 #define UART_INTERRUPTIDENTIFICATIONREGISTER_ENABLE64BYTEFIFOR(UART) ((UART_port[UART].InterruptIdentificationRegister>>4)&1)
 #define UART_INTERRUPTIDENTIFICATIONREGISTER_ENABLE64BYTEFIFOW(UART,val) UART_port[UART].InterruptIdentificationRegister=((UART_port[UART].InterruptIdentificationRegister&(~0x10))|((val&1)<<4))
@@ -430,8 +424,13 @@ byte PORT_writeUART(word port, byte value)
 				if (UART_port[COMport].ModemControlRegister & 0x10) //In loopback mode? Reroute the Modem Control Register to Modem Status Register and act accordingly!
 				{
 					UART_port[COMport].DataHoldingRegister = value; //We've received this data!
+					UART_port[COMport].LineStatusRegister &= ~0x60; //The Transmitter Holding Register is full!
+					UART_handleInputs(); //Handle any inputs on the UART!
+					UART_port[COMport].LineStatusRegister |= 0x20; //The Transmitter Holding Register is empty and Shift Register is full!
+					UART_handleInputs(); //Handle any inputs on the UART!
+					UART_port[COMport].LineStatusRegister |= 0x40; //The Transmitter Holding Register and Shift Register are both empty!
+					UART_handleInputs(); //Handle any inputs on the UART!
 					UART_port[COMport].LineStatusRegister |= 0x01; //We've received data!
-					UART_port[COMport].LineStatusRegister |= 0x60; //The Transmitter Holding Register and Shift Register are both empty!
 					UART_handleInputs(); //Handle any inputs on the UART!
 				}
 				else //Not in loopback mode?
