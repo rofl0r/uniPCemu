@@ -108,7 +108,7 @@ byte allocUARTport()
 	return allocatedUARTs++; //Get an ascending UART number!
 }
 
-OPTINLINE void launchUARTIRQ(byte COMport, byte cause) //Simple 2-bit cause.
+void launchUARTIRQ(byte COMport, byte cause) //Simple 2-bit cause.
 {
 	if (!UART_port[COMport].used) return; //Unused COM port!
 	switch (cause) //What cause?
