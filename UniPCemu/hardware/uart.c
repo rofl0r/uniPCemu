@@ -40,6 +40,7 @@ struct
 	byte LineControlRegister;
 	byte ModemControlRegister; //Bit0=DTR, 1=RTS, 2=Alternative output 1, 3=Alternative output 2, 4=Loopback mode, 5=Autoflow control (16750 only)
 	byte LiveModemControlRegister; //Modem control register to the hardware!
+	byte oldLiveModemControlRegister; //Previous live modem control register!
 	byte oldModemControlRegister; //Old modem control bits!
 	byte LineStatusRegister; //Bit0=Data available, 1=Overrun error, 2=Parity error, 3=Framing error, 4=Break signal received, 5=THR is empty, 6=THR is empty and all bits are sent, 7=Errorneous data in FIFO.
 	byte oldLineStatusRegister; //Old line status register to compare!
@@ -383,6 +384,11 @@ void UART_update_modemcontrol(byte COMport)
 	{
 		UART_port[COMport].setmodemcontrol(UART_port[COMport].LiveModemControlRegister | ((UART_port[COMport].output_is_marking & 1) << 4)); //Update the output lines for the peripheral!
 	}
+	if ((UART_port[COMport].LiveModemControlRegister & 8) & (UART_port[COMport].LiveModemControlRegister^UART_port[COMport].LiveModemControlRegister)) //IRQ line raised?
+	{
+		launchUARTIRQ(COMport, 0); //Launch a Modem Status IRQ!
+	}
+	UART_port[COMport].oldLiveModemControlRegister = UART_port[COMport].LiveModemControlRegister; //Difference detection!
 }
 
 byte PORT_writeUART(word port, byte value)
