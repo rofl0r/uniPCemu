@@ -304,7 +304,7 @@ byte PORT_readUART(word port, byte *result) //Read from the uart!
 			}
 			break;
 		case 2: //Interrupt ID registers?
-			*result = UART_port[COMport].InterruptIdentificationRegister&(~0xE0); //Give the register! Indicate no FIFO!
+			*result = UART_port[COMport].InterruptIdentificationRegister&(~0xF0); //Give the register! Indicate no FIFO!
 			if ((!UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTNOTPENDINGR(COMport)) && ((UART_INTERRUPTCAUSE_SIMPLECAUSER(COMport) == 1) || ((UART_INTERRUPTCAUSE_SIMPLECAUSER(COMport) == IRR_INTERRUPTREQUEST_CAUSE) && (IRR_INTERRUPTREQUEST_CAUSE>3)))) //We're to clear?
 			{
 				UART_port[COMport].InterruptIdentificationRegister = 0; //Reset the register!
