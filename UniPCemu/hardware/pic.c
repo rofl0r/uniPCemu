@@ -373,6 +373,7 @@ void lowerirq(byte irqnum)
 		lowerirr2 = i8259.irr3_a[PIC][requestingindex]; //What has been lowered!
 		i8259.irr3[PIC][requestingindex] &= ~(1 << (irqnum & 7)); //Remove the request being used itself!
 		i8259.irr3_a[PIC][requestingindex] &= ~(1 << (irqnum & 7)); //Remove the acnowledge!
+		i8259.irr3_b[PIC][requestingindex] &= ~(1 << (irqnum & 7)); //Remove the acnowledge!
 		irr3_dirty = 1; //Dirty!
 		if ((lowerirr&lowerirr2)&(1 << (irqnum & 7))) //Were we acnowledged and loaded?
 		{
