@@ -87,11 +87,11 @@ struct
 #define UART_LINECONTROLREGISTER_DLABR(UART) ((UART_port[UART].LineControlRegister>>7)&1)
 
 //What cause to report for interrupt request using OUT2?
-#define IRR_INTERRUPTREQUEST_CAUSE 7
+#define IRR_INTERRUPTREQUEST_CAUSE 3
 
 //Simple cause. 0=Modem Status Interrupt, 1=Transmitter Holding Register Empty Interrupt, 2=Received Data Available Interrrupt, 3=Receiver Line Status Interrupt!
-#define UART_INTERRUPTCAUSE_SIMPLECAUSER(UART) ((UART_port[UART].InterruptIdentificationRegister>>1)&7)
-#define UART_INTERRUPTCAUSE_SIMPLECAUSEW(UART,val) UART_port[UART].InterruptIdentificationRegister=((UART_port[UART].InterruptIdentificationRegister&(~0xE))|((val&7)<<1))
+#define UART_INTERRUPTCAUSE_SIMPLECAUSER(UART) ((UART_port[UART].InterruptIdentificationRegister>>1)&3)
+#define UART_INTERRUPTCAUSE_SIMPLECAUSEW(UART,val) UART_port[UART].InterruptIdentificationRegister=((UART_port[UART].InterruptIdentificationRegister&(~0x6))|((val&3)<<1))
 
 #define UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTNOTPENDINGR(UART) (UART_port[UART].InterruptIdentificationRegister&1)
 #define UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTNOTPENDINGW(UART,val) UART_port[UART].InterruptIdentificationRegister=((UART_port[UART].InterruptIdentificationRegister&(~1))|(val&1))
