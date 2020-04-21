@@ -1224,6 +1224,10 @@ void modem_setModemControl(byte line) //Set output lines of the Modem!
 	modem.TxDisMark = ((line & 0x10) >> 4); //Is TxD set to mark?
 	line &= 0xF; //Ignore unused lines!
 	modem.outputline = line; //The line that's output!
+	if ((((modem.outputline ^ line) & (line)) & 8)) //IRQ line raised?
+	{
+		writefifobuffer(modem.inputbuffer, 0x00); //Give some input!
+	}
 	if ((modem.linechanges^line)&2) //RTS changed?
 	{
 		modem.RTSlineDelay = modem.effectiveRTSlineDelay; //Start timing the CTS line delay!

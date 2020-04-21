@@ -87,6 +87,10 @@ void SERmouse_setModemControl(byte line) //Set output lines of the Serial Mouse!
 {
 	//0: Data Terminal Ready(we can are ready to work), 1: Request to Send(UART can receive data), 4=Set during mark state of the TxD line.
 	line &= 0xF; //Ignore unused lines!
+	if ((((modem.outputline ^ line) & (line)) & 8)) //IRQ line raised?
+	{
+		writefifobuffer(SERMouse.buffer, 'M'); //Give some input!
+	}
 	INLINEREGISTER byte previouspower; //Previous power line detected!
 	previouspower = SERMouse.powered; //Previous power present?
 	SERMouse.powered = (line & 2); //Are we powered on? This is done by the RTS output!
