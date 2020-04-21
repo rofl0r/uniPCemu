@@ -34,6 +34,7 @@ struct
 	byte movement; //Movement detection is powered on?
 	byte powered; //Are we powered on?
 	byte port;
+	byte previousline;
 } SERMouse;
 
 byte useSERMouse() //Serial mouse enabled?
@@ -87,7 +88,7 @@ void SERmouse_setModemControl(byte line) //Set output lines of the Serial Mouse!
 {
 	//0: Data Terminal Ready(we can are ready to work), 1: Request to Send(UART can receive data), 4=Set during mark state of the TxD line.
 	line &= 0xF; //Ignore unused lines!
-	if ((((modem.outputline ^ line) & (line)) & 8)) //IRQ line raised?
+	if ((((SERMouse.previousline ^ line) & (line)) & 8)) //IRQ line raised?
 	{
 		writefifobuffer(SERMouse.buffer, 'M'); //Give some input!
 	}
@@ -100,6 +101,7 @@ void SERmouse_setModemControl(byte line) //Set output lines of the Serial Mouse!
 		writefifobuffer(SERMouse.buffer, 'M'); //We respond with an ASCII 'M' character on reset.
 	}
 	SERMouse.movement = (line&1); //Allow movement to be used? Clearing DTR makes it not give Movement Input(it powers the lights that detect movement).
+	SERMouse.previousline = line; //Previous line!
 }
 
 byte serMouse_readData()
