@@ -399,7 +399,7 @@ void UART_update_modemcontrol(byte COMport, byte isportwrite)
 	}
 	if ((UART_port[COMport].LiveModemControlRegister & 8) && isportwrite) //IRQ line raised?
 	{
-		launchUARTIRQ(COMport, 4); //Launch a UART IRQ Request!
+		//launchUARTIRQ(COMport, 4); //Launch a UART IRQ Request!
 	}
 	UART_port[COMport].oldLiveModemControlRegister = UART_port[COMport].LiveModemControlRegister; //Difference detection!
 }
