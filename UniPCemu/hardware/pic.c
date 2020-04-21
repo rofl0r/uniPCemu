@@ -365,30 +365,19 @@ void lowerirq(byte irqnum)
 	irqnum &= 0xF; //Only 16 IRQs!
 	requestingindex >>= 4; //What index is requesting?
 	byte PIC = (irqnum>>3); //IRQ8+ is high PIC!
+	byte lowerirr, lowerirr2;
 	if (i8259.irr2[PIC][requestingindex]&(1 << (irqnum & 7))) //Were we raised?
 	{
 		i8259.irr2[PIC][requestingindex] &= ~(1 << (irqnum & 7)); //Lower the IRQ line to request!
+		lowerirr = i8259.irr3[PIC][requestingindex]; //What has been lowered!
+		lowerirr2 = i8259.irr3_a[PIC][requestingindex]; //What has been lowered!
 		i8259.irr3[PIC][requestingindex] &= ~(1 << (irqnum & 7)); //Remove the request being used itself!
-		if (is_XT==0) //AT and up drive it directly?
-		{
-			i8259.irr3_a[PIC][requestingindex] &= ~(1 << (irqnum & 7)); //Remove the acnowledge!
-		}
+		i8259.irr3_a[PIC][requestingindex] &= ~(1 << (irqnum & 7)); //Remove the acnowledge!
 		irr3_dirty = 1; //Dirty!
-		hasirr = 0; //Init IRR state not pending anymore!
-		for (irr2index = 0;irr2index < 0x10;++irr2index) //Verify if anything is left!
+		if ((lowerirr&lowerirr2)&(1 << (irqnum & 7))) //Were we acnowledged and loaded?
 		{
-			if ((i8259.irr3[PIC][irr2index]&i8259.irr3_a[PIC][irr2index]) & (1 << (irqnum & 7))) //Request and acnowledged?
-			{
-				hasirr = 1; //We still have an IRR!
-				break; //Stop searching!
-			}
-		}
-		if (hasirr==0) //Were we lowered completely? We're lowered when nothing is requested and acnowledged anymore!
-		{
-			/*
-			i8259.irr[PIC] &= ~(1<<(irqnum&7)); //Remove the request, if any!
-			*/ //Only for level triggered interrupts
-		}
+			i8259.irr[PIC] &= ~(1<<(irqnum&7)); //Remove the request, if any! New requests can be loaded!
+		} //Is this only for level triggered interrupts?
 	}
 }
 
