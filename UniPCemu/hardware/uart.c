@@ -504,7 +504,7 @@ byte PORT_writeUART(word port, byte value)
 					UART_port[COMport].LineStatusRegister &= ~1; //Receiver buffer is empty!
 					UART_port[COMport].LineStatusRegister |= 0x60; //The Transmitter Holding Register and Shift Register are both empty!
 					UART_port[COMport].LiveModemControlRegister &= 0xC; //Cleared the live output(RTS and CTS in particular)!
-					UART_update_modemcontrol(COMport,1); //Update the modem control output!
+					UART_update_modemcontrol(COMport,0); //Update the modem control output!
 				}
 				UART_handleInputs(); //Update the loopback status as required by updating the status register!
 			}
