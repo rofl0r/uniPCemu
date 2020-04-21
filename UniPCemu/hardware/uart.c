@@ -391,13 +391,13 @@ byte PORT_readUART(word port, byte *result) //Read from the uart!
 	return 1; //Defined port!
 }
 
-void UART_update_modemcontrol(byte COMport)
+void UART_update_modemcontrol(byte COMport, byte isportwrite)
 {
 	if (UART_port[COMport].setmodemcontrol) //Line handler is connected and not in loopback mode?
 	{
 		UART_port[COMport].setmodemcontrol(UART_port[COMport].LiveModemControlRegister | ((UART_port[COMport].output_is_marking & 1) << 4)); //Update the output lines for the peripheral!
 	}
-	if ((UART_port[COMport].LiveModemControlRegister & 8) & (UART_port[COMport].LiveModemControlRegister^UART_port[COMport].oldLiveModemControlRegister)) //IRQ line raised?
+	if ((UART_port[COMport].LiveModemControlRegister & 8) && isportwrite) //IRQ line raised?
 	{
 		launchUARTIRQ(COMport, 4); //Launch a UART IRQ Request!
 	}
@@ -494,7 +494,7 @@ byte PORT_writeUART(word port, byte value)
 				UART_port[COMport].LiveModemControlRegister = (UART_port[COMport].ModemControlRegister&0xF); //Save the set modem control register state for the live output and mark logic!
 				if (UART_port[COMport].ModemControlRegister^UART_port[COMport].oldModemControlRegister) //Modem control register changes are posted only(relieve the )?
 				{
-					UART_update_modemcontrol(COMport); //Update the modem control output!
+					UART_update_modemcontrol(COMport,1); //Update the modem control output!
 				}
 			}
 			if ((UART_port[COMport].ModemControlRegister^UART_port[COMport].oldModemControlRegister)&0x10) //Loopback mode enabled or disabled?
@@ -504,7 +504,7 @@ byte PORT_writeUART(word port, byte value)
 					UART_port[COMport].LineStatusRegister &= ~1; //Receiver buffer is empty!
 					UART_port[COMport].LineStatusRegister |= 0x60; //The Transmitter Holding Register and Shift Register are both empty!
 					UART_port[COMport].LiveModemControlRegister &= 0xC; //Cleared the live output(RTS and CTS in particular)!
-					UART_update_modemcontrol(COMport); //Update the modem control output!
+					UART_update_modemcontrol(COMport,1); //Update the modem control output!
 				}
 				UART_handleInputs(); //Update the loopback status as required by updating the status register!
 			}
@@ -663,7 +663,7 @@ void updateUART(DOUBLE timepassed)
 						if (unlikely(UART_port[UART].senddata && ((UART_port[UART].LineStatusRegister & 0x20) == 0))) //Something to transfer?
 						{
 							UART_port[UART].output_is_marking = 0; //Not marking anymmore!
-							UART_update_modemcontrol(UART); //Updated the marking state!
+							UART_update_modemcontrol(UART,0); //Updated the marking state!
 							//Start transferring data...
 							UART_port[UART].LineStatusRegister |= 0x20; //The Transmitter Holding Register is empty!
 							UART_port[UART].TransmitterShiftRegister = UART_port[UART].TransmitterHoldingRegister; //Move to shift register!
@@ -687,7 +687,7 @@ void updateUART(DOUBLE timepassed)
 						}
 						UART_port[UART].sendPhase = 0; //Start polling again!
 						UART_port[UART].output_is_marking = 1; //We're marking again!
-						UART_update_modemcontrol(UART); //Updated the marking state!
+						UART_update_modemcontrol(UART,0); //Updated the marking state!
 						break;
 					}
 				}
@@ -708,7 +708,7 @@ void UART_registerdevice(byte portnumber, UART_setmodemcontrol setmodemcontrol, 
 	UART_port[portnumber].receivedata = receivedata;
 	UART_port[portnumber].senddata = senddata;
 	UART_port[portnumber].getmodemstatus = getmodemstatus;
-	UART_update_modemcontrol(portnumber); //Update the port's marking state so that the hardware knows about it!
+	UART_update_modemcontrol(portnumber,0); //Update the port's marking state so that the hardware knows about it!
 	if (getmodemstatus) //Init status!
 	{
 		UART_port[portnumber].activeModemStatus = UART_port[portnumber].getmodemstatus(); //Retrieve the modem status from the peripheral!
