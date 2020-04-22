@@ -124,6 +124,11 @@ byte out8259(word portnum, byte value)
 			irr3_dirty = 0; //Not dirty anymore!
 			i8259.imr[pic] = 0; //clear interrupt mask register
 			i8259.icw[pic][i8259.icwstep[pic]++] = value; //Set the ICW1!
+			i8259.icw[pic][2] = 7; //Slave mode address is set to 7?
+			if ((i8259.icw[pic][0] & 1)==0) //ICW4 not sent?
+			{
+				i8259.icw[pic][3] = 0; //ICW4 has all it's functions set to zero!
+			}
 			i8259.readmode[pic] = 0; //Default to IRR reading after a reset!
 			return 1;
 		}
@@ -150,22 +155,18 @@ byte out8259(word portnum, byte value)
 		return 1;
 		break;
 	case 1:
-		if ((i8259.icwstep[pic] == 2) && (i8259.icw[pic][0] & 2))
-		{
-			++i8259.icwstep[pic]; //single mode, so don't read ICW3
-		}
-		if ((i8259.icwstep[pic] == 3) && (i8259.icw[pic][0] & 1))
-		{
-			++i8259.icwstep[pic]; //no ICW4 expected, so don't read ICW4
-		}
-		if (i8259.icwstep[pic]<4)
+		if (i8259.icwstep[pic]<4) //Not sent all ICW yet?
 		{
 			i8259.icw[pic][i8259.icwstep[pic]++] = value;
+			if ((i8259.icwstep[pic] == 2) && (i8259.icw[pic][0] & 2)) //Next is not ICW3?
+			{
+				++i8259.icwstep[pic]; //single mode, so don't read ICW3
+			}
+			if ((i8259.icwstep[pic] == 3) && ((i8259.icw[pic][0] & 1)==0)) //Next is not ICW4?
+			{
+				++i8259.icwstep[pic]; //no ICW4 expected, so don't read ICW4
+			}
 			return 1;
-		}
-		else if ((i8259.icw[0][0]&2) && (is_XT)) //Second PIC disabled?
-		{
-			i8259.icw[0][0] &= ~2; //Enable second PIC always!
 		}
 		//OCW1!
 		//if we get to this point, this is just a new IMR value
