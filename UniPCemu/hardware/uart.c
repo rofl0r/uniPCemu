@@ -452,6 +452,8 @@ byte PORT_writeUART(word port, byte value)
 					UART_handleInputs(); //Handle any inputs on the UART!
 					UART_port[COMport].LineStatusRegister |= 0x40; //The Transmitter Holding Register and Shift Register are both empty!
 					UART_handleInputs(); //Handle any inputs on the UART!
+					UART_port[COMport].LineStatusRegister &= ~0x01; //We've not received data!
+					UART_handleInputs(); //Handle any inputs on the UART!
 					UART_port[COMport].LineStatusRegister |= 0x01; //We've received data!
 					UART_handleInputs(); //Handle any inputs on the UART!
 				}
