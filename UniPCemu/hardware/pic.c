@@ -361,8 +361,6 @@ void lowerirq(byte irqnum)
 {
 	if (__HW_DISABLED) return; //Abort!
 	byte requestingindex = irqnum; //Save our index that's requesting!
-	byte irr2index;
-	byte hasirr;
 	irqnum &= 0xF; //Only 16 IRQs!
 	requestingindex >>= 4; //What index is requesting?
 	byte PIC = (irqnum>>3); //IRQ8+ is high PIC!
