@@ -3490,6 +3490,7 @@ void updateFloppy(DOUBLE timepassed)
 					{
 						FLOPPY.commandstep = 3; //Move to result phrase and give the result!
 						FLOPPY_raiseIRQ(); //Entering result phase!
+						floppytimer[drive] = 0.0; //Don't time anymore!
 						goto finishdrive;
 					}
 					else switch (FLOPPY.activecommand[drive]) //What command is processing?
