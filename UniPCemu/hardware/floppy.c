@@ -1996,7 +1996,7 @@ void floppy_writesector() //Request a write sector command!
 		//FLOPPY_ST0_SEEKENDW(0); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
 		FLOPPY_ST0_INTERRUPTCODEW(0); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
 		FLOPPY_ST0_SEEKENDW(0); //Clear seek end: we're reading a sector!
-		FLOPPY.ST1 = 0x01; //Couldn't find any sector!
+		FLOPPY.ST1 = 0x01 | 0x04; //Couldn't find any sector!
 		FLOPPY.ST2 = 0x01; //Data address mark not found!
 		FLOPPY.erroringtiming |= (1<<FLOPPY_DOR_DRIVENUMBERR); //Erroring!
 		goto floppy_errorwritesector; //Handle the error!
@@ -2049,7 +2049,7 @@ void floppy_executeWriteData()
 		//FLOPPY_ST0_SEEKENDW(0); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
 		FLOPPY_ST0_INTERRUPTCODEW(0); //Clear unit check and Interrupt code: we're OK. Also clear SE flag: we're still busy!
 		FLOPPY_ST0_SEEKENDW(0); //Clear seek end: we're reading a sector!
-		FLOPPY.ST1 = 0x01; //Couldn't find any sector!
+		FLOPPY.ST1 = 0x01 | 0x04; //Couldn't find any sector!
 		FLOPPY.ST2 = 0x01; //Data address mark not found!
 		FLOPPY.erroringtiming |= (1<<FLOPPY_DOR_DRIVENUMBERR); //Erroring!
 		goto floppy_errorwrite; //Error out!
@@ -2640,6 +2640,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			{
 				FLOPPY_LOGD("FLOPPY: Error: Invalid density!")
 				FLOPPY.ST1 = 0x01; //Couldn't find any sector!
+				FLOPPY.ST2 = 0x01; //Data address mark not found!
 				goto didntfindsectoridreadid;
 			}
 
@@ -2656,6 +2657,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 					if (readDSKTrackInfo(DSKImageFile, FLOPPY.currentphysicalhead[drive], FLOPPY.physicalcylinder[drive], &trackinfo) == 0) //Read?
 					{
 						FLOPPY.ST1 = 0x01; //Couldn't find any sector!
+						FLOPPY.ST2 = 0x01; //Data address mark not found!
 						goto didntfindsectoridreadid;
 					}
 				}
@@ -2664,6 +2666,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 					if (readIMDSectorInfo(IMDImageFile, FLOPPY.physicalcylinder[drive], FLOPPY.currentphysicalhead[drive], 0, &IMD_sectorinfo) == 0) //Read?
 					{
 						FLOPPY.ST1 = 0x01; //Couldn't find any sector!
+						FLOPPY.ST2 = 0x01; //Data address mark not found!
 						goto didntfindsectoridreadid;
 					}
 				}
