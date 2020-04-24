@@ -305,3 +305,6 @@ __pycache__/
 /gitversion2.txt
 *.psp
 *.diagsession
+#Configure scripts
+/configure
+/autom4te.cache
