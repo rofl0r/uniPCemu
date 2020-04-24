@@ -308,3 +308,4 @@ __pycache__/
 #Configure scripts
 /configure
 /autom4te.cache
+/config.status
