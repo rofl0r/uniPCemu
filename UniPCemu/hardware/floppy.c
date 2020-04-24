@@ -1126,7 +1126,7 @@ OPTINLINE void FLOPPY_startData(byte drive) //Start a Data transfer if needed!
 		}
 		else //Timing 0.5s?
 		{
-				floppytimer[drive] = (DOUBLE)(500000000.0); //Time the timeout for floppy!
+				floppytimer[drive] = (DOUBLE)(500000000.0/((DOUBLE)FLOPPY.databuffersize)); //Time the timeout for floppy!
 				floppytiming |= (1<<FLOPPY_DOR_DRIVENUMBERR); //Make sure we're timing on the specified disk channel!
 				FLOPPY.DMAPending = 0; //Not pending DMA!
 		}
@@ -3489,7 +3489,7 @@ void updateFloppy(DOUBLE timepassed)
 						floppytimer[drive] = 0.0; //Don't time anymore!
 						goto finishdrive;
 					}
-					else if ((FLOPPY.erroringtiming & (1<<drive)) && (FLOPPY.activecommand[drive]!=READ_ID)) //Timing error?
+					else if ((FLOPPY.erroringtiming & (1<<drive)) && ((FLOPPY.activecommand[drive]!=READ_ID) && (FLOPPY.activecommand[drive]!=VERIFY))) //Timing error?
 					{
 						FLOPPY.commandstep = 3; //Move to result phrase and give the result!
 						FLOPPY_raiseIRQ(); //Entering result phase!
