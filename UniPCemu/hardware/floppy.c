@@ -2446,11 +2446,11 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 				FLOPPY_ST0_UNITSELECTW(reset_drive); //What drive are we giving!
 				FLOPPY_ST0_CURRENTHEADW(FLOPPY.currentphysicalhead[reset_drive] & 1); //Set the current head of the drive!
 				FLOPPY_ST0_UNITCHECKW(0); //We're valid, because polling more is valid by default!
-				if ((FLOPPY.reset_pending == 0) || (FLOPPY.reset_pending==1) || (FLOPPY.reset_pending==2)) //Finished reset pending after the second drive?
+				datatemp = FLOPPY.ST0; //Use the current data, not the cleared data! Polling is set here always!
+				if (FLOPPY.reset_pending == 0) //Finished reset pending after the second drive?
 				{
 					FLOPPY.ST0 &= 0x3F; //Remove the polling status and become normal from now on!
 				}
-				datatemp = FLOPPY.ST0; //Use the current data, not the cleared data! Polling is set here always!
 			}
 			else if (!FLOPPY_hadIRQ) //Not an pending IRQ?
 			{
