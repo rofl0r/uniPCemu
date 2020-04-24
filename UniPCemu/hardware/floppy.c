@@ -2445,11 +2445,11 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 				FLOPPY_ST0_UNITSELECTW(reset_drive); //What drive are we giving!
 				FLOPPY_ST0_CURRENTHEADW(FLOPPY.currentphysicalhead[reset_drive] & 1); //Set the current head of the drive!
 				FLOPPY_ST0_UNITCHECKW(0); //We're valid, because polling more is valid by default!
-				datatemp = FLOPPY.ST0; //Use the current data, not the cleared data! Polling is set here always!
-				if (FLOPPY.reset_pending == 0) //Finished reset pending?
+				if ((FLOPPY.reset_pending == 0) || (FLOPPY.reset_pending==1) || (FLOPPY.reset_pending==2)) //Finished reset pending after the second drive?
 				{
 					FLOPPY.ST0 &= 0x3F; //Remove the polling status and become normal from now on!
 				}
+				datatemp = FLOPPY.ST0; //Use the current data, not the cleared data! Polling is set here always!
 			}
 			else if (!FLOPPY_hadIRQ) //Not an pending IRQ?
 			{
@@ -3049,10 +3049,17 @@ OPTINLINE void floppy_writeData(byte isDMA, byte value)
 			value &= 0x1F; //Make sure that the high data is filtered out!
 			switch (value) //What command?
 			{
-				case SENSE_INTERRUPT: //Check interrupt status
 				case DUMPREG: //Dumpreg command
 				case VERSION: //Version
 				case LOCK: //Lock
+					FLOPPY.reset_pending = 0; //Stop pending reset if we're pending it: we become active!
+					if (FLOPPY.reset_pended) //Finished reset?
+					{
+						FLOPPY_LOGD("FLOPPY: Reset for all drives has been finished!");
+						FLOPPY.ST0 &= 0x20; //Reset the ST0 register after we've all been read!
+						FLOPPY.reset_pended = 0; //Not pending anymore, so don't check for it!
+					}
+				case SENSE_INTERRUPT: //Check interrupt status
 					FLOPPY.commandbuffer[0] = value; //Set the command to use!
 					floppy_executeCommand(); //Execute the command!
 					break;
