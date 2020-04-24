@@ -837,12 +837,12 @@ OPTINLINE void FLOPPY_handlereset(byte source) //Resets the floppy disk command 
 			FLOPPY.DMAPending = 0; //No DMA transfer busy!
 		}
 	}
-	else if (FLOPPY.floppy_resetted) //We were resetted and are activated?
+	else if (FLOPPY.floppy_resetted==1) //We were resetted and are activated?
 	{
 		floppytimer[4] = (DOUBLE)250000000.0; //250ms timer!
 		floppytime[4] = (DOUBLE)0.0; //Start timing this!
 		floppytiming |= 0x10; //Start timing this timer!
-		FLOPPY.floppy_resetted = 0; //Not resetted anymore!
+		FLOPPY.floppy_resetted = 2; //Starting the timing, don't trigger it again!
 		if (source==1)
 		{
 			FLOPPY_LOGD("FLOPPY: Activation requested by DSR!")
@@ -3400,6 +3400,7 @@ void updateFloppy(DOUBLE timepassed)
 					{
 						FLOPPY_raiseIRQ(); //Raise the IRQ: We're reset and have been activated!
 						floppytimer[drive] = (DOUBLE)0; //Stop timing!
+						FLOPPY.floppy_resetted = 0; //Not resetted anymore!
 					}
 					else switch (FLOPPY.activecommand[drive]) //What command is processing?
 					{
