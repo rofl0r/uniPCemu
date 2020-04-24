@@ -30,11 +30,27 @@ pipelines:
           - cd ..
           - cd ..
     - step:
+        name: UniPCemu configuration
+        trigger: manual
+        caches:
+          - unipcemu #cache is defined below in the definitions section
+          - unipcemulocal #cache is defined below in the definitions section
+        script:
+          # Build us now!
+          - git submodule update --init
+          - cd UniPCemu
+          # Only create when needed!
+          - test -f ./configure || ./autogen.sh
+          - test ./configure -ot ./autogen.sh || ./autogen.sh
+          - test -f ./Makefile || ./configure
+          - test ./Makefile -ot ./configure || ./configure
+    - step:
         name: UniPCemu
         trigger: manual
         caches:
           - sdl2 #cache is defined below in the definitions section
           - unipcemu #cache is defined below in the definitions section
+          - unipcemulocal #cache is defined below in the definitions section
         script:
           # Build us now!
           - git submodule update --init
@@ -51,3 +67,4 @@ definitions:
   caches:
     sdl2: SDL2/build
     unipcemu: ../projects_build/UniPCemu/linux
+    unipcemulocal: ./UniPCemu
