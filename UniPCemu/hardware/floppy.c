@@ -3399,8 +3399,9 @@ void updateFloppy(DOUBLE timepassed)
 					if (drive == 4) //Reset line timer?
 					{
 						FLOPPY_raiseIRQ(); //Raise the IRQ: We're reset and have been activated!
-						floppytimer[drive] = (DOUBLE)0; //Stop timing!
 						FLOPPY.floppy_resetted = 0; //Not resetted anymore!
+						floppytimer[drive] = 0.0; //Don't time anymore!
+						goto finishdrive;
 					}
 					else switch (FLOPPY.activecommand[drive]) //What command is processing?
 					{
