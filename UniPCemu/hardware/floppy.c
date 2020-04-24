@@ -1608,15 +1608,14 @@ void floppy_readsector() //Request a read sector command!
 		{
 			FLOPPY.commandstep = 3; //Move to result phrase and give the result!
 			FLOPPY_raiseIRQ(); //Entering result phase!
-			return; //Abort!
 		}
 		else //Timing 0.5 second?
 		{
-				FLOPPY.commandstep = 2; //Simulating no transfer!
-				floppytime[FLOPPY_DOR_DRIVENUMBERR] = (DOUBLE)0.0; //Start in full delay!
-				floppytimer[FLOPPY_DOR_DRIVENUMBERR] = (DOUBLE)(500000000.0); //Time the timeout for floppy!
-				floppytiming |= (1<<FLOPPY_DOR_DRIVENUMBERR); //Make sure we're timing on the specified disk channel!
-				FLOPPY.DMAPending = 0; //Not pending DMA!
+			FLOPPY.commandstep = 2; //Simulating no transfer!
+			floppytime[FLOPPY_DOR_DRIVENUMBERR] = (DOUBLE)0.0; //Start in full delay!
+			floppytimer[FLOPPY_DOR_DRIVENUMBERR] = (DOUBLE)(500000000.0); //Time the timeout for floppy!
+			floppytiming |= (1<<FLOPPY_DOR_DRIVENUMBERR); //Make sure we're timing on the specified disk channel!
+			FLOPPY.DMAPending = 0; //Not pending DMA!
 		}
 	}
 }
@@ -1837,7 +1836,6 @@ void FLOPPY_formatsector(byte nodata) //Request a read sector command!
 				{
 					FLOPPY.commandstep = 3; //Move to result phrase and give the result!
 					FLOPPY_raiseIRQ(); //Entering result phase!
-					return; //Abort!
 				}
 				else //Timing 0.5 second!
 				{
@@ -1847,6 +1845,7 @@ void FLOPPY_formatsector(byte nodata) //Request a read sector command!
 					floppytiming |= (1<<FLOPPY_DOR_DRIVENUMBERR); //Make sure we're timing on the specified disk channel!
 					FLOPPY.DMAPending = 0; //Not pending DMA!
 				}
+				return;
 			}
 			if (FLOPPY.databuffer[1] != FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR]) //Not current head?
 			{
@@ -1974,7 +1973,6 @@ void floppy_writesector() //Request a write sector command!
 		{
 			FLOPPY.commandstep = 3; //Move to result phrase and give the result!
 			FLOPPY_raiseIRQ(); //Entering result phase!
-			return; //Abort!
 		}
 		else //Timing 0.5s!
 		{
@@ -1984,6 +1982,7 @@ void floppy_writesector() //Request a write sector command!
 			floppytiming |= (1<<FLOPPY_DOR_DRIVENUMBERR); //Make sure we're timing on the specified disk channel!
 			FLOPPY.DMAPending = 0; //Not pending DMA!
 		}
+		return; //Abort!
 	}
 
 	if (!FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR] || ((FLOPPY_DOR_DRIVENUMBERR < 2) ? (!is_mounted(FLOPPY_DOR_DRIVENUMBERR ? FLOPPY1 : FLOPPY0)) : 1)) //Not properly mounted?
@@ -2273,7 +2272,6 @@ void floppy_executeWriteData()
 					{
 						FLOPPY.commandstep = 3; //Move to result phase!
 						FLOPPY_raiseIRQ(); //Entering result phase!
-						return;
 					}
 					else //Timing 0.5s?
 					{
@@ -2283,17 +2281,19 @@ void floppy_executeWriteData()
 						floppytiming |= (1<<FLOPPY_DOR_DRIVENUMBERR); //Make sure we're timing on the specified disk channel!
 						FLOPPY.DMAPending = 0; //Not pending DMA!
 					}
-			}
-			else
-			{
-				if (FLOPPY.RWRequestedCylinder != FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]) //Wrong cylinder to access?
+					return; //Abort!
+				}
+				else
 				{
+					if (FLOPPY.RWRequestedCylinder != FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]) //Wrong cylinder to access?
+					{
+						FLOPPY.ST1 = 0x04; //Couldn't find any sector!
+						FLOPPY.ST2 = 0x01; //Data address mark not found!
+						goto floppy_errorwrite; //Error out!
+					}
 					FLOPPY.ST1 = 0x04; //Couldn't find any sector!
 					FLOPPY.ST2 = 0x01; //Data address mark not found!
-					goto floppy_errorwrite; //Error out!
 				}
-				FLOPPY.ST1 = 0x04; //Couldn't find any sector!
-				FLOPPY.ST2 = 0x01; //Data address mark not found!
 			}
 		floppy_errorwrite:
 		didntfindsectoridwrite: //Couldn't find the sector ID!
