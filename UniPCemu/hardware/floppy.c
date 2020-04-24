@@ -839,7 +839,7 @@ OPTINLINE void FLOPPY_handlereset(byte source) //Resets the floppy disk command 
 	}
 	else if (FLOPPY.floppy_resetted==1) //We were resetted and are activated?
 	{
-		floppytimer[4] = (DOUBLE)250000000.0; //250ms timer!
+		floppytimer[4] = (DOUBLE)30000.0; //30us timer!
 		floppytime[4] = (DOUBLE)0.0; //Start timing this!
 		floppytiming |= 0x10; //Start timing this timer!
 		FLOPPY.floppy_resetted = 2; //Starting the timing, don't trigger it again!
