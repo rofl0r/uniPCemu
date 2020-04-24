@@ -263,10 +263,9 @@ struct
 
 byte density_forced = 0; //Default: don't ignore the density with the CPU!
 
-DOUBLE floppytimer[4] = {0.0,0.0,0.0,0.0}; //The timer for ticking floppy disk actions!
-DOUBLE floppytime[4] = {0.0,0.0,0.0,0.0}; //Buffered floppy disk time!
+DOUBLE floppytimer[5] = {0.0,0.0,0.0,0.0,0.0}; //The timer for ticking floppy disk actions!
+DOUBLE floppytime[5] = {0.0,0.0,0.0,0.0}; //Buffered floppy disk time!
 byte floppytiming = 0; //Are we timing?
-byte currentfloppytimerstep[4] = {0,0,0,0}; //Current step to execute within the floppy disk timer process!
 
 extern byte is_XT; //Are we emulating a XT architecture?
 
@@ -840,7 +839,9 @@ OPTINLINE void FLOPPY_handlereset(byte source) //Resets the floppy disk command 
 	}
 	else if (FLOPPY.floppy_resetted) //We were resetted and are activated?
 	{
-		FLOPPY_raiseIRQ(); //Raise the IRQ: We're reset and have been activated!
+		floppytimer[4] = (DOUBLE)250000000.0; //250ms timer!
+		floppytime[4] = (DOUBLE)0.0; //Start timing this!
+		floppytiming |= 0x10; //Start timing this timer!
 		FLOPPY.floppy_resetted = 0; //Not resetted anymore!
 		if (source==1)
 		{
@@ -3047,6 +3048,8 @@ OPTINLINE void floppy_writeData(byte isDMA, byte value)
 			FLOPPY.Skip = (value & CMD_EXT_SKIPDELETEDADDRESSMARKS)?1:0; //Multiple track mode?
 			FLOPPY.MTMask = 1; //Default: allow the MT bit to be applied during sector calculations!
 			value &= 0x1F; //Make sure that the high data is filtered out!
+			floppytimer[4] = (DOUBLE)0; //Disable the floppy reset timer!
+			floppytiming &= ~0x10; //Clear the reset timer!
 			switch (value) //What command?
 			{
 				case DUMPREG: //Dumpreg command
@@ -3393,7 +3396,12 @@ void updateFloppy(DOUBLE timepassed)
 				for (;(floppytime[drive]>=floppytimer[drive]) && floppytimer[drive];) //Timeout and still timing?
 				{
 					floppytime[drive] -= floppytimer[drive]; //Time some!
-					switch (FLOPPY.activecommand[drive]) //What command is processing?
+					if (drive == 4) //Reset line timer?
+					{
+						FLOPPY_raiseIRQ(); //Raise the IRQ: We're reset and have been activated!
+						floppytimer[drive] = (DOUBLE)0; //Stop timing!
+					}
+					else switch (FLOPPY.activecommand[drive]) //What command is processing?
 					{
 						case SEEK: //Seek/park head
 							if ((drive>=2) || (!FLOPPY.geometries[drive])) //Floppy not inserted?
@@ -3564,7 +3572,7 @@ void updateFloppy(DOUBLE timepassed)
 				finishdrive:
 				FLOPPY_checkfinishtiming(drive); //Check for finished timing!
 			}
-		} while (++drive<4); //Process all drives!
+		} while (++drive<5); //Process all drives and reset!
 	}
 }
 
