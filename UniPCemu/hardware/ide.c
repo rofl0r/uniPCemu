@@ -3519,7 +3519,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		strcpy_padded(&ATA[channel].Drive[drive].data[8],8,(byte *)"UniPCemu"); //Vendor ID
 		memset(&CDROM_id, 0, sizeof(CDROM_id)); //Init!
 		safescatnprintf(&CDROM_id[0], sizeof(CDROM_id), "Generic CD-ROM %i", (ATA_Drives[channel][drive] == CDROM1) ? 2 : 1); //Autonumbering CD-ROM number!
-		strcpy_padded(&ATA[channel].Drive[drive].data[16],16,(byte *)CDROM_id[0]); //Product ID
+		strcpy_padded(&ATA[channel].Drive[drive].data[16],16,(byte *)&CDROM_id[0]); //Product ID
 		strcpy_padded(&ATA[channel].Drive[drive].data[32],4,&FIRMWARE[1][0]); //Product revision level
 		//Leave the rest of the information cleared (unknown/unspecified)
 		ATA[channel].Drive[drive].commandstatus = 1; //Transferring data IN!
