@@ -2683,7 +2683,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 					}
 				}
 				
-				for (sectornr = (FLOPPY.readID_lastsectornumber+1); sectornr < (word)trackinfo.numberofsectors; ++sectornr) //Find the next sector that's to be requested!
+				for (sectornr = (FLOPPY.readID_lastsectornumber+1); sectornr < (word)(IMDImageFile ? IMD_sectorinfo.totalsectors : trackinfo.numberofsectors); ++sectornr) //Find the next sector that's to be requested!
 				{
 				tryReadIDnewsector: //Try to read a new sector number!
 					if (DSKImageFile) //DSK image?
