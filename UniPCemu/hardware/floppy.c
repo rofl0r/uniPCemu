@@ -3020,7 +3020,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			break;
 		default: //Unknown command?
 			FLOPPY.commandstep = 0xFF; //Move to error phrase!
-			FLOPPY.ST0 = 0x80 | (FLOPPY.ST0 & 0x30) | FLOPPY_DOR_DRIVENUMBERR | (FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR] << 2); //Invalid command!
+			FLOPPY.ST0 = 0x80; //Invalid command!
 			floppy_erroringout(); //Erroring out!
 			break;
 	}
@@ -3185,7 +3185,7 @@ OPTINLINE void floppy_writeData(byte isDMA, byte value)
 					break;
 				default: //Invalid command
 					FLOPPY_LOGD("FLOPPY: Invalid or unsupported command: %02X",value); //Detection of invalid/unsupported command!
-					FLOPPY.ST0 = 0x80 | (FLOPPY.ST0 & 0x30) | FLOPPY_DOR_DRIVENUMBERR | (FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR] << 2); //Invalid command!
+					FLOPPY.ST0 = 0x80; //Invalid command!
 					FLOPPY.commandstep = 0xFF; //Error: lockup!
 					floppy_erroringout(); //Erroring out!
 					break;
