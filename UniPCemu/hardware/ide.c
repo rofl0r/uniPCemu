@@ -1128,7 +1128,7 @@ void ATAPI_tickAudio(byte channel, byte slave)
 	}
 	else //Playback?
 	{
-		if (ATA[channel].Drive[slave].AUDIO_PLAYER.samplepos < 2352) //Rendering a buffer?
+		if (ATA[channel].Drive[slave].AUDIO_PLAYER.samplepos < 2349) //Rendering a buffer?
 		{
 			samplepos = ATA[channel].Drive[slave].AUDIO_PLAYER.samplepos; //Load the sample position!
 			ATAPI_renderSamplepos:
