@@ -3518,7 +3518,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		ATA[channel].Drive[drive].data[4] = 31; //Amount of bytes following this byte for the full buffer? Total 36, so 31 more.
 		strcpy_padded(&ATA[channel].Drive[drive].data[8],8,(byte *)"UniPCemu"); //Vendor ID
 		memset(&CDROM_id, 0, sizeof(CDROM_id)); //Init!
-		safescatnprintf(&CDROM_id[0], sizeof(CDROM_id), "Generic CD-ROM %i", (ATA_Drives[channel][drive] == CDROM1) ? 2 : 1); //Autonumbering CD-ROM number!
+		safescatnprintf(&CDROM_id[0], sizeof(CDROM_id), "UniPCemu CD-ROM%i", (ATA_Drives[channel][drive] == CDROM1) ? 1 : 0); //Autonumbering CD-ROM number!
 		strcpy_padded(&ATA[channel].Drive[drive].data[16],16,(byte *)&CDROM_id[0]); //Product ID
 		strcpy_padded(&ATA[channel].Drive[drive].data[32],4,&FIRMWARE[1][0]); //Product revision level
 		//Leave the rest of the information cleared (unknown/unspecified)
@@ -5635,7 +5635,7 @@ void ATA_DiskChanged(int disk)
 		safestrcpy(&newserial[0],sizeof(newserial),(char *)&SERIAL[IS_CDROM][0]); //Copy the serial to use!
 		if (safestrlen(newserial,sizeof(newserial))) //Any length at all?
 		{
-			newserial[safestrlen(newserial,sizeof(newserial))-1] = 48+((disk_channel<<1)|disk_drive); //Unique identifier for the disk, acting as the serial number!
+			newserial[safestrlen(newserial,sizeof(newserial))-1] = 48+(((!IS_CDROM)?(disk_channel<<1):0)|disk_drive); //Unique identifier for the disk, acting as the serial number!
 		}
 		strcpy_swappedpadded(&ATA[disk_channel].Drive[disk_drive].driveparams[10],10,(byte *)newserial);
 		if (IS_CDROM==0)
