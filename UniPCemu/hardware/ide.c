@@ -3407,6 +3407,7 @@ void ATAPI_command_reportError(byte channel, byte slave)
 //List of mandatory commands from http://www.bswd.com/sff8020i.pdf page 106 (ATA packet interface for CD-ROMs SFF-8020i Revision 2.6)
 void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execute Command!
 {
+	char CDROM_id[256];
 	//We're to move to either HPD3(raising an IRQ when enabled, which moves us to HPD2) or HPD2(data phase). Busy must be cleared to continue transferring, otherwise software's waiting. Next we start HPD4(data transfer phase) to transfer data if needed, finish otherwise.
 	//Stuff based on Bochs
 	byte Mseek, Sseek, Fseek;
@@ -3516,7 +3517,9 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		ATA[channel].Drive[drive].data[3] = ((2<<4)|(1)); //We're ATAPI version 2(high nibble, from SFF-8020i documentation we're based on), response data format 1?
 		ATA[channel].Drive[drive].data[4] = 31; //Amount of bytes following this byte for the full buffer? Total 36, so 31 more.
 		strcpy_padded(&ATA[channel].Drive[drive].data[8],8,(byte *)"UniPCemu"); //Vendor ID
-		strcpy_padded(&ATA[channel].Drive[drive].data[16],16,(byte *)"Generic CD-ROM"); //Product ID
+		memset(&CDROM_id, 0, sizeof(CDROM_id)); //Init!
+		safescatnprintf(&CDROM_id[0], sizeof(CDROM_id), "Generic CD-ROM %i", (ATA_Drives[channel][drive] == CDROM1) ? 2 : 1); //Autonumbering CD-ROM number!
+		strcpy_padded(&ATA[channel].Drive[drive].data[16],16,(byte *)CDROM_id[0]); //Product ID
 		strcpy_padded(&ATA[channel].Drive[drive].data[32],4,&FIRMWARE[1][0]); //Product revision level
 		//Leave the rest of the information cleared (unknown/unspecified)
 		ATA[channel].Drive[drive].commandstatus = 1; //Transferring data IN!
