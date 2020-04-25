@@ -836,9 +836,9 @@ void setCPUCycles(uint_32 cycles)
 {
 	//Actual clock cycles?
 	#ifdef IS_LONGDOUBLE
-	CPU_speed_cycle = 1000000000.0L / (DOUBLE)(cycles*1000); //Apply the cycles in kHz!	
+	CPU_speed_cycle = 1000000000.0L / (DOUBLE)(cycles*1000.0); //Apply the cycles in kHz!	
 	#else
-	CPU_speed_cycle = 1000000000.0 / (DOUBLE)(cycles*1000); //Apply the cycles in kHz!	
+	CPU_speed_cycle = 1000000000.0 / (DOUBLE)(cycles*1000.0); //Apply the cycles in kHz!	
 	#endif
 }
 
