@@ -3422,7 +3422,7 @@ OPTINLINE byte floppy_readData(byte isDMA)
 			FLOPPY_lowerIRQ(); //Lower the IRQ!
 			if (FLOPPY.commandstep==0xFD) //Lock up now?
 			{
-				FLOPPY.commandstep = 0xFE; //Lockup!
+				FLOPPY.commandstep = 0; //New command?
 			}
 			else //Reset?
 			{
