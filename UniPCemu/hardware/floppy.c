@@ -1352,7 +1352,14 @@ void floppy_readsector() //Request a read sector command!
 		{
 			if (MAX(((FLOPPY.RWRequestedCylinder - FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]) + FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]), 0) < FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->tracks) //Valid track?
 			{
-				FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR] += (FLOPPY.RWRequestedCylinder - FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]); //Change accordingly!
+				if (MAX(((FLOPPY.RWRequestedCylinder - FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]) + FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]), 0) == 0) //Became 0?
+				{
+					FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR] = 0; //Implied seek!
+				}
+				else //Positive increase?
+				{
+					FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR] += (FLOPPY.RWRequestedCylinder - FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]); //Change accordingly!
+				}
 				FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.RWRequestedCylinder; //Implied seek!
 				clearDiskChanged(FLOPPY_DOR_DRIVENUMBERR); //Clear the disk changed flag for the new command!
 				FLOPPY_finishseek(FLOPPY_DOR_DRIVENUMBERR, 0); //Simulate seek complete!
@@ -1360,8 +1367,15 @@ void floppy_readsector() //Request a read sector command!
 			}
 			else //Out of range?
 			{
+				if (MAX(((FLOPPY.RWRequestedCylinder - FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]) + FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]), 0) == 0) //Became 0?
+				{
+					FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR] = 0; //Implied seek!
+				}
+				else //Became max?
+				{
+					FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR] = MAX(FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->tracks - 1, 0); //Implied seek!
+				}
 				FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR] = MAX(FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR] + (FLOPPY.RWRequestedCylinder - FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]), 0); //Change accordingly!
-				FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR] = MAX(FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->tracks - 1, 0); //Implied seek!
 				clearDiskChanged(FLOPPY_DOR_DRIVENUMBERR); //Clear the disk changed flag for the new command!
 				FLOPPY_finishseek(FLOPPY_DOR_DRIVENUMBERR, 0); //Simulate seek complete!
 				FLOPPY_checkfinishtiming(FLOPPY_DOR_DRIVENUMBERR); //Seek is completed!
@@ -2088,9 +2102,16 @@ void floppy_executeWriteData()
 	{
 		if (FLOPPY.RWRequestedCylinder != FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]) //Wrong idea of a cylinder?
 		{
-			if (MAX(((FLOPPY.RWRequestedCylinder-FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR])+FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]),0) < FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->tracks) //Valid track?
+			if (MAX(((FLOPPY.RWRequestedCylinder - FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]) + FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]), 0) < FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->tracks) //Valid track?
 			{
-				FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR] += (FLOPPY.RWRequestedCylinder - FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]); //Change accordingly!
+				if (MAX(((FLOPPY.RWRequestedCylinder - FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]) + FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]), 0) == 0) //Became 0?
+				{
+					FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR] = 0; //Implied seek!
+				}
+				else //Positive increase?
+				{
+					FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR] += (FLOPPY.RWRequestedCylinder - FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]); //Change accordingly!
+				}
 				FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR] = FLOPPY.RWRequestedCylinder; //Implied seek!
 				clearDiskChanged(FLOPPY_DOR_DRIVENUMBERR); //Clear the disk changed flag for the new command!
 				FLOPPY_finishseek(FLOPPY_DOR_DRIVENUMBERR, 0); //Simulate seek complete!
@@ -2098,8 +2119,15 @@ void floppy_executeWriteData()
 			}
 			else //Out of range?
 			{
-				FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR] = MAX(FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]+(FLOPPY.RWRequestedCylinder - FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]),0); //Change accordingly!
-				FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR] = MAX(FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->tracks - 1, 0); //Implied seek!
+				if (MAX(((FLOPPY.RWRequestedCylinder - FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]) + FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR]), 0) == 0) //Became 0?
+				{
+					FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR] = 0; //Implied seek!
+				}
+				else //Became max?
+				{
+					FLOPPY.physicalcylinder[FLOPPY_DOR_DRIVENUMBERR] = MAX(FLOPPY.geometries[FLOPPY_DOR_DRIVENUMBERR]->tracks - 1, 0); //Implied seek!
+				}
+				FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR] = MAX(FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR] + (FLOPPY.RWRequestedCylinder - FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]), 0); //Change accordingly!
 				clearDiskChanged(FLOPPY_DOR_DRIVENUMBERR); //Clear the disk changed flag for the new command!
 				FLOPPY_finishseek(FLOPPY_DOR_DRIVENUMBERR, 0); //Simulate seek complete!
 				FLOPPY_checkfinishtiming(FLOPPY_DOR_DRIVENUMBERR); //Seek is completed!
