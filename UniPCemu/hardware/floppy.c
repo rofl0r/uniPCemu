@@ -2538,12 +2538,12 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			else if (!FLOPPY_hadIRQ) //Not an pending IRQ?
 			{
 				FLOPPY_LOGD("FLOPPY: Warning: Checking interrupt status without IRQ pending!")
-				FLOPPY.ST0 = 0x80 | (FLOPPY.ST0 & 0x38) | FLOPPY_DOR_DRIVENUMBERR | (FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR] << 2); //Error!
+				FLOPPY.ST0 = 0x80; //Error!
 				FLOPPY.resultbuffer[0] = FLOPPY.ST0; //Give ST0!
 				FLOPPY.resultbuffer[1] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]; //Our idea of the current cylinder!
 				FLOPPY.resultposition = 0; //Start result!
 				FLOPPY.commandstep = 3; //Move to result phase!
-				FLOPPY.commandstep = 0xFD; //Give ST0, then hang the controller!
+				FLOPPY.commandstep = 0xFF; //Give ST0, then return to command mode!
 				return;
 			}
 			FLOPPY_lowerIRQ(); //Lower the IRQ!
@@ -3021,7 +3021,6 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			FLOPPY.resultbuffer[8] = FLOPPY.Configuration.data[1]; //Configure second parameter byte!
 			FLOPPY.resultbuffer[9] = FLOPPY.Configuration.data[2]; //Configure third parameter byte!
 			FLOPPY.commandstep = 3; //We're starting the result phase!
-			FLOPPY_raiseIRQ(); //Give the result!
 			break;
 		case PERPENDICULAR_MODE:	// * used during initialization, once, maybe
 			FLOPPY.PerpendicularMode = FLOPPY.commandbuffer[1]; //What perpendicular mode! Bits 0-3=Drives 0-3!
@@ -3033,7 +3032,6 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			FLOPPY.commandstep = 0xFF; //Move to error phrase!
 			FLOPPY.ST0 = 0x80 | (FLOPPY.ST0 & 0x30) | FLOPPY_DOR_DRIVENUMBERR | (FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR] << 2); //Invalid command!
 			floppy_erroringout(); //Erroring out!
-			FLOPPY_raiseIRQ(); //Raise an IRQ because of the error!
 			break;
 	}
 }
@@ -3422,7 +3420,7 @@ OPTINLINE byte floppy_readData(byte isDMA)
 			FLOPPY_lowerIRQ(); //Lower the IRQ!
 			if (FLOPPY.commandstep==0xFD) //Lock up now?
 			{
-				FLOPPY.commandstep = 0; //New command?
+				FLOPPY.commandstep = 0xFE; //New command?
 			}
 			else //Reset?
 			{
