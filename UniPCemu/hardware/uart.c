@@ -154,14 +154,14 @@ void launchUARTIRQ(byte COMport, byte cause) //Simple 2-bit cause.
 
 void startUARTIRQ(byte IRQ)
 {
-	byte cause, port; //What cause are we?
+	byte cause, port, numcauses; //What cause are we?
 	byte portbase, actualport;
 	portbase = (IRQ == 4) ? 0 : ((IRQ==3)?1:2); //Base port!
 	if (portbase == 2) return; //Not us?
 	for (port = 0;port < 2;port++) //List ports!
 	{
 		actualport = portbase + (port << 1); //Take the actual port!
-		for (cause = 4;cause<5;--cause) //Check all causes, in order of priority!
+		for (cause = 4, numcauses=5;numcauses;--cause, --numcauses) //Check all causes, in order of priority!
 		{
 			if ((UART_port[actualport].interrupt_causes[cause]) && (UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTNOTPENDINGR(actualport))) //We're is the cause?
 			{
