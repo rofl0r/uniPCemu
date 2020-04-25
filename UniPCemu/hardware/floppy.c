@@ -3188,7 +3188,6 @@ OPTINLINE void floppy_writeData(byte isDMA, byte value)
 					FLOPPY.ST0 = 0x80 | (FLOPPY.ST0 & 0x30) | FLOPPY_DOR_DRIVENUMBERR | (FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR] << 2); //Invalid command!
 					FLOPPY.commandstep = 0xFF; //Error: lockup!
 					floppy_erroringout(); //Erroring out!
-					FLOPPY_raiseIRQ(); //Raise an IRQ because of the error!
 					break;
 			}
 			break;
