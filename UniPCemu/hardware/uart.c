@@ -53,7 +53,6 @@ struct
 	word DLAB; //The speed of transmission, 115200/DLAB=Speed set.
 	byte TransmitterHoldingRegister; //Data to be written to the device!
 	byte TransmitterShiftRegister; //Data we're transferring!
-	byte TransmitterLoopbackValue; //The value we're transmitting to the loopback!
 	byte DataHoldingRegister; //The data that's received (the buffer for the software to read when filled)! Aka Data Holding Register
 	byte ReceiverBufferRegister; //The data that's being received.
 	//This speed is the ammount of bits (data bits), stop bits (0=1, 1=1.5(with 5 bits data)/2(all other cases)) and parity bit when set, that are transferred per second.
@@ -682,7 +681,7 @@ void updateUART(DOUBLE timepassed)
 							{
 								UART_port[UART].LineStatusRegister |= 0x2; //Signal overrun! Receive the byte as normally, overwriting what's there!
 							}
-							UART_port[UART].DataHoldingRegister = UART_port[UART].TransmitterLoopbackValue; //We've received this data!
+							UART_port[UART].DataHoldingRegister = UART_port[UART].TransmitterShiftRegister; //We've received this data!
 							UART_port[UART].LineStatusRegister |= 0x01; //We've received data!
 							UART_port[UART].transmitisloopback = 0; //We're properly received!
 						}
