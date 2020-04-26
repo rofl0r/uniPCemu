@@ -475,7 +475,7 @@ byte PORT_writeUART(word port, byte value)
 		case 3: //Line Control Register?
 			UART_port[COMport].LineControlRegister = value; //Set the register!
 			break;
-		case 4:  //Modem Control Register?
+		case 4: //Modem Control Register?
 			UART_port[COMport].ModemControlRegister = (value & 0x1F); //Set the register! The high 3 bits are always cleared, as documented!
 			//Handle anything concerning this?
 			if ((UART_port[COMport].ModemControlRegister&0x10)==0) //Line handler is connected and not in loopback mode?
@@ -488,15 +488,16 @@ byte PORT_writeUART(word port, byte value)
 			}
 			if ((UART_port[COMport].ModemControlRegister^UART_port[COMport].oldModemControlRegister)&0x10) //Loopback mode enabled or disabled?
 			{
+				//Leave the receiver buffer alone: it will overflow if it's still filled once any transfer is made in a normal way!
+				//Since we're resetting the send/receive phase(because the output lines being disconnected when entering loopback mode makes the transfer fail(anything that's sent is corrupted, while anything that's received is ignored), while disabling loopback mode aborts any transfer in progress(since it's sending the remainder of the byte, which is incorrect by itself)), 
+				UART_port[COMport].LineStatusRegister |= 0x60; //The Transmitter Holding Register and Shift Register are both empty. Any transfer that's running is aborted, because the SOUT is set to marking state!
+				UART_port[COMport].output_is_marking = 1; //We're in marking state now!
+				UART_port[COMport].sendPhase = 0; //Abort any sending phase, as the line is disconnected!
+				UART_port[COMport].receivePhase = 0; //Abort any receiving phase, as the line is disconnected!
 				if (UART_port[COMport].ModemControlRegister & 0x10) //Loopback is enabled? Clear the buffers!
 				{
-					//Leave the receiver buffer alone: it will overflow if it's still filled once any transfer is made in a normal way!
-					UART_port[COMport].LineStatusRegister |= 0x60; //The Transmitter Holding Register and Shift Register are both empty. Any transfer that's running is aborted, because the SOUT is set to marking state!
-					UART_port[COMport].output_is_marking = 1; //We're in marking state now!
-					UART_port[COMport].sendPhase = 0; //Abort any sending phase, as the line is disconnected!
-					UART_port[COMport].receivePhase = 0; //Abort any receiving phase, as the line is disconnected!
 					UART_port[COMport].LiveModemControlRegister &= 0xC; //Cleared the live output(RTS and CTS in particular)!
-					UART_update_modemcontrol(COMport,0); //Update the modem control output!
+					UART_update_modemcontrol(COMport, 0); //Update the modem control output!
 				}
 				UART_handleInputs(); //Update the loopback status as required by updating the status register!
 			}
@@ -616,22 +617,11 @@ void updateUART(DOUBLE timepassed)
 					switch (UART_port[UART].receivePhase) //What receive phase?
 					{
 					case 0: //Checking for start of transfer?
-						if (UART_port[UART].transmitisloopback == 2) //Something is ready to receive?
-						{
-							if (UART_port[UART].LineStatusRegister & 0x01) //Receiver buffer filled? Overrun!
-							{
-								UART_port[UART].LineStatusRegister |= 0x2; //Signal overrun! Receive the byte as normally, overwriting what's there!
-							}
-							UART_port[UART].DataHoldingRegister = UART_port[UART].TransmitterLoopbackValue; //We've received this data!
-							UART_port[UART].LineStatusRegister |= 0x01; //We've received data!
-							UART_port[UART].transmitisloopback = 0; //We're properly received!
-							break; //Can't receive!
-						}
-						if ((UART_port[UART].ModemControlRegister & 0x10) || (UART_port[UART].transmitisloopback)) break; //Can't start to receive during loopback or when receiving anything from loopback mode!
+						if ((UART_port[UART].ModemControlRegister&0x10)==0x10) break; //Can't start to receive  from connected hardware during loopback or when receiving anything from loopback mode(the receiver line is disconnected)!
 						if (unlikely(!(UART_port[UART].hasdata&&UART_port[UART].receivedata))) break; //Can't receive?
 						if (unlikely(UART_port[UART].hasdata())) //Do we have data to receive and not prioritizing sending data?
 						{
-							if (likely((UART_port[UART].LineStatusRegister & 0x01) == 0)) //No data received yet?
+							if (likely((UART_port[UART].LineStatusRegister & 0x01) == 0)) //No data received yet(small hack to prevent normal buffer overrun)?
 							{
 								UART_port[UART].ReceiverBufferRegister = UART_port[UART].receivedata(); //Read the data to receive!
 
@@ -648,7 +638,6 @@ void updateUART(DOUBLE timepassed)
 						UART_port[UART].receivePhase = 2; //Finish transferring!
 					case 2: //Finish transfer!
 						//Finished transferring data.
-						if (UART_port[UART].ModemControlRegister & 0x10) break; //In loopback mode? Prevent any bytes from hardware from arriving until we aren't looping back anymore!
 						if (UART_port[UART].LineStatusRegister & 0x01) //Receiver buffer filled? Overrun!
 						{
 							UART_port[UART].LineStatusRegister |= 0x2; //Signal overrun! Receive the byte as normally, overwriting what's there!
@@ -672,10 +661,6 @@ void updateUART(DOUBLE timepassed)
 							}
 							else //Sending from loopback?
 							{
-								if (UART_port[UART].transmitisloopback == 2) //Received data is still pending?
-								{
-									break; //Wait for the receiver to get ready to receive the data that was already sent!
-								}
 								UART_port[UART].transmitisloopback = 1; //Transmit is from loopback!
 								UART_port[UART].LineStatusRegister &= ~0x80; //Not from loopback anymore!
 							}
@@ -693,8 +678,13 @@ void updateUART(DOUBLE timepassed)
 					case 2: //Finish transfer!
 						if (UART_port[UART].transmitisloopback)//Transmitting into loopback instead?
 						{
-							UART_port[UART].transmitisloopback = 2; //Signify that the transmit has ended and is pending to receive for the next clock!
-							UART_port[UART].TransmitterLoopbackValue = UART_port[UART].TransmitterShiftRegister; //What to load into the loopback!
+							if (UART_port[UART].LineStatusRegister & 0x01) //Receiver buffer filled? Overrun!
+							{
+								UART_port[UART].LineStatusRegister |= 0x2; //Signal overrun! Receive the byte as normally, overwriting what's there!
+							}
+							UART_port[UART].DataHoldingRegister = UART_port[UART].TransmitterLoopbackValue; //We've received this data!
+							UART_port[UART].LineStatusRegister |= 0x01; //We've received data!
+							UART_port[UART].transmitisloopback = 0; //We're properly received!
 						}
 						else //Not transmitting to the loopback adapter?
 						{
