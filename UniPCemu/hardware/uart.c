@@ -624,6 +624,7 @@ void updateUART(DOUBLE timepassed)
 							}
 							UART_port[UART].DataHoldingRegister = UART_port[UART].TransmitterLoopbackValue; //We've received this data!
 							UART_port[UART].LineStatusRegister |= 0x01; //We've received data!
+							UART_port[UART].transmitisloopback = 0; //We're properly received!
 							break; //Can't receive!
 						}
 						if ((UART_port[UART].ModemControlRegister & 0x10) || (UART_port[UART].transmitisloopback)) break; //Can't start to receive during loopback or when receiving anything from loopback mode!
@@ -671,6 +672,10 @@ void updateUART(DOUBLE timepassed)
 							}
 							else //Sending from loopback?
 							{
+								if (UART_port[UART].transmitisloopback == 2) //Received data is still pending?
+								{
+									break; //Wait for the receiver to get ready to receive the data that was already sent!
+								}
 								UART_port[UART].transmitisloopback = 1; //Transmit is from loopback!
 								UART_port[UART].LineStatusRegister &= ~0x80; //Not from loopback anymore!
 							}
