@@ -481,7 +481,7 @@ byte PORT_writeUART(word port, byte value)
 			if ((UART_port[COMport].ModemControlRegister&0x10)==0) //Line handler is connected and not in loopback mode?
 			{
 				UART_port[COMport].LiveModemControlRegister = (UART_port[COMport].ModemControlRegister&0xF); //Save the set modem control register state for the live output and mark logic!
-				if (UART_port[COMport].ModemControlRegister^UART_port[COMport].oldModemControlRegister) //Modem control register changes are posted only(relieve the )?
+				if (UART_port[COMport].ModemControlRegister^UART_port[COMport].oldModemControlRegister) //Modem control register changes are posted only?
 				{
 					UART_update_modemcontrol(COMport,1); //Update the modem control output!
 				}
@@ -490,8 +490,10 @@ byte PORT_writeUART(word port, byte value)
 			{
 				if (UART_port[COMport].ModemControlRegister & 0x10) //Loopback is enabled? Clear the buffers!
 				{
-					UART_port[COMport].LineStatusRegister &= ~1; //Receiver buffer is empty!
-					UART_port[COMport].LineStatusRegister |= 0x60; //The Transmitter Holding Register and Shift Register are both empty!
+					UART_port[COMport].LineStatusRegister &= ~1; //Receiver buffer is empty, as any incoming transfer has failed!
+					UART_port[COMport].LineStatusRegister |= 0x60; //The Transmitter Holding Register and Shift Register are both empty. Any transfer is aborted!
+					UART_port[COMport].sendPhase = 0; //Abort any sending phase, as the line is disconnected!
+					UART_port[COMport].receivePhase = 0; //Abort any receiving phase, as the line is disconnected!
 					UART_port[COMport].LiveModemControlRegister &= 0xC; //Cleared the live output(RTS and CTS in particular)!
 					UART_update_modemcontrol(COMport,0); //Update the modem control output!
 				}
