@@ -490,8 +490,9 @@ byte PORT_writeUART(word port, byte value)
 			{
 				if (UART_port[COMport].ModemControlRegister & 0x10) //Loopback is enabled? Clear the buffers!
 				{
-					UART_port[COMport].LineStatusRegister &= ~1; //Receiver buffer is empty, as any incoming transfer has failed!
-					UART_port[COMport].LineStatusRegister |= 0x60; //The Transmitter Holding Register and Shift Register are both empty. Any transfer is aborted!
+					//Leave the receiver buffer alone: it will overflow if it's still filled once any transfer is made in a normal way!
+					UART_port[COMport].LineStatusRegister |= 0x60; //The Transmitter Holding Register and Shift Register are both empty. Any transfer that's running is aborted, because the SOUT is set to marking state!
+					UART_port[COMport].output_is_marking = 1; //We're in marking state now!
 					UART_port[COMport].sendPhase = 0; //Abort any sending phase, as the line is disconnected!
 					UART_port[COMport].receivePhase = 0; //Abort any receiving phase, as the line is disconnected!
 					UART_port[COMport].LiveModemControlRegister &= 0xC; //Cleared the live output(RTS and CTS in particular)!
@@ -499,7 +500,7 @@ byte PORT_writeUART(word port, byte value)
 				}
 				UART_handleInputs(); //Update the loopback status as required by updating the status register!
 			}
-			else if (UART_port[COMport].ModemControlRegister & 0x10) //Loopback is enabled? Handle status changes immediately!
+			else if ((UART_port[COMport].ModemControlRegister & 0x10) && (UART_port[COMport].ModemControlRegister ^ UART_port[COMport].oldModemControlRegister)) //Loopback is enabled? Handle status changes immediately!
 			{
 				UART_handleInputs(); //Update the loopback status as required by updating the status register!
 			}
