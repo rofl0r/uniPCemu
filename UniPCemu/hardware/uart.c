@@ -304,7 +304,7 @@ byte PORT_readUART(word port, byte *result) //Read from the uart!
 			}
 			break;
 		case 2: //Interrupt ID registers?
-			*result = UART_port[COMport].InterruptIdentificationRegister&(~0xF0); //Give the register! Indicate no FIFO!
+			*result = UART_port[COMport].InterruptIdentificationRegister&(~0xF8); //Give the register! The high 5 bits are always cleared, as per the documentation!
 			if ((!UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTNOTPENDINGR(COMport)) && ((UART_INTERRUPTCAUSE_SIMPLECAUSER(COMport) == 1) || ((UART_INTERRUPTCAUSE_SIMPLECAUSER(COMport) == IRR_INTERRUPTREQUEST_CAUSE) && (IRR_INTERRUPTREQUEST_CAUSE>3)))) //We're to clear?
 			{
 				UART_port[COMport].InterruptIdentificationRegister = 0; //Reset the register!
@@ -353,7 +353,7 @@ byte PORT_readUART(word port, byte *result) //Read from the uart!
 					break;
 				}
 			}
-			*result = UART_port[COMport].LineStatusRegister; //Give the register!
+			*result = (UART_port[COMport].LineStatusRegister&0x7F); //Give the register! The highest bit is always cleared, according to the documentation!
 			UART_port[COMport].LineStatusRegister &= ~0x1E; //Clear the register error flags!
 			break;
 		case 6: //Modem Status Register?
@@ -489,7 +489,7 @@ byte PORT_writeUART(word port, byte value)
 			UART_port[COMport].LineControlRegister = value; //Set the register!
 			break;
 		case 4:  //Modem Control Register?
-			UART_port[COMport].ModemControlRegister = (value&0x1F); //Set the register!
+			UART_port[COMport].ModemControlRegister = (value & 0x1F); //Set the register! The high 3 bits are always cleared, as documented!
 			//Handle anything concerning this?
 			if ((UART_port[COMport].ModemControlRegister&0x10)==0) //Line handler is connected and not in loopback mode?
 			{
