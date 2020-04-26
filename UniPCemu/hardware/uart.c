@@ -71,7 +71,8 @@ struct
 	uint_32 sendTiming; //UART send timing!
 	byte sendPhase; //What's happening on the sending side?
 	byte receivePhase; //What's happening on the receiving side?
-	uint_32 UART_bytetransfertiming; //UART byte received timing!
+	uint_32 UART_bytetransfertiming; //UART byte transfer timing!
+	uint_32 UART_loopbackbytetransfertiming; //UART byte transfer timing during loopback mode!
 	uint_32 UART_DLABclock; //DLAB-based clock being used!
 	uint_32 UART_DLABtimingdivider; //DLAB timing divider!
 	byte output_is_marking; //Is the output marking?
@@ -231,12 +232,14 @@ Processed until http://en.wikibooks.org/wiki/Serial_Programming/8250_UART_Progra
 void updateUARTSpeed(byte COMport, word DLAB)
 {
 	uint_32 newdivider;
-	uint_32 transfertime;
-	transfertime = (7 + UART_LINECONTROLREGISTER_DATABITSR(COMport) + UART_LINECONTROLREGISTER_STOPBITSR(COMport)); //The total amount of bits that needs to be sent! Start, Data and Stop bits!
+	uint_32 transfertime,loopbacktransfertime;
+	transfertime = (7 + UART_LINECONTROLREGISTER_DATABITSR(COMport) + UART_LINECONTROLREGISTER_STOPBITSR(COMport)); //The total amount of bits that needs to be sent! Start(1), Data(5+n) and Stop bits(1+n)!
+	loopbacktransfertime = (5 + UART_LINECONTROLREGISTER_DATABITSR(COMport)); //The total amount of bits that needs to be sent! Just the Data bits, no start/stop bits, since it's internal!
 
 	//Every DLAB+1 / Line Control Register-dependant bytes per second! Simple formula instead of full emulation, like the PIT!
 	//The UART is based on a 1.8432 clock, which is divided by 16 for the bit clock(start, data and stop bits).
 	UART_port[COMport].UART_bytetransfertiming = transfertime; //Master clock divided by 16, divided by DLAB, divider by individual transfer time is the actual data rate!
+	UART_port[COMport].UART_loopbackbytetransfertiming = loopbacktransfertime; //Master clock divided by 16, divided by DLAB, divider by individual transfer time is the actual data rate!
 
 	newdivider = ((uint_32)(DLAB + 1) << 4); //Calculate the new divider!
 	if (UART_port[COMport].UART_DLABtimingdivider != newdivider) //Divider changed?
@@ -667,7 +670,7 @@ void updateUART(DOUBLE timepassed)
 							//Start transferring data...
 							UART_port[UART].LineStatusRegister |= 0x20; //The Transmitter Holding Register is empty!
 							UART_port[UART].TransmitterShiftRegister = UART_port[UART].TransmitterHoldingRegister; //Move to shift register!
-							UART_port[UART].sendTiming = UART_port[UART].UART_bytetransfertiming + 1; //Duration of the transfer!
+							UART_port[UART].sendTiming = (UART_port[UART].transmitisloopback?UART_port[UART].UART_loopbackbytetransfertiming:UART_port[UART].UART_bytetransfertiming) + 1; //Duration of the transfer!
 							UART_port[UART].sendPhase = 1; //Pending finish of transfer!
 						}
 						else break; //Nothing to send!
