@@ -48,10 +48,12 @@ struct
 	byte ModemStatusRegister; //Bit4=CTS, 5=DSR, 6=Ring indicator, 7=Carrier detect; Bits 0-3=Bits 4-6 changes, reset when read.
 	byte oldModemStatusRegister; //Last Modem status register values(high 4 bits)!
 	byte ScratchRegister;
+	byte transmitisloopback; //What we're transmitting is looped back for this transfer?
 	//Seperate register alternative
 	word DLAB; //The speed of transmission, 115200/DLAB=Speed set.
 	byte TransmitterHoldingRegister; //Data to be written to the device!
 	byte TransmitterShiftRegister; //Data we're transferring!
+	byte TransmitterLoopbackValue; //The value we're transmitting to the loopback!
 	byte DataHoldingRegister; //The data that's received (the buffer for the software to read when filled)! Aka Data Holding Register
 	byte ReceiverBufferRegister; //The data that's being received.
 	//This speed is the ammount of bits (data bits), stop bits (0=1, 1=1.5(with 5 bits data)/2(all other cases)) and parity bit when set, that are transferred per second.
@@ -443,26 +445,11 @@ byte PORT_writeUART(word port, byte value)
 					}
 				}
 
-				if (UART_port[COMport].ModemControlRegister & 0x10) //In loopback mode? Reroute the Modem Control Register to Modem Status Register and act accordingly!
-				{
-					UART_port[COMport].DataHoldingRegister = value; //We've received this data!
-					UART_port[COMport].LineStatusRegister &= ~0x60; //The Transmitter Holding Register is full!
-					UART_handleInputs(); //Handle any inputs on the UART!
-					UART_port[COMport].LineStatusRegister |= 0x20; //The Transmitter Holding Register is empty and Shift Register is full!
-					UART_handleInputs(); //Handle any inputs on the UART!
-					UART_port[COMport].LineStatusRegister |= 0x40; //The Transmitter Holding Register and Shift Register are both empty!
-					UART_handleInputs(); //Handle any inputs on the UART!
-					UART_port[COMport].LineStatusRegister &= ~0x01; //We've not received data!
-					UART_handleInputs(); //Handle any inputs on the UART!
-					UART_port[COMport].LineStatusRegister |= 0x01; //We've received data!
-					UART_handleInputs(); //Handle any inputs on the UART!
-				}
-				else //Not in loopback mode?
-				{
-					//Write to output buffer, toggling bits by Line Control Register!
-					UART_port[COMport].TransmitterHoldingRegister = value;
-					UART_port[COMport].LineStatusRegister &= ~0x60; //We're full, ready to transmit!
-				}
+				//Write to output buffer, toggling bits by Line Control Register!
+				UART_port[COMport].LineStatusRegister &= ~0x60; //We're full, ready to transmit!
+				UART_port[COMport].TransmitterHoldingRegister = value; //We're sending this!
+				//Apply a local loopback for this transfer accordingly, shifting from the Transmitter Shift Register to the Receiver Shift Register!
+				UART_port[COMport].LineStatusRegister = ((UART_port[COMport].LineStatusRegister & ~0x80) | ((UART_port[COMport].ModemControlRegister & 0x10) << 3)); //Are we using a loopback adapter?
 			}
 			break;
 		case 1: //Interrupt Enable Register?
@@ -626,8 +613,18 @@ void updateUART(DOUBLE timepassed)
 					switch (UART_port[UART].receivePhase) //What receive phase?
 					{
 					case 0: //Checking for start of transfer?
+						if (UART_port[UART].transmitisloopback == 2) //Something is ready to receive?
+						{
+							if (UART_port[UART].LineStatusRegister & 0x01) //Receiver buffer filled? Overrun!
+							{
+								UART_port[UART].LineStatusRegister |= 0x2; //Signal overrun! Receive the byte as normally, overwriting what's there!
+							}
+							UART_port[UART].DataHoldingRegister = UART_port[UART].TransmitterLoopbackValue; //We've received this data!
+							UART_port[UART].LineStatusRegister |= 0x01; //We've received data!
+							break; //Can't receive!
+						}
+						if ((UART_port[UART].ModemControlRegister & 0x10) || (UART_port[UART].transmitisloopback)) break; //Can't start to receive during loopback or when receiving anything from loopback mode!
 						if (unlikely(!(UART_port[UART].hasdata&&UART_port[UART].receivedata))) break; //Can't receive?
-						if (UART_port[UART].ModemControlRegister & 0x10) break; //Can't start to receive during loopback!
 						if (unlikely(UART_port[UART].hasdata())) //Do we have data to receive and not prioritizing sending data?
 						{
 							if (likely((UART_port[UART].LineStatusRegister & 0x01) == 0)) //No data received yet?
@@ -661,11 +658,19 @@ void updateUART(DOUBLE timepassed)
 					switch (UART_port[UART].sendPhase) //What receive phase?
 					{
 					case 0: //Checking for start of transfer?
-						if (UART_port[UART].ModemControlRegister & 0x10) break; //Can't start to send during loopback!
 						if (unlikely(UART_port[UART].senddata && ((UART_port[UART].LineStatusRegister & 0x20) == 0))) //Something to transfer?
 						{
-							UART_port[UART].output_is_marking = 0; //Not marking anymmore!
-							UART_update_modemcontrol(UART,0); //Updated the marking state!
+							if ((UART_port[UART].LineStatusRegister & 0x80) == 0) //Not loopback being sent?
+							{
+								UART_port[UART].output_is_marking = 0; //Not marking anymmore!
+								UART_update_modemcontrol(UART, 0); //Updated the marking state!
+								UART_port[UART].transmitisloopback = 0; //Transmit is not from loopback!
+							}
+							else //Sending from loopback?
+							{
+								UART_port[UART].transmitisloopback = 1; //Transmit is from loopback!
+								UART_port[UART].LineStatusRegister &= ~0x80; //Not from loopback anymore!
+							}
 							//Start transferring data...
 							UART_port[UART].LineStatusRegister |= 0x20; //The Transmitter Holding Register is empty!
 							UART_port[UART].TransmitterShiftRegister = UART_port[UART].TransmitterHoldingRegister; //Move to shift register!
@@ -678,9 +683,16 @@ void updateUART(DOUBLE timepassed)
 						if (--UART_port[UART].sendTiming) break; //Busy transferring?
 						UART_port[UART].sendPhase = 2; //Finish transferring!
 					case 2: //Finish transfer!
-						if (UART_port[UART].ModemControlRegister & 0x10) break; //Can't finish to send during loopback!
-						//Finished transferring data.
-						UART_port[UART].senddata(UART_port[UART].TransmitterShiftRegister); //Send the data!
+						if (UART_port[UART].transmitisloopback)//Transmitting into loopback instead?
+						{
+							UART_port[UART].transmitisloopback = 2; //Signify that the transmit has ended and is pending to receive for the next clock!
+							UART_port[UART].TransmitterLoopbackValue = UART_port[UART].TransmitterShiftRegister; //What to load into the loopback!
+						}
+						else //Not transmitting to the loopback adapter?
+						{
+							//Finished transferring data to an actual device.
+							UART_port[UART].senddata(UART_port[UART].TransmitterShiftRegister); //Send the data!
+						}
 
 						//Data is sent, so update status when finished!
 						if ((UART_port[UART].LineStatusRegister & 0x20) == 0x20) //Transmitter Shift emptied to peripheral and Holding Register is still empty?
