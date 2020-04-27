@@ -244,17 +244,17 @@ struct
 	byte TxDisMark; //Is TxD currently in mark state?
 
 	//Various parameters used!
-	byte communicationstandard; //What communication standard!
-	byte echomode; //Echo everything back to use user?
-	byte offhook; //1: Off hook(disconnected), 2=Off hook(connected), otherwise on-hook(disconnected)!
-	byte verbosemode; //Verbose mode: 0=Numeric result codes, 1=Text result codes, 2=Quiet mode(no response).
-	byte speakervolume; //Speaker volume!
-	byte speakercontrol; //0=Always off, 1=On until carrier detected, 2=Always on, 3=On only while answering.
-	byte callprogressmethod; //Call progress method:
+	byte communicationstandard; //What communication standard! B command!
+	byte echomode; //Echo everything back to use user? E command!
+	byte offhook; //1: Off hook(disconnected), 2=Off hook(connected), otherwise on-hook(disconnected)! H command!
+	byte verbosemode; //Verbose mode: 0=Numeric result codes, 1=Text result codes, 2=Quiet mode(no response). Bit 0=V command, Bits 1-2=Q command
+	byte speakervolume; //Speaker volume! L command!
+	byte speakercontrol; //0=Always off, 1=On until carrier detected, 2=Always on, 3=On only while answering! M command!
+	byte callprogressmethod; //Call progress method! X command!
 	byte lastnumber[256]; //Last-dialed number!
 	byte currentregister; //What register is selected?
 	byte registers[256]; //All possible registers!
-	byte flowcontrol;
+	byte flowcontrol; //&K command! See below for an explanation!
 	/*
 	0=Blind dial and no busy detect. CONNECT message when established.
 	1=Blind dial and no busy detect. Connection speed in BPS added to CONNECT string.
@@ -262,28 +262,37 @@ struct
 	3=Blind dial, but busy detection. Connection speed in BPS appended to the CONNECT string.
 	4=Dial tone detection and busy tone detection. Connection speed in BPS appended to the CONNECT string.
 	*/
-	byte communicationsmode; //Communications mode, default=5!
+	byte communicationsmode; //Communications mode, default=5! &Q command!
 
 	//Active status emulated for the modem!
 	byte ringing; //Are we ringing?
-	byte DTROffResponse; //Default: full reset!
-	byte DSRisConnectionEstablished; //Default: assert high always!
-	byte DCDisCarrier;
-	byte CTSAlwaysActive; //Default: always active!
+	byte DTROffResponse; //Default: full reset! &D command!
+	byte DSRisConnectionEstablished; //Default: assert high always! &S command!
+	byte DCDisCarrier; //&C command!
+	byte CTSAlwaysActive; //Default: always active! &R command!
 
+	//Various characters that can be sent, set by the modem's respective registers!
 	byte escapecharacter;
 	byte carriagereturncharacter;
 	byte linefeedcharacter;
 	byte backspacecharacter;
 	DOUBLE escapecodeguardtime;
+
+	//Allocated UART port
 	byte port; //What port are we allocated to?
+	
+	//Line status for the different modem lines!
 	byte canrecvdata; //Can we start receiving data to the UART?
 	byte linechanges; //For detecting line changes!
 	byte outputline; //Raw line that's output!
 	byte outputlinechanges; //For detecting line changes!
 	byte effectiveline; //Effective line to actually use!
 	byte effectivelinechanges; //For detecting line changes!
+
+	//What is our connection ID, if we're connected?
 	sword connectionid; //Normal connection ID for the internal modem!
+
+	//Command completion status!
 	byte wascommandcompletionecho; //Was command completion with echo!
 	DOUBLE wascommandcompletionechoTimeout; //Timeout for execution anyways!
 } modem;
@@ -1094,9 +1103,9 @@ byte resetModem(byte state)
 	L3: speakervolume=3
 	M1: speakercontrol=1
 	N1
-	Q0: verbosemode=0<<1|(verbosemode&1)
+	Q0: verbosemode=(value)<<1|(verbosemode&1)
 	T
-	V1: verboseemode=1|verbosemode
+	V1: verboseemode=(value)|verbosemode
 	W1
 	X4: callprogressmethod=4
 	Y0
@@ -1329,10 +1338,10 @@ byte modem_getstatus()
 	{
 		switch (modem.CTSAlwaysActive)
 		{
-		case 0: //Track RTS?
+		case 0: //Track RTS? V.25bis handshake!
 			result |= ((modem.effectiveline >> 1) & 1); //Track RTS!
 			break;
-		case 1: //Depends on the buffers!
+		case 1: //Depends on the buffers! Only drop when required by flow control!
 			result |= ((modem.datamode == 1) ? ((modem.connectionid >= 0) ? (fifobuffer_freesize(modem.outputbuffer[modem.connectionid]) ? 1 : 0) : 1) : 1); //Can we send to the modem?
 			break;
 		case 2: //Always on?
