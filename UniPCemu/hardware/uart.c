@@ -381,6 +381,7 @@ byte PORT_readUART(word port, byte *result) //Read from the uart!
 
 			*result = UART_port[COMport].ModemStatusRegister; //Give the register!
 			UART_port[COMport].ModemStatusRegister &= 0xF0; //Only keep the relevant bits! The change bits are cleared!
+			UART_port[COMport].oldModemStatusRegister = UART_port[COMport].ModemStatusRegister; //Update the old modem status register!
 			break;
 		case 7: //Scratch register?
 			//*result = UART_port[COMport].ScratchRegister; //Give the register!
