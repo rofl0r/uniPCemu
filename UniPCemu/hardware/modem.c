@@ -1325,8 +1325,30 @@ void modem_updatelines(byte lines)
 
 byte modem_hasData() //Do we have data for input?
 {
+	byte havedatatoreceive; //Do we have data to receive?
 	byte temp;
-	return ((peekfifobuffer(modem.inputbuffer, &temp) || (peekfifobuffer(modem.inputdatabuffer[0],&temp) && (modem.datamode==1)))&&((modem.canrecvdata&&((modem.flowcontrol==1)||(modem.flowcontrol==3))) || ((modem.flowcontrol!=1) && (modem.flowcontrol!=3)))); //Do we have data to receive and flow control allows it?
+	byte allowdatatoreceive; //Do we allow data to receive?
+	havedatatoreceive = (peekfifobuffer(modem.inputbuffer, &temp) || (peekfifobuffer(modem.inputdatabuffer[0], &temp) && (modem.datamode == 1))); //Do we have data to receive?
+	if (modem.communicationsmode && (modem.communicationsmode < 4)) //Synchronous mode? CTS is affected!
+	{
+		allowdatatoreceive = ((modem.canrecvdata && ((modem.flowcontrol == 1) || (modem.flowcontrol == 3))) || ((modem.flowcontrol != 1) && (modem.flowcontrol != 3))); //Default: allow all data to receive!
+		switch (modem.CTSAlwaysActive)
+		{
+		case 0: //Track RTS? V.25bis handshake!
+			break;
+		case 1: //Depends on the buffers! Only drop when required by flow control!
+			break;
+		case 2: //Always on?
+			break;
+		}
+	}
+	else //Asynchronous mode?
+	{
+		//Hayes documentation says it doesn't control CTS and RTS functions!
+		allowdatatoreceive = 1; //Ignore any RTS input!
+	}
+
+	return (havedatatoreceive&&allowdatatoreceive); //Do we have data to receive and flow control allows it?
 }
 
 byte modem_getstatus()
@@ -1339,7 +1361,7 @@ byte modem_getstatus()
 		switch (modem.CTSAlwaysActive)
 		{
 		case 0: //Track RTS? V.25bis handshake!
-			result |= ((modem.effectiveline >> 1) & 1); //Track RTS!
+			result |= ((modem.outputline >> 1) & 1); //Track RTS, undelayed!
 			break;
 		case 1: //Depends on the buffers! Only drop when required by flow control!
 			result |= ((modem.datamode == 1) ? ((modem.connectionid >= 0) ? (fifobuffer_freesize(modem.outputbuffer[modem.connectionid]) ? 1 : 0) : 1) : 1); //Can we send to the modem?
@@ -1349,15 +1371,25 @@ byte modem_getstatus()
 			break;
 		}
 	}
-	else
+	else //Asynchronous mode?
 	{
 		//Hayes documentation says it doesn't control CTS and RTS functions!
-		result |= ((modem.effectiveline >> 1) & 1); //Always on! &Rn has no effect according to Hayes docs! But do this anyways!
+		switch (modem.CTSAlwaysActive)
+		{
+		case 0: //RTS, delayed by S26 register's setting?
+			result |= ((modem.effectiveline >> 1) & 1); //Track RTS, delayed!
+			break;
+		case 1: //Always on? RTS is ignored!
+			result |= 1; //Always on! &Rn has no effect according to Hayes docs! But do this anyways!
+			break;
+		case 2: //Always on?
+			result |= 1; //Always on!
+			break;
+		}
 	}
 	//DSRisConnectionEstablished: 0:1, 1:DTR
 	if ((modem.communicationsmode) && (modem.communicationsmode < 5)) //Special actions taken?
 	{
-		//((modem.outputline & 1) << 1)
 		switch (modem.DSRisConnectionEstablished) //What state?
 		{
 		default:
