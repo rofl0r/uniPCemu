@@ -1430,6 +1430,7 @@ uint_32 BIOS_GetMMUSize() //For MMU!
 }
 
 extern byte backgroundpolicy; //Background task policy. 0=Full halt of the application, 1=Keep running without video and audio muted, 2=Keep running with audio playback, recording muted, 3=Keep running fully without video.
+extern byte EMU_RUNNING; //Emulator running? 0=Not running, 1=Running, Active CPU, 2=Running, Inactive CPU (BIOS etc.)
 
 void BIOS_ValidateData() //Validates all data and unmounts/remounts if needed!
 {
@@ -1473,19 +1474,25 @@ void BIOS_ValidateData() //Validates all data and unmounts/remounts if needed!
 	//dolog("IO","Checking First HDD (%s)...",BIOS_Settings.hdd0);
 	if ((!readdata(HDD0,&buffer,0,sizeof(buffer))) && (strcmp(BIOS_Settings.hdd0,"")!=0)) //No disk mounted but listed?
 	{
-		memset(&BIOS_Settings.hdd0[0],0,sizeof(BIOS_Settings.hdd0)); //Unmount!
-		BIOS_Settings.hdd0_readonly = 0; //Reset readonly flag!
-		//dolog("BIOS","First HDD invalidated!");
-		bioschanged = 1; //BIOS changed!
+		if (EMU_RUNNING == 0) //Not running?
+		{
+			memset(&BIOS_Settings.hdd0[0], 0, sizeof(BIOS_Settings.hdd0)); //Unmount!
+			BIOS_Settings.hdd0_readonly = 0; //Reset readonly flag!
+			//dolog("BIOS","First HDD invalidated!");
+			bioschanged = 1; //BIOS changed!
+		}
 	}
 	
 	//dolog("IO","Checking Second HDD (%s)...",BIOS_Settings.hdd1);
 	if ((!readdata(HDD1,&buffer,0,sizeof(buffer))) && (strcmp(BIOS_Settings.hdd1,"")!=0)) //No disk mounted but listed?
 	{
-		memset(&BIOS_Settings.hdd1[0],0,sizeof(BIOS_Settings.hdd1)); //Unmount!
-		BIOS_Settings.hdd1_readonly = 0; //Reset readonly flag!
-		//dolog("BIOS","Second HDD invalidated!");
-		bioschanged = 1; //BIOS changed!
+		if (EMU_RUNNING == 0) //Not running?
+		{
+			memset(&BIOS_Settings.hdd1[0], 0, sizeof(BIOS_Settings.hdd1)); //Unmount!
+			BIOS_Settings.hdd1_readonly = 0; //Reset readonly flag!
+			//dolog("BIOS","Second HDD invalidated!");
+			bioschanged = 1; //BIOS changed!
+		}
 	}
 	//dolog("IO","Checking First CD-ROM (%s)...",BIOS_Settings.cdrom0);
 	if (!getCUEimage(CDROM0)) //Not a CUE image?
