@@ -2188,7 +2188,7 @@ OPTINLINE byte ATA_writesector(byte channel, byte command)
 	return 1; //Finished!
 }
 
-OPTINLINE void ATAPI_giveresultsize(byte channel, byte drive, uint_32 size, byte raiseIRQ) //Store the result size to use in the Task file
+OPTINLINE void ATAPI_giveresultsize(byte channel, byte drive, uint_64 size, byte raiseIRQ) //Store the result size to use in the Task file
 {
 	//Apply the maximum size to transfer, saving the full packet size to count down from!
 
@@ -2199,7 +2199,7 @@ OPTINLINE void ATAPI_giveresultsize(byte channel, byte drive, uint_32 size, byte
 		{
 			size = 0xFFFE; //Maximum size that can be expressed!
 		}
-		ATA[channel].Drive[drive].ATAPI_bytecountleft = size; //How much is left to transfer?
+		ATA[channel].Drive[drive].ATAPI_bytecountleft = (uint_32)size; //How much is left to transfer?
 		ATA[channel].Drive[drive].ATAPI_bytecountleft_IRQ = raiseIRQ; //Are we to raise an IRQ when starting a new data transfer?
 		ATA[channel].Drive[drive].ATAPI_PendingExecuteTransfer = ATAPI_PENDINGEXECUTETRANSFER_DATATIMING; //Wait 20us before giving the new data that's to be transferred!
 
@@ -2211,7 +2211,7 @@ OPTINLINE void ATAPI_giveresultsize(byte channel, byte drive, uint_32 size, byte
 	}
 	else //Finishing an transfer and entering result phase? This is what we do when nothing is to be transferred anymore!
 	{
-		ATA[channel].Drive[drive].ATAPI_bytecountleft = size; //How much is left to transfer?
+		ATA[channel].Drive[drive].ATAPI_bytecountleft = (uint_32)size; //How much is left to transfer?
 		ATA[channel].Drive[drive].ATAPI_bytecountleft_IRQ = raiseIRQ?1:2; //Are we to raise an IRQ when starting a new data transfer?
 		ATA[channel].Drive[drive].ATAPI_PendingExecuteTransfer = ATAPI_PENDINGEXECUTETRANSFER_RESULTTIMING; //Wait a bit before giving the new data that's to be transferred!		
 		if (raiseIRQ) //Raise an IRQ after some time?
