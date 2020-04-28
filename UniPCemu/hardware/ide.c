@@ -2195,6 +2195,10 @@ OPTINLINE void ATAPI_giveresultsize(byte channel, byte drive, uint_32 size, byte
 	if (size) //Is something left to be transferred? We're not a finished transfer(size=0)?
 	{
 		size = MIN(size,ATA[channel].Drive[drive].ATAPI_bytecount); //Limit the size of a ATAPI-block to transfer in one go!
+		if (size == 0x10000) //64K can't be expressed?
+		{
+			size = 0xFFFE; //Maximum size that can be expressed!
+		}
 		ATA[channel].Drive[drive].ATAPI_bytecountleft = size; //How much is left to transfer?
 		ATA[channel].Drive[drive].ATAPI_bytecountleft_IRQ = raiseIRQ; //Are we to raise an IRQ when starting a new data transfer?
 		ATA[channel].Drive[drive].ATAPI_PendingExecuteTransfer = ATAPI_PENDINGEXECUTETRANSFER_DATATIMING; //Wait 20us before giving the new data that's to be transferred!
