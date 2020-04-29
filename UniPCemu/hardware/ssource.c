@@ -135,6 +135,7 @@ byte soundsource_covox_status()
 	byte result; //The result to use!
 	result = (3|((~outbuffer)&0x80)); //Default for detection!
 	//Bits 0-3 is set to detect. Bit 2 is cleared with a full buffer. Bit 6 is set with a full buffer. Output buffer bit 7(pin 9) is wired to status bit 0(pin 11). According to Dosbox.
+	ssource_full = (!fifobuffer_freesize(ssourcestream)) ? 1 : 0; //We're full when nothing's there!
 	if (ssource_full) //Sound source buffer full?
 	{
 		result |= 0x40; //We have a full buffer!
@@ -146,8 +147,6 @@ void tickssourcecovox(DOUBLE timepassed)
 {
 	if (__HW_DISABLED) return; //We're disabled!
 	//HW emulation of ticking the sound source in CPU time!
-	ssource_full = (!fifobuffer_freesize(ssourcestream))?1:0; //We're full when nothing's there!
-	setParallelIRQ(0,ssource_full); //Set our interrupt status before rendering to detect!
 
 	ssourcetiming += timepassed; //Tick the sound source!
 	if (unlikely(ssourcetiming>=ssourcetick && ssourcetick)) //Enough time passed to tick?
