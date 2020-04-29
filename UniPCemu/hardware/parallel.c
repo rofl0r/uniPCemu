@@ -47,11 +47,6 @@ void registerParallel(byte port, ParallelOutputHandler outputhandler, ParallelCo
 	PARALLELPORT[port].statushandler = statushandler;
 }
 
-void setParallelIRQ(byte port, byte raised)
-{
-	PARALLELPORT[port].IRQraised = (PARALLELPORT[port].IRQraised&~1)|(raised&1); //Raise the IRQ from the hardware if set, lower when cleared!
-}
-
 void tickParallel(DOUBLE timepassed)
 {
 	INLINEREGISTER byte result;
@@ -71,7 +66,7 @@ void tickParallel(DOUBLE timepassed)
 					{
 						result |= PARALLELPORT[port].statushandler(); //Output the data?
 					}
-					if (((result & PARALLELPORT[port].statusregister) ^ PARALLELPORT[port].statusregister) & 0x40) //ACK raised causes an IRQ?
+					if (((result^PARALLELPORT[port].statusregister)&PARALLELPORT[port].statusregister)&0x40) //ACK raised(this line is inverted on the read side, so the value is actually nACK we're checking) causes an IRQ?
 					{
 						PARALLELPORT[port].IRQraised |= 1; //Raise an IRQ!
 					}
