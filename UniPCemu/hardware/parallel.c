@@ -33,6 +33,7 @@ byte outputdata; //Mirror of last written data!
 byte controldata; //Mirror of last written control!
 byte IRQEnabled; //IRQs enabled?
 byte IRQraised; //IRQ raised?
+byte statusregister; //Status register!
 } PARALLELPORT[4]; //All parallel ports!
 byte numparallelports = 0; //How many ports?
 
@@ -53,6 +54,7 @@ void setParallelIRQ(byte port, byte raised)
 
 void tickParallel(DOUBLE timepassed)
 {
+	INLINEREGISTER byte result;
 	INLINEREGISTER byte port=0;
 	if (unlikely(numparallelports)) //Something to do?
 	{
@@ -63,6 +65,19 @@ void tickParallel(DOUBLE timepassed)
 			{
 				do //Only process the ports we have!
 				{
+					result = (PARALLELPORT[port].statusregister&~0x40); //Default: clear input!
+					if (PARALLELPORT[port].statushandler) //Valid?
+					{
+						result = PARALLELPORT[port].statushandler(); //Output the data?
+					}
+					result &= ~4; //Clear IRQ status bit by default(IRQ occurred)!
+					result |= ((~PARALLELPORT[port].IRQraised) & 1) << 2; //Set the nIRQ bit if an interrupt didn't occurred!
+					if (((result & PARALLELPORT[port].statusregister) ^ PARALLELPORT[port].statusregister) & 0x40) //ACK raised causes an IRQ?
+					{
+						PARALLELPORT[port].IRQraised |= 1; //Raise an IRQ!
+					}
+					PARALLELPORT[port].statusregister = result; //Status register!
+					PARALLELPORT[port].IRQraised &= ~2; //Clear the interrupt raised flag! We've been acnowledged if existant!
 					if (PARALLELPORT[port].IRQEnabled) //Enabled IRQ?
 					{
 						if ((PARALLELPORT[port].IRQraised & 3) == 1) //Are we raised high?
@@ -185,14 +200,6 @@ byte inparallel(word port, byte *result)
 		return 1; //We're handled!
 		break;
 	case 1: //Status?
-		*result = 0x00; //Default: clear input!
-		if (PARALLELPORT[Parallelport].statushandler) //Valid?
-		{
-			*result = PARALLELPORT[Parallelport].statushandler(); //Output the data?
-		}
-		*result &= ~4; //Clear IRQ status bit by default(IRQ occurred)!
-		*result |= ((~PARALLELPORT[Parallelport].IRQraised)&1)<<2; //Set the nIRQ bit if an interrupt didn't occurred!
-		PARALLELPORT[Parallelport].IRQraised &= ~2; //Clear the interrupt raised flag! We've been acnowledged if existant!
 		return 1; //We're handled!
 		break;
 	case 2: //Control register?
