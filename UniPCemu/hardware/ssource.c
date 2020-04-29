@@ -98,25 +98,29 @@ void soundsource_covox_output(byte data)
 	}
 }
 
+byte ssource_full = 0x00; //Sound source full status! bit 6: 1=Was last full, 0=Was last empty!
+
 void soundsource_covox_controlout(byte control)
 {
+	byte bitson;
+	bitson = (control ^ lastcontrol) & control; //What is turned on?
 	//bit0=Covox left channel tick, bit1=Covox right channel tick, bit 3=Sound source mono channel tick. Bit 2=Sound source ON.
 	//bit0/1/3 transition from high to low ticks sound!
 	if (control&4) //Is the Sound Source powered up?
 	{
-		if ((!(control & 8)) && (lastcontrol & 8)) //Toggling this bit on sends the data to the DAC!
+		if (bitson & 8) //Toggling this bit on sends the data to the DAC!
 		{
 			writefifobuffer(ssourcestream, outbuffer); //Add to the primary buffer when possible!
-			ssource_buffersticky = 0x00; //Clear the sticky buffer: update with a new status immediately!
+			ssource_full = 0x00; //Clear the sticky buffer: update with a new status immediately!
 			covox_ticking = covox_mono = 0; //Not ticking nor covox mono!
 		}
 	}
-	if ((!(control&1)) && (lastcontrol&1)) //Covox speech thing left channel pulse?
+	if (bitson&1) //Covox speech thing left channel pulse?
 	{
 		covox_left = outbuffer; //Set left channel value!
 		covox_ticking = covox_mono = 0; //Not ticking nor covox mono!
 	}
-	if ((!(control&2)) && (lastcontrol&2)) //Covox speech thing right channel pulse?
+	if (bitson&2) //Covox speech thing right channel pulse?
 	{
 		covox_right = outbuffer; //Set right channel value!
 		covox_ticking = covox_mono = 0; //Not ticking nor covox mono!
@@ -128,8 +132,6 @@ byte soundsource_covox_controlin()
 {
 	return lastcontrol; //Give our last control byte!
 }
-
-byte ssource_full = 0x00; //Sound source full status! bit 6: 1=Was last full, 0=Was last empty!
 
 byte soundsource_covox_status()
 {
