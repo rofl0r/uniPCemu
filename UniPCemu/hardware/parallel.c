@@ -65,19 +65,17 @@ void tickParallel(DOUBLE timepassed)
 			{
 				do //Only process the ports we have!
 				{
-					result = (PARALLELPORT[port].statusregister&~0x40); //Default: clear input!
+					//Check for a new status!
+					result = 0; //Default: clear input!
 					if (PARALLELPORT[port].statushandler) //Valid?
 					{
-						result = PARALLELPORT[port].statushandler(); //Output the data?
+						result |= PARALLELPORT[port].statushandler(); //Output the data?
 					}
-					result &= ~4; //Clear IRQ status bit by default(IRQ occurred)!
-					result |= ((~PARALLELPORT[port].IRQraised) & 1) << 2; //Set the nIRQ bit if an interrupt didn't occurred!
 					if (((result & PARALLELPORT[port].statusregister) ^ PARALLELPORT[port].statusregister) & 0x40) //ACK raised causes an IRQ?
 					{
 						PARALLELPORT[port].IRQraised |= 1; //Raise an IRQ!
 					}
 					PARALLELPORT[port].statusregister = result; //Status register!
-					PARALLELPORT[port].IRQraised &= ~2; //Clear the interrupt raised flag! We've been acnowledged if existant!
 					if (PARALLELPORT[port].IRQEnabled) //Enabled IRQ?
 					{
 						if ((PARALLELPORT[port].IRQraised & 3) == 1) //Are we raised high?
@@ -88,10 +86,10 @@ void tickParallel(DOUBLE timepassed)
 									raiseirq(7); //Throw the IRQ!
 									break;
 								case 1: //IRQ 6!
-									raiseirq(6); //Throw the IRQ!
+									raiseirq(0x16); //Throw the IRQ!
 									break;
 								case 2: //IRQ 5!
-									raiseirq(5); //Throw the IRQ!
+									raiseirq(0x5); //Throw the IRQ!
 								default: //unknown IRQ?
 									//Don't handle: we're an unknown IRQ!
 									break;
@@ -156,8 +154,8 @@ byte outparallel(word port, byte value)
 				acnowledgeIRQrequest(7); //Acnowledge!
 				break;
 			case 1: //IRQ 6!
-				lowerirq(6); //Throw the IRQ!
-				acnowledgeIRQrequest(6); //Acnowledge!
+				lowerirq(0x16); //Throw the IRQ!
+				acnowledgeIRQrequest(0x16); //Acnowledge!
 				break;
 			case 2: //IRQ 5!
 				lowerirq(5); //Throw the IRQ!
@@ -166,6 +164,7 @@ byte outparallel(word port, byte value)
 				//Don't handle: we're an unknown IRQ!
 				break;
 			}
+			PARALLELPORT[Parallelport].IRQraised = 0; //Not raised anymore!
 		}
 
 		PARALLELPORT[Parallelport].outputdata = value; //We've written data on this port!
@@ -200,6 +199,10 @@ byte inparallel(word port, byte *result)
 		return 1; //We're handled!
 		break;
 	case 1: //Status?
+		*result = PARALLELPORT[Parallelport].statusregister; //The status register!
+		//Fill in IRQ status!
+		*result &= ~4; //Clear IRQ status bit by default(IRQ occurred)!
+		*result |= ((~PARALLELPORT[port].IRQraised) & 1) << 2; //Set the nIRQ bit if an interrupt didn't occurred!
 		return 1; //We're handled!
 		break;
 	case 2: //Control register?
