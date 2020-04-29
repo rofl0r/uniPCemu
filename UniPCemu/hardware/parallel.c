@@ -199,7 +199,7 @@ byte inparallel(word port, byte *result)
 		*result = PARALLELPORT[Parallelport].statusregister; //The status register!
 		//Fill in IRQ status!
 		*result &= ~4; //Clear IRQ status bit by default(IRQ occurred)!
-		*result |= ((~PARALLELPORT[port].IRQraised) & 1) << 2; //Set the nIRQ bit if an interrupt didn't occurred!
+		*result |= ((~PARALLELPORT[port].IRQraised) & 2) << 1; //Set the nIRQ bit if an interrupt didn't occurred!
 		return 1; //We're handled!
 		break;
 	case 2: //Control register?
