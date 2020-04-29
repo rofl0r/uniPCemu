@@ -138,7 +138,7 @@ byte soundsource_covox_status()
 	ssource_full = (!fifobuffer_freesize(ssourcestream)) ? 1 : 0; //We're full when nothing's there!
 	if (ssource_full) //Sound source buffer full?
 	{
-		result |= 0x40; //We have a full buffer!
+		result |= 0x40; //We have a full buffer! This is the inverted signal we're giving(ACK=low when set, so we're reporting it's set).
 	}
 	return result; //We have an empty buffer!
 }
