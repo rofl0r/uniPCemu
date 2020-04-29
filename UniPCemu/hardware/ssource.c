@@ -49,7 +49,7 @@ byte covox_left=0x80, covox_right=0x80; //Current status for the covox speech th
 //Current buffers for the Parallel port!
 byte outbuffer = 0x00; //Our outgoing data buffer!
 byte lastcontrol = 0x00; //Our current control data!
-byte ssourcepowerdown = (DOUBLE)0; //Power down timer!
+DOUBLE ssourcepowerdown = (DOUBLE)0; //Power down timer!
 byte ssourcepoweredup = 0; //Powered up?
 
 byte covox_mono = 0; //Current covox mode!
