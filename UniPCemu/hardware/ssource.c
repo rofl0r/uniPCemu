@@ -174,7 +174,7 @@ void tickssourcecovox(DOUBLE timepassed)
 		if (ssourcepowerdown<=(DOUBLE)0.0) //Fully powered down?
 		{
 			ssourcepowerdown = (DOUBLE)0; //Stop timing!
-			clearfifobuffer(ssourcestream); //FIFO has no power anymore!
+			fifobuffer_clear(ssourcestream); //FIFO has no power anymore!
 			ssource_full = 0x00; //Clear the sticky buffer: update with a new status immediately!		
 			ssourcepoweredup = 0; //We've powered down!
 		}
