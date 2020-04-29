@@ -70,6 +70,30 @@ void tickParallel(DOUBLE timepassed)
 					{
 						PARALLELPORT[port].IRQraised |= 1; //Raise an IRQ!
 					}
+					else if (((result^PARALLELPORT[port].statusregister))&result) //ACK lowered? Lower the IRQ line!
+					{
+						if (PARALLELPORT[port].IRQraised & 2) //Was the IRQ raised?
+						{
+							switch (port) //What port are we?
+							{
+							case 0: //IRQ 7!
+								lowerirq(7); //Throw the IRQ!
+								acnowledgeIRQrequest(7); //Acnowledge!
+								break;
+							case 1: //IRQ 6!
+								lowerirq(0x16); //Throw the IRQ!
+								acnowledgeIRQrequest(0x16); //Acnowledge!
+								break;
+							case 2: //IRQ 5!
+								lowerirq(5); //Throw the IRQ!
+								acnowledgeIRQrequest(5); //Acnowledge!
+							default: //unknown IRQ?
+								//Don't handle: we're an unknown IRQ!
+								break;
+							}
+						}
+						PARALLELPORT[port].IRQraised = 0; //Not raised anymore!
+					}
 					PARALLELPORT[port].statusregister = result; //Status register!
 					if (PARALLELPORT[port].IRQEnabled) //Enabled IRQ?
 					{
@@ -138,28 +162,6 @@ byte outparallel(word port, byte value)
 		if (PARALLELPORT[Parallelport].outputhandler) //Valid?
 		{
 			PARALLELPORT[Parallelport].outputhandler(value); //Output the new data
-		}
-
-		if (PARALLELPORT[Parallelport].IRQraised & 2) //Are we raised? Lower it(Writing here acnowledges the interrupt)!
-		{
-			switch (Parallelport) //What port are we?
-			{
-			case 0: //IRQ 7!
-				lowerirq(7); //Throw the IRQ!
-				acnowledgeIRQrequest(7); //Acnowledge!
-				break;
-			case 1: //IRQ 6!
-				lowerirq(0x16); //Throw the IRQ!
-				acnowledgeIRQrequest(0x16); //Acnowledge!
-				break;
-			case 2: //IRQ 5!
-				lowerirq(5); //Throw the IRQ!
-				acnowledgeIRQrequest(5); //Acnowledge!
-			default: //unknown IRQ?
-				//Don't handle: we're an unknown IRQ!
-				break;
-			}
-			PARALLELPORT[Parallelport].IRQraised = 0; //Not raised anymore!
 		}
 
 		PARALLELPORT[Parallelport].outputdata = value; //We've written data on this port!
