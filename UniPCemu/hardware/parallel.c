@@ -66,11 +66,11 @@ void tickParallel(DOUBLE timepassed)
 					{
 						result |= PARALLELPORT[port].statushandler(); //Output the data?
 					}
-					if (((result^PARALLELPORT[port].statusregister)&PARALLELPORT[port].statusregister)&0x40) //ACK raised(this line is inverted on the read side, so the value is actually nACK we're checking) causes an IRQ?
+					if ((((result^PARALLELPORT[port].statusregister)&PARALLELPORT[port].statusregister)&0x40) && (PARALLELPORT[port].IRQEnabled)) //ACK raised(this line is inverted on the read side, so the value is actually nACK we're checking) causes an IRQ?
 					{
 						PARALLELPORT[port].IRQraised |= 1; //Raise an IRQ!
 					}
-					else if (((result^PARALLELPORT[port].statusregister))&result) //ACK lowered? Lower the IRQ line!
+					else if ((((result^PARALLELPORT[port].statusregister))&result) || ((PARALLELPORT[port].IRQEnabled==0) && (PARALLELPORT[port].IRQraised))) //ACK lowered or IRQs disabled and raised/requested? Lower the IRQ line!
 					{
 						if (PARALLELPORT[port].IRQraised & 2) //Was the IRQ raised?
 						{
