@@ -49,6 +49,8 @@ byte covox_left=0x80, covox_right=0x80; //Current status for the covox speech th
 //Current buffers for the Parallel port!
 byte outbuffer = 0x00; //Our outgoing data buffer!
 byte lastcontrol = 0x00; //Our current control data!
+byte ssourcepowerdown = (DOUBLE)0; //Power down timer!
+byte ssourcepoweredup = 0; //Powered up?
 
 byte covox_mono = 0; //Current covox mode!
 byte covox_ticking = 0; //When overflows past 5 it's mono!
@@ -114,6 +116,12 @@ void soundsource_covox_controlout(byte control)
 			ssource_full = 0x00; //Clear the sticky buffer: update with a new status immediately!
 			covox_ticking = covox_mono = 0; //Not ticking nor covox mono!
 		}
+		ssourcepowerdown = (DOUBLE)0; //Not powering down!
+		ssourcepoweredup = 1; //Has power!
+	}
+	else if (((control ^ lastcontrol) & lastcontrol)&4) //Is the Sound Source powered off?
+	{
+		ssourcepowerdown = (DOUBLE)15000; //More than 10 usec to power down!
 	}
 	if (bitson&1) //Covox speech thing left channel pulse?
 	{
@@ -140,13 +148,16 @@ byte soundsource_covox_status()
 	result = (3|((~outbuffer)&0x80)); //Default for detection!
 	//Bits 0-3 is set to detect. Bit 2 is cleared with a full buffer. Bit 6 is set with a full buffer. Output buffer bit 7(pin 9) is wired to status bit 0(pin 11). According to Dosbox.
 	freebuffer = fifobuffer_freesize(ssourcestream); //How empty is the buffer, in bytes!
-	if (!freebuffer) //We're full when there's nothing to add to the buffer!
+	if (ssourcepoweredup) //Powered up FIFO&DAC?
 	{
-		ssource_full |= 0x40; //We have a full buffer! This is the inverted signal we're giving(ACK=low when set, so we're reporting it's set).
-	}
-	else if (freebuffer == __SSOURCE_BUFFER) //Buffer is empty instead?
-	{
-		ssource_full = 0; //Buffer is empty!
+		if (!freebuffer) //We're full when there's nothing to add to the buffer!
+		{
+			ssource_full |= 0x40; //We have a full buffer! This is the inverted signal we're giving(ACK=low when set, so we're reporting it's set).
+		}
+		else if (freebuffer == __SSOURCE_BUFFER) //Buffer is empty instead?
+		{
+			ssource_full = 0; //Buffer is empty!
+		}
 	}
 	result |= ssource_full; //Were we last full or empty!
 	return result; //We have an empty buffer!
@@ -154,16 +165,26 @@ byte soundsource_covox_status()
 
 void tickssourcecovox(DOUBLE timepassed)
 {
+	byte ssourcesample;
 	if (__HW_DISABLED) return; //We're disabled!
 	//HW emulation of ticking the sound source in CPU time!
-
+	if (ssourcepowerdown) //Powered down by software?
+	{
+		ssourcepowerdown -= timepassed; //Time it's power down!
+		if (ssourcepowerdown<=(DOUBLE)0.0) //Fully powered down?
+		{
+			ssourcepowerdown = (DOUBLE)0; //Stop timing!
+			clearfifobuffer(ssourcestream); //FIFO has no power anymore!
+			ssource_full = 0x00; //Clear the sticky buffer: update with a new status immediately!		
+			ssourcepoweredup = 0; //We've powered down!
+		}
+	}
 	ssourcetiming += timepassed; //Tick the sound source!
 	if (unlikely(ssourcetiming>=ssourcetick && ssourcetick)) //Enough time passed to tick?
 	{
 		do
 		{
-			byte ssourcesample;
-			if (lastcontrol&4) //Is the Sound Source powered up?
+			if (ssourcepoweredup) //Is the Sound Source powered up?
 			{
 				if (readfifobuffer(ssourcestream,&ssourcesample))
 					writeDoubleBufferedSound8(&ssource_soundbuffer,ssourcesample); //Move data to the destination buffer one sample at a time!
@@ -172,8 +193,7 @@ void tickssourcecovox(DOUBLE timepassed)
 			}
 			else //Sound source is powered down? Flush the buffers!
 			{
-				for (;readfifobuffer(ssourcestream, &ssourcesample);)
-					writeDoubleBufferedSound8(&ssource_soundbuffer, ssourcesample); //Move rest data to the render buffer once we're full enough!
+				writeDoubleBufferedSound8(&ssource_soundbuffer, 0x80); //Nothing, clear output!
 			}
 			ssourcetiming -= ssourcetick; //Ticked one sample!
 		} while (ssourcetiming>=ssourcetick); //Do ... while, because we execute at least once!
