@@ -107,6 +107,7 @@ void soundsource_covox_controlout(byte control)
 		if ((!(control & 8)) && (lastcontrol & 8)) //Toggling this bit on sends the data to the DAC!
 		{
 			writefifobuffer(ssourcestream, outbuffer); //Add to the primary buffer when possible!
+			ssource_buffersticky = 0x00; //Clear the sticky buffer: update with a new status immediately!
 			covox_ticking = covox_mono = 0; //Not ticking nor covox mono!
 		}
 	}
@@ -128,18 +129,24 @@ byte soundsource_covox_controlin()
 	return lastcontrol; //Give our last control byte!
 }
 
-byte ssource_full = 0; //Sound source full status!
+byte ssource_full = 0x00; //Sound source full status! bit 6: 1=Was last full, 0=Was last empty!
 
 byte soundsource_covox_status()
 {
+	byte freebuffer;
 	byte result; //The result to use!
 	result = (3|((~outbuffer)&0x80)); //Default for detection!
 	//Bits 0-3 is set to detect. Bit 2 is cleared with a full buffer. Bit 6 is set with a full buffer. Output buffer bit 7(pin 9) is wired to status bit 0(pin 11). According to Dosbox.
-	ssource_full = (!fifobuffer_freesize(ssourcestream)) ? 1 : 0; //We're full when nothing's there!
-	if (ssource_full) //Sound source buffer full?
+	freebuffer = fifobuffer_freesize(ssourcestream); //How empty is the buffer, in bytes!
+	if (!freebuffer) //We're full when there's nothing to add to the buffer!
 	{
-		result |= 0x40; //We have a full buffer! This is the inverted signal we're giving(ACK=low when set, so we're reporting it's set).
+		ssource_full |= 0x40; //We have a full buffer! This is the inverted signal we're giving(ACK=low when set, so we're reporting it's set).
 	}
+	else if (freebuffer == __SSOURCE_BUFFER) //Buffer is empty instead?
+	{
+		ssource_full = 0; //Buffer is empty!
+	}
+	result |= ssource_full; //Were we last full or empty!
 	return result; //We have an empty buffer!
 }
 
