@@ -175,9 +175,9 @@ byte soundsource_covox_status()
 		//When the state is off, ACK=!INIT, just like full buffer.
 		ssource_empty = 0; //Act like full!
 	}
-	//Were we last full or empty! The and operation between the NOT of empty and the INIT line is the grounding of the transistor from the INIT line using the empty input from the chip(it's _FULL_ signal).
+	//The and operation between the empty and the -INIT line(which needs setting when it's ground for us to work with to become a positive value) is the grounding of the transistor from the INIT line using the empty input from the chip(it's _FULL_ signal, our ssource_emtpy variable).
 	//The inversion of the ACK line is done at the parallel port controller itself!
-	result |= (((~ssource_empty)&((lastcontrol&0x04)<<4))&0x40);
+	result |= (((((~lastcontrol) & 0x04) << 4)&(ssource_empty))&0x40);
 	return result; //We have an empty buffer!
 }
 
