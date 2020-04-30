@@ -104,13 +104,14 @@ byte ssource_full = 0x00; //Sound source full status! bit 6: 1=Was last full, 0=
 
 void soundsource_covox_controlout(byte control)
 {
-	byte bitson;
+	byte bitson,bitsoff;
 	bitson = (control ^ lastcontrol) & control; //What is turned on?
+	bitsoff = (control ^ lastcontrol) & lastcontrol; //What is turned off?
 	//bit0=Covox left channel tick, bit1=Covox right channel tick, bit 3=Sound source mono channel tick. Bit 2=Sound source ON.
 	//bit0/1/3 transition from high to low ticks sound!
 	if (control&4) //Is the Sound Source powered up?
 	{
-		if (bitson & 8) //Toggling this bit on sends the data to the DAC!
+		if (bitson & 8) //Toggling this bit on sends the data to the DAC! Documentation says rising edge!
 		{
 			writefifobuffer(ssourcestream, outbuffer); //Add to the primary buffer when possible!
 			ssource_full = 0x00; //Clear the sticky buffer: update with a new status immediately!
@@ -119,16 +120,16 @@ void soundsource_covox_controlout(byte control)
 		ssourcepowerdown = (DOUBLE)0; //Not powering down!
 		ssourcepoweredup = 1; //Has power!
 	}
-	else if (((control ^ lastcontrol) & lastcontrol)&4) //Is the Sound Source powered off?
+	else if (bitsoff&4) //Is the Sound Source powered off?
 	{
 		ssourcepowerdown = (DOUBLE)15000; //More than 10 usec to power down!
 	}
-	if (bitson&1) //Covox speech thing left channel pulse?
+	if (bitsoff&1) //Covox speech thing left channel pulse? Falling edge according to Dosbox!
 	{
 		covox_left = outbuffer; //Set left channel value!
 		covox_ticking = covox_mono = 0; //Not ticking nor covox mono!
 	}
-	if (bitson&2) //Covox speech thing right channel pulse?
+	if (bitsoff&2) //Covox speech thing right channel pulse? Falling edge according to Dosbox!
 	{
 		covox_right = outbuffer; //Set right channel value!
 		covox_ticking = covox_mono = 0; //Not ticking nor covox mono!
