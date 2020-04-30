@@ -210,7 +210,7 @@ byte inparallel(word port, byte *result)
 	case 2: //Control register?
 		if (PARALLELPORT[Parallelport].controlinhandler)
 		{
-			*result = (PARALLELPORT[Parallelport].controlinhandler()&0xF);
+			*result = ((PARALLELPORT[Parallelport].controlinhandler()^0x4)&0xF);
 		}
 		*result |= PARALLELPORT[Parallelport].controldata; //Our own control data!
 		return 1; //We're handled!
