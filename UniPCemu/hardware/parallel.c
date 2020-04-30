@@ -45,6 +45,7 @@ void registerParallel(byte port, ParallelOutputHandler outputhandler, ParallelCo
 	PARALLELPORT[port].controlouthandler = controlouthandler;
 	PARALLELPORT[port].controlinhandler = controlinhandler;
 	PARALLELPORT[port].statushandler = statushandler;
+	PARALLELPORT[port].statusregister = 0xC0; //Default the status register to floating bus!
 }
 
 void tickParallel(DOUBLE timepassed)
@@ -64,7 +65,11 @@ void tickParallel(DOUBLE timepassed)
 					result = 0; //Default: clear input!
 					if (PARALLELPORT[port].statushandler) //Valid?
 					{
-						result |= PARALLELPORT[port].statushandler(); //Output the data?
+						result |= ((PARALLELPORT[port].statushandler())^0xC0); //Output the data? The ACK lines and BUSY lines are inversed in the parallel port itself!
+					}
+					else
+					{
+						result |= 0xC0; //Output the data? The data for ACK and BUSY is inversed, so set them always!
 					}
 					if ((((result^PARALLELPORT[port].statusregister)&PARALLELPORT[port].statusregister)&0x40) && (PARALLELPORT[port].IRQEnabled)) //ACK raised(this line is inverted on the read side, so the value is actually nACK we're checking) causes an IRQ?
 					{
@@ -170,7 +175,7 @@ byte outparallel(word port, byte value)
 	case 2: //Control register?
 		if (PARALLELPORT[Parallelport].controlouthandler) //Valid?
 		{
-			PARALLELPORT[Parallelport].controlouthandler(value&0xF); //Output the new control
+			PARALLELPORT[Parallelport].controlouthandler((value^0x4)&0xF); //Output the new control! INIT is active low, so inverse it!
 		}
 		PARALLELPORT[Parallelport].controldata = (value&0x30); //The new control data last written, only the Bi-Directional pins and IRQ pins!
 		PARALLELPORT[Parallelport].IRQEnabled = (value&0x10)?1:0; //Is the IRQ enabled?
