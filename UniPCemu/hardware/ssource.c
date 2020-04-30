@@ -166,7 +166,7 @@ byte soundsource_covox_status()
 		}
 		else //Buffer is not full instead?
 		{
-			ssource_empty = 0x40; //Buffer is empty! Ground the signal!
+			ssource_empty = 0x40; //Buffer is not full! Ground the signal!
 		}
 	}
 	else //Powered off?
