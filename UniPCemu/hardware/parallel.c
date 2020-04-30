@@ -70,7 +70,7 @@ void tickParallel(DOUBLE timepassed)
 					{
 						PARALLELPORT[port].IRQraised |= 1; //Raise an IRQ!
 					}
-					else if (((((result^PARALLELPORT[port].statusregister))&result)&0x40) || ((PARALLELPORT[port].IRQEnabled==0) && (PARALLELPORT[port].IRQraised))) //ACK lowered or IRQs disabled and raised/requested? Lower the IRQ line!
+					else if ((((result^PARALLELPORT[port].statusregister)&result)&0x40) || ((PARALLELPORT[port].IRQEnabled==0) && (PARALLELPORT[port].IRQraised))) //ACK lowered or IRQs disabled and raised/requested? Lower the IRQ line!
 					{
 						if (PARALLELPORT[port].IRQraised & 2) //Was the IRQ raised?
 						{
