@@ -100,7 +100,7 @@ void soundsource_covox_output(byte data)
 	}
 }
 
-byte ssource_full = 0x00; //Sound source full status! bit 6: 1=Was last full, 0=Was last empty!
+byte ssource_empty = 0; //Sound source full status! bit 6: 1=Was last full, 0=Was last empty!
 
 void soundsource_covox_controlout(byte control)
 {
@@ -109,18 +109,18 @@ void soundsource_covox_controlout(byte control)
 	bitsoff = (control ^ lastcontrol) & lastcontrol; //What is turned off?
 	//bit0=Covox left channel tick, bit1=Covox right channel tick, bit 3=Sound source mono channel tick. Bit 2=Sound source ON.
 	//bit0/1/3 transition from high to low ticks sound!
-	if (control&4) //Is the Sound Source powered up?
+	if ((control&4)==0) //Is the Sound Source powered up? The INIT line is inversed, so it's active low!
 	{
 		if (bitson & 8) //Toggling this bit on sends the data to the DAC! Documentation says rising edge!
 		{
 			writefifobuffer(ssourcestream, outbuffer); //Add to the primary buffer when possible!
-			ssource_full = 0x00; //Clear the sticky buffer: update with a new status immediately!
+			ssource_empty = 0x40; //Clear the sticky buffer: update with a new status immediately!
 			covox_ticking = covox_mono = 0; //Not ticking nor covox mono!
 		}
 		ssourcepowerdown = (DOUBLE)0; //Not powering down!
 		ssourcepoweredup = 1; //Has power!
 	}
-	else if (bitsoff&4) //Is the Sound Source powered off?
+	else if (bitson&4) //Is the Sound Source powered off?
 	{
 		ssourcepowerdown = (DOUBLE)15000; //More than 10 usec to power down!
 	}
@@ -146,21 +146,38 @@ byte soundsource_covox_status()
 {
 	byte freebuffer;
 	byte result; //The result to use!
-	result = (3|((~outbuffer)&0x80)); //Default for detection!
+	result = (3|(outbuffer&0x80)); //Default for detection! Give the BUSY signal using the highest bit of the data lines. Any inversion on the bit isn't done here but at the chip itself!
 	//Bits 0-3 is set to detect. Bit 2 is cleared with a full buffer. Bit 6 is set with a full buffer. Output buffer bit 7(pin 9) is wired to status bit 0(pin 11). According to Dosbox.
 	freebuffer = fifobuffer_freesize(ssourcestream); //How empty is the buffer, in bytes!
+
+	/*
+	
+	So, from the output pins(raw output signals on SELECT/INIT lines) until the input pins:
+	- Off(SELECT(pin 17)=0), pin 16(INIT not grounded)=>10(ACK), ACK is reversed so: ACK=!INIT
+	- On(SELECT(pin 17)=1) with full buffer(INIT not grounded): same as the off state, pin 16(INIT)=>10(ACK), ACK is reversed so: ACK=!INIT. So when INIT=1, ACK=0 and when INIT=0, ACK=1.
+	- On(SELECT(pin 17)=1) with not full buffer: INIT is grounded(becomes 0 always), then reversed on read, so ACK=1 always.
+
+	*/
+
 	if (ssourcepoweredup) //Powered up FIFO&DAC?
 	{
 		if (!freebuffer) //We're full when there's nothing to add to the buffer!
 		{
-			ssource_full |= 0x40; //We have a full buffer! This is the inverted signal we're giving(ACK=low when set, so we're reporting it's set).
+			ssource_empty = 0; //We have a full buffer! This is the inverted signal we're giving(ACK=low when set, so we're reporting it's set).
 		}
 		else if (freebuffer == __SSOURCE_BUFFER) //Buffer is empty instead?
 		{
-			ssource_full = 0; //Buffer is empty!
+			ssource_empty = 0x40; //Buffer is empty! Ground the signal!
 		}
 	}
-	result |= ssource_full; //Were we last full or empty!
+	else //Powered off?
+	{
+		//When the state is off, ACK=!INIT, just like full buffer.
+		ssource_empty = 0; //Act like full!
+	}
+	//Were we last full or empty! The and operation between the NOT of empty and the INIT line is the grounding of the transistor from the INIT line using the empty input from the chip(it's _FULL_ signal).
+	//The inversion of the ACK line is done at the parallel port controller itself!
+	result |= (((~ssource_empty)&((lastcontrol&0x04)<<4))&0x40);
 	return result; //We have an empty buffer!
 }
 
@@ -176,7 +193,7 @@ void tickssourcecovox(DOUBLE timepassed)
 		{
 			ssourcepowerdown = (DOUBLE)0; //Stop timing!
 			fifobuffer_clear(ssourcestream); //FIFO has no power anymore!
-			ssource_full = 0x00; //Clear the sticky buffer: update with a new status immediately!		
+			ssource_empty = 0x40; //Clear the sticky buffer: update with a new status immediately!		
 			ssourcepoweredup = 0; //We've powered down!
 		}
 	}
@@ -237,7 +254,7 @@ void initSoundsource() {
 	if (__HW_DISABLED) return; //We're disabled!
 	doneSoundsource(); //Make sure we're not already running!
 	
-	ssource_full = 0; //Initialise status!
+	ssource_empty = 0; //Initialise status!
 
 	//Sound source streams!
 	ssourcestream = allocfifobuffer(__SSOURCE_BUFFER,0); //Our FIFO buffer! This is the buffer the CPU writes to!
