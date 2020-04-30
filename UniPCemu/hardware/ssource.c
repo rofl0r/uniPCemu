@@ -114,7 +114,6 @@ void soundsource_covox_controlout(byte control)
 		if (bitson & 8) //Toggling this bit on sends the data to the DAC! Documentation says rising edge!
 		{
 			writefifobuffer(ssourcestream, outbuffer); //Add to the primary buffer when possible!
-			ssource_empty = 0x40; //Clear the sticky buffer: update with a new status immediately!
 			covox_ticking = covox_mono = 0; //Not ticking nor covox mono!
 		}
 		ssourcepowerdown = (DOUBLE)0; //Not powering down!
@@ -165,7 +164,7 @@ byte soundsource_covox_status()
 		{
 			ssource_empty = 0; //We have a full buffer! This is the inverted signal we're giving(ACK=low when set, so we're reporting it's set).
 		}
-		else if (freebuffer == __SSOURCE_BUFFER) //Buffer is empty instead?
+		else //Buffer is not full instead?
 		{
 			ssource_empty = 0x40; //Buffer is empty! Ground the signal!
 		}
