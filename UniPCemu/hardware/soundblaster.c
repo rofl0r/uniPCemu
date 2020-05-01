@@ -82,6 +82,7 @@ struct
 	FIFOBUFFER *DSPoutdata; //Data to be rendered for the DSP!
 	byte resetport;
 	byte command; //The current command we're processing (0 for none)
+	byte originalcommand; //Original command for commands that have their command overwritten!
 	byte commandstep; //The step within the command!
 	uint_32 dataleft; //The position(in bytes left) within the command during the data phase!
 	byte busy; //Are we busy (not able to receive data/commands)?
@@ -467,6 +468,7 @@ OPTINLINE void DSP_writeCommand(byte command)
 	byte ADPCM_reference = 0; //ADPCM reference byte is used?
 	byte AutoInit = 0; //Auto initialize command?
 	byte result;
+	SOUNDBLASTER.originalcommand = command; //The last command that was written!
 	switch (command) //What command?
 	{
 	case 0x04: //DSP Status
