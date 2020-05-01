@@ -4493,6 +4493,7 @@ void ATA_reset(byte channel, byte slave)
 				}
 				else //HDD?
 				{
+					ATA_STATUSREGISTER_ERRORW(channel, ATA_activeDrive(channel), 0); //Error bit is reset when a new command is received, as defined in the documentation!
 					ATA[channel].Drive[slave].ERRORREGISTER = 0x01; //No error, but being a reserved value of 1 usually!
 				}
 		}
