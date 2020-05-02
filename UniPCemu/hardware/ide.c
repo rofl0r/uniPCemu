@@ -230,7 +230,7 @@ typedef struct
 		byte resetTriggersIRQ;
 		DOUBLE ReadyTiming; //Timing until we become ready after executing a command!
 		DOUBLE IRQTimeout; //Timeout until we're to fire an IRQ!
-		byte IRQTimeout_busy; //Busy while timing the IRQ timeout?
+		byte IRQTimeout_busy; //Busy while timing the IRQ timeout? 0=Not busy, raise IRQ, 1=Keep busy, raise IRQ, 2=Keep busy, no IRQ!
 		DOUBLE BusyTiming; //Timing until we're not busy anymore!
 		byte resetSetsDefaults;
 		byte expectedReadDataType; //Expected read data format!
@@ -4761,7 +4761,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		ATA[channel].Drive[ATA_activeDrive(channel)].datasize = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount; //Load sector count!
 		if (!ATA[channel].Drive[ATA_activeDrive(channel)].datasize) ATA[channel].Drive[ATA_activeDrive(channel)].datasize = 0x100; //0 becomes 256!
 		ATA_readLBACHS(channel);
-		ATA_IRQ(channel, ATA_activeDrive(channel),ATA_FINISHREADYTIMING(200.0),0); //Give our requesting IRQ!
+		ATA_IRQ(channel, ATA_activeDrive(channel),ATA_FINISHREADYTIMING(200.0),2); //Give our requesting IRQ! Just keep busy a bit then start the transfer phase!
 
 		if (ATA[channel].Drive[ATA_activeDrive(channel)].multiplemode) //Enabled multiple mode?
 		{
