@@ -1218,7 +1218,7 @@ byte BIOS_readhandler(uint_32 offset) /* A pointer to a handler function */
 		case BIOSROMTYPE_U18_19: //U18&19 combo?
 			tempoffset = basepos;
 			tempoffset &= 0x7FFF; //Our offset within the ROM!
-			segment = (((basepos >> 16) & 1) ^ 1); //ROM number: 0x8000+:u18, 0+:u19
+			segment = (((basepos >> 15) & 1) ^ 1); //ROM number: 0x8000+:u18, 0+:u19
 			segment += 18; //The ROM number!
 			if (likely(BIOS_ROM_size[segment]>tempoffset)) //Within range?
 			{
