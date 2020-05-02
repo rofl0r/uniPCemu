@@ -1452,8 +1452,11 @@ void updateATA(DOUBLE timepassed) //ATA timing!
 				ATA[0].Drive[0].IRQTimeout = (DOUBLE)0; //Timer finished!
 				ATA_channel = 0;
 				ATA_slave = 0;
-				ATAPI_generateInterruptReason(0,0); //Generate our reason!
-				ATA_IRQ(0,0,(DOUBLE)0,0); //Finish timeout!
+				if (ATA[0].Drive[0].IRQTimeout_busy != 2) //Raise an IRQ?
+				{
+					ATAPI_generateInterruptReason(0, 0); //Generate our reason!
+					ATA_IRQ(0, 0, (DOUBLE)0, 0); //Finish timeout!
+				}
 			}
 		}
 
@@ -1465,8 +1468,11 @@ void updateATA(DOUBLE timepassed) //ATA timing!
 				ATA[0].Drive[1].IRQTimeout = (DOUBLE)0; //Timer finished!
 				ATA_channel = 0;
 				ATA_slave = 1;
-				ATAPI_generateInterruptReason(0,1); //Generate our reason!
-				ATA_IRQ(0,1,(DOUBLE)0,0); //Finish timeout!
+				if (ATA[0].Drive[1].IRQTimeout_busy != 2) //Raise an IRQ?
+				{
+					ATAPI_generateInterruptReason(0, 1); //Generate our reason!
+					ATA_IRQ(0, 1, (DOUBLE)0, 0); //Finish timeout!
+				}
 			}
 		}
 
@@ -1478,8 +1484,11 @@ void updateATA(DOUBLE timepassed) //ATA timing!
 				ATA[1].Drive[0].IRQTimeout = (DOUBLE)0; //Timer finished!
 				ATA_channel = 1;
 				ATA_slave = 0;
-				ATAPI_generateInterruptReason(1,0); //Generate our reason!
-				ATA_IRQ(1,0,(DOUBLE)0,0); //Finish timeout!
+				if (ATA[1].Drive[0].IRQTimeout_busy != 2) //Raise an IRQ?
+				{
+					ATAPI_generateInterruptReason(1, 0); //Generate our reason!
+					ATA_IRQ(1, 0, (DOUBLE)0, 0); //Finish timeout!
+				}
 			}
 		}
 
@@ -1491,8 +1500,11 @@ void updateATA(DOUBLE timepassed) //ATA timing!
 				ATA[1].Drive[1].IRQTimeout = (DOUBLE)0; //Timer finished!
 				ATA_channel = 1;
 				ATA_slave = 1;
-				ATAPI_generateInterruptReason(1,1); //Generate our reason!
-				ATA_IRQ(1,1,(DOUBLE)0,0); //Finish timeout!
+				if (ATA[1].Drive[1].IRQTimeout_busy != 2) //Raise an IRQ?
+				{
+					ATAPI_generateInterruptReason(1, 1); //Generate our reason!
+					ATA_IRQ(1, 1, (DOUBLE)0, 0); //Finish timeout!
+				}
 			}
 		}
 
