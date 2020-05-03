@@ -2847,7 +2847,6 @@ OPTINLINE void ATA_dataOUT(byte channel, byte data) //Byte written to data!
 			if (ATA[channel].Drive[ATA_activeDrive(channel)].datapos==12) //Full packet written?
 			{
 				//Cancel DRQ, Set BSY and read Features and Byte count from the Task File.
-				ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.reportReady = 1; //Report ready now after the command starts executing! It's the end of the ATA part of the protocol, so set DRDY now!
 				ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_bytecount = ATAPI_getresultsize(channel,ATA_activeDrive(channel)); //Read the size to transfer at most!
 				ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 0; //We're not processing a packet anymore, from now on we're data only!
 				ATAPI_PendingExecuteCommand(channel, ATA_activeDrive(channel)); //Execute the ATAPI command!
@@ -4840,7 +4839,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		break;
 	case 0xA0: //ATAPI: PACKET (ATAPI mandatory)!
 		if ((ATA_Drives[channel][ATA_activeDrive(channel)] < CDROM0) || !ATA_Drives[channel][ATA_activeDrive(channel)]) goto invalidcommand; //HDD/invalid disk errors out!
-		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.reportReady |= 2; //Report ready now after the command starts executing! Not BUSY anymore!
+		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.reportReady |= 2; //Report ready now after the command finishes executing! Not BUSY anymore!
 		ATA[channel].Drive[ATA_activeDrive(channel)].command = 0xA0; //We're sending a ATAPI packet!
 		ATA[channel].Drive[ATA_activeDrive(channel)].datapos = 0; //Initialise data position for the packet!
 		ATA[channel].Drive[ATA_activeDrive(channel)].datablock = 12; //We're receiving 12 bytes for the ATAPI packet!
@@ -5007,6 +5006,10 @@ OPTINLINE void ATA_updateStatus(byte channel)
 	switch (ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus) //What command status?
 	{
 	case 0: //Ready for command?
+		if (unlikely(ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.reportReady & 2)) //Pending becoming ready on commmand completion?
+		{
+			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.reportReady = 1; //Now we're ready!
+		}
 		//ATA_STATUSREGISTER_INDEXW(channel, ATA_activeDrive(channel), (ATA[channel].Drive[ATA_activeDrive(channel)].IRQraised && (ATA_Drives[channel][ATA_activeDrive(channel)]>=CDROM0))?1:0); //Are we an IRQ cause!
 		ATA_STATUSREGISTER_BUSYW(channel,ATA_activeDrive(channel),(((((ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PendingExecuteTransfer && (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET<3 /* 3(result)/4(pending result status) clear busy */)))||DRIVECONTROLREGISTER_SRSTR(channel)||(ATA[channel].Drive[ATA_activeDrive(channel)].resetTiming))?1:0) | (((ATA[channel].Drive[ATA_activeDrive(channel)].IRQTimeout && ATA[channel].Drive[ATA_activeDrive(channel)].IRQTimeout_busy) || ATA[channel].Drive[ATA_activeDrive(channel)].BusyTiming) ? 1 : 0))&(ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.reportReady)); //Not busy! You can write to the CBRs! We're busy during the ATAPI transfer still pending the result phase! Result phase pending doesn't set it!
 		ATA_STATUSREGISTER_DRIVEREADYW(channel,ATA_activeDrive(channel),(((((ATA[channel].driveselectTiming||ATA[channel].Drive[ATA_activeDrive(channel)].ReadyTiming) && (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET<4 /* 4(pending result status) sets ready */)))||DRIVECONTROLREGISTER_SRSTR(channel))?0:1)&((ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.reportReady&1))); //We're ready to process a command!
@@ -5044,6 +5047,10 @@ OPTINLINE void ATA_updateStatus(byte channel)
 	default: //Unknown?
 		ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),1); //Error!
 	case 0xFF: //Error? See https://www.kernel.org/doc/htmldocs/libata/ataExceptions.html
+		if (unlikely(ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.reportReady & 2)) //Pending becoming ready on commmand completion?
+		{
+			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.reportReady = 1; //Now we're ready!
+		}
 		//ATA_STATUSREGISTER_INDEXW(channel, ATA_activeDrive(channel), (ATA[channel].Drive[ATA_activeDrive(channel)].IRQraised && (ATA_Drives[channel][ATA_activeDrive(channel)]>=CDROM0))?1:0); //Are we an IRQ cause!
 		ATA_STATUSREGISTER_BUSYW(channel,ATA_activeDrive(channel),0); //Error occurred: wee're executing an invalid command!
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //Reset command status: we've reset!
