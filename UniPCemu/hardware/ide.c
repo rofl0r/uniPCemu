@@ -2847,6 +2847,7 @@ OPTINLINE void ATA_dataOUT(byte channel, byte data) //Byte written to data!
 			if (ATA[channel].Drive[ATA_activeDrive(channel)].datapos==12) //Full packet written?
 			{
 				//Cancel DRQ, Set BSY and read Features and Byte count from the Task File.
+				ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.reportReady = 1; //Report ready now after the command starts executing! It's the end of the ATA part of the protocol, so set DRDY now!
 				ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_bytecount = ATAPI_getresultsize(channel,ATA_activeDrive(channel)); //Read the size to transfer at most!
 				ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 0; //We're not processing a packet anymore, from now on we're data only!
 				ATAPI_PendingExecuteCommand(channel, ATA_activeDrive(channel)); //Execute the ATAPI command!
@@ -4839,7 +4840,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		break;
 	case 0xA0: //ATAPI: PACKET (ATAPI mandatory)!
 		if ((ATA_Drives[channel][ATA_activeDrive(channel)] < CDROM0) || !ATA_Drives[channel][ATA_activeDrive(channel)]) goto invalidcommand; //HDD/invalid disk errors out!
-		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.reportReady = 1; //Report ready now!
+		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.reportReady |= 2; //Report ready now after the command starts executing! Not BUSY anymore!
 		ATA[channel].Drive[ATA_activeDrive(channel)].command = 0xA0; //We're sending a ATAPI packet!
 		ATA[channel].Drive[ATA_activeDrive(channel)].datapos = 0; //Initialise data position for the packet!
 		ATA[channel].Drive[ATA_activeDrive(channel)].datablock = 12; //We're receiving 12 bytes for the ATAPI packet!
