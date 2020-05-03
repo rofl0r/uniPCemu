@@ -5025,13 +5025,13 @@ OPTINLINE void ATA_updateStatus(byte channel)
 	case 1: //Transferring data IN?
 		//ATA_STATUSREGISTER_INDEXW(channel, ATA_activeDrive(channel), (ATA[channel].Drive[ATA_activeDrive(channel)].IRQraised && (ATA_Drives[channel][ATA_activeDrive(channel)]>=CDROM0))?1:0); //Are we an IRQ cause!
 		ATA_STATUSREGISTER_BUSYW(channel,ATA_activeDrive(channel),((ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PendingExecuteTransfer?1:0)) | (((ATA[channel].Drive[ATA_activeDrive(channel)].IRQTimeout && ATA[channel].Drive[ATA_activeDrive(channel)].IRQTimeout_busy) || ATA[channel].Drive[ATA_activeDrive(channel)].BusyTiming)?1:0)); //Not busy! You can write to the CBRs! We're busy when waiting.
-		ATA_STATUSREGISTER_DRIVEREADYW(channel,ATA_activeDrive(channel),((ATA[channel].driveselectTiming)||ATA_STATUSREGISTER_BUSYR(channel,ATA_activeDrive(channel)))?0:1); //We're ready to process a command!
+		ATA_STATUSREGISTER_DRIVEREADYW(channel,ATA_activeDrive(channel),(((ATA[channel].driveselectTiming)||ATA_STATUSREGISTER_BUSYR(channel,ATA_activeDrive(channel)))?0:1) & (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.reportReady)); //We're ready to process a command!
 		ATA_STATUSREGISTER_DATAREQUESTREADYW(channel,ATA_activeDrive(channel),((ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PendingExecuteTransfer||ATA_STATUSREGISTER_BUSYR(channel, ATA_activeDrive(channel)))?0:1)); //We're requesting data to transfer! Not transferring when waiting.
 		break;
 	case 2: //Transferring data OUT?
 		//ATA_STATUSREGISTER_INDEXW(channel, ATA_activeDrive(channel), (ATA[channel].Drive[ATA_activeDrive(channel)].IRQraised && (ATA_Drives[channel][ATA_activeDrive(channel)]>=CDROM0))?1:0); //Are we an IRQ cause!
 		ATA_STATUSREGISTER_BUSYW(channel,ATA_activeDrive(channel),(ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PendingExecuteTransfer?1:0) | (((ATA[channel].Drive[ATA_activeDrive(channel)].IRQTimeout && ATA[channel].Drive[ATA_activeDrive(channel)].IRQTimeout_busy) || ATA[channel].Drive[ATA_activeDrive(channel)].BusyTiming) ? 1 : 0)); //Not busy! You can write to the CBRs! We're busy when waiting.
-		ATA_STATUSREGISTER_DRIVEREADYW(channel,ATA_activeDrive(channel),((ATA[channel].driveselectTiming||ATA_STATUSREGISTER_BUSYR(channel,ATA_activeDrive(channel))))?0:1); //We're ready to process a command!
+		ATA_STATUSREGISTER_DRIVEREADYW(channel,ATA_activeDrive(channel),(((ATA[channel].driveselectTiming||ATA_STATUSREGISTER_BUSYR(channel,ATA_activeDrive(channel))))?0:1) & (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.reportReady)); //We're ready to process a command!
 		ATA_STATUSREGISTER_DATAREQUESTREADYW(channel,ATA_activeDrive(channel),((ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PendingExecuteTransfer||ATA_STATUSREGISTER_BUSYR(channel, ATA_activeDrive(channel)))?0:1)); //We're requesting data to transfer! Not transferring when waiting.
 		break;
 	case 3: //Busy waiting?
