@@ -4808,7 +4808,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		if ((ATA_Drives[channel][ATA_activeDrive(channel)]>=CDROM0) && ATA_Drives[channel][ATA_activeDrive(channel)]) //CDROM drive?
 		{
 			ATA[channel].Drive[ATA_activeDrive(channel)].command = 0xA1; //We're running this command!
-			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.reportReady = 2; //Report ready now!
+			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.reportReady = 1; //Report ready now!
 			goto CDROMIDENTIFY; //Execute CDROM identification!
 		}
 		goto invalidcommand; //We're an invalid command: we're not a CDROM drive!
@@ -4839,7 +4839,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		break;
 	case 0xA0: //ATAPI: PACKET (ATAPI mandatory)!
 		if ((ATA_Drives[channel][ATA_activeDrive(channel)] < CDROM0) || !ATA_Drives[channel][ATA_activeDrive(channel)]) goto invalidcommand; //HDD/invalid disk errors out!
-		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.reportReady = 2; //Report ready now!
+		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.reportReady = 1; //Report ready now!
 		ATA[channel].Drive[ATA_activeDrive(channel)].command = 0xA0; //We're sending a ATAPI packet!
 		ATA[channel].Drive[ATA_activeDrive(channel)].datapos = 0; //Initialise data position for the packet!
 		ATA[channel].Drive[ATA_activeDrive(channel)].datablock = 12; //We're receiving 12 bytes for the ATAPI packet!
