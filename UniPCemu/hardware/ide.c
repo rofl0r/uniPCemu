@@ -4559,6 +4559,7 @@ void ATA_reset(byte channel, byte slave)
 
 OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a command!
 {
+	uint_64 verifyaddr;
 	uint_32 multiple=1;
 #ifdef ATA_LOG
 	dolog("ATA", "ExecuteCommand: %02X", command); //Execute this command!
@@ -4732,16 +4733,32 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		if (!ATA[channel].Drive[ATA_activeDrive(channel)].datasize) ATA[channel].Drive[ATA_activeDrive(channel)].datasize = 0x100; //0 becomes 256!
 		ATA_readLBACHS(channel);
 		nextverification: //Verify the next sector!
-		if (ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address<=disk_size) //OK?
+		//First, check if it's all within range!
+		verifyaddr = ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address; //Load the address!
+		if (verifyaddr<=disk_size) //First sector OK?
 		{
-			ATA_increasesector(channel); //Next sector!
-			if (--ATA[channel].Drive[ATA_activeDrive(channel)].datasize) //Still left?
+			verifyaddr += ATA[channel].Drive[ATA_activeDrive(channel)].datasize; //End address
+			--verifyaddr; //Last accessed!
+			if (verifyaddr>disk_size) //Not fully within range?
 			{
-				goto nextverification; //Verify the next sector!
+				verifyaddr = disk_size; //Make within range!
+				ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address = (disk_size+1); //Faulting address!
+				ATA[channel].Drive[ATA_activeDrive(channel)].datasize -= verifyaddr-ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address; //How much is left!
+				ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount = (ATA[channel].Drive[ATA_activeDrive(channel)].datasize&0xFF); //How many sectors are left is initialized!
+				goto verify_outofrange;
+			}
+			else //Fully within range?
+			{
+				++verifyaddr; //Next sector!
+				ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address = verifyaddr; //Faulting address!
+				ATA[channel].Drive[ATA_activeDrive(channel)].datasize = 0; //Nothing left!
+				ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount = (ATA[channel].Drive[ATA_activeDrive(channel)].datasize&0xFF); //How many sectors are left is initialized!
+				ATA_writeLBACHS(channel); //Update the current sector!
 			}
 		}
 		else //Out of range?
 		{
+			verify_outofrange:
 			ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER = 0; //Reset error register!
 			ATA_ERRORREGISTER_IDMARKNOTFOUNDW(channel,ATA_activeDrive(channel),1); //Not found!
 			ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),1); //Error!
