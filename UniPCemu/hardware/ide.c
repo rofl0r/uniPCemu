@@ -4732,7 +4732,6 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		ATA[channel].Drive[ATA_activeDrive(channel)].datasize = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount; //Load sector count!
 		if (!ATA[channel].Drive[ATA_activeDrive(channel)].datasize) ATA[channel].Drive[ATA_activeDrive(channel)].datasize = 0x100; //0 becomes 256!
 		ATA_readLBACHS(channel);
-		nextverification: //Verify the next sector!
 		//First, check if it's all within range!
 		verifyaddr = ATA[channel].Drive[ATA_activeDrive(channel)].current_LBA_address; //Load the address!
 		if (verifyaddr<=disk_size) //First sector OK?
