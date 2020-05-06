@@ -48,9 +48,52 @@ void registerParallel(byte port, ParallelOutputHandler outputhandler, ParallelCo
 	PARALLELPORT[port].statusregister = 0xC0; //Default the status register to floating bus!
 }
 
-void tickParallel(DOUBLE timepassed)
+void updateParallelStatus(byte port)
 {
 	INLINEREGISTER byte result;
+	//Check for a new status!
+	result = 0; //Default: clear input!
+	if (PARALLELPORT[port].statushandler) //Valid?
+	{
+		result |= ((PARALLELPORT[port].statushandler())^0xC0); //Output the data? The ACK lines and BUSY lines are inversed in the parallel port itself!
+	}
+	else
+	{
+		result |= 0xC0; //Output the data? The data for ACK and BUSY is inversed, so set them always!
+	}
+	if ((((result^PARALLELPORT[port].statusregister)&PARALLELPORT[port].statusregister)&0x40) && (PARALLELPORT[port].IRQEnabled)) //ACK raised(this line is inverted on the read side, so the value is actually nACK we're checking) causes an IRQ?
+	{
+		PARALLELPORT[port].IRQraised |= 1; //Raise an IRQ!
+	}
+	else if ((((result^PARALLELPORT[port].statusregister)&result)&0x40) || ((PARALLELPORT[port].IRQEnabled==0) && (PARALLELPORT[port].IRQraised))) //ACK lowered or IRQs disabled and raised/requested? Lower the IRQ line!
+	{
+		if (PARALLELPORT[port].IRQraised & 2) //Was the IRQ raised?
+		{
+			switch (port) //What port are we?
+			{
+			case 0: //IRQ 7!
+				lowerirq(7); //Throw the IRQ!
+				acnowledgeIRQrequest(7); //Acnowledge!
+				break;
+			case 1: //IRQ 6!
+				lowerirq(0x16); //Throw the IRQ!
+				acnowledgeIRQrequest(0x16); //Acnowledge!
+				break;
+			case 2: //IRQ 5!
+				lowerirq(5); //Throw the IRQ!
+				acnowledgeIRQrequest(5); //Acnowledge!
+			default: //unknown IRQ?
+				//Don't handle: we're an unknown IRQ!
+				break;
+			}
+		}
+		PARALLELPORT[port].IRQraised = 0; //Not raised anymore!
+	}
+	PARALLELPORT[port].statusregister = result; //Status register!
+}
+
+void tickParallel(DOUBLE timepassed)
+{
 	INLINEREGISTER byte port=0;
 	if (unlikely(numparallelports)) //Something to do?
 	{
@@ -61,45 +104,7 @@ void tickParallel(DOUBLE timepassed)
 			{
 				do //Only process the ports we have!
 				{
-					//Check for a new status!
-					result = 0; //Default: clear input!
-					if (PARALLELPORT[port].statushandler) //Valid?
-					{
-						result |= ((PARALLELPORT[port].statushandler())^0xC0); //Output the data? The ACK lines and BUSY lines are inversed in the parallel port itself!
-					}
-					else
-					{
-						result |= 0xC0; //Output the data? The data for ACK and BUSY is inversed, so set them always!
-					}
-					if ((((result^PARALLELPORT[port].statusregister)&PARALLELPORT[port].statusregister)&0x40) && (PARALLELPORT[port].IRQEnabled)) //ACK raised(this line is inverted on the read side, so the value is actually nACK we're checking) causes an IRQ?
-					{
-						PARALLELPORT[port].IRQraised |= 1; //Raise an IRQ!
-					}
-					else if ((((result^PARALLELPORT[port].statusregister)&result)&0x40) || ((PARALLELPORT[port].IRQEnabled==0) && (PARALLELPORT[port].IRQraised))) //ACK lowered or IRQs disabled and raised/requested? Lower the IRQ line!
-					{
-						if (PARALLELPORT[port].IRQraised & 2) //Was the IRQ raised?
-						{
-							switch (port) //What port are we?
-							{
-							case 0: //IRQ 7!
-								lowerirq(7); //Throw the IRQ!
-								acnowledgeIRQrequest(7); //Acnowledge!
-								break;
-							case 1: //IRQ 6!
-								lowerirq(0x16); //Throw the IRQ!
-								acnowledgeIRQrequest(0x16); //Acnowledge!
-								break;
-							case 2: //IRQ 5!
-								lowerirq(5); //Throw the IRQ!
-								acnowledgeIRQrequest(5); //Acnowledge!
-							default: //unknown IRQ?
-								//Don't handle: we're an unknown IRQ!
-								break;
-							}
-						}
-						PARALLELPORT[port].IRQraised = 0; //Not raised anymore!
-					}
-					PARALLELPORT[port].statusregister = result; //Status register!
+					updateParallelStatus(port); //Update the status!
 					if (PARALLELPORT[port].IRQEnabled) //Enabled IRQ?
 					{
 						if ((PARALLELPORT[port].IRQraised & 3) == 1) //Are we raised high?
@@ -176,6 +181,7 @@ byte outparallel(word port, byte value)
 		if (PARALLELPORT[Parallelport].controlouthandler) //Valid?
 		{
 			PARALLELPORT[Parallelport].controlouthandler((value^0x4)&0xF); //Output the new control! INIT is active low, so inverse it!
+			updateParallelStatus(Parallelport); //Make sure that the status is up-to-date!
 		}
 		PARALLELPORT[Parallelport].controldata = (value&0x30); //The new control data last written, only the Bi-Directional pins and IRQ pins!
 		PARALLELPORT[Parallelport].IRQEnabled = (value&0x10)?1:0; //Is the IRQ enabled?
