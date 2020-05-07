@@ -111,7 +111,7 @@ void soundsource_covox_controlout(byte control)
 	//bit0/1/3 transition from high to low ticks sound!
 	if ((control&4)==0) //Is the Sound Source powered up? The INIT line is inversed, so it's active low!
 	{
-		if (bitson & 8) //Toggling this bit on sends the data to the DAC! Documentation says rising edge!
+		if (bitsoff & 8) //Toggling this bit on sends the data to the DAC! Documentation says rising edge on the port itself, thus falling edge since it's active low!
 		{
 			writefifobuffer(ssourcestream, outbuffer); //Add to the primary buffer when possible!
 			covox_ticking = covox_mono = 0; //Not ticking nor covox mono!
@@ -123,12 +123,12 @@ void soundsource_covox_controlout(byte control)
 	{
 		ssourcepowerdown = (DOUBLE)15000; //More than 10 usec to power down!
 	}
-	if (bitsoff&1) //Covox speech thing left channel pulse? Falling edge according to Dosbox!
+	if (bitson&1) //Covox speech thing left channel pulse? Falling edge according to Dosbox!
 	{
 		covox_left = outbuffer; //Set left channel value!
 		covox_ticking = covox_mono = 0; //Not ticking nor covox mono!
 	}
-	if (bitsoff&2) //Covox speech thing right channel pulse? Falling edge according to Dosbox!
+	if (bitson&2) //Covox speech thing right channel pulse? Falling edge according to Dosbox!
 	{
 		covox_right = outbuffer; //Set right channel value!
 		covox_ticking = covox_mono = 0; //Not ticking nor covox mono!
@@ -176,7 +176,7 @@ byte soundsource_covox_status()
 	}
 	//The and operation between the empty and the -INIT line(which needs setting when it's ground for us to work with to become a positive value) is the grounding of the transistor from the INIT line using the empty input from the chip(it's _FULL_ signal, our ssource_emtpy variable).
 	//The inversion of the ACK line is done at the parallel port controller itself!
-	result |= (((((~lastcontrol) & 0x04) << 4)&(ssource_empty))&0x40);
+	result |= ((((~lastcontrol) << 4)&ssource_empty)&0x40);
 	return result; //We have an empty buffer!
 }
 
