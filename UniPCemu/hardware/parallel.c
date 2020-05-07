@@ -46,6 +46,14 @@ void registerParallel(byte port, ParallelOutputHandler outputhandler, ParallelCo
 	PARALLELPORT[port].controlinhandler = controlinhandler;
 	PARALLELPORT[port].statushandler = statushandler;
 	PARALLELPORT[port].statusregister = 0xC0; //Default the status register to floating bus!
+	if (PARALLELPORT[port].controlouthandler) //Registered control handler? Needs initializing with the current pinout!
+	{
+		PARALLELPORT[port].controlouthandler(0 ^ 0xF); //Initialize the output port with it's initial value!
+	}
+	PARALLELPORT[port].outputdata = 0x00; //Initialize output data!
+	PARALLELPORT[port].controldata = 0x00; //Initialize control data(2 lower bits in the upper nibble)
+	PARALLELPORT[port].IRQEnabled = 0; //IRQ disabled!
+	PARALLELPORT[port].IRQraised = 0; //No IRQ raised!
 }
 
 void updateParallelStatus(byte port)
@@ -180,7 +188,7 @@ byte outparallel(word port, byte value)
 	case 2: //Control register?
 		if (PARALLELPORT[Parallelport].controlouthandler) //Valid?
 		{
-			PARALLELPORT[Parallelport].controlouthandler((value^0x4)&0xF); //Output the new control! INIT is active low, so inverse it!
+			PARALLELPORT[Parallelport].controlouthandler((value^0xF)&0xF); //Output the new control! INIT is active low, so inverse it!
 			updateParallelStatus(Parallelport); //Make sure that the status is up-to-date!
 		}
 		PARALLELPORT[Parallelport].controldata = (value&0x30); //The new control data last written, only the Bi-Directional pins and IRQ pins!
@@ -216,7 +224,7 @@ byte inparallel(word port, byte *result)
 	case 2: //Control register?
 		if (PARALLELPORT[Parallelport].controlinhandler)
 		{
-			*result = ((PARALLELPORT[Parallelport].controlinhandler()^0x4)&0xF);
+			*result = ((PARALLELPORT[Parallelport].controlinhandler()^0xF)&0xF);
 		}
 		*result |= PARALLELPORT[Parallelport].controldata; //Our own control data!
 		return 1; //We're handled!
