@@ -1105,20 +1105,30 @@ int_64 cueimage_REAL_readsector(int device, byte *M, byte *S, byte *F, byte *sta
 			}
 			//Specify a new file and mode to use! Also, reset the virtual position in the file!
 			if (cuesheet_line[safe_strlen(identifier_FILE, sizeof(identifier_FILE))] != ' ') continue; //Ignore if the command is incorrect!
-			for (c = &cuesheet_line[safe_strlen(cuesheet_line, sizeof(cuesheet_line)) - 1];;--c) //Parse backwards from End of String(EOS)!
+			c = &cuesheet_line[safe_strlen(cuesheet_line, sizeof(cuesheet_line)) - 1]; //Start at the end of the line!
+			file_string = &cuesheet_line[safe_strlen(identifier_FILE, sizeof(identifier_FILE)) + 1]; //Start of the file string!
+			for (;(c>=file_string);--c) //Parse backwards from End of String(EOS)!
 			{
 				if (*c == ' ') //Space found? Maybe found the final identifier?
 				{
 					if (c == &cuesheet_line[safe_strlen(identifier_FILE, sizeof(identifier_FILE))]) //First space found instead? Incorrect parameters!
 					{
-						continue; //Ignore the invalid command!
+						goto finalspacefound_FILE; //Ignore the invalid command!
 					}
 					else goto finalspacefound_FILE; //Handle!
 				}
 			}
 		finalspacefound_FILE: //Final space has been found?
+			if (c <= &cuesheet_line[0]) //Parse error?
+			{
+				continue; //Ignore the invalid command!
+			}
+			if ((c == &cuesheet_line[safe_strlen(identifier_FILE, sizeof(identifier_FILE))]) && (*c==' ')) //First space found instead? Incorrect parameters!
+			{
+				continue; //Ignore the invalid command!
+			}
+			if (c < &cuesheet_line[0]) c = &cuesheet_line[0]; //Safety!
 			file_wasescaped = 0; //Default: not escaped!
-			file_string = &cuesheet_line[safe_strlen(identifier_FILE, sizeof(identifier_FILE)) + 1]; //Start of the file string!
 			memset(&cue_status.filename, 0, sizeof(cue_status.filename)); //Init!
 			memset(&cue_status.file_type, 0, sizeof(cue_status.file_type)); //Init!
 			file_stringstart = file_string; //Safe a backup copy of detecting the start of the process!
