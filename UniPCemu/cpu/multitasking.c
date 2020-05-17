@@ -209,13 +209,21 @@ void saveTSS16(TSS286 *TSS)
 	debugger_forceimmediatelogging = 0; //Don't log!
 }
 
-byte checksaveTSS16()
+byte checksaveTSS16(byte isBacklinked)
 {
 	word n;
+	if (isBacklinked)
+	{
+		if (checkMMUaccess16(CPU_SEGMENT_TR, REG_TR,0,0|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+	}
 	for (n=((7*2));n<(0x2C-2);n+=2) //Write our TSS 16-bit data! Don't store the LDT and Stacks for different privilege levels!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
 		if (checkMMUaccess16(CPU_SEGMENT_TR, REG_TR,n+0,0|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+	}
+	if (isBacklinked)
+	{
+		if (checkMMUaccess16(CPU_SEGMENT_TR, REG_TR,0,0|0xA0,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
 	}
 	for (n = ((7 * 2)); n < (0x2C - 2); n += 2) //Write our TSS 16-bit data! Don't store the LDT and Stacks for different privilege levels!
 	{
@@ -245,9 +253,20 @@ void saveTSS32(TSS386 *TSS)
 	debugger_forceimmediatelogging = 0; //Don't log!
 }
 
-byte checksaveTSS32()
+byte checksaveTSS32(byte isBacklinked)
 {
 	word n;
+	if (isBacklinked)
+	{
+		if (EMULATED_CPU>=CPU_PENTIUM) //32-bit write?
+		{
+			if (checkMMUaccess32(CPU_SEGMENT_TR, REG_TR,0,0|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+		}
+		else //16-bit write?
+		{
+			if (checkMMUaccess16(CPU_SEGMENT_TR, REG_TR,0,0|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+		}
+	}
 	for (n =(8*4);n<((8+10)*4);n+=4) //Write our TSS 32-bit data! Ignore the Stack data for different privilege levels and CR3(PDBR)!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
@@ -261,6 +280,17 @@ byte checksaveTSS32()
 	}
 	debugger_forceimmediatelogging = 0; //Don't log!
 
+	if (isBacklinked)
+	{
+		if (EMULATED_CPU>=CPU_PENTIUM) //32-bit write?
+		{
+			if (checkMMUaccess32(CPU_SEGMENT_TR, REG_TR,0,0|0xA0,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+		}
+		else //16-bit write?
+		{
+			if (checkMMUaccess16(CPU_SEGMENT_TR, REG_TR,0,0|0xA0,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+		}
+	}
 	for (n = (8 * 4); n < ((8 + 10) * 4); n += 4) //Write our TSS 32-bit data! Ignore the Stack data for different privilege levels and CR3(PDBR)!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
@@ -300,6 +330,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 	TSS386 TSS32;
 	byte TSSSize = 0; //The TSS size!
 	sbyte loadresult;
+	byte backlinking;
 
 	if (errorcode>=0) //Error code to be pushed on the stack(not an interrupt without error code or errorless task switch)?
 	{
@@ -431,11 +462,11 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 
 		if (TSSSize) //32-bit switchimg out?
 		{
-			if (checksaveTSS32()) return 0; //Abort on error!
+			if (checksaveTSS32(0)) return 0; //Abort on error!
 		}
 		else //16-bit switching out?
 		{
-			if (checksaveTSS16()) return 0; //Abort on error!
+			if (checksaveTSS16(0)) return 0; //Abort on error!
 		}
 
 		if (isJMPorCALL == 3) //IRET?
@@ -559,15 +590,17 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 		dolog("debugger", "Loading incoming TSS %04X state", REG_TR);
 	}
 
+	backlinking = ((isJMPorCALL | 0x80) == 0x82); //CALL with backlink?
+
 	if (TSSSize) //32-bit switching in?
 	{
 		if (checkloadTSS32()) return 0; //Abort on error!
-		if (checksaveTSS32()) return 0; //Abort on error!
+		if (checksaveTSS32(backlinking)) return 0; //Abort on error!
 	}
 	else //16-bit switching in?
 	{
 		if (checkloadTSS16()) return 0; //Abort on error!
-		if (checksaveTSS16()) return 0; //Abort on error!
+		if (checksaveTSS16(backlinking)) return 0; //Abort on error!
 	}
 
 	//Load the new TSS!
@@ -586,7 +619,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 		dolog("debugger", "Checking for backlink to TSS %04X", oldtask);
 	}
 
-	if ((isJMPorCALL | 0x80) == 0x82) //CALL?
+	if (backlinking) //CALL with backlink?
 	{
 		if (TSSSize) //32-bit TSS?
 		{
@@ -672,7 +705,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 		LDTsegment = TSS16.LDT; //LDT used!
 	}
 
-	if ((isJMPorCALL | 0x80) == 0x82) //CALL?
+	if (backlinking) //CALL with backlink?
 	{
 		FLAGW_NT(1); //Set Nested Task flag of the new task!
 		if (TSSSize) //32-bit TSS?
@@ -693,7 +726,17 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 			dolog("debugger", "Saving incoming TSS %04X state to memory, because the state has changed(Nested Task).", REG_TR);
 		}
 
-		if (TSS_dirty & 1) MMU_ww(CPU_SEGMENT_TR, REG_TR, 0, TSSSize ? TSS32.BackLink : TSS16.BackLink, 0); //Write the TSS Backlink to use! Don't be afraid of errors, since we're always accessable!
+		if (TSS_dirty & 1)
+		{
+			if ((EMULATED_CPU>=CPU_PENTIUM) && TSSSize) //Pentium uses a 32-bit write?
+			{
+				MMU_wdw(CPU_SEGMENT_TR, REG_TR, 0, TSSSize ? TSS32.BackLink : TSS16.BackLink, 0); //Write the TSS Backlink to use! Don't be afraid of errors, since we're always accessable!
+			}
+			else
+			{
+				MMU_ww(CPU_SEGMENT_TR, REG_TR, 0, TSSSize ? TSS32.BackLink : TSS16.BackLink, 0); //Write the TSS Backlink to use! Don't be afraid of errors, since we're always accessable!
+			}
+		}
 
 		if (TSS_dirty & 2) //Dirty (E)FLAGS?
 		{
