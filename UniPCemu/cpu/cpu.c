@@ -973,50 +973,86 @@ void CPU_tickPendingReset()
 //data order is low-high, e.g. word 1234h is stored as 34h, 12h
 
 /*
-0xF3 Used with string REP, REPE/REPZ
-0xF2 REPNE/REPNZ prefix
-0xF0 LOCK prefix
-0x2E CS segment override prefix
-0x36 SS segment override prefix
-0x3E DS segment override prefix
-0x26 ES segment override prefix
-0x64 FS segment override prefix
-0x65 GS segment override prefix
-0x66 Operand-size override
-0x67 Address-size override
+0xF3 Used with string REP, REPE/REPZ(Group 1)
+0xF2 REPNE/REPNZ prefix(Group 1)
+0xF0 LOCK prefix(Group 1)
+0x2E CS segment override prefix(Group 2)
+0x36 SS segment override prefix(Group 2)
+0x3E DS segment override prefix(Group 2)
+0x26 ES segment override prefix(Group 2)
+0x64 FS segment override prefix(Group 2)
+0x65 GS segment override prefix(Group 2)
+0x66 Operand-size override(Group 3)
+0x67 Address-size override(Group 4)
+
+For prefix groups 1&2: last one in the group has effect(ignores anything from the same group before it).
+For prefix groups 3&4: one specified in said group in total has effect once(multiple are redundant and ignored(basically OR'ed with each other)).
 */
+
+
+byte CPU_getprefix(byte prefix) //Prefix set?
+{
+	return ((CPU_prefixes[activeCPU][prefix >> 3] >> (prefix & 7)) & 1); //Get prefix set or reset!
+}
+
+void CPU_clearprefix(byte prefix) //Sets a prefix on!
+{
+	CPU_prefixes[activeCPU][(prefix >> 3)] &= ~(1 << (prefix & 7)); //Don't have prefix!
+}
 
 void CPU_setprefix(byte prefix) //Sets a prefix on!
 {
-	CPU_prefixes[activeCPU][(prefix>>3)] |= (1<<(prefix&7)); //Have prefix!
-	switch (prefix) //Which prefix?
+	switch (prefix)
 	{
+	case 0xF0: //LOCK
+		//Last has effect (Group 1)!
+		CPU_clearprefix(0xF2); //Disable multiple prefixes from being active! The last one is active!
+		CPU_clearprefix(0xF3); //Disable multiple prefixes from being active! The last one is active!
+		break;
+	case 0xF3: //REP, REPE, REPZ?
+		//Last has effect (Group 1)!
+		CPU_clearprefix(0xF0); //Disable multiple prefixes from being active! The last one is active!
+		CPU_clearprefix(0xF2); //Disable multiple prefixes from being active! The last one is active!
+		break;
+	case 0xF2: //REPNE/REPNZ?
+		//Last has effect (Group 1)!
+		CPU_clearprefix(0xF0); //Disable multiple prefixes from being active! The last one is active!
+		CPU_clearprefix(0xF3); //Disable multiple prefixes from being active! The last one is active!
+		break;
 	case 0x2E: //CS segment override prefix
-		CPU[activeCPU].segment_register = CPU_SEGMENT_CS; //Override DS to CS!
+		//Last has effect (Group 2)!
+		CPU[activeCPU].segment_register = CPU_SEGMENT_CS; //Override to CS!
 		break;
 	case 0x36: //SS segment override prefix
-		CPU[activeCPU].segment_register = CPU_SEGMENT_SS; //Override DS to SS!
+		//Last has effect (Group 2)!
+		CPU[activeCPU].segment_register = CPU_SEGMENT_SS; //Override to SS!
 		break;
 	case 0x3E: //DS segment override prefix
-		CPU[activeCPU].segment_register = CPU_SEGMENT_DS; //Override SS to DS!
+		//Last has effect (Group 2)!
+		CPU[activeCPU].segment_register = CPU_SEGMENT_DS; //Override to DS!
 		break;
 	case 0x26: //ES segment override prefix
-		CPU[activeCPU].segment_register = CPU_SEGMENT_ES; //Override DS to ES!
+		//Last has effect (Group 2)!
+		CPU[activeCPU].segment_register = CPU_SEGMENT_ES; //Override to ES!
 		break;
 	case 0x64: //FS segment override prefix
-		CPU[activeCPU].segment_register = CPU_SEGMENT_FS; //Override DS to FS!
+		//Last has effect (Group 2)!
+		CPU[activeCPU].segment_register = CPU_SEGMENT_FS; //Override to FS!
 		break;
 	case 0x65: //GS segment override prefix
-		CPU[activeCPU].segment_register = CPU_SEGMENT_GS; //Override DS to GS!
+		//Last has effect (Group 2)!
+		CPU[activeCPU].segment_register = CPU_SEGMENT_GS; //Override to GS!
+		break;
+	case 0x66: //GS segment override prefix
+		//Last has effect (Group 3)!
+		break;
+	case 0x67: //GS segment override prefix
+		//Last has effect (Group 4)!
 		break;
 	default: //Unknown special prefix action?
 		break; //Do nothing!
 	}
-}
-
-byte CPU_getprefix(byte prefix) //Prefix set?
-{
-	return ((CPU_prefixes[activeCPU][prefix>>3]>>(prefix&7))&1); //Get prefix set or reset!
+	CPU_prefixes[activeCPU][(prefix >> 3)] |= (1 << (prefix & 7)); //Have prefix!
 }
 
 OPTINLINE byte CPU_isPrefix(byte prefix)
