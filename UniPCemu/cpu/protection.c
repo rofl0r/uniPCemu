@@ -1138,15 +1138,14 @@ MMU: Memory limit!
 
 */
 
-OPTINLINE byte verifyLimit(SEGMENT_DESCRIPTOR* descriptor, uint_64 offset)
+OPTINLINE byte invalidLimit(SEGMENT_DESCRIPTOR* descriptor, uint_64 offset)
 {
+	return ((((offset > descriptor->PRECALCS.limit) ^ descriptor->PRECALCS.topdown) | (offset > descriptor->PRECALCS.roof)) & 1);
 	//Execute address test?
-	INLINEREGISTER byte isvalid;
-	isvalid = (offset <= descriptor->PRECALCS.limit); //Valid address range!
-	isvalid ^= descriptor->PRECALCS.topdown; //Apply expand-down data segment, if required, which reverses valid!
-	isvalid &= ((offset > descriptor->PRECALCS.roof) ^ 1); //Limit to 16-bit/32-bit address space using both top-down(required) and bottom-up(resulting in just the limit, which is lower or equal to the roof) descriptors!
-	isvalid &= 1; //Only 1-bit testing!
-	return isvalid; //Are we valid?
+	//Invalid address range?
+	//Apply expand-down data segment, if required, which reverses valid/invalid!
+	//Limit to 16-bit/32-bit address space using both top-down(required) and bottom-up(resulting in just the limit, which is lower or equal to the roof) descriptors!
+	//Only 1-bit testing!
 }
 
 byte CPU_MMU_checkrights_cause = 0; //What cause?
@@ -1154,6 +1153,7 @@ byte CPU_MMU_checkrights_cause = 0; //What cause?
 
 OPTINLINE byte CPU_MMU_checkrights(int segment, word segmentval, uint_64 offset, byte forreading, SEGMENT_DESCRIPTOR* descriptor, byte addrtest, byte is_offset16)
 {
+	INLINEREGISTER byte result;
 	//First: type checking!
 
 	if (unlikely(descriptor->PRECALCS.notpresent)) //Not present(invalid in the cache)? This also applies to NULL descriptors!
@@ -1175,25 +1175,19 @@ OPTINLINE byte CPU_MMU_checkrights(int segment, word segmentval, uint_64 offset,
 	}
 
 	//Next: limit checking!
-	if (likely(addrtest)) //Address test is to be performed?
+	if (unlikely(addrtest == 0)) //Address test is to be performed?
 	{
-		if (likely(verifyLimit(descriptor, offset))) return 0; //OK? We're finished!
-		//Not valid?
-		{
-			CPU_MMU_checkrights_cause = 6; //What cause?
-			if (segment == CPU_SEGMENT_SS) //Stack fault?
-			{
-				return 3; //Error!
-			}
-			else //Normal #GP?
-			{
-				return 1; //Error!
-			}
-		}
+		return 0; //Not performing the address test!
 	}
 
+	result = invalidLimit(descriptor, offset); //Error out?
+	if (likely(result == 0)) return 0; //Not erroring out?
+	result |= (result << 1); //3-bit mask! Set both bits for determining the result! Thus it's 3 or 0 now!
+	CPU_MMU_checkrights_cause = (result<<1); //What cause? A limit-determined fault! 6 for errors, 0 otherwise!
+	result >>= ((segment!=CPU_SEGMENT_SS)&1); //1 instead of 3 if erroring out on a non-stack fault!
+	return result; //Give the result!
+
 	//Don't perform rights checks: This is done when loading the segment register only!
-	return 0; //OK!
 }
 
 byte CPU_MMU_checkrights_jump(int segment, word segmentval, uint_64 offset, byte forreading, SEGMENT_DESCRIPTOR* descriptor, byte addrtest, byte is_offset16) //Check rights for VERR/VERW!
@@ -2139,7 +2133,7 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 
 				//Calculate and check the limit!
 
-				if (verifyLimit(&newdescriptor,((idtentry.offsetlow | (idtentry.offsethigh << 16))&(0xFFFFFFFFU>>((is32bit^1)<<4))))==0) //Limit exceeded?
+				if (invalidLimit(&newdescriptor,((idtentry.offsetlow | (idtentry.offsethigh << 16))&(0xFFFFFFFFU>>((is32bit^1)<<4))))) //Limit exceeded?
 				{
 					THROWDESCGP(0,0,0); //Throw #GP(0)!
 					return 0;
@@ -2202,7 +2196,7 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 
 				//Calculate and check the limit!
 
-				if (verifyLimit(&newdescriptor,((idtentry.offsetlow | (idtentry.offsethigh << 16))&(0xFFFFFFFFU>>((is32bit^1)<<4))))==0) //Limit exceeded?
+				if (invalidLimit(&newdescriptor,((idtentry.offsetlow | (idtentry.offsethigh << 16))&(0xFFFFFFFFU>>((is32bit^1)<<4))))) //Limit exceeded?
 				{
 					THROWDESCGP(0,0,0); //Throw #GP(0)!
 					return 0;
@@ -2228,7 +2222,7 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 				if (checkStackAccess(3+((errorcode>=0)?1:0),1|0x200|((EXT&1)<<10),is32bit?1:0)) return 0; //Abort on fault!
 				//Calculate and check the limit!
 
-				if (verifyLimit(&newdescriptor,((idtentry.offsetlow | (idtentry.offsethigh << 16))&(0xFFFFFFFFU>>((is32bit^1)<<4))))==0) //Limit exceeded?
+				if (invalidLimit(&newdescriptor,((idtentry.offsetlow | (idtentry.offsethigh << 16))&(0xFFFFFFFFU>>((is32bit^1)<<4))))) //Limit exceeded?
 				{
 					THROWDESCGP(0,0,0); //Throw #GP(0)!
 					return 0;
