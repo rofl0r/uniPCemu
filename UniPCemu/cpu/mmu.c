@@ -308,7 +308,6 @@ byte checkMMUaccess(sword segdesc, word segment, uint_64 offset, word readflags,
 byte checkPhysMMUaccess(void *segdesc, word segment, uint_64 offset, word readflags, byte CPL, byte is_offset16, byte subbyte) //Check if a byte address is invalid to read/write for a purpose! Used in all CPU modes! Subbyte is used for alignment checking!
 {
 	static byte debuggertype[4] = { PROTECTEDMODEDEBUGGER_TYPE_DATAWRITE,PROTECTEDMODEDEBUGGER_TYPE_DATAREAD,0xFF,PROTECTEDMODEDEBUGGER_TYPE_EXECUTION };
-	static byte alignmentrequirement[8] = { 0,1,3,0,7,0,0,0 }; //What address bits can't be set for byte 0! Index=subbyte bit 3,4,5! Bits 0-2 must be 0! Value 0 means any alignment!
 	INLINEREGISTER byte dt;
 	INLINEREGISTER uint_32 realaddress;
 	if (EMULATED_CPU <= CPU_NECV30) return 0; //No checks are done in the old processors!
