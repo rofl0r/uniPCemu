@@ -172,6 +172,42 @@ uint_32 MMU_realaddr(sword segdesc, word segment, uint_32 offset, byte wordop, b
 	return realaddress; //Give real adress!
 }
 
+uint_32 MMU_realaddrPhys(SEGMENT_DESCRIPTOR *segdesc, word segment, uint_32 offset, byte wordop, byte is_offset16) //Real adress?
+{
+	//SEGMENT_DESCRIPTOR *descriptor; //For checking Expand-down data descriptors!
+	INLINEREGISTER uint_32 realaddress;
+
+	//word originalsegment = segment;
+	//uint_32 originaloffset = offset; //Save!
+	writeword = 0; //Reset word-write flag for checking next bytes!
+	realaddress = offset; //Load the address!
+	if (likely(applyspecialaddress))
+	{
+		realaddress &= addresswrappingbase[(((realaddress == 0x10000) && wordop) & 1)]; //Apply the correct wrapping!
+	}
+	else
+	{
+		realaddress &= *addresswrappingbase; //Apply address wrapping for the CPU offset, when needed!
+	}
+
+	/*if (likely(segdesc!=-1)) //valid segment descriptor?
+	{
+		descriptor = &CPU[activeCPU].SEG_DESCRIPTOR[segdesc]; //Get our using descriptor!
+		if (unlikely((GENERALSEGMENTPTR_S(descriptor) == 1) && (EXECSEGMENTPTR_ISEXEC(descriptor) == 0) && DATASEGMENTPTR_E(descriptor))) //Data segment that's expand-down?
+		{
+			if (is_offset16) //16-bits offset? Set the high bits for compatibility!
+			{
+				realaddress |= 0xFFFF0000; //Convert to 32-bits for adding correctly!
+			}
+		}
+	}*/
+	realaddress += (uint_32)CPU_MMU_startPhys(segdesc, segment);
+
+	//We work!
+	//dolog("MMU","\nAddress translation: %04X:%08X=%08X",originalsegment,originaloffset,realaddress); //Log the converted address!
+	return realaddress; //Give real adress!
+}
+
 uint_32 BUSdatalatch=0;
 
 void processBUS(uint_32 address, byte index, byte data)
@@ -269,6 +305,38 @@ byte checkMMUaccess(sword segdesc, word segment, uint_64 offset, word readflags,
 	return 0; //We're a valid access for both MMU and Paging! Allow this instruction to execute!
 }
 
+byte checkPhysMMUaccess(void *segdesc, word segment, uint_64 offset, word readflags, byte CPL, byte is_offset16, byte subbyte) //Check if a byte address is invalid to read/write for a purpose! Used in all CPU modes! Subbyte is used for alignment checking!
+{
+	static byte debuggertype[4] = { PROTECTEDMODEDEBUGGER_TYPE_DATAWRITE,PROTECTEDMODEDEBUGGER_TYPE_DATAREAD,0xFF,PROTECTEDMODEDEBUGGER_TYPE_EXECUTION };
+	static byte alignmentrequirement[8] = { 0,1,3,0,7,0,0,0 }; //What address bits can't be set for byte 0! Index=subbyte bit 3,4,5! Bits 0-2 must be 0! Value 0 means any alignment!
+	INLINEREGISTER byte dt;
+	INLINEREGISTER uint_32 realaddress;
+	if (EMULATED_CPU <= CPU_NECV30) return 0; //No checks are done in the old processors!
+
+	//Check for paging and debugging next!
+	realaddress = MMU_realaddrPhys((SEGMENT_DESCRIPTOR *)segdesc, segment, (uint_32)offset, 0, is_offset16); //Real adress!
+
+	if ((readflags & 0x20) == 0) //Allow debugger checks?
+	{
+		dt = debuggertype[readflags & 3]; //Load debugger type!
+		if (unlikely(dt == 0xFF)) goto skipdebugger; //No debugger supported for this type?
+		if (unlikely(checkProtectedModeDebugger(realaddress, dt))) return 1; //Error out!
+	}
+skipdebugger:
+
+	if ((readflags & 0x40) == 0) //Checking against paging?
+	{
+		if (unlikely(checkDirectMMUaccess(realaddress, (readflags & (~0xE0)), CPL))) //Failure in the Paging Unit? Don't give it the special flags we use!
+		{
+			MMU.invaddr = 3; //Invalid address signaling!
+			return 1; //Error out!
+		}
+	}
+	checkMMUaccess_linearaddr = realaddress; //Save the last valid access for the BIU to use(we're not erroring out after all)!
+	//We're valid?
+	return 0; //We're a valid access for both MMU and Paging! Allow this instruction to execute!
+}
+
 byte checkMMUaccess16(sword segdesc, word segment, uint_64 offset, word readflags, byte CPL, byte is_offset16, byte subbyte) //Check if a byte address is invalid to read/write for a purpose! Used in all CPU modes! Subbyte is used for alignment checking!
 {
 	byte result;
@@ -283,6 +351,20 @@ byte checkMMUaccess16(sword segdesc, word segment, uint_64 offset, word readflag
 	return 0; //OK!
 }
 
+byte checkPhysMMUaccess16(void *segdesc, word segment, uint_64 offset, word readflags, byte CPL, byte is_offset16, byte subbyte) //Check if a byte address is invalid to read/write for a purpose! Used in all CPU modes! Subbyte is used for alignment checking!
+{
+	byte result;
+	if ((result = checkPhysMMUaccess(segdesc, segment, offset, readflags, CPL, is_offset16, subbyte)) != 0) //Lower bound!
+	{
+		return result; //Give the result!
+	}
+	if ((result = checkPhysMMUaccess(segdesc, segment, offset + 1, readflags, CPL, is_offset16, subbyte | 1)) != 0) //Upper bound!
+	{
+		return result; //Give the result!
+	}
+	return 0; //OK!
+}
+
 byte checkMMUaccess32(sword segdesc, word segment, uint_64 offset, word readflags, byte CPL, byte is_offset16, byte subbyte) //Check if a byte address is invalid to read/write for a purpose! Used in all CPU modes! Subbyte is used for alignment checking!
 {
 	byte result;
@@ -291,6 +373,20 @@ byte checkMMUaccess32(sword segdesc, word segment, uint_64 offset, word readflag
 		return result; //Give the result!
 	}
 	if ((result = checkMMUaccess(segdesc, segment, offset+3, readflags, CPL, is_offset16, subbyte|3)) != 0) //Upper bound!
+	{
+		return result; //Give the result!
+	}
+	return 0; //OK!
+}
+
+byte checkPhysMMUaccess32(void *segdesc, word segment, uint_64 offset, word readflags, byte CPL, byte is_offset16, byte subbyte) //Check if a byte address is invalid to read/write for a purpose! Used in all CPU modes! Subbyte is used for alignment checking!
+{
+	byte result;
+	if ((result = checkPhysMMUaccess(segdesc, segment, offset, readflags, CPL, is_offset16, subbyte)) != 0) //Lower bound!
+	{
+		return result; //Give the result!
+	}
+	if ((result = checkPhysMMUaccess(segdesc, segment, offset + 3, readflags, CPL, is_offset16, subbyte | 3)) != 0) //Upper bound!
 	{
 		return result; //Give the result!
 	}

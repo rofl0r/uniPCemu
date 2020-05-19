@@ -53,6 +53,7 @@ typedef struct
 //Factor is 16 at 8086, 16/4K at 386.
 
 //Determine the Base always, even in real mode(which automatically loads the base when loading the segment registers)!
+#define CPU_MMU_startPhys(segmentdesc,segmentval) (segmentdesc->PRECALCS.base)
 #define CPU_MMU_start(segment,segmentval) (unlikely(segment == -1)?(segmentval<<4):CPU[activeCPU].SEG_DESCRIPTOR[segment].PRECALCS.base)
 
 //segdesc: >=0: descriptor number, -1: Literal segment shifted value, -2: No segment value, -3: ES literal value(shifted), -4: Direct access(with paging), -128: Direct access(without paging)
@@ -77,8 +78,11 @@ void MMU_clearOP(); //Clear the OPcode cache!
 void MMU_addOP(byte data); //Add an opcode to the OPcode cache!
 
 byte checkMMUaccess(sword segdesc, word segment, uint_64 offset, word readflags, byte CPL, byte is_offset16, byte subbyte); //Check if a byte address is invalid to read/write for a purpose! Used in all CPU modes!
+byte checkPhysMMUaccess(void *segdesc, word segment, uint_64 offset, word readflags, byte CPL, byte is_offset16, byte subbyte); //Check if a byte address is invalid to read/write for a purpose! Used in all CPU modes! Subbyte is used for alignment checking!
 byte checkMMUaccess16(sword segdesc, word segment, uint_64 offset, word readflags, byte CPL, byte is_offset16, byte subbyte); //Check if a byte address is invalid to read/write for a purpose! Used in all CPU modes!
+byte checkPhysMMUaccess16(void *segdesc, word segment, uint_64 offset, word readflags, byte CPL, byte is_offset16, byte subbyte); //Check if a byte address is invalid to read/write for a purpose! Used in all CPU modes!
 byte checkMMUaccess32(sword segdesc, word segment, uint_64 offset, word readflags, byte CPL, byte is_offset16, byte subbyte); //Check if a byte address is invalid to read/write for a purpose! Used in all CPU modes!
+byte checkPhysMMUaccess32(void *segdesc, word segment, uint_64 offset, word readflags, byte CPL, byte is_offset16, byte subbyte); //Check if a byte address is invalid to read/write for a purpose! Used in all CPU modes!
 
 //Direct memory support for the CPU!
 byte checkDirectMMUaccess(uint_32 realaddress, byte readflags, byte CPL); //Check direct memory access before applying the writes below!

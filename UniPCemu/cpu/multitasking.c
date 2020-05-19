@@ -61,18 +61,18 @@ void loadTSS16(TSS286 *TSS)
 	debugger_forceimmediatelogging = 0; //Don't log!
 }
 
-byte checkloadTSS16()
+byte checkloadTSS16(void *segdesc, word value)
 {
 	word n;
 	for (n = 0;n < 0x2C;n+=2) //Load our TSS!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
-		if (checkMMUaccess16(CPU_SEGMENT_TR, REG_TR, n, 1|0x40, 0, 0, 0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+		if (checkPhysMMUaccess16(segdesc, value, n, 1|0x40, 0, 0, 0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
 	}
 	for (n = 0; n < 0x2C; n += 2) //Load our TSS!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
-		if (checkMMUaccess16(CPU_SEGMENT_TR, REG_TR, n, 1|0xA0, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+		if (checkPhysMMUaccess16(segdesc, value, n, 1|0xA0, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
 	}
 
 	debugger_forceimmediatelogging = 0; //Don't log!
@@ -121,76 +121,76 @@ void loadTSS32(TSS386 *TSS)
 	debugger_forceimmediatelogging = 0; //Don't log!
 }
 
-byte checkloadTSS32()
+byte checkloadTSS32(void* segdesc, word value)
 {
 	byte ssspreg;
 	word n;
 	debugger_forceimmediatelogging = 1; //Log!
-	if (checkMMUaccess16(CPU_SEGMENT_TR, REG_TR,0,1|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+	if (checkPhysMMUaccess16(segdesc, value,0,1|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
 	//SP0/ESP0 initializing!
 	n = 4; //Start of our block!
 
 	for (ssspreg=0;ssspreg<3;++ssspreg) //Read all required stack registers!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
-		if (checkMMUaccess32(CPU_SEGMENT_TR, REG_TR,n+0,1|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+		if (checkPhysMMUaccess32(segdesc, value,n+0,1|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
 
 		n += 4; //Next item!
 		debugger_forceimmediatelogging = 1; //Log!
-		if (checkMMUaccess16(CPU_SEGMENT_TR, REG_TR,n+0,1|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+		if (checkPhysMMUaccess16(segdesc, value,n+0,1|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
 		n += 4; //Next item!
 	}
 
 	for (n=(7*4);n<((7+11)*4);n+=4) //Write our TSS 32-bit data!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
-		if (checkMMUaccess32(CPU_SEGMENT_TR, REG_TR,n+0,1|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+		if (checkPhysMMUaccess32(segdesc, value,n+0,1|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
 	}
 
 	for (n=(((7+11)*4));n<((7+11+7)*4);n+=4) //Write our TSS 16-bit data!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
-		if (checkMMUaccess32(CPU_SEGMENT_TR, REG_TR,n+0,1|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+		if (checkPhysMMUaccess32(segdesc, value,n+0,1|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
 	}
 
 	debugger_forceimmediatelogging = 1; //Log!
-	if (checkMMUaccess16(CPU_SEGMENT_TR, REG_TR,(25*4)+0,1|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+	if (checkPhysMMUaccess16(segdesc, value,(25*4)+0,1|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
 	debugger_forceimmediatelogging = 1; //Log!
-	if (checkMMUaccess16(CPU_SEGMENT_TR, REG_TR,(25*4)+2,1|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+	if (checkPhysMMUaccess16(segdesc, value,(25*4)+2,1|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
 	debugger_forceimmediatelogging = 0; //Don't log!
 
 	debugger_forceimmediatelogging = 1; //Log!
-	if (checkMMUaccess16(CPU_SEGMENT_TR, REG_TR, 0, 1|0xA0, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+	if (checkPhysMMUaccess16(segdesc, value, 0, 1|0xA0, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
 	//SP0/ESP0 initializing!
 	n = 4; //Start of our block!
 
 	for (ssspreg = 0; ssspreg < 3; ++ssspreg) //Read all required stack registers!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
-		if (checkMMUaccess32(CPU_SEGMENT_TR, REG_TR, n + 0, 1|0xA0, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+		if (checkPhysMMUaccess32(segdesc, value, n + 0, 1|0xA0, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
 
 		n += 4; //Next item!
 		debugger_forceimmediatelogging = 1; //Log!
-		if (checkMMUaccess16(CPU_SEGMENT_TR, REG_TR, n + 0, 1|0xA0, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+		if (checkPhysMMUaccess16(segdesc, value, n + 0, 1|0xA0, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
 		n += 4; //Next item!
 	}
 
 	for (n = (7 * 4); n < ((7 + 11) * 4); n += 4) //Write our TSS 32-bit data!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
-		if (checkMMUaccess32(CPU_SEGMENT_TR, REG_TR, n + 0, 1|0xA0, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+		if (checkPhysMMUaccess32(segdesc, value, n + 0, 1|0xA0, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
 	}
 
 	for (n = (((7 + 11) * 4)); n < ((7 + 11 + 7) * 4); n += 4) //Write our TSS 16-bit data!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
-		if (checkMMUaccess32(CPU_SEGMENT_TR, REG_TR, n + 0, 1|0xA0, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+		if (checkPhysMMUaccess32(segdesc, value, n + 0, 1|0xA0, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
 	}
 
 	debugger_forceimmediatelogging = 1; //Log!
-	if (checkMMUaccess16(CPU_SEGMENT_TR, REG_TR, (25 * 4) + 0, 1|0xA0, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+	if (checkPhysMMUaccess16(segdesc, value, (25 * 4) + 0, 1|0xA0, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
 	debugger_forceimmediatelogging = 1; //Log!
-	if (checkMMUaccess16(CPU_SEGMENT_TR, REG_TR, (25 * 4) + 2, 1|0xA0, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+	if (checkPhysMMUaccess16(segdesc, value, (25 * 4) + 2, 1|0xA0, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
 	debugger_forceimmediatelogging = 0; //Don't log!
 
 	return 0; //OK!
@@ -209,26 +209,26 @@ void saveTSS16(TSS286 *TSS)
 	debugger_forceimmediatelogging = 0; //Don't log!
 }
 
-byte checksaveTSS16(byte isBacklinked)
+byte checksaveTSS16(void* segdesc, word value, byte isBacklinked)
 {
 	word n;
 	if (isBacklinked)
 	{
-		if (checkMMUaccess16(CPU_SEGMENT_TR, REG_TR,0,0|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+		if (checkPhysMMUaccess16(segdesc, value,0,0|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
 	}
 	for (n=((7*2));n<(0x2C-2);n+=2) //Write our TSS 16-bit data! Don't store the LDT and Stacks for different privilege levels!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
-		if (checkMMUaccess16(CPU_SEGMENT_TR, REG_TR,n+0,0|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+		if (checkPhysMMUaccess16(segdesc, value,n+0,0|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
 	}
 	if (isBacklinked)
 	{
-		if (checkMMUaccess16(CPU_SEGMENT_TR, REG_TR,0,0|0xA0,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+		if (checkPhysMMUaccess16(segdesc, value,0,0|0xA0,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
 	}
 	for (n = ((7 * 2)); n < (0x2C - 2); n += 2) //Write our TSS 16-bit data! Don't store the LDT and Stacks for different privilege levels!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
-		if (checkMMUaccess16(CPU_SEGMENT_TR, REG_TR, n + 0, 0|0xA0, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+		if (checkPhysMMUaccess16(segdesc, value, n + 0, 0|0xA0, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
 	}
 	debugger_forceimmediatelogging = 0; //Don't log!
 	return 0; //OK!
@@ -253,30 +253,30 @@ void saveTSS32(TSS386 *TSS)
 	debugger_forceimmediatelogging = 0; //Don't log!
 }
 
-byte checksaveTSS32(byte isBacklinked)
+byte checksaveTSS32(void* segdesc, word value, byte isBacklinked)
 {
 	word n;
 	if (isBacklinked)
 	{
 		if (EMULATED_CPU>=CPU_PENTIUM) //32-bit write?
 		{
-			if (checkMMUaccess32(CPU_SEGMENT_TR, REG_TR,0,0|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+			if (checkPhysMMUaccess32(segdesc, value,0,0|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
 		}
 		else //16-bit write?
 		{
-			if (checkMMUaccess16(CPU_SEGMENT_TR, REG_TR,0,0|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+			if (checkPhysMMUaccess16(segdesc, value,0,0|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
 		}
 	}
 	for (n =(8*4);n<((8+10)*4);n+=4) //Write our TSS 32-bit data! Ignore the Stack data for different privilege levels and CR3(PDBR)!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
-		if (checkMMUaccess32(CPU_SEGMENT_TR, REG_TR,n+0,0|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+		if (checkPhysMMUaccess32(segdesc, value,n+0,0|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
 	}
 
 	for (n=(((8+10)*4));n<((8+10+6)*4);n+=4) //Write our TSS 16-bit data! Ignore the LDT and I/O map/T-bit, as it's read-only!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
-		if (checkMMUaccess32(CPU_SEGMENT_TR, REG_TR,n+0,0|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+		if (checkPhysMMUaccess32(segdesc, value,n+0,0|0x40,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
 	}
 	debugger_forceimmediatelogging = 0; //Don't log!
 
@@ -284,23 +284,23 @@ byte checksaveTSS32(byte isBacklinked)
 	{
 		if (EMULATED_CPU>=CPU_PENTIUM) //32-bit write?
 		{
-			if (checkMMUaccess32(CPU_SEGMENT_TR, REG_TR,0,0|0xA0,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+			if (checkPhysMMUaccess32(segdesc, value,0,0|0xA0,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
 		}
 		else //16-bit write?
 		{
-			if (checkMMUaccess16(CPU_SEGMENT_TR, REG_TR,0,0|0xA0,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
+			if (checkPhysMMUaccess16(segdesc, value,0,0|0xA0,0,0,0)) {debugger_forceimmediatelogging = 0; return 1;} //Error out!
 		}
 	}
 	for (n = (8 * 4); n < ((8 + 10) * 4); n += 4) //Write our TSS 32-bit data! Ignore the Stack data for different privilege levels and CR3(PDBR)!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
-		if (checkMMUaccess32(CPU_SEGMENT_TR, REG_TR, n + 0, 0|0xA0, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+		if (checkPhysMMUaccess32(segdesc, value, n + 0, 0|0xA0, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
 	}
 
 	for (n = (((8 + 10) * 4)); n < ((8 + 10 + 6) * 4); n += 4) //Write our TSS 16-bit data! Ignore the LDT and I/O map/T-bit, as it's read-only!
 	{
 		debugger_forceimmediatelogging = 1; //Log!
-		if (checkMMUaccess32(CPU_SEGMENT_TR, REG_TR, n + 0, 0|0xA0, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
+		if (checkPhysMMUaccess32(segdesc, value, n + 0, 0|0xA0, 0, 0, 0)) { debugger_forceimmediatelogging = 0; return 1; } //Error out!
 	}
 	debugger_forceimmediatelogging = 0; //Don't log!
 	return 0; //OK!
@@ -453,20 +453,39 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 		memset(&TSS16, 0, sizeof(TSS16)); //Read the TSS! Don't be afraid of errors, since we're always accessable!
 	}
 
+	backlinking = ((isJMPorCALL | 0x80) == 0x82); //CALL with backlink?
+
 	if (GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) //Valid task to switch FROM?
 	{
+		if ((MMU_logging == 1) && advancedlog) //Are we logging?
+		{
+			dolog("debugger", "Checking incoming task %04X for transfer", destinationtask);
+		}
+
+		//Check the incoming task for valid memory area before doing anything!
+		if (TSSSize) //32-bit switching in?
+		{
+			if (checkloadTSS32((void *)LOADEDDESCRIPTOR,destinationtask)) return 0; //Abort on error!
+			if (checksaveTSS32((void *)LOADEDDESCRIPTOR,destinationtask,backlinking)) return 0; //Abort on error!
+		}
+		else //16-bit switching in?
+		{
+			if (checkloadTSS16((void *)LOADEDDESCRIPTOR,destinationtask)) return 0; //Abort on error!
+			if (checksaveTSS16((void *)LOADEDDESCRIPTOR,destinationtask,backlinking)) return 0; //Abort on error!
+		}
+
 		if ((MMU_logging == 1) && advancedlog) //Are we logging?
 		{
 			dolog("debugger", "Preparing outgoing task %04X for transfer", REG_TR);
 		}
 
-		if (TSSSize) //32-bit switchimg out?
+		if (TSSSize) //32-bit switching out?
 		{
-			if (checksaveTSS32(0)) return 0; //Abort on error!
+			if (checksaveTSS32((void *)&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR],REG_TR,0)) return 0; //Abort on error!
 		}
 		else //16-bit switching out?
 		{
-			if (checksaveTSS16(0)) return 0; //Abort on error!
+			if (checksaveTSS16((void *)&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR],REG_TR,0)) return 0; //Abort on error!
 		}
 
 		if (isJMPorCALL == 3) //IRET?
@@ -588,19 +607,6 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 	if ((MMU_logging == 1) && advancedlog) //Are we logging?
 	{
 		dolog("debugger", "Loading incoming TSS %04X state", REG_TR);
-	}
-
-	backlinking = ((isJMPorCALL | 0x80) == 0x82); //CALL with backlink?
-
-	if (TSSSize) //32-bit switching in?
-	{
-		if (checkloadTSS32()) return 0; //Abort on error!
-		if (checksaveTSS32(backlinking)) return 0; //Abort on error!
-	}
-	else //16-bit switching in?
-	{
-		if (checkloadTSS16()) return 0; //Abort on error!
-		if (checksaveTSS16(backlinking)) return 0; //Abort on error!
 	}
 
 	//Load the new TSS!
