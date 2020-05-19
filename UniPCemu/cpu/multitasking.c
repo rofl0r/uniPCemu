@@ -540,7 +540,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 	}
 	//Backup of the TR register&descriptor isn't needed, as this is automatically done when loading it!
 
-	if (segmentWritten(CPU_SEGMENT_TR, destinationtask, (isJMPorCALL & 0x400)|((isJMPorCALL == 3)?0x800:0))) return 0; //Execute the task switch itself, loading our new descriptor! //Abort on fault: invalid(or busy) task we're switching to!
+	if (segmentWritten(CPU_SEGMENT_TR, destinationtask, (isJMPorCALL & 0x400)|((isJMPorCALL == 3)?0x800:0)|(gated?0x80:0))) return 0; //Execute the task switch itself, loading our new descriptor! //Abort on fault: invalid(or busy) task we're switching to! Ignore the privilege level if we're using a gated task switch!
 
 	if ((isJMPorCALL | 0x80) != 0x82) //Not a call? Stop being busy to switch to another task(or ourselves)!
 	{
