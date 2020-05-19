@@ -288,18 +288,6 @@ void CPU486_OP0FC1_32()
 	modrm_write32(&params,MODRM_src0,res32);
 } //XADD r/m32,r32
 
-//BSWAP on 16-bit registers is undefined!
-void CPU486_BSWAP16(word *reg)
-{
-	/* Swap endianness on a register(Big->Little or Little->Big) */
-	INLINEREGISTER word buf;
-	buf = *reg; //Read to start!
-	buf = (((buf>>8)&0xFF)|((buf<<8)&0xFF00)); //Swap bytes to finish!
-	*reg = buf; //Save the result!
-	//Undocumented behaviour on 80486+: clears the register(essentially zero-extend to 32-bits, then BSWAP val32, then truncated to 16-bits to write the result)!
-	*reg = 0; //Apply the undocumented behaviour!
-}
-
 void CPU486_BSWAP32(uint_32 *reg)
 {
 	/* Swap endianness on a register(Big->Little or Little->Big) */
@@ -308,6 +296,18 @@ void CPU486_BSWAP32(uint_32 *reg)
 	buf = ((buf>>16)|(buf<<16)); //Swap words!
 	buf = (((buf>>8)&0xFF00FF)|((buf<<8)&0xFF00FF00)); //Swap bytes to finish!
 	*reg = buf; //Save the result!
+}
+
+//BSWAP on 16-bit registers is undefined!
+void CPU486_BSWAP16(word* reg)
+{
+	/* Swap endianness on a register(Big->Little or Little->Big) */
+	uint_32 buf;
+	//Undocumented behaviour on 80486+: clears the register(essentially zero-extend to 32-bits, then BSWAP val32, then truncated to 16-bits to write the result)!
+	buf = *reg; //Read the register to start!
+	buf &= 0xFFFF; //Zero-extend to 32-bits!
+	CPU486_BSWAP32(&buf); //BSWAP val32
+	*reg = (buf&0xFFFFU); //Give the undocumented behaviour!
 }
 
 void CPU486_OP0FC8_16()
