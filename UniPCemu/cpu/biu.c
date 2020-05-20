@@ -1337,7 +1337,8 @@ void BIU_cycle_active286()
 
 byte BIU_getHLDA()
 {
-	return (BIU[activeCPU].currentrequest != 0); //Not an active request?
+	//return (BIU[activeCPU].currentrequest != 0); //Not an active request?
+	return 1; //Always active!
 }
 
 void BIU_cycle_active486()
