@@ -328,9 +328,12 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 	byte TSS_dirty = 0; //Is the new TSS dirty?
 	TSS286 TSS16;
 	TSS386 TSS32;
-	byte TSSSize = 0; //The TSS size!
+	byte TSSSizeSrc = 0, TSSSize = 0; //The (source) TSS size!
 	sbyte loadresult;
 	byte backlinking;
+	sbyte affectedregisters[7] = { CPU_SEGMENT_CS,CPU_SEGMENT_SS,CPU_SEGMENT_DS,CPU_SEGMENT_ES,CPU_SEGMENT_FS,CPU_SEGMENT_GS,CPU_SEGMENT_LDTR }; //What registers are affected and to be cleared with a task switch?
+	sbyte affectedregisterindex;
+	byte affectedregister; //What affected register!
 
 	if (errorcode>=0) //Error code to be pushed on the stack(not an interrupt without error code or errorless task switch)?
 	{
@@ -422,12 +425,12 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 	case AVL_SYSTEM_BUSY_TSS16BIT:
 		//busy = 1;
 	case AVL_SYSTEM_TSS16BIT:
-		TSSSize = 0; //16-bit TSS!
+		TSSSizeSrc = 0; //16-bit TSS!
 		break;
 	case AVL_SYSTEM_BUSY_TSS32BIT:
 		//busy = 1;
 	case AVL_SYSTEM_TSS32BIT: //Valid descriptor?
-		TSSSize = 1; //32-bit TSS!
+		TSSSizeSrc = 1; //32-bit TSS!
 		if (EMULATED_CPU < CPU_80386) //Continue normally: we're valid on a 80386 only?
 		{
 			goto invalidsrctask; //Thow #GP!
@@ -444,7 +447,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 		return 0; //Error out!
 	}
 
-	if (TSSSize) //32-bit TSS?
+	if (TSSSizeSrc) //32-bit TSS?
 	{
 		memset(&TSS32, 0, sizeof(TSS32)); //Read the TSS! Don't be afraid of errors, since we're always accessable!
 	}
@@ -479,7 +482,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 			dolog("debugger", "Preparing outgoing task %04X for transfer", REG_TR);
 		}
 
-		if (TSSSize) //32-bit switching out?
+		if (TSSSizeSrc) //32-bit switching out?
 		{
 			if (checksaveTSS32((void *)&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR],REG_TR,0)) return 0; //Abort on error!
 		}
@@ -494,7 +497,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 		}
 
 		//16 or 32-bit TSS is loaded, now save the registers!
-		if (TSSSize) //We're a 32-bit TSS?
+		if (TSSSizeSrc) //We're a 32-bit TSS?
 		{
 			TSS32.EAX = REG_EAX;
 			TSS32.ECX = REG_ECX;
@@ -536,7 +539,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 			dolog("debugger", "Saving outgoing task %04X to memory", REG_TR);
 		}
 
-		if (TSSSize) //32-bit TSS?
+		if (TSSSizeSrc) //32-bit TSS?
 		{
 			saveTSS32(&TSS32); //Save us!
 		}
@@ -609,13 +612,16 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 		dolog("debugger", "Loading incoming TSS %04X state", REG_TR);
 	}
 
+
 	//Load the new TSS!
 	if (TSSSize) //32-bit TSS?
 	{
+		memset(&TSS32, 0, sizeof(TSS32)); //Init!
 		loadTSS32(&TSS32); //Load the TSS!
 	}
 	else //16-bit TSS?
 	{
+		memset(&TSS16, 0, sizeof(TSS16)); //Init!
 		loadTSS16(&TSS16); //Load the TSS!
 	}
 	TSS_dirty = 0; //Not dirty!
@@ -760,7 +766,17 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 	//At this point, the basic task switch is complete. All that remains is loading all segment descriptors as required!
 
 	CPU[activeCPU].have_oldSegReg &= ~(1<<CPU_SEGMENT_TR); //Not supporting returning to the old task anymore, we've completed the task switch, committing to the new task!
+	for (affectedregister = 0; affectedregister < NUMITEMS(affectedregisters); ++affectedregister) //Clear all effective register data!
+	{
+		affectedregisterindex = affectedregisters[affectedregister]; //What index to use?
+		memset(&CPU[activeCPU].SEG_DESCRIPTOR[affectedregisterindex],0,sizeof(CPU[activeCPU].SEG_DESCRIPTOR[affectedregisterindex])); //Clear said descriptors!
+		CPU[activeCPU].SEG_DESCRIPTOR[affectedregisterindex].PRECALCS.notpresent = 1; //Not present!
+	}
+	//Set the default CPL!
+	CPU[activeCPU].CPL = (getcpumode() == CPU_MODE_8086) ? 3 : ((getcpumode() == CPU_MODE_REAL) ? 0 : getRPL(TSSSize ? TSS32.CS : TSS16.CS)); //Load default CPL, according to the mode!
+	CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_SS].desc.AccessRights = (CPU[activeCPU].CPL << 5); //Make sure that SS has the correct DPL(and Access Rights) for the selected task when erroring out!
 	CPU_commitState(); //Set the new fault as a return point when faulting!
+	//Clear all the descriptor caches to invalid!
 	CPU_exec_CS = REG_CS; //Save for error handling!
 	CPU_exec_EIP = (REG_EIP&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof); //Save for error handling!
 	CPU_InterruptReturn = REG_EIP; //Make sure that interrupts behave with a correct EIP after faulting on REP prefixed instructions!
@@ -830,6 +846,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 	}
 
 	memcpy(&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR], &LDTsegdesc, sizeof(CPU[activeCPU].SEG_DESCRIPTOR[0])); //Make the LDTR active by loading it into the descriptor cache!
+	CPU_commitState(); //Set the new fault as a return point when faulting!
 
 	if ((MMU_logging == 1) && advancedlog) //Are we logging?
 	{
@@ -840,9 +857,6 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 
 	//Now, load all normal registers in order, keeping aborts possible!
 	CPU[activeCPU].faultraised = 0; //Clear the fault level: the new task has no faults by default!
-
-	//Set the default CPL!
-	CPU[activeCPU].CPL = (getcpumode() == CPU_MODE_8086) ? 3 : ((getcpumode() == CPU_MODE_REAL) ? 0 : getRPL(TSSSize ? TSS32.CS : TSS16.CS)); //Load default CPL, according to the mode!
 
 	//First, load CS!
 	if ((MMU_logging == 1) && advancedlog) //Are we logging?
@@ -858,6 +872,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 	{
 		if (segmentWritten(CPU_SEGMENT_CS, TSS16.CS, 0x200 | (isJMPorCALL & 0x400))) return 0; //Load CS!
 	}
+	CPU_commitState(); //Set the new fault as a return point when faulting!
 	/*
 	if ((getRPL(REG_CS) != GENERALSEGMENT_DPL(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS])) && (getcpumode()==CPU_MODE_PROTECTED)) //Non-matching CS RPL vs CS CPL if not V86?
 	{
@@ -884,6 +899,7 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 
 	//Set the default CPL!
 	CPU[activeCPU].CPL = (getcpumode()==CPU_MODE_8086)?3:((getcpumode()==CPU_MODE_REAL)?0:GENERALSEGMENT_DPL(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_SS])); //Load default CPL to use from SS if needed!
+	CPU_commitState(); //Set the new fault as a return point when faulting!
 
 	if ((MMU_logging == 1) && advancedlog) //Are we logging?
 	{
@@ -892,17 +908,24 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 	if (TSSSize) //32-bit?
 	{
 		if (segmentWritten(CPU_SEGMENT_DS, TSS32.DS, 0x280|(isJMPorCALL&0x400))) return 0; //Load reg!
+		CPU_commitState(); //Set the new fault as a return point when faulting!
 		if (segmentWritten(CPU_SEGMENT_ES, TSS32.ES, 0x280|(isJMPorCALL&0x400))) return 0; //Load reg!
+		CPU_commitState(); //Set the new fault as a return point when faulting!
 		if (segmentWritten(CPU_SEGMENT_FS, TSS32.FS, 0x280|(isJMPorCALL&0x400))) return 0; //Load reg!
+		CPU_commitState(); //Set the new fault as a return point when faulting!
 		if (segmentWritten(CPU_SEGMENT_GS, TSS32.GS, 0x280|(isJMPorCALL&0x400))) return 0; //Load reg!
 	}
 	else //16-bit?
 	{
 		if (segmentWritten(CPU_SEGMENT_DS, TSS16.DS, 0x280|(isJMPorCALL&0x400))) return 0; //Load reg!
+		CPU_commitState(); //Set the new fault as a return point when faulting!
 		if (segmentWritten(CPU_SEGMENT_ES, TSS16.ES, 0x280|(isJMPorCALL&0x400))) return 0; //Load reg!
+		CPU_commitState(); //Set the new fault as a return point when faulting!
 		if (segmentWritten(CPU_SEGMENT_FS, 0, 0x280|(isJMPorCALL&0x400))) return 0; //Load reg: FS is unusable!
+		CPU_commitState(); //Set the new fault as a return point when faulting!
 		if (segmentWritten(CPU_SEGMENT_GS, 0, 0x280|(isJMPorCALL&0x400))) return 0; //Load reg: GS is unusable!
 	}
+	CPU_commitState(); //Set the new fault as a return point when faulting!
 
 	//All segments are valid and readable!
 
@@ -929,6 +952,8 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 	}
 
 	CPU[activeCPU].faultlevel = 0; //Clear the fault level: the new task has no faults by default!
+
+	CPU_commitState(); //Set the new fault as a return point when faulting!
 
 	if (TSSSize) //32-bit TSS?
 	{
