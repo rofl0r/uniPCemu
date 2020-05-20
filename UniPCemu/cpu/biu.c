@@ -432,7 +432,6 @@ OPTINLINE void CPU_fillPIQ() //Fill the PIQ until it's full!
 	byte value;
 	if (unlikely(((PIQ_block==1) || (PIQ_block==9)) && (useIPSclock==0))) { PIQ_block = 0; return; /* Blocked access: only fetch one byte/word instead of a full word/dword! */ }
 	if (unlikely(BIU[activeCPU].PIQ==0)) return; //Not gotten a PIQ? Abort!
-	BIU[activeCPU].requestready = 0; //We're starting a request!
 	realaddress = BIU[activeCPU].PIQ_Address; //Next address to fetch(Logical address)!
 	checkMMUaccess_linearaddr = physaddr = MMU_realaddr(CPU_SEGMENT_CS, REG_CS, realaddress, 0,0); //Linear adress!
 	if (likely(BIU[activeCPU].PIQ_checked)) //Checked left not performing any memory checks?
@@ -469,6 +468,7 @@ OPTINLINE void CPU_fillPIQ() //Fill the PIQ until it's full!
 	++realaddress; //Increase the address to the next location!
 	realaddress &= CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof; //Wrap EIP as needed!
 	BIU[activeCPU].PIQ_Address = realaddress; //Save the increased&wrapped EIP!
+	BIU[activeCPU].requestready = 0; //We're starting a request!
 }
 
 extern byte CPU_MMU_checkrights_cause; //What cause?
