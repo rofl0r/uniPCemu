@@ -114,6 +114,8 @@ void BIU_directwb_external(uint_32 realaddress, byte val, word index); //Access 
 void BIU_directww(uint_32 realaddress, word value, word index); //Direct write to real memory (with real data direct)!
 void BIU_directwdw(uint_32 realaddress, uint_32 value, word index);
 
+byte BIU_getHLDA(); //HLDA raised?
+
 #ifndef IS_BIU
 extern Handler BIU_handleRequests; //Handle all pending requests at once when to be processed!
 #endif

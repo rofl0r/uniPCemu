@@ -1335,6 +1335,11 @@ void BIU_cycle_active286()
 	BIU_detectCycle(); //Detect the next cycle!
 }
 
+byte BIU_getHLDA()
+{
+	return (BIU[activeCPU].currentrequest != 0); //Not an active request?
+}
+
 void BIU_cycle_active486()
 {
 	if (unlikely(BIU[activeCPU].BUSactive == 2)) //Handling a DRAM refresh? We're idling on DMA!

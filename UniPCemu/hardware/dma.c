@@ -510,7 +510,7 @@ void DMA_StateHandler_S0()
 	{
 		if (BIU[activeCPU].BUSactive!=2) //Bus isn't assigned to ours yet?
 		{
-			if ((BIU[activeCPU].BUSactive==0) && (BIU[activeCPU]._lock==0)) //Are we to take the BUS now? The CPU has released the bus(is at T4 state now) and dropped the lock signal!
+			if ((BIU[activeCPU].BUSactive==0) && (BIU[activeCPU]._lock==0) && BIU_getHLDA()) //Are we to take the BUS now? The CPU has released the bus(is at T4 state now) and dropped the lock signal!
 			{
 				BIU[activeCPU].BUSactive = 2; //Take control of the BUS(DLDA is now high). Wait 1 cycle(signal the CPU is this step. Receiving the HLDA the next cycle) before starting the transfer!
 				if (blockDMA) //Blocking DMA grant for one cycle(semi-waitstate)?
