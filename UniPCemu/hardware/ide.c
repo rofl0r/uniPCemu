@@ -2847,7 +2847,6 @@ OPTINLINE void ATA_dataOUT(byte channel, byte data) //Byte written to data!
 			if (ATA[channel].Drive[ATA_activeDrive(channel)].datapos==12) //Full packet written?
 			{
 				//Cancel DRQ, Set BSY and read Features and Byte count from the Task File.
-				ATA_STATUSREGISTER_ERRORW(channel, ATA_activeDrive(channel), 0); //Error bit is reset when a new command is received, as defined in the documentation!
 				ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_bytecount = ATAPI_getresultsize(channel,ATA_activeDrive(channel)); //Read the size to transfer at most!
 				ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_processingPACKET = 0; //We're not processing a packet anymore, from now on we're data only!
 				ATAPI_PendingExecuteCommand(channel, ATA_activeDrive(channel)); //Execute the ATAPI command!
