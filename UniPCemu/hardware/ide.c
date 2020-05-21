@@ -2268,6 +2268,7 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 		if (!--ATA[channel].Drive[drive].datasize) //Finished?
 		{
 			finishedreadingATAPI: //No logical blocks shall be transferred?
+			ATA_STATUSREGISTER_ERRORW(channel, drive, 0); //Error bit is reset when a new command is received, as defined in the documentation!
 			ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel,drive,0); //Seek complete!
 			ATA[channel].Drive[drive].commandstatus = 0; //We're back in command mode!
 			EMU_setDiskBusy(ATA_Drives[channel][drive], 0| (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_caddyejected << 1)); //We're not reading anymore!
@@ -3463,6 +3464,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			//Valid disk loaded?
 			ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
 			ATA[channel].Drive[drive].commandstatus = 0; //OK!
+			ATA_STATUSREGISTER_ERRORW(channel, drive, 0); //Error bit is reset when a new command is received, as defined in the documentation!
 			ATAPI_giveresultsize(channel,drive,0,1); //No result size!
 		}
 		else if (spinresponse == 2) //Busy waiting?
@@ -3539,6 +3541,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		strcpy_padded(&ATA[channel].Drive[drive].data[32],4,&FIRMWARE[1][0]); //Product revision level
 		//Leave the rest of the information cleared (unknown/unspecified)
 		ATA[channel].Drive[drive].commandstatus = 1; //Transferring data IN!
+		ATA_STATUSREGISTER_ERRORW(channel, drive, 0); //Error bit is reset when a new command is received, as defined in the documentation!
 		ATAPI_giveresultsize(channel,drive,ATA[channel].Drive[drive].datablock*ATA[channel].Drive[drive].datasize,1); //Result size, Raise an IRQ: we're needing attention!
 		ATA[channel].Drive[drive].ATAPI_processingPACKET = 2; //We're transferring ATAPI data now!
 		break;
@@ -3552,6 +3555,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		ATA[channel].Drive[drive].commandstatus = 2; //Transferring data OUT!
 		ATAPI_giveresultsize(channel,drive,ATA[channel].Drive[drive].datablock*ATA[channel].Drive[drive].datasize,1); //Result size, Raise an IRQ: we're needing attention!
 		ATA[channel].Drive[drive].ATAPI_processingPACKET = 2; //We're transferring ATAPI data now!
+		ATA_STATUSREGISTER_ERRORW(channel, drive, 0); //Error bit is reset when a new command is received, as defined in the documentation!
 		break;
 	case 0x5A: //MODE SENSE(10)(Mandatory)?
 		ATA[channel].Drive[drive].datapos = 0; //Start of data!
@@ -3635,6 +3639,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 					default:
 						break;
 					}
+					ATA_STATUSREGISTER_ERRORW(channel, drive, 0); //Error bit is reset when a new command is received, as defined in the documentation!
 					isvalidpage = 1; //Were valid!
 					ATA[channel].Drive[drive].ATAPI_processingPACKET = 2; //We're transferring ATAPI data now!
 					ATAPI_giveresultsize(channel,drive,ATA[channel].Drive[drive].datablock*ATA[channel].Drive[drive].datasize,1); //No result size!
@@ -3658,6 +3663,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		ATA[channel].Drive[drive].preventMediumRemoval = (ATA[channel].Drive[drive].preventMediumRemoval&~2)|((ATA[channel].Drive[drive].ATAPI_PACKET[4]&1)<<1); //Are we preventing the storage medium to be removed?
 		ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
 		ATA[channel].Drive[drive].commandstatus = 0; //New command can be specified!
+		ATA_STATUSREGISTER_ERRORW(channel, drive, 0); //Error bit is reset when a new command is received, as defined in the documentation!
 		ATAPI_giveresultsize(channel,drive,0,1); //No result size! Raise and interrupt to end the transfer after busy!
 		break;
 	case 0xBE: //Read CD command(mandatory)?
@@ -3674,6 +3680,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			readCDNOP: //NOP for reading CD directly!
 				ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
 				ATA[channel].Drive[drive].commandstatus = 0; //New command can be specified!
+				ATA_STATUSREGISTER_ERRORW(channel, drive, 0); //Error bit is reset when a new command is received, as defined in the documentation!
 				ATAPI_giveresultsize(channel,drive, 0, 1); //Result size!
 			}
 			else //Normal processing!
@@ -3693,6 +3700,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 				case 0x00: goto readCDNOP; //Same as NOP!
 				case 0xF8: ATA[channel].Drive[drive].datablock = 2352; //We're using CD direct packets! Different kind of format wrapper!
 				case 0x10: //Normal 2KB sectors?
+					ATA_STATUSREGISTER_ERRORW(channel, drive, 0); //Error bit is reset when a new command is received, as defined in the documentation!
 					ATA[channel].Drive[drive].ATAPI_LBA = ATA[channel].Drive[drive].ATAPI_lastLBA = LBA; //The LBA to use!
 					if (ATAPI_readsector(channel,drive)) //Sector read?
 					{
@@ -3742,6 +3750,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			{
 				//Execute NOP command!
 			readCDMSFNOP: //NOP for reading CD directly!
+				ATA_STATUSREGISTER_ERRORW(channel, drive, 0); //Error bit is reset when a new command is received, as defined in the documentation!
 				ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
 				ATA[channel].Drive[drive].commandstatus = 0; //New command can be specified!
 				ATAPI_giveresultsize(channel,drive, 0, 1); //No result size!
@@ -3828,6 +3837,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			ATA[channel].Drive[drive].datablock = MIN(alloc_length, ret_len); //Give the smallest result, limit by allocation length!
 			ATA[channel].Drive[drive].commandstatus = 1; //Transferring data IN for the result!
 			ATA[channel].Drive[drive].ATAPI_processingPACKET = 2; //We're transferring ATAPI data now!
+			ATA_STATUSREGISTER_ERRORW(channel, drive, 0); //Error bit is reset when a new command is received, as defined in the documentation!
 			ATAPI_giveresultsize(channel,drive, ATA[channel].Drive[drive].datablock*ATA[channel].Drive[drive].datasize, 1); //Result size!
 		}
 		else if (spinresponse == 2) //Busy waiting?
@@ -3949,6 +3959,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			ATA[channel].Drive[drive].datablock = MIN(alloc_length,ret_len); //Give the smallest result, limit by allocation length!
 			ATA[channel].Drive[drive].commandstatus = 1; //Transferring data IN for the result!
 			ATA[channel].Drive[drive].ATAPI_processingPACKET = 2; //We're transferring ATAPI data now!
+			ATA_STATUSREGISTER_ERRORW(channel, drive, 0); //Error bit is reset when a new command is received, as defined in the documentation!
 			ATAPI_giveresultsize(channel,drive,ATA[channel].Drive[drive].datablock*ATA[channel].Drive[drive].datasize,1); //Result size!
 		}
 		else if (spinresponse == 2) //Busy waiting?
@@ -3984,6 +3995,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 				ATA[channel].Drive[drive].datasize = 1; //One block to transfer!
 				ATA[channel].Drive[drive].commandstatus = 1; //Transferring data IN for the result!
 				ATA[channel].Drive[drive].ATAPI_processingPACKET = 2; //We're transferring ATAPI data now!
+				ATA_STATUSREGISTER_ERRORW(channel, drive, 0); //Error bit is reset when a new command is received, as defined in the documentation!
 				ATAPI_giveresultsize(channel,drive,ATA[channel].Drive[drive].datablock*ATA[channel].Drive[drive].datasize,1); //Result size!
 				break;
 			default:
@@ -4074,6 +4086,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 
 			ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
 			ATA[channel].Drive[drive].commandstatus = 0; //New command can be specified!
+			ATA_STATUSREGISTER_ERRORW(channel, drive, 0); //Error bit is reset when a new command is received, as defined in the documentation!
 			ATAPI_giveresultsize(channel,drive,0,1); //No result size!
 		}
 		else if (spinresponse == 2) //Busy waiting?
@@ -4100,6 +4113,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		}
 		ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
 		ATA[channel].Drive[drive].commandstatus = 0; //New command can be specified!
+		ATA_STATUSREGISTER_ERRORW(channel, drive, 0); //Error bit is reset when a new command is received, as defined in the documentation!
 		ATAPI_giveresultsize(channel, drive, 0, 1); //No result size!
 		break;
 	case 0x4B: //Pause/Resume (audio mandatory)?
@@ -4141,6 +4155,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			}
 			ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
 			ATA[channel].Drive[drive].commandstatus = 0; //New command can be specified!
+			ATA_STATUSREGISTER_ERRORW(channel, drive, 0); //Error bit is reset when a new command is received, as defined in the documentation!
 			ATAPI_giveresultsize(channel, drive, 0, 1); //No result size!
 		}
 		else if (spinresponse == 2) //Busy waiting?
@@ -4201,6 +4216,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 				ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel, drive, 0); //Drive Seek Complete!
 				ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
 				ATA[channel].Drive[drive].commandstatus = 0; //New command can be specified!
+				ATA_STATUSREGISTER_ERRORW(channel, drive, 0); //Error bit is reset when a new command is received, as defined in the documentation!
 				ATAPI_giveresultsize(channel, drive, 0, 1); //No result size!
 			}
 			else //Otherwise, if errored out, abort!
@@ -4276,6 +4292,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 				ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel, drive, 0); //Drive Seek Complete!
 				ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
 				ATA[channel].Drive[drive].commandstatus = 0; //New command can be specified!
+				ATA_STATUSREGISTER_ERRORW(channel, drive, 0); //Error bit is reset when a new command is received, as defined in the documentation!
 				ATAPI_giveresultsize(channel, drive, 0, 1); //No result size!
 			}
 			else //Otherwise, if errored out, abort!
@@ -4329,6 +4346,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		}
 		ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
 		ATA[channel].Drive[drive].commandstatus = 0; //New command can be specified!
+		ATA_STATUSREGISTER_ERRORW(channel, drive, 0); //Error bit is reset when a new command is received, as defined in the documentation!
 		ATAPI_giveresultsize(channel,drive,0,1); //No result size!
 		break;
 	case 0x28: //Read sectors (10) command(Mandatory)?
@@ -4355,6 +4373,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			ATA[channel].Drive[drive].datablock = 0x800; //We're refreshing after this many bytes! Use standard CD-ROM 2KB blocks!
 			ATA[channel].Drive[drive].ATAPI_LBA = ATA[channel].Drive[drive].ATAPI_lastLBA = LBA; //The LBA to use!
 			ATA[channel].Drive[drive].expectedReadDataType = 0xFF; //Any read sector(nn) type is allowed!
+			ATA_STATUSREGISTER_ERRORW(channel, drive, 0); //Error bit is reset when a new command is received, as defined in the documentation!
 			if (ATAPI_readsector(channel,drive)) //Sector read?
 			{
 				ATA_IRQ(channel,drive,ATAPI_FINISHREADYTIMING,0); //Raise an IRQ: we're needing attention!
@@ -4389,6 +4408,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			ATA[channel].Drive[drive].data[7] = 0; //We're 4096 byte sectors!
 			ATA[channel].Drive[drive].commandstatus = 1; //Transferring data IN!
 			ATA[channel].Drive[drive].ATAPI_processingPACKET = 2; //We're transferring ATAPI data now!
+			ATA_STATUSREGISTER_ERRORW(channel, drive, 0); //Error bit is reset when a new command is received, as defined in the documentation!
 			ATAPI_giveresultsize(channel,drive, ATA[channel].Drive[drive].datablock*ATA[channel].Drive[drive].datasize, 1); //Result size!
 		}
 		else if (spinresponse == 2) //Busy waiting?
@@ -4416,6 +4436,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		ATA[channel].Drive[drive].data[8] = (((is_mounted(ATA_Drives[channel][drive])&&ATA[channel].Drive[drive].diskInserted)?0x80:0x00)|(ATA[channel].Drive[drive].ATAPI_mediaChanged2?1:0)); //Bit0=disk changed(since last load), Bit 8=Disk present
 		ATA[channel].Drive[drive].commandstatus = 1; //Transferring data IN!
 		ATA[channel].Drive[drive].ATAPI_processingPACKET = 2; //We're transferring ATAPI data now!
+		ATA_STATUSREGISTER_ERRORW(channel, drive, 0); //Error bit is reset when a new command is received, as defined in the documentation!
 		ATAPI_giveresultsize(channel,drive,ATA[channel].Drive[drive].datablock*ATA[channel].Drive[drive].datasize,1); //Result size!
 		break;
 	default:
