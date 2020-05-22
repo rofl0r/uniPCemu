@@ -7966,24 +7966,31 @@ void op_grp5()
 			if (checkStackAccess(1,1,0)) return;
 			++CPU[activeCPU].stackchecked;
 		}
+		if (EMULATED_CPU <= CPU_NECV30)
+		{
+			if (CPU8086_instructionstepdelayBIU(0, 1)) return; //1 cycle before starting!
+		}
 		if (modrm_addr16(&params,MODRM_src0,0)==&REG_SP) //SP?
 		{
-			if (CPU8086_PUSHw(0,&REG_SP,0)) return;
+			if (CPU8086_PUSHw((EMULATED_CPU<=CPU_NECV30)?2:0,&REG_SP,0)) return;
 		}
 		else
 		{
-			if (CPU8086_PUSHw(0,&oper1,0)) return;
+			if (CPU8086_PUSHw((EMULATED_CPU<=CPU_NECV30)?2:0,&oper1,0)) return;
 		}
 		CPUPROT1
 		if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 		{
-			if (MODRM_EA(params)) //Memory?
+			if (EMULATED_CPU > CPU_NECV30)
 			{
-				CPU[activeCPU].cycles_OP += 16 - (EU_CYCLES_SUBSTRACT_ACCESSRW); /*Push Mem!*/
-			}
-			else //Register?
-			{
-				CPU[activeCPU].cycles_OP += 11 - EU_CYCLES_SUBSTRACT_ACCESSWRITE; /*Push Reg!*/
+				if (MODRM_EA(params)) //Memory?
+				{
+					CPU[activeCPU].cycles_OP += 16 - (EU_CYCLES_SUBSTRACT_ACCESSRW); /*Push Mem!*/
+				}
+				else //Register?
+				{
+					CPU[activeCPU].cycles_OP += 11 - EU_CYCLES_SUBSTRACT_ACCESSWRITE; /*Push Reg!*/
+				}
 			}
 		}
 		CPUPROT2
