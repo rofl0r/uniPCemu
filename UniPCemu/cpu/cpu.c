@@ -1933,7 +1933,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	else //Automatic cycles placeholder?
 	{
 	#endif
-		CPU[activeCPU].cycles = 1; //Default to only 1 cycle at least(no cycles aren't allowed).
+		CPU[activeCPU].cycles = 0; //Default to only 0 cycle at least(no cycles aren't allowed).
 	#ifdef CPU_USECYCLES
 	}
 	//cycles_counted = 1; //Cycles have been counted!
@@ -1947,8 +1947,13 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		CPU[activeCPU].previousmodrm = CPU[activeCPU].lastmodrm; //Last executed OPcode for reference purposes!
 		CPU[activeCPU].previousCSstart = previousCSstart; //Save the start address of CS for the last instruction!
 	}
-	BIUWaiting: //The BIU is waiting!
+	if (CPU[activeCPU].cycles==0) //Nothing ticking?
+	{
+		goto dontTickBIU; //Don't tick the BIU!
+	}
+BIUWaiting: //The BIU is waiting!
 	CPU_tickBIU(); //Tick the prefetch as required!
+dontTickBIU:
 	flushMMU(); //Flush MMU writes!
 }
 
