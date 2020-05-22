@@ -7119,11 +7119,11 @@ OPTINLINE void op_grp2_cycles(byte cnt, byte varshift)
 		{
 			if (MODRM_EA(params)) //Mem?
 			{
-				CPU[activeCPU].cycles_OP += 5; //Mem
+				CPU[activeCPU].cycles_OP += 4; //Mem
 			}
 			else //Reg?
 			{
-				CPU[activeCPU].cycles_OP += 3; //Reg
+				CPU[activeCPU].cycles_OP += 1; //Reg
 			}
 		}
 		break;
@@ -7132,11 +7132,11 @@ OPTINLINE void op_grp2_cycles(byte cnt, byte varshift)
 		{
 			if (MODRM_EA(params)) //Mem?
 			{
-				CPU[activeCPU].cycles_OP += 5 + (cnt << 2)- (EU_CYCLES_SUBSTRACT_ACCESSRW); //Mem
+				CPU[activeCPU].cycles_OP += 9 + (cnt << 2); //Mem
 			}
 			else //Reg?
 			{
-				CPU[activeCPU].cycles_OP += 3 + (cnt << 2); //Reg
+				CPU[activeCPU].cycles_OP += 7 + (cnt << 2); //Reg
 			}
 		}
 		break;
