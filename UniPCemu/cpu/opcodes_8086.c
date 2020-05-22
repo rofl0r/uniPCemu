@@ -5636,7 +5636,7 @@ void CPU8086_OP9D()
 	updateCPUmode(); /*POPF*/
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
-		CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*POPF timing!*/
+		CPU[activeCPU].cycles_OP += 1; /*POPF timing!*/
 	}
 	CPU[activeCPU].allowTF = 0; /*Disallow TF to be triggered after the instruction!*/
 	/*CPU[activeCPU].unaffectedRF = 1;*/
