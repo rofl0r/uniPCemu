@@ -6272,7 +6272,7 @@ void CPU8086_OPF4()
 	CPU[activeCPU].halt = 1;
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
-		CPU[activeCPU].cycles_OP += 1+(CPU[activeCPU].repeating?1:0);
+		CPU[activeCPU].cycles_OP += 1+(CPU[activeCPU].repeating?0:1);
 	}
 	/*Special timing!*/
 }
