@@ -2242,11 +2242,11 @@ OPTINLINE byte CPU8086_internal_TEST8(byte dest, byte src, byte flags)
 			{
 				if (dest) //Imm->Reg?
 				{
-					CPU[activeCPU].cycles_OP += 5; //Imm->Reg!
+					CPU[activeCPU].cycles_OP += 3; //Imm->Reg!
 				}
 				else //Imm->Mem?
 				{
-					CPU[activeCPU].cycles_OP += 3; //Mem->Reg!
+					CPU[activeCPU].cycles_OP += 5; //Mem->Reg!
 				}
 			}
 			else //Reg->Reg?
@@ -2296,11 +2296,11 @@ OPTINLINE byte CPU8086_internal_TEST16(word dest, word src, byte flags)
 			{
 				if (dest) //Imm->Reg?
 				{
-					CPU[activeCPU].cycles_OP += 5; //Imm->Reg!
+					CPU[activeCPU].cycles_OP += 3; //Imm->Reg!
 				}
 				else //Imm->Mem?
 				{
-					CPU[activeCPU].cycles_OP += 3; //Mem->Reg!
+					CPU[activeCPU].cycles_OP += 5; //Mem->Reg!
 				}
 			}
 			else //Reg->Reg?
