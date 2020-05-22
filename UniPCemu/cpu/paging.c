@@ -84,6 +84,7 @@ extern byte EMU_RUNNING; //1 when paging can be applied!
 
  //The used TAG(using a 4KB page, but the lower 10 bits are unused in 4MB pages)!
 #define Paging_generateTAG(logicaladdress,W,U,D,A,S) ((((((((((((A)<<1)|(S))<<1)|(D))<<1)|(W))<<1)|(U))<<1)|1)|((logicaladdress) & 0xFFFFF000))
+#defin3 PAGINGTAG_S 0x10
 
 //Read TLB LWUDAS parameter!
 #define Paging_readTLBLWUDAS(logicaladdress,W,U,D,A,S) Paging_generateTAG(logicaladdress,W,U,D,A,S)
@@ -200,19 +201,22 @@ byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch, byte 
 	byte effectiveUS;
 	byte RW;
 	byte isS;
+	uint_32 tag;
 	RW = iswrite?1:0; //Are we trying to write?
 	effectiveUS = getUserLevel(CPL); //Our effective user level!
 
 	uint_32 temp;
 	if (likely(RW==0)) //Are we reading? Allow all other combinations of dirty/read/write to be used for this!
 	{
+		tag = Paging_readTLBLWUDAS(address,1, effectiveUS, 0,markaccess, 1); //Large page tag!
 		if (unlikely(EMULATED_CPU >= CPU_PENTIUM)) //Needs 4MB pages?
 		{
-			if (likely(Paging_readTLB(NULL, address, Paging_readTLBLWUDAS(address,1, effectiveUS, 0,markaccess, 1),1,TLB_IGNOREREADMASK|(markaccess?TLB_NOIGNOREACCESSMASK:TLB_IGNOREACCESSMASK), &temp, 0))) //Cache hit (non)dirty for reads/writes?
+			if (likely(Paging_readTLB(NULL, address, tag,1,TLB_IGNOREREADMASK|(markaccess?TLB_NOIGNOREACCESSMASK:TLB_IGNOREACCESSMASK), &temp, 0))) //Cache hit (non)dirty for reads/writes?
 			{
 				return 1; //Valid!
 			}
 		}
+		tag &= ~PAGINGTAG_S; //Without S-bit!
 		if (likely(Paging_readTLB(NULL, address, Paging_readTLBLWUDAS(address,1, effectiveUS, 0,markaccess,0),0,TLB_IGNOREREADMASK|(markaccess?TLB_NOIGNOREACCESSMASK:TLB_IGNOREACCESSMASK), &temp,0))) //Cache hit (non)dirty for reads/writes?
 		{
 			return 1; //Valid!
@@ -220,14 +224,16 @@ byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch, byte 
 	}
 	else //Write?
 	{
+		tag = Paging_readTLBLWUDAS(address,1, effectiveUS, 1,markaccess, 1); //Large page tag!
 		if (unlikely(EMULATED_CPU >= CPU_PENTIUM)) //Needs 4MB pages?
 		{
-			if (likely(Paging_readTLB(NULL, address, Paging_readTLBLWUDAS(address,1, effectiveUS, 1,markaccess, 1),1,0|(markaccess?TLB_NOIGNOREACCESSMASK:TLB_IGNOREACCESSMASK), &temp, 0))) //Cache hit dirty for writes?
+			if (likely(Paging_readTLB(NULL, address, tag,1,0|(markaccess?TLB_NOIGNOREACCESSMASK:TLB_IGNOREACCESSMASK), &temp, 0))) //Cache hit dirty for writes?
 			{
 				return 1; //Valid!
 			}
 		}
-		if (likely(Paging_readTLB(NULL, address, Paging_readTLBLWUDAS(address,1, effectiveUS, 1,markaccess,0),0,0|(markaccess?TLB_NOIGNOREACCESSMASK:TLB_IGNOREACCESSMASK), &temp,0))) //Cache hit dirty for writes?
+		tag &= ~PAGINGTAG_S; //Without S-bit!
+		if (likely(Paging_readTLB(NULL, address, tag,0,0|(markaccess?TLB_NOIGNOREACCESSMASK:TLB_IGNOREACCESSMASK), &temp,0))) //Cache hit dirty for writes?
 		{
 			return 1; //Valid!
 		}
@@ -348,19 +354,22 @@ uint_32 mappage(uint_32 address, byte iswrite, byte CPL) //Maps a page to real m
 	if (is_paging()==0) return address; //Direct address when not paging!
 	byte effectiveUS;
 	byte RW;
+	uint_32 tag;
 	RW = iswrite?1:0; //Are we trying to write?
 	effectiveUS = getUserLevel(CPL); //Our effective user level!
 	retrymapping: //Retry the mapping when not cached!
 	if (iswrite) //Writes are limited?
 	{
+		tag = Paging_readTLBLWUDAS(address,1, effectiveUS, 1, 1, 1); //Large page tag!
 		if (unlikely(EMULATED_CPU >= CPU_PENTIUM)) //Needs 4MB support?
 		{
-			if (likely(Paging_readTLB(NULL, address, Paging_readTLBLWUDAS(address,1, effectiveUS, 1, 1, 1),1, 0|TLB_NOIGNOREACCESSMASK, &result, 1))) //Cache hit for a written dirty entry? Match completely only!
+			if (likely(Paging_readTLB(NULL, address, tag, 1, 0|TLB_NOIGNOREACCESSMASK, &result, 1))) //Cache hit for a written dirty entry? Match completely only!
 			{
 				return (result | (address&PDE_LARGEACTIVEMASK)); //Give the actual address from the TLB!
 			}
 		}
-		if (likely(Paging_readTLB(NULL,address, Paging_readTLBLWUDAS(address,1,effectiveUS,1,1,0),0,0|TLB_NOIGNOREACCESSMASK,&result,1))) //Cache hit for a written dirty entry? Match completely only!
+		tag &= ~PAGINGTAG_S; //Without S-bit!
+		if (likely(Paging_readTLB(NULL,address, tag, 0, 0|TLB_NOIGNOREACCESSMASK, &result, 1))) //Cache hit for a written dirty entry? Match completely only!
 		{
 			return (result|(address&PXE_ACTIVEMASK)); //Give the actual address from the TLB!
 		}
@@ -368,14 +377,16 @@ uint_32 mappage(uint_32 address, byte iswrite, byte CPL) //Maps a page to real m
 	}
 	else //Read?
 	{
+		tag = Paging_readTLBLWUDAS(address,RW, effectiveUS, RW, 1, 1); //Large paging tag!
 		if (unlikely(EMULATED_CPU >= CPU_PENTIUM)) //Needs 4MB support?
 		{
-			if (likely(Paging_readTLB(NULL, address, Paging_readTLBLWUDAS(address,RW, effectiveUS, RW, 1, 1),1, TLB_IGNOREREADMASK|TLB_NOIGNOREACCESSMASK, &result, 1))) //Cache hit for an the entry, any during reads, Write Dirty on write?
+			if (likely(Paging_readTLB(NULL, address, tag, 1, TLB_IGNOREREADMASK|TLB_NOIGNOREACCESSMASK, &result, 1))) //Cache hit for an the entry, any during reads, Write Dirty on write?
 			{
 				return (result | (address&PDE_LARGEACTIVEMASK)); //Give the actual address from the TLB!
 			}
 		}
-		if (likely(Paging_readTLB(NULL, address, Paging_readTLBLWUDAS(address,RW, effectiveUS, RW, 1, 0),0, TLB_IGNOREREADMASK|TLB_NOIGNOREACCESSMASK, &result, 1))) //Cache hit for an the entry, any during reads, Write Dirty on write?
+		tag &= ~PAGINGTAG_S; //Without S-bit!
+		if (likely(Paging_readTLB(NULL, address, tag, 0, TLB_IGNOREREADMASK|TLB_NOIGNOREACCESSMASK, &result, 1))) //Cache hit for an the entry, any during reads, Write Dirty on write?
 		{
 			return (result | (address&PXE_ACTIVEMASK)); //Give the actual address from the TLB!
 		}
