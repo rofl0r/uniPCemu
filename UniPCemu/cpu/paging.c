@@ -84,7 +84,7 @@ extern byte EMU_RUNNING; //1 when paging can be applied!
 
  //The used TAG(using a 4KB page, but the lower 10 bits are unused in 4MB pages)!
 #define Paging_generateTAG(logicaladdress,W,U,D,A,S) ((((((((((((A)<<1)|(S))<<1)|(D))<<1)|(W))<<1)|(U))<<1)|1)|((logicaladdress) & 0xFFFFF000))
-#defin3 PAGINGTAG_S 0x10
+#define PAGINGTAG_S 0x10
 
 //Read TLB LWUDAS parameter!
 #define Paging_readTLBLWUDAS(logicaladdress,W,U,D,A,S) Paging_generateTAG(logicaladdress,W,U,D,A,S)
