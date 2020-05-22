@@ -4316,7 +4316,7 @@ void CPU8086_OP06()
 	if (CPU8086_PUSHw(0,&REG_ES,CPU_Operand_size[activeCPU]|2)) return; /*PUSH ES*/
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
-		CPU[activeCPU].cycles_OP += 10-EU_CYCLES_SUBSTRACT_ACCESSWRITE;
+		CPU[activeCPU].cycles_OP += 3;
 	} /*Push Segreg!*/
 }
 void CPU8086_OP07()
@@ -4378,7 +4378,7 @@ void CPU8086_OP0E()
 	if (CPU8086_PUSHw(0,&REG_CS,CPU_Operand_size[activeCPU]|2)) return; /*PUSH CS*/
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
-		CPU[activeCPU].cycles_OP += 10-EU_CYCLES_SUBSTRACT_ACCESSWRITE; /*Push Segreg!*/
+		CPU[activeCPU].cycles_OP += 3; /*Push Segreg!*/
 	}
 }
 void CPU8086_OP0F() /*FLAG_OF: POP CS; shouldn't be used?*/
@@ -4436,7 +4436,7 @@ void CPU8086_OP16()
 	if (CPU8086_PUSHw(0,&REG_SS,CPU_Operand_size[activeCPU]|2)) return; /*PUSH SS*/
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
-		CPU[activeCPU].cycles_OP += 10-EU_CYCLES_SUBSTRACT_ACCESSWRITE; /*Push Segreg!*/
+		CPU[activeCPU].cycles_OP += 3; /*Push Segreg!*/
 	}
 }
 void CPU8086_OP17()
@@ -4502,7 +4502,7 @@ void CPU8086_OP1E()
 	if (CPU8086_PUSHw(0,&REG_DS,CPU_Operand_size[activeCPU]|2)) return; /*PUSH DS*/
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
-		CPU[activeCPU].cycles_OP += 10-EU_CYCLES_SUBSTRACT_ACCESSWRITE;
+		CPU[activeCPU].cycles_OP += 3;
 	} /*Push Segreg!*/
 }
 void CPU8086_OP1F()
@@ -4772,7 +4772,7 @@ void CPU8086_OP50()
 	if (CPU8086_PUSHw(0,&REG_AX,0)) return; /*PUSH AX*/
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
-		CPU[activeCPU].cycles_OP += 11-EU_CYCLES_SUBSTRACT_ACCESSWRITE; /*Push Reg!*/
+		CPU[activeCPU].cycles_OP += 3; /*Push Reg!*/
 	}
 }
 void CPU8086_OP51()
@@ -4786,7 +4786,7 @@ void CPU8086_OP51()
 	if (CPU8086_PUSHw(0,&REG_CX,0)) return; /*PUSH CX*/
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
-		CPU[activeCPU].cycles_OP += 11-EU_CYCLES_SUBSTRACT_ACCESSWRITE; /*Push Reg!*/
+		CPU[activeCPU].cycles_OP += 3; /*Push Reg!*/
 	}
 }
 void CPU8086_OP52()
@@ -4800,7 +4800,7 @@ void CPU8086_OP52()
 	if (CPU8086_PUSHw(0,&REG_DX,0)) return; /*PUSH DX*/
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
-		CPU[activeCPU].cycles_OP += 11-EU_CYCLES_SUBSTRACT_ACCESSWRITE; /*Push Reg!*/
+		CPU[activeCPU].cycles_OP += 3; /*Push Reg!*/
 	}
 }
 void CPU8086_OP53()
@@ -4814,7 +4814,7 @@ void CPU8086_OP53()
 	if (CPU8086_PUSHw(0,&REG_BX,0)) return; /*PUSH BX*/
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
-		CPU[activeCPU].cycles_OP += 11-EU_CYCLES_SUBSTRACT_ACCESSWRITE; /*Push Reg!*/
+		CPU[activeCPU].cycles_OP += 3; /*Push Reg!*/
 	}
 }
 void CPU8086_OP54()
@@ -4828,7 +4828,7 @@ void CPU8086_OP54()
 	if (CPU8086_PUSHw(0,&REG_SP,0)) return; /*PUSH SP*/
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
-		CPU[activeCPU].cycles_OP += 11-EU_CYCLES_SUBSTRACT_ACCESSWRITE; /*Push Reg!*/
+		CPU[activeCPU].cycles_OP += 3; /*Push Reg!*/
 	}
 }
 void CPU8086_OP55()
@@ -4842,7 +4842,7 @@ void CPU8086_OP55()
 	if (CPU8086_PUSHw(0,&REG_BP,0)) return; /*PUSH BP*/
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
-		CPU[activeCPU].cycles_OP += 11-EU_CYCLES_SUBSTRACT_ACCESSWRITE; /*Push Reg!*/
+		CPU[activeCPU].cycles_OP += 3; /*Push Reg!*/
 	}
 }
 void CPU8086_OP56()
@@ -4856,7 +4856,7 @@ void CPU8086_OP56()
 	if (CPU8086_PUSHw(0,&REG_SI,0)) return; /*PUSH SI*/
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
-		CPU[activeCPU].cycles_OP += 11-EU_CYCLES_SUBSTRACT_ACCESSWRITE; /*Push Reg!*/
+		CPU[activeCPU].cycles_OP += 3; /*Push Reg!*/
 	}
 }
 void CPU8086_OP57()
@@ -4870,7 +4870,7 @@ void CPU8086_OP57()
 	if (CPU8086_PUSHw(0,&REG_DI,0)) return; /*PUSH DI*/
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
-		CPU[activeCPU].cycles_OP += 11-EU_CYCLES_SUBSTRACT_ACCESSWRITE; /*Push Reg!*/
+		CPU[activeCPU].cycles_OP += 3; /*Push Reg!*/
 	}
 }
 void CPU8086_OP58()
@@ -4885,7 +4885,7 @@ void CPU8086_OP58()
 	if (CPU8086_POPw(2,&REG_AX,0)) return; /*POP AX*/
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
-		CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*Pop Reg!*/
+		CPU[activeCPU].cycles_OP += 3; /*Pop Reg!*/
 	}
 }
 void CPU8086_OP59()
@@ -4900,7 +4900,7 @@ void CPU8086_OP59()
 	if (CPU8086_POPw(2,&REG_CX,0)) return; /*POP CX*/
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
-		CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*Pop Reg!*/
+		CPU[activeCPU].cycles_OP += 3; /*Pop Reg!*/
 	}
 }
 void CPU8086_OP5A()
@@ -4915,7 +4915,7 @@ void CPU8086_OP5A()
 	if (CPU8086_POPw(2,&REG_DX,0)) return; /*POP DX*/
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
-		CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*Pop Reg!*/
+		CPU[activeCPU].cycles_OP += 3; /*Pop Reg!*/
 	}
 }
 void CPU8086_OP5B()
@@ -4930,7 +4930,7 @@ void CPU8086_OP5B()
 	if (CPU8086_POPw(2,&REG_BX,0)) return; /*POP BX*/
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
-		CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*Pop Reg!*/
+		CPU[activeCPU].cycles_OP += 3; /*Pop Reg!*/
 	}
 }
 void CPU8086_OP5C()
@@ -4945,7 +4945,7 @@ void CPU8086_OP5C()
 	if (CPU8086_POPSP(2)) return; /*POP SP*/
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
-		CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*Pop Reg!*/
+		CPU[activeCPU].cycles_OP += 3; /*Pop Reg!*/
 	}
 }
 void CPU8086_OP5D()
@@ -4960,7 +4960,7 @@ void CPU8086_OP5D()
 	if (CPU8086_POPw(2,&REG_BP,0)) return; /*POP BP*/
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
-		CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*Pop Reg!*/
+		CPU[activeCPU].cycles_OP += 3; /*Pop Reg!*/
 	}
 }
 void CPU8086_OP5E()
@@ -4975,7 +4975,7 @@ void CPU8086_OP5E()
 	if (CPU8086_POPw(2,&REG_SI,0)) return;/*POP SI*/
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
-		CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*Pop Reg!*/
+		CPU[activeCPU].cycles_OP += 3; /*Pop Reg!*/
 	}
 }
 void CPU8086_OP5F()
@@ -4990,7 +4990,7 @@ void CPU8086_OP5F()
 	if (CPU8086_POPw(2,&REG_DI,0)) return;/*POP DI*/
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
-		CPU[activeCPU].cycles_OP += 8-EU_CYCLES_SUBSTRACT_ACCESSREAD; /*Pop Reg!*/
+		CPU[activeCPU].cycles_OP += 3; /*Pop Reg!*/
 	}
 }
 void CPU8086_OP70()
@@ -5589,10 +5589,14 @@ void CPU8086_OP9C()
 		if (checkStackAccess(1,1,0)) return;
 		++CPU[activeCPU].stackchecked;
 	}
-	if (CPU8086_PUSHw(0,&REG_FLAGS,0)) return;
+	if (EMULATED_CPU <= CPU_NECV30) //808X timings?
+	{
+		if (CPU8086_instructionstepdelayBIU(0, 3)) return; //3 cycles before starting the transfer!
+	}
+	if (CPU8086_PUSHw((EMULATED_CPU<=CPU_NECV30)?2:0,&REG_FLAGS,0)) return;
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
-		CPU[activeCPU].cycles_OP += 10-EU_CYCLES_SUBSTRACT_ACCESSWRITE; /*PUSHF timing!*/
+		//CPU[activeCPU].cycles_OP += 10-EU_CYCLES_SUBSTRACT_ACCESSWRITE; /*PUSHF timing!*/
 	}
 }
 void CPU8086_OP9D()
