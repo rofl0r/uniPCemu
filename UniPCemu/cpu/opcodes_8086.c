@@ -4313,10 +4313,11 @@ void CPU8086_OP06()
 		if (checkStackAccess(1,1,CPU_Operand_size[activeCPU]|2)) return;
 		++CPU[activeCPU].stackchecked;
 	}
-	if (CPU8086_PUSHw(0,&REG_ES,CPU_Operand_size[activeCPU]|2)) return; /*PUSH ES*/
+	if (CPU8086_instructionstepdelayBIU(0, 3)) return; //Wait 3 cycles before activating the BIU!
+	if (CPU8086_PUSHw(2,&REG_ES,CPU_Operand_size[activeCPU]|2)) return; /*PUSH ES*/
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
-		CPU[activeCPU].cycles_OP += 3;
+		CPU[activeCPU].cycles_OP += 0;
 	} /*Push Segreg!*/
 }
 void CPU8086_OP07()
@@ -4375,10 +4376,11 @@ void CPU8086_OP0E()
 		if (checkStackAccess(1,1,CPU_Operand_size[activeCPU]|2)) return;
 		++CPU[activeCPU].stackchecked;
 	}
-	if (CPU8086_PUSHw(0,&REG_CS,CPU_Operand_size[activeCPU]|2)) return; /*PUSH CS*/
+	if (CPU8086_instructionstepdelayBIU(0, 3)) return; //Wait 3 cycles before activating the BIU!
+	if (CPU8086_PUSHw(2,&REG_CS,CPU_Operand_size[activeCPU]|2)) return; /*PUSH CS*/
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
-		CPU[activeCPU].cycles_OP += 3; /*Push Segreg!*/
+		CPU[activeCPU].cycles_OP += 0; /*Push Segreg!*/
 	}
 }
 void CPU8086_OP0F() /*FLAG_OF: POP CS; shouldn't be used?*/
@@ -4433,10 +4435,11 @@ void CPU8086_OP16()
 		if (checkStackAccess(1,1,CPU_Operand_size[activeCPU]|2)) return;
 		++CPU[activeCPU].stackchecked;
 	}
-	if (CPU8086_PUSHw(0,&REG_SS,CPU_Operand_size[activeCPU]|2)) return; /*PUSH SS*/
+	if (CPU8086_instructionstepdelayBIU(0, 3)) return; //Wait 3 cycles before activating the BIU!
+	if (CPU8086_PUSHw(2,&REG_SS,CPU_Operand_size[activeCPU]|2)) return; /*PUSH SS*/
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
-		CPU[activeCPU].cycles_OP += 3; /*Push Segreg!*/
+		CPU[activeCPU].cycles_OP += 0; /*Push Segreg!*/
 	}
 }
 void CPU8086_OP17()
@@ -4499,10 +4502,11 @@ void CPU8086_OP1E()
 		if (checkStackAccess(1,1,CPU_Operand_size[activeCPU]|2)) return;
 		++CPU[activeCPU].stackchecked;
 	}
-	if (CPU8086_PUSHw(0,&REG_DS,CPU_Operand_size[activeCPU]|2)) return; /*PUSH DS*/
+	if (CPU8086_instructionstepdelayBIU(0, 3)) return; //Wait 3 cycles before activating the BIU!
+	if (CPU8086_PUSHw(2,&REG_DS,CPU_Operand_size[activeCPU]|2)) return; /*PUSH DS*/
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
-		CPU[activeCPU].cycles_OP += 3;
+		CPU[activeCPU].cycles_OP += 0;
 	} /*Push Segreg!*/
 }
 void CPU8086_OP1F()
@@ -4769,10 +4773,11 @@ void CPU8086_OP50()
 		if (checkStackAccess(1,1,0)) return;
 		++CPU[activeCPU].stackchecked;
 	}
-	if (CPU8086_PUSHw(0,&REG_AX,0)) return; /*PUSH AX*/
+	if (CPU8086_instructionstepdelayBIU(0, 3)) return; //Wait 3 cycles before activating the BIU!
+	if (CPU8086_PUSHw(2,&REG_AX,0)) return; /*PUSH AX*/
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
-		CPU[activeCPU].cycles_OP += 3; /*Push Reg!*/
+		CPU[activeCPU].cycles_OP += 0; /*Push Reg!*/
 	}
 }
 void CPU8086_OP51()
@@ -4783,10 +4788,11 @@ void CPU8086_OP51()
 		if (checkStackAccess(1,1,0)) return;
 		++CPU[activeCPU].stackchecked;
 	}
-	if (CPU8086_PUSHw(0,&REG_CX,0)) return; /*PUSH CX*/
+	if (CPU8086_instructionstepdelayBIU(0, 3)) return; //Wait 3 cycles before activating the BIU!
+	if (CPU8086_PUSHw(2,&REG_CX,0)) return; /*PUSH CX*/
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
-		CPU[activeCPU].cycles_OP += 3; /*Push Reg!*/
+		CPU[activeCPU].cycles_OP += 0; /*Push Reg!*/
 	}
 }
 void CPU8086_OP52()
@@ -4797,10 +4803,11 @@ void CPU8086_OP52()
 		if (checkStackAccess(1,1,0)) return;
 		++CPU[activeCPU].stackchecked;
 	}
-	if (CPU8086_PUSHw(0,&REG_DX,0)) return; /*PUSH DX*/
+	if (CPU8086_instructionstepdelayBIU(0, 3)) return; //Wait 3 cycles before activating the BIU!
+	if (CPU8086_PUSHw(2,&REG_DX,0)) return; /*PUSH DX*/
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
-		CPU[activeCPU].cycles_OP += 3; /*Push Reg!*/
+		CPU[activeCPU].cycles_OP += 0; /*Push Reg!*/
 	}
 }
 void CPU8086_OP53()
@@ -4811,10 +4818,11 @@ void CPU8086_OP53()
 		if (checkStackAccess(1,1,0)) return;
 		++CPU[activeCPU].stackchecked;
 	}
-	if (CPU8086_PUSHw(0,&REG_BX,0)) return; /*PUSH BX*/
+	if (CPU8086_instructionstepdelayBIU(0, 3)) return; //Wait 3 cycles before activating the BIU!
+	if (CPU8086_PUSHw(2,&REG_BX,0)) return; /*PUSH BX*/
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
-		CPU[activeCPU].cycles_OP += 3; /*Push Reg!*/
+		CPU[activeCPU].cycles_OP += 0; /*Push Reg!*/
 	}
 }
 void CPU8086_OP54()
@@ -4825,10 +4833,11 @@ void CPU8086_OP54()
 		if (checkStackAccess(1,1,0)) return;
 		++CPU[activeCPU].stackchecked;
 	}
-	if (CPU8086_PUSHw(0,&REG_SP,0)) return; /*PUSH SP*/
+	if (CPU8086_instructionstepdelayBIU(0, 3)) return; //Wait 3 cycles before activating the BIU!
+	if (CPU8086_PUSHw(2,&REG_SP,0)) return; /*PUSH SP*/
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
-		CPU[activeCPU].cycles_OP += 3; /*Push Reg!*/
+		CPU[activeCPU].cycles_OP += 0; /*Push Reg!*/
 	}
 }
 void CPU8086_OP55()
@@ -4839,10 +4848,11 @@ void CPU8086_OP55()
 		if (checkStackAccess(1,1,0)) return;
 		++CPU[activeCPU].stackchecked;
 	}
-	if (CPU8086_PUSHw(0,&REG_BP,0)) return; /*PUSH BP*/
+	if (CPU8086_instructionstepdelayBIU(0, 3)) return; //Wait 3 cycles before activating the BIU!
+	if (CPU8086_PUSHw(2,&REG_BP,0)) return; /*PUSH BP*/
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
-		CPU[activeCPU].cycles_OP += 3; /*Push Reg!*/
+		CPU[activeCPU].cycles_OP += 0; /*Push Reg!*/
 	}
 }
 void CPU8086_OP56()
@@ -4853,10 +4863,11 @@ void CPU8086_OP56()
 		if (checkStackAccess(1,1,0)) return;
 		++CPU[activeCPU].stackchecked;
 	}
-	if (CPU8086_PUSHw(0,&REG_SI,0)) return; /*PUSH SI*/
+	if (CPU8086_instructionstepdelayBIU(0, 3)) return; //Wait 3 cycles before activating the BIU!
+	if (CPU8086_PUSHw(2,&REG_SI,0)) return; /*PUSH SI*/
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
-		CPU[activeCPU].cycles_OP += 3; /*Push Reg!*/
+		CPU[activeCPU].cycles_OP += 0; /*Push Reg!*/
 	}
 }
 void CPU8086_OP57()
@@ -4867,10 +4878,11 @@ void CPU8086_OP57()
 		if (checkStackAccess(1,1,0)) return;
 		++CPU[activeCPU].stackchecked;
 	}
-	if (CPU8086_PUSHw(0,&REG_DI,0)) return; /*PUSH DI*/
+	if (CPU8086_instructionstepdelayBIU(0, 3)) return; //Wait 3 cycles before activating the BIU!
+	if (CPU8086_PUSHw(2,&REG_DI,0)) return; /*PUSH DI*/
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
-		CPU[activeCPU].cycles_OP += 3; /*Push Reg!*/
+		CPU[activeCPU].cycles_OP += 0; /*Push Reg!*/
 	}
 }
 void CPU8086_OP58()
