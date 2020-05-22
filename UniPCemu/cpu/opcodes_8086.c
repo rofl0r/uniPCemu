@@ -7560,11 +7560,11 @@ void op_grp3_8()
 		{
 			if (MODRM_EA(params)) //Memory?
 			{
-				CPU[activeCPU].cycles_OP += 2; //Mem!
+				CPU[activeCPU].cycles_OP += 4; //Mem!
 			}
 			else //Register?
 			{
-				CPU[activeCPU].cycles_OP += 2; //Reg!
+				CPU[activeCPU].cycles_OP += 4; //Reg!
 			}
 		}
 		break;
@@ -7578,11 +7578,11 @@ void op_grp3_8()
 		{
 			if (MODRM_EA(params)) //Memory?
 			{
-				CPU[activeCPU].cycles_OP += 2; //Mem!
+				CPU[activeCPU].cycles_OP += 4; //Mem!
 			}
 			else //Register?
 			{
-				CPU[activeCPU].cycles_OP += 2; //Reg!
+				CPU[activeCPU].cycles_OP += 4; //Reg!
 			}
 		}
 		break;
@@ -7744,11 +7744,11 @@ void op_grp3_16()
 		{
 			if (MODRM_EA(params)) //Memory?
 			{
-				CPU[activeCPU].cycles_OP += 2; //Mem!
+				CPU[activeCPU].cycles_OP += 4; //Mem!
 			}
 			else //Register?
 			{
-				CPU[activeCPU].cycles_OP += 2; //Reg!
+				CPU[activeCPU].cycles_OP += 4; //Reg!
 			}
 		}
 		break;
@@ -7761,11 +7761,11 @@ void op_grp3_16()
 		{
 			if (MODRM_EA(params)) //Memory?
 			{
-				CPU[activeCPU].cycles_OP += 2; //Mem!
+				CPU[activeCPU].cycles_OP += 4; //Mem!
 			}
 			else //Register?
 			{
-				CPU[activeCPU].cycles_OP += 2; //Reg!
+				CPU[activeCPU].cycles_OP += 4; //Reg!
 			}
 		}
 		break;
