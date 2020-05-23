@@ -1123,7 +1123,7 @@ OPTINLINE void debugger_autolog()
 			else //Logging single line?
 			{
 				safestrcpy(executedinstructionstatelog,sizeof(executedinstructionstatelog),""); //Init!
-				if (safestrlen(executedinstruction,sizeof(executedinstruction)) && CPU[activeCPU].executed) //Executed instruction?
+				if (safestrlen(executedinstruction,sizeof(executedinstruction))) //Executed instruction?
 				{
 					if ((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT)) //Special case?
 					{
