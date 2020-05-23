@@ -893,6 +893,7 @@ typedef struct
 	uint_64 TSC; //Timestamp counter, counts raw clock cycles!
 	double TSCtiming; //How much remaining time has been counted on top of the time-stamp counter?
 	byte unaffectedRF; //Don't affect the resume flag this instruction!
+	byte BIUnotticking;
 } CPU_type;
 
 #ifndef IS_CPU

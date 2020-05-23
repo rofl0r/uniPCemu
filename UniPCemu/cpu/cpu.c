@@ -1950,9 +1950,11 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	}
 	if ((CPU[activeCPU].cycles|CPU[activeCPU].cycles_stallBUS)==0) //Nothing ticking?
 	{
+		CPU[activeCPU].BIUnotticking = 1; //We're not ticking!
 		goto dontTickBIU; //Don't tick the BIU!
 	}
 BIUWaiting: //The BIU is waiting!
+	CPU[activeCPU].BIUnotticking = 0; //We're ticking normally!
 	CPU_tickBIU(); //Tick the prefetch as required!
 dontTickBIU:
 	flushMMU(); //Flush MMU writes!

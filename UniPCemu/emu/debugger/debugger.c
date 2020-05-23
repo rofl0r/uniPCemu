@@ -1036,6 +1036,7 @@ OPTINLINE void debugger_autolog()
 			safestrcpy(statelog,sizeof(statelog),""); //Default to empty!
 			if (DEBUGGER_LOGSTATES) //Are we logging states?
 			{
+				if (CPU[activeCPU].BIUnotticking) goto debugger_finishExecutionstate;
 				if (BIU[activeCPU].stallingBUS && ((BIU[activeCPU].stallingBUS!=3) || ((BIU[activeCPU].stallingBUS==3) && (BIU[activeCPU].BUSactive==0)))) //Stalling the BUS?
 				{
 					safestrcpy(statelog,sizeof(statelog),"BIU --"); //Stalling the BIU!
@@ -1171,6 +1172,7 @@ OPTINLINE void debugger_autolog()
 			}
 			safestrcpy(debugger_memoryaccess_text,sizeof(debugger_memoryaccess_text),""); //Clear the text to apply: we're done!
 		}
+		debugger_finishExecutionstate: //Nothing to log for the current debugger cycle?
 		log_logtimestamp(log_timestampbackup); //Restore state!
 
 		if (unlikely(dologinstruction == 0)) return; //Abort when not logging the instruction(don't check below)!
