@@ -60,6 +60,7 @@ byte needdebugger(); //Do we need to generate debugging information?
 
 //For CPU:
 void debugger_beforeCPU(); //Action before the CPU changes it's registers!
+void debugger_notifyRunning(); //Notify the debugger we've started running!
 
 void debugger_setcommand(char *text, ...); //Set current command (Opcode only!)
 void debugger_setprefix(char *text); //Set prefix (CPU only!)

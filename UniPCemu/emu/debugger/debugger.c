@@ -64,6 +64,7 @@ byte allow_debuggerstep = 0; //Disabled by default: needs to be enabled by our B
 char debugger_prefix[256] = ""; //The prefix!
 char debugger_command_text[256] = ""; //Current command!
 byte debugger_set = 0; //Debugger set?
+byte debugger_instructionexecuting = 0; //Instruction not yet executing?
 uint_32 debugger_index = 0; //Current debugger index!
 
 byte debugger_logtimings = 1; //Are we to log the full timings of hardware and CPU as well?
@@ -502,6 +503,7 @@ void debugger_beforeCPU() //Action before the CPU changes it's registers!
 		safestrcpy(debugger_prefix,sizeof(debugger_prefix),""); //Initialise the prefix(es)!
 		safestrcpy(debugger_command_text,sizeof(debugger_command_text),"<DEBUGGER UNKOP NOT IMPLEMENTED>"); //Standard: unknown opcode!
 		debugger_set = 0; //Default: the debugger isn't implemented!
+		debugger_instructionexecuting = 0; //Not yet executing!
 		debuggerHLT = CPU[activeCPU].halt; //Are we halted?
 		debuggerReset = CPU[activeCPU].is_reset|(CPU[activeCPU].permanentreset<<1); //Are we reset?
 
@@ -892,6 +894,11 @@ char statelog[256];
 char executedinstructionstatelog[2048];
 char fullcmd[65536];
 
+void debugger_notifyRunning() //Notify the debugger that instruction execution has begun!
+{
+	debugger_instructionexecuting |= 1; //We've started executing!
+}
+
 OPTINLINE void debugger_autolog()
 {
 	byte dologinstruction = 1;
@@ -909,8 +916,13 @@ OPTINLINE void debugger_autolog()
 	{
 		log_timestampbackup = log_logtimestamp(2); //Save state!
 		log_logtimestamp(debugger_loggingtimestamp); //Are we to log the timestamp?
-		if (CPU[activeCPU].executed && dologinstruction)
+		safestrcpy(executedinstruction, sizeof(executedinstruction), ""); //Clear instruction that's to be logged by default!
+		if (((debugger_instructionexecuting == 1) && dologinstruction && debugger_logtimings) || (CPU[activeCPU].executed && dologinstruction && (!debugger_logtimings))) //Instruction started to execute(timings) or finished(no timings)?
 		{
+			if (debugger_logtimings)
+			{
+				debugger_instructionexecuting |= 2; //Stop more than one cycle for the instruction!
+			}
 			//Now generate debugger information!
 			if ((DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_SINGLELINE_SIMPLIFIED) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) && (DEBUGGER_LOG!=DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) && (DEBUGGER_LOG!=DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT)) //Not single-line?
 			{
@@ -991,7 +1003,6 @@ OPTINLINE void debugger_autolog()
 				}
 			}
 
-			safestrcpy(executedinstruction,sizeof(executedinstruction),""); //Clear instruction!
 			if ((debuggerregisters.CR0&1)==0) //Emulating 80(1)86? Use IP!
 			{
 				if ((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT)) //Common log format?
@@ -1019,6 +1030,7 @@ OPTINLINE void debugger_autolog()
 				dolog("debugger",executedinstruction); //The executed instruction!
 			}
 		}
+		nodebuggerexecutedinstruction:
 
 		if (debugger_logtimings) //Logging the timings?
 		{
@@ -1691,4 +1703,5 @@ void initDebugger() //Initialize the debugger if needed!
 
 	debuggerHLT = 0; //We're assuming CPU reset, so not halting!
 	debuggerReset = 1; //Are we a reset CPU(we assume so)?
+	debugger_instructionexecuting = 0; //Not yet executing!
 }

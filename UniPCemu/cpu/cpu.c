@@ -1880,6 +1880,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	executionphase_running:
 	CPU[activeCPU].executed = 1; //Executed by default!
 	CPU_OP(); //Now go execute the OPcode once!
+	debugger_notifyRunning(); //Notify the debugger we've started running!
 	skipexecutionOPfault: //Instruction fetch fault?
 	if (CPU[activeCPU].executed) //Are we finished executing?
 	{
