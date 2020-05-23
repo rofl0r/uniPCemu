@@ -1124,7 +1124,6 @@ void BIU_detectCycle(); //Detect the cycle to execute!
 void BIU_cycle_StallingBUS() //Stalling BUS?
 {
 	BIU[activeCPU].stallingBUS = 1; //Stalling!
-	if (likely(cycleinfo->cycles)) --cycleinfo->cycles; //Decrease cycles accordingly!
 	if (unlikely(--cycleinfo->cycles_stallBUS==0)) //Stall!
 	{
 		BIU_detectCycle(); //Detect the next cycle to execute!

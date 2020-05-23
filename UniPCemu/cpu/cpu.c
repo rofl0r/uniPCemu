@@ -1948,7 +1948,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		CPU[activeCPU].previousmodrm = CPU[activeCPU].lastmodrm; //Last executed OPcode for reference purposes!
 		CPU[activeCPU].previousCSstart = previousCSstart; //Save the start address of CS for the last instruction!
 	}
-	if (CPU[activeCPU].cycles==0) //Nothing ticking?
+	if ((CPU[activeCPU].cycles|CPU[activeCPU].cycles_stallBUS)==0) //Nothing ticking?
 	{
 		goto dontTickBIU; //Don't tick the BIU!
 	}

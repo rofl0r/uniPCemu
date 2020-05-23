@@ -593,7 +593,6 @@ byte CPU8086_instructionstepdelayBIUidle(word base, byte cycles)
 	if (CPU[activeCPU].instructionstep==base) //First step? Request!
 	{
 		CPU[activeCPU].cycles_stallBUS += cycles; //Take X cycles only!
-		CPU[activeCPU].cycles_OP += cycles; //Take X cycles only!
 		CPU[activeCPU].executed = 0; //Not executed!
 		CPU[activeCPU].instructionstep += 2; //Next step, by 2 for compatibility!
 		return 1; //Keep running!
@@ -606,7 +605,6 @@ byte CPU8086_internal_delayBIUidle(word base, byte cycles)
 	if (CPU[activeCPU].internalinstructionstep==base) //First step? Request!
 	{
 		CPU[activeCPU].cycles_stallBUS += cycles; //Take X cycles only!
-		CPU[activeCPU].cycles_OP += cycles; //Take X cycles only!
 		CPU[activeCPU].executed = 0; //Not executed!
 		CPU[activeCPU].internalinstructionstep += 2; //Next step, by 2 for compatibility!
 		return 1; //Keep running!
