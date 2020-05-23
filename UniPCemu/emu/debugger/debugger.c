@@ -1030,7 +1030,6 @@ OPTINLINE void debugger_autolog()
 				dolog("debugger",executedinstruction); //The executed instruction!
 			}
 		}
-		nodebuggerexecutedinstruction:
 
 		if (debugger_logtimings) //Logging the timings?
 		{
