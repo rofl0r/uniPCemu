@@ -6129,9 +6129,9 @@ void CPU8086_OPE6()
 	if (EMULATED_CPU <= CPU_NECV30) //Valid CPU to apply?
 	{
 		if (CPU8086_instructionstepdelayBIU(0, 1)) return; //1 cycles before we start, active cycles only, wait for it to finish!
-		if (((BIU[activeCPU].prefetchclock&3)==1) && (CPU[activeCPU].timingpath==0)) //T2?
+		if ((BIU_getcycle()==1) && (CPU[activeCPU].timingpath==0)) //T2?
 		{
-			timingpath = 0; 
+			CPU[activeCPU].timingpath = 0;
 			if (CPU8086_instructionstepdelayBIUidle(2, 2)) return; //2 cycles before we start, active cycles only!
 		}
 		else
@@ -6155,9 +6155,9 @@ void CPU8086_OPE7()
 	if (EMULATED_CPU <= CPU_NECV30) //Valid CPU to apply?
 	{
 		if (CPU8086_instructionstepdelayBIU(0, 1)) return; //1 cycles before we start, active cycles only, wait for it to finish!
-		if (((BIU[activeCPU].prefetchclock&3)==1) && (CPU[activeCPU].timingpath==0)) //T2?
+		if ((BIU_getcycle()==1) && (CPU[activeCPU].timingpath==0)) //T2?
 		{
-			timingpath = 0; 
+			CPU[activeCPU].timingpath = 0;
 			if (CPU8086_instructionstepdelayBIUidle(2, 2)) return; //2 cycles before we start, active cycles only!
 		}
 		else
@@ -6270,8 +6270,8 @@ void CPU8086_OPEE()
 	modrm_generateInstructionTEXT("OUT DX,AL",0,0,PARAM_NONE);
 	if (EMULATED_CPU <= CPU_NECV30) //Valid CPU to apply?
 	{
-		if (CPU8086_instructionstepdelayBIU(0, ((BIU[activeCPU].prefetchclock&3)==3)?2:1)) return; //1 cycles before we start, active cycles only, wait for it to finish!
-		if (CPU8086_instructionstepdelayBIU(2, 4) return; //4 cycles before we start, active cycles only, wait for it to finish!
+		if (CPU8086_instructionstepdelayBIU(0, (BIU_getcycle()==3)?2:1)) return; //1 cycles before we start, active cycles only, wait for it to finish!
+		if (CPU8086_instructionstepdelayBIU(2, 4)) return; //4 cycles before we start, active cycles only, wait for it to finish!
 	}
 	if (CPU_PORT_OUT_B(0,REG_DX,REG_AL)) return;
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
@@ -6285,8 +6285,8 @@ void CPU8086_OPEF()
 	modrm_generateInstructionTEXT("OUT DX,AX",0,0,PARAM_NONE);
 	if (EMULATED_CPU <= CPU_NECV30) //Valid CPU to apply?
 	{
-		if (CPU8086_instructionstepdelayBIU(0, ((BIU[activeCPU].prefetchclock&3)==3)?2:1)) return; //1 cycles before we start, active cycles only, wait for it to finish!
-		if (CPU8086_instructionstepdelayBIU(2, 4) return; //4 cycles before we start, active cycles only, wait for it to finish!
+		if (CPU8086_instructionstepdelayBIU(0, (BIU_getcycle()==3)?2:1)) return; //1 cycles before we start, active cycles only, wait for it to finish!
+		if (CPU8086_instructionstepdelayBIU(2, 4)) return; //4 cycles before we start, active cycles only, wait for it to finish!
 	}
 	if (CPU_PORT_OUT_W(0,REG_DX,REG_AX)) return;
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
