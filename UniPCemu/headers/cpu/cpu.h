@@ -883,6 +883,7 @@ typedef struct
 	CPU_InstructionFetchingStatus instructionfetch; //Information about fetching the current instruction. This contains the status we're in!
 	byte executed; //Has the current instruction finished executing?
 	word instructionstep, internalinstructionstep, modrmstep, internalmodrmstep, internalinterruptstep, stackchecked; //Step we're at, executing the instruction that's fetched and loaded to execute.
+	byte timingpath; //Timing path taken?
 	byte pushbusy; //Is a push operation busy?
 	byte resetPending; //Is a CPU reset pending?
 	CPU_TLB Paging_TLB; //Our TLB to use for paging access!

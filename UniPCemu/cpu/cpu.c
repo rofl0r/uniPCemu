@@ -1102,6 +1102,7 @@ OPTINLINE void CPU_resetInstructionSteps()
 {
 	//Prepare for a (repeated) instruction to execute!
 	CPU[activeCPU].instructionstep = CPU[activeCPU].internalinstructionstep = CPU[activeCPU].modrmstep = CPU[activeCPU].internalmodrmstep = CPU[activeCPU].internalinterruptstep = CPU[activeCPU].stackchecked = 0; //Start the instruction-specific stage!
+	CPU[activeCPU].timingpath = 0; //Reset timing oath!
 	CPU[activeCPU].pushbusy = 0;
 	custommem = 0; //Not using custom memory addresses for MOV!
 	customoffset = 0; //See custommem!

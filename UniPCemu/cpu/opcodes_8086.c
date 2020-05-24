@@ -6129,7 +6129,17 @@ void CPU8086_OPE6()
 	if (EMULATED_CPU <= CPU_NECV30) //Valid CPU to apply?
 	{
 		if (CPU8086_instructionstepdelayBIU(0, 1)) return; //1 cycles before we start, active cycles only, wait for it to finish!
-		if (CPU8086_instructionstepdelayBIUidle(2, 2)) return; //2 cycles before we start, active cycles only!
+		if (((BIU[activeCPU].prefetchclock&3)==1) && (CPU[activeCPU].timingpath==0)) //T2?
+		{
+			timingpath = 0; 
+			if (CPU8086_instructionstepdelayBIUidle(2, 2)) return; //2 cycles before we start, active cycles only!
+		}
+		else
+		{
+			CPU[activeCPU].timingpath = 1; //Other path!
+			if (CPU8086_instructionstepwaitBIUready(2)) return; //Wait for ready!
+			if (CPU8086_instructionstepdelayBIU(4, 1)) return; //1 cycles before we start, active cycles only, wait for it to finish!
+		}
 	}
 	if(CPU_PORT_OUT_B(0,theimm,REG_AL)) return;
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
