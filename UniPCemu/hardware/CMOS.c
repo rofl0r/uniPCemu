@@ -550,7 +550,6 @@ void RTC_updateDateTime() //Called at 32kHz!
 	if (((CMOS.DATA.DATA80.info.STATUSREGISTERB&SRB_ENABLECYCLEUPDATE)==0) && (dcc!=DIVIDERCHAIN_RESET)) //We're allowed to update the time(divider chain isn't reset too)?
 	{
 		CMOS.DATA.DATA80.info.STATUSREGISTERA &= ~0x80; //Update now in progress, clear the bit until we're past 244uS.
-		RTC_timeleft = RTC_timepassed; //Reverse counting!
 		CMOS_updateActualTime(); //Update the current actual time!
 	}
 	RTC_Handler(lastsecond); //Handle anything that the RTC has to handle!
