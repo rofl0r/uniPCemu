@@ -346,7 +346,7 @@ void CPU186_OP69()
 {
 	memcpy(&info,&params.info[MODRM_src0],sizeof(info)); //Reg!
 	memcpy(&info2,&params.info[MODRM_src1],sizeof(info2)); //Second parameter(R/M)!
-	if (MODRM_MOD(params.modrm)==3) //Two-operand version?
+	if ((MODRM_MOD(params.modrm)==3) && (info.reg16==info2.reg16)) //Two-operand version?
 	{
 		debugger_setcommand("IMUL %s,%04X",info.text,immw); //IMUL reg,imm16
 	}
@@ -404,16 +404,14 @@ void CPU186_OP6B()
 {
 	memcpy(&info,&params.info[MODRM_src0],sizeof(info)); //Reg!
 	memcpy(&info2,&params.info[MODRM_src1],sizeof(info2)); //Second parameter(R/M)!
-	/*
-	if (MODRM_MOD(params.modrm)==3) //Two-operand version?
+	if ((MODRM_MOD(params.modrm)==3) && (info.reg16==info2.reg16)) //Two-operand version?
 	{
 		debugger_setcommand("IMUL %s,%02X",info.text,immb); //IMUL reg,imm8
 	}
 	else //Three-operand version?
 	{
-	*/
-		debugger_setcommand("IMUL %s,%s,%02X",info.text,info2.text,immb); //IMUL reg,r/m16,imm8
-	//}
+		debugger_setcommand("IMUL %s,%s,%02X", info.text, info2.text, immb); //IMUL reg,r/m16,imm8
+	}
 
 	if (unlikely(CPU[activeCPU].instructionstep==0)) //First step?
 	{

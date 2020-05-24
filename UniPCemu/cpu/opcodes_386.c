@@ -5005,16 +5005,14 @@ void CPU386_OP69()
 {
 	memcpy(&info,&params.info[MODRM_src0],sizeof(info)); //Reg!
 	memcpy(&info2,&params.info[MODRM_src1],sizeof(info2)); //Second parameter(R/M)!
-	/*
-	if (MODRM_MOD(params.modrm)==3) //Two-operand version?
+	if ((MODRM_MOD(params.modrm)==3) && (info.reg32==info2.reg32)) //Two-operand version?
 	{
 		debugger_setcommand("IMUL %s,%08X",info.text,imm32); //IMUL reg,imm32
 	}
 	else //Three-operand version?
 	{
-	*/
 		debugger_setcommand("IMUL %s,%s,%08X",info.text,info2.text,imm32); //IMUL reg,r/m32,imm32
-	//}
+	}
 	if (unlikely(CPU[activeCPU].instructionstep==0)) //First step?
 	{
 		/*if (MODRM_MOD(params.modrm)!=3) //Use R/M to calculate the result(Three-operand version)?
@@ -5064,16 +5062,14 @@ void CPU386_OP6B()
 {
 	memcpy(&info,&params.info[MODRM_src0],sizeof(info)); //Reg!
 	memcpy(&info2,&params.info[MODRM_src1],sizeof(info2)); //Second parameter(R/M)!
-	/*
-	if (MODRM_MOD(params.modrm)==3) //Two-operand version?
+	if ((MODRM_MOD(params.modrm)==3) && (info.reg32==info2.reg32)) //Two-operand version?
 	{
 		debugger_setcommand("IMUL %s,%02X",info.text,immb); //IMUL reg,imm8
 	}
 	else //Three-operand version?
 	{
-	*/
 		debugger_setcommand("IMUL %s,%s,%02X",info.text,info2.text,immb); //IMUL reg,r/m32,imm8
-	//}
+	}
 
 	if (unlikely(CPU[activeCPU].instructionstep==0)) //First step?
 	{
