@@ -539,6 +539,7 @@ void CMOS_updateActualTime()
 	}
 }
 
+DOUBLE RTC_timeleft = 0.0;
 void RTC_updateDateTime() //Called at 32kHz!
 {
 	//Update the time itself at the highest frequency of 32kHz!
@@ -548,6 +549,8 @@ void RTC_updateDateTime() //Called at 32kHz!
 
 	if (((CMOS.DATA.DATA80.info.STATUSREGISTERB&SRB_ENABLECYCLEUPDATE)==0) && (dcc!=DIVIDERCHAIN_RESET)) //We're allowed to update the time(divider chain isn't reset too)?
 	{
+		CMOS.DATA.DATA80.info.STATUSREGISTERA &= ~0x80; //Update now in progress, clear the bit until we're past 244uS.
+		RTC_timeleft = RTC_timepassed; //Reverse counting!
 		CMOS_updateActualTime(); //Update the current actual time!
 	}
 	RTC_Handler(lastsecond); //Handle anything that the RTC has to handle!
@@ -559,11 +562,20 @@ void updateCMOS(DOUBLE timepassed)
 	RTC_timepassed += timepassed; //Add the time passed to get our time passed!
 	if (RTC_timetick) //Are we enabled?
 	{
+		RTC_timeleft -= timepassed; //Time left?
 		if (RTC_timepassed >= RTC_timetick) //Enough to tick?
 		{
+			if (likely((CMOS.DATA.DATA80.info.STATUSREGISTERA & 0x80) == 0)) //Less than 244uS left to tick can be checked(set the UIP bit when this happens)?
+			{
+				if (unlikely(RTC_timeleft <= 244000.0f)) //244uS left before a tick starts? Most of the time this isn't used!
+				{
+					CMOS.DATA.DATA80.info.STATUSREGISTERA |= 0x80; //Update starts in 244uS!
+				}
+			}
 			for (;RTC_timepassed>=RTC_timetick;) //Still enough to tick?
 			{
 				RTC_timepassed -= RTC_timetick; //Ticked once!
+				RTC_timeleft = RTC_timetick; //How much is left to time!
 				RTC_updateDateTime(); //Call our timed handler!
 			}
 		}
@@ -665,6 +677,7 @@ void CMOS_cleartimedata(CMOSDATA* CMOS)
 	CMOS->DATA80.info.RTC_Minutes = 0;
 	CMOS->DATA80.info.RTC_Seconds = 0;
 	CMOS->DATA80.info.RTC_DayOfWeek = 0; //The day of the week!
+	CMOS->DATA80.info.STATUSREGISTERA &= ~0x80; //Clear update in progress, as emulation starts with a update!
 	CMOS->s100 = 0; //The 100th seconds!
 	CMOS->s10000 = 0; //The 10000th seconds!
 }
@@ -1006,4 +1019,5 @@ void initCMOS() //Initialises CMOS (apply solid init settings&read init if possi
 	#else
 	RTC_timetick = 1000000000.0/32768.0; //We're ticking at a frequency of ~65kHz(65535Hz signal, which is able to produce a square wave as well at that frequency?)!
 	#endif
+	RTC_timeleft = RTC_timetick; //Initial time left until update!
 }
