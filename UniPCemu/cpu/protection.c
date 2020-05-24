@@ -563,6 +563,11 @@ void CPU_calcSegmentPrecalcs(byte is_CS, SEGMENT_DESCRIPTOR *descriptor)
 		descriptor->PRECALCS.roof |= 0xF0000; //Actually a 1MB limit instead of 64K!
 	}
 	descriptor->PRECALCS.base = (((descriptor->desc.base_high << 24) | (descriptor->desc.base_mid << 16) | descriptor->desc.base_low)&0xFFFFFFFFU); //Update the base address!
+	if (EMULATED_CPU <= CPU_80286) //286 and below?
+	{
+		descriptor->PRECALCS.base &= 0xFFFFFF; //Highest byte isn't used!
+		descriptor->PRECALCS.roof = 0xFFFF; //Only 16-bit roof!
+	}
 }
 
 word LOADDESCRIPTOR_segmentval;
