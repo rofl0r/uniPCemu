@@ -115,6 +115,7 @@ void BIU_directww(uint_32 realaddress, word value, word index); //Direct write t
 void BIU_directwdw(uint_32 realaddress, uint_32 value, word index);
 
 byte BIU_getHLDA(); //HLDA raised?
+byte BIU_getcycle(); //What is the current cycle?
 
 #ifndef IS_BIU
 extern Handler BIU_handleRequests; //Handle all pending requests at once when to be processed!

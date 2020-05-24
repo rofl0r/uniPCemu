@@ -300,6 +300,11 @@ byte BIU_request_BUSwdw(uint_32 addr, uint_32 value)
 	return BIU_request(REQUEST_IOWRITE|REQUEST_32BIT,((uint_64)addr|((uint_64)value<<32)),0); //Request a write!
 }
 
+byte BIU_getcycle()
+{
+	return (BIU[activeCPU].prefetchclock & BIU_numcyclesmask); //What cycle are we at?
+}
+
 byte BIU_readResultb(byte *result) //Read the result data of a BUS request!
 {
 	byte status;
