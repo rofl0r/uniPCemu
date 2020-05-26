@@ -6233,7 +6233,7 @@ void CPU8086_OPEA()
 	if (segmentWritten(CPU_SEGMENT_CS, (segmentoffset>>16), 1)) return;
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
-		CPU[activeCPU].cycles_OP += 15;
+		CPU[activeCPU].cycles_OP += 3;
 	}
 	/* Intersegment direct */
 }
