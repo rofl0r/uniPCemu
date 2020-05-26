@@ -1740,12 +1740,12 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		case 0xA6: //A6: REPNZ CMPSB
 			if (CPU[activeCPU].is0Fopcode) goto noREPNE0Fand8086; //0F opcode?
 			REPZ = 1; //Check the zero flag!
-			if (EMULATED_CPU<=CPU_NECV30) CPU[activeCPU].REPfinishtiming = 7; //Finish timing 3+4 in instruction!
+			if (EMULATED_CPU<=CPU_NECV30) CPU[activeCPU].REPfinishtiming = 3; //Finish timing 3 in instruction!
 			break;
 		case 0xA7: //A7: REPNZ CMPSW
 			if (CPU[activeCPU].is0Fopcode) goto noREPNE0Fand8086; //0F opcode?
 			REPZ = 1; //Check the zero flag!
-			if (EMULATED_CPU<=CPU_NECV30) CPU[activeCPU].REPfinishtiming = 7; //Finish timing 3+4 in instruction!
+			if (EMULATED_CPU<=CPU_NECV30) CPU[activeCPU].REPfinishtiming = 3; //Finish timing 3+4 in instruction!
 			break;
 
 		//New:
@@ -1766,12 +1766,12 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		case 0xAE: //AE: REPNZ SCASB
 			if (CPU[activeCPU].is0Fopcode) goto noREPNE0Fand8086; //0F opcode?
 			REPZ = 1; //Check the zero flag!
-			if (EMULATED_CPU<=CPU_NECV30) CPU[activeCPU].REPfinishtiming += 7; //Finish timing 3+4 in instruction!
+			if (EMULATED_CPU<=CPU_NECV30) CPU[activeCPU].REPfinishtiming += 3; //Finish timing 3+4 in instruction!
 			break;
 		case 0xAF: //AF: REPNZ SCASW
 			if (CPU[activeCPU].is0Fopcode) goto noREPNE0Fand8086; //0F opcode?
 			REPZ = 1; //Check the zero flag!
-			if (EMULATED_CPU<=CPU_NECV30) CPU[activeCPU].REPfinishtiming += 7; //Finish timing 3+4 in instruction!
+			if (EMULATED_CPU<=CPU_NECV30) CPU[activeCPU].REPfinishtiming += 3; //Finish timing 3+4 in instruction!
 			break;
 		default: //Unknown yet?
 		noREPNE0Fand8086: //0F/8086 #UD exception!
@@ -1804,12 +1804,12 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		case 0xA6: //A6: REPE CMPSB
 			if (CPU[activeCPU].is0Fopcode) goto noREPE0Fand8086; //0F opcode?
 			REPZ = 1; //Check the zero flag!
-			if (EMULATED_CPU<=CPU_NECV30) CPU[activeCPU].REPfinishtiming = 7; //Finish timing 3+4 in instruction!
+			if (EMULATED_CPU<=CPU_NECV30) CPU[activeCPU].REPfinishtiming = 3; //Finish timing 3+4 in instruction!
 			break;
 		case 0xA7: //A7: REPE CMPSW
 			if (CPU[activeCPU].is0Fopcode) goto noREPE0Fand8086; //0F opcode?
 			REPZ = 1; //Check the zero flag!
-			if (EMULATED_CPU<=CPU_NECV30) CPU[activeCPU].REPfinishtiming = 7; //Finish timing 3+4 in instruction!
+			if (EMULATED_CPU<=CPU_NECV30) CPU[activeCPU].REPfinishtiming = 3; //Finish timing 3+4 in instruction!
 			break;
 		case 0xAA: //AA: REP STOSB
 			if (CPU[activeCPU].is0Fopcode) goto noREPE0Fand8086; //0F opcode?
@@ -1826,12 +1826,12 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		case 0xAE: //AE: REPE SCASB
 			if (CPU[activeCPU].is0Fopcode) goto noREPE0Fand8086; //0F opcode?
 			REPZ = 1; //Check the zero flag!
-			if (EMULATED_CPU<=CPU_NECV30) CPU[activeCPU].REPfinishtiming = 7; //Finish timing 3+4 in instruction!
+			if (EMULATED_CPU<=CPU_NECV30) CPU[activeCPU].REPfinishtiming = 3; //Finish timing 3+4 in instruction!
 			break;
 		case 0xAF: //AF: REPE SCASW
 			if (CPU[activeCPU].is0Fopcode) goto noREPE0Fand8086; //0F opcode?
 			REPZ = 1; //Check the zero flag!
-			if (EMULATED_CPU<=CPU_NECV30) CPU[activeCPU].REPfinishtiming = 7; //Finish timing 3+4 in instruction!
+			if (EMULATED_CPU<=CPU_NECV30) CPU[activeCPU].REPfinishtiming = 3; //Finish timing 3+4 in instruction!
 			break;
 		default: //Unknown yet?
 			noREPE0Fand8086: //0F exception!
@@ -1988,6 +1988,10 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 			if (unlikely(REPZ && (CPU_getprefix(0xF2) || CPU_getprefix(0xF3)))) //REP(N)Z used?
 			{
 				gotREP &= (FLAG_ZF^CPU_getprefix(0xF2)); //Reset the opcode when ZF doesn't match(needs to be 0 to keep looping).
+				if (gotREP == 0) //Finished?
+				{
+					CPU[activeCPU].cycles_OP += 4; //4 cycles for finishing!
+				}
 			}
 			if (CPU_Address_size[activeCPU]) //32-bit REP?
 			{
