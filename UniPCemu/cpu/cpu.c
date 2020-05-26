@@ -1884,8 +1884,10 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		case 0xA5: //MOVS
 		case 0xAC:
 		case 0xAD: //LODS
-		case 0xA6:
-			if (CPU[activeCPU].repeating == 0) CPU[activeCPU].cycles_OP += 1; //1 cycle for starting REP MOVS!
+			if ((CPU[activeCPU].preinstructiontimingnotready == 0) && (CPU[activeCPU].repeating == 0)) //To start ready timing?
+			{
+				CPU[activeCPU].cycles_OP += 1; //1 cycle for starting REP MOVS!
+			}
 			if ((CPU[activeCPU].preinstructiontimingnotready==0) && (CPU[activeCPU].repeating==0)) //To start ready timing?
 			{
 				CPU[activeCPU].preinstructiontimingnotready = 1; //Timing not ready for the instruction to execute?
@@ -1899,6 +1901,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 				CPU[activeCPU].cycles_OP += 1; //1 cycle for starting REP MOVS!
 			}
 			break;
+		case 0xA6:
 		case 0xA7: //CMPS
 		case 0xAE:
 		case 0xAF: //SCAS
@@ -1906,7 +1909,10 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 			break;
 		case 0xAA:
 		case 0xAB: //STOS
-			if (CPU[activeCPU].repeating == 0) CPU[activeCPU].cycles_OP += 1; //1 cycle for non-REP!
+			if ((CPU[activeCPU].preinstructiontimingnotready == 0) && (CPU[activeCPU].repeating == 0)) //To start ready timing?
+			{
+				CPU[activeCPU].cycles_OP += 1; //1 cycle for non-REP!
+			}
 			if ((CPU[activeCPU].preinstructiontimingnotready == 0) && (CPU[activeCPU].repeating==0)) //To start ready timing?
 			{
 				CPU[activeCPU].preinstructiontimingnotready = 1; //Timing not ready for the instruction to execute?
