@@ -1566,6 +1566,10 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		CPU[activeCPU].executed = 0; //Not executing anymore!
 		goto BIUWaiting; //Are we ready to step the Execution Unit?
 	}
+	if (CPU[activeCPU].preinstructiontimingnotready&1) //Timing not ready yet?
+	{
+		goto CPUtimingready; //We might be ready for execution now?
+	}
 	if (CPU_executionphase_busy()) //Busy during execution?
 	{
 		goto executionphase_running; //Continue an running instruction!
@@ -1870,25 +1874,48 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		}
 	}
 
+	CPU[activeCPU].preinstructiontimingnotready = 0; //Timing ready for the instruction to execute?
+	CPUtimingready: //Timing in preparation?
 	if (CPU[activeCPU].is0Fopcode == 0) //REP instruction affected?
 	{
 		switch (OP) //Check for string instructions!
 		{
 		case 0xA4:
 		case 0xA5: //MOVS
-			if ((CPU[activeCPU].repeating == 0) && gotREP) CPU[activeCPU].cycles_OP += 1; //1 cycle for starting REP MOVS!
 		case 0xAC:
 		case 0xAD: //LODS
 		case 0xA6:
+			if (CPU[activeCPU].repeating == 0) CPU[activeCPU].cycles_OP += 1; //1 cycle for starting REP MOVS!
+			if ((CPU[activeCPU].preinstructiontimingnotready==0) && (CPU[activeCPU].repeating==0)) //To start ready timing?
+			{
+				CPU[activeCPU].preinstructiontimingnotready = 1; //Timing not ready for the instruction to execute?
+				CPU[activeCPU].executed = 0; //Not executed yet!
+				goto BIUWaiting; //Wait for the BIU to finish!
+			}
+			CPU[activeCPU].preinstructiontimingnotready = 2; //Finished and ready to check for cycles now!
+			if (BIU_getcycle() == 0) CPU[activeCPU].cycles_OP += 1; //1 cycle for idle bus?
+			if (((OP == 0xA4) || (OP == 0xA5)) && gotREP && (CPU[activeCPU].repeating==0)) //REP MOVS starting?
+			{
+				CPU[activeCPU].cycles_OP += 1; //1 cycle for starting REP MOVS!
+			}
+			break;
 		case 0xA7: //CMPS
 		case 0xAE:
 		case 0xAF: //SCAS
-			if (!gotREP) CPU[activeCPU].cycles_OP += 1; //1 cycle for non-REP!
+			if (CPU[activeCPU].repeating == 0) CPU[activeCPU].cycles_OP += 1; //1 cycle for non-REP!
 			break;
 		case 0xAA:
 		case 0xAB: //STOS
-			if (!gotREP) CPU[activeCPU].cycles_OP += 1; //1 cycle for non-REP!
-			if (gotREP) CPU[activeCPU].cycles_OP += 1; //1 cycle for REP prefix used!
+			if (CPU[activeCPU].repeating == 0) CPU[activeCPU].cycles_OP += 1; //1 cycle for non-REP!
+			if ((CPU[activeCPU].preinstructiontimingnotready == 0) && (CPU[activeCPU].repeating==0)) //To start ready timing?
+			{
+				CPU[activeCPU].preinstructiontimingnotready = 1; //Timing not ready for the instruction to execute?
+				CPU[activeCPU].executed = 0; //Not executed yet!
+				goto BIUWaiting; //Wait for the BIU to finish!
+			}
+			CPU[activeCPU].preinstructiontimingnotready = 2; //Finished and ready to check for cycles now!
+			if (BIU_getcycle() == 0) CPU[activeCPU].cycles_OP += 1; //1 cycle for idle bus?
+			if (gotREP && (CPU[activeCPU].repeating==0)) CPU[activeCPU].cycles_OP += 1; //1 cycle for REP prefix used!
 			break;
 		default: //Not a string instruction?
 			break;
@@ -1910,7 +1937,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 			{
 			case 0xAC:
 			case 0xAD: //LODS
-				CPU[activeCPU].cycles_OP += 1; //1 cycle!
+				CPU[activeCPU].cycles_OP += 2; //2 cycles!
 			case 0xA4:
 			case 0xA5: //MOVS
 			case 0xAA:
@@ -1933,6 +1960,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	didNewREP = newREP; //Were we doing a REP for the first time?
 	CPU[activeCPU].gotREP = gotREP; //Did we got REP?
 	CPU[activeCPU].executed = 0; //Not executing it yet, wait for the BIU to catch up if required!
+	CPU[activeCPU].preinstructiontimingnotready = 0; //We're ready now!
 	goto fetchinginstruction; //Just update the BIU until it's ready to start executing the instruction!
 	executionphase_running:
 	CPU[activeCPU].executed = 1; //Executed by default!

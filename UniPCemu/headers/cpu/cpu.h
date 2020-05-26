@@ -896,6 +896,7 @@ typedef struct
 	double TSCtiming; //How much remaining time has been counted on top of the time-stamp counter?
 	byte unaffectedRF; //Don't affect the resume flag this instruction!
 	byte BIUnotticking;
+	byte preinstructiontimingnotready; //Pre-instruction timing ready?
 } CPU_type;
 
 #ifndef IS_CPU
