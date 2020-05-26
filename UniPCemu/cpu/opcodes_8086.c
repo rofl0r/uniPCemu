@@ -3248,11 +3248,6 @@ OPTINLINE byte CPU8086_internal_MOVSW()
 		if (CPU8086_internal_stepreaddirectw(0,CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI), &MOVSW_data,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 	}
-	if (!CPU[activeCPU].gotREP) //Non-blocked non-REP?
-	{
-		if (CPU8086_instructionstepdelayBIU(counter, 3)) return 1; //3 cycles for non-REP!
-		counter += 2;
-	}
 	if (CPU[activeCPU].internalinstructionstep==2) //Execution step?
 	{
 		if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
@@ -3281,6 +3276,11 @@ OPTINLINE byte CPU8086_internal_MOVSW()
 	}
 	//Writeback phase!
 	if (CPU8086_internal_stepwritedirectw(2,CPU_SEGMENT_ES,REG_ES,(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),MOVSW_data,!CPU_Address_size[activeCPU])) return 1;
+	if (!CPU[activeCPU].gotREP) //Non-blocked non-REP?
+	{
+		if (CPU8086_instructionstepdelayBIU(counter, 3)) return 1; //3 cycles for non-REP!
+		counter += 2;
+	}
 	CPUPROT1
 	if (FLAG_DF)
 	{
