@@ -3364,7 +3364,7 @@ OPTINLINE byte CPU8086_internal_CMPSB()
 	counter += 2;
 	if (CPU8086_instructionstepdelayBIU(counter, 2)) return 1; //2 cycles always!
 	counter += 2;
-	if (CPU[activeCPU].gotREP) //Non-blocked non-REP?
+	if (!CPU[activeCPU].gotREP) //Non-blocked non-REP?
 	{
 		if (CPU8086_instructionstepdelayBIU(counter, 3)) return 1; //3 cycles for REP!
 		counter += 2;
@@ -3471,7 +3471,7 @@ OPTINLINE byte CPU8086_internal_CMPSW()
 	counter += 2;
 	if (CPU8086_instructionstepdelayBIU(counter, 2)) return 1; //2 cycles always!
 	counter += 2;
-	if (CPU[activeCPU].gotREP) //Non-blocked non-REP?
+	if (!CPU[activeCPU].gotREP) //Non-blocked non-REP?
 	{
 		if (CPU8086_instructionstepdelayBIU(counter, 3)) return 1; //3 cycles for REP!
 		counter += 2;
@@ -3875,7 +3875,7 @@ OPTINLINE byte CPU8086_internal_SCASB()
 	}
 	if (CPU8086_instructionstepdelayBIU(counter, 2)) return 1; //2 cycles always!
 	counter += 2;
-	if (CPU[activeCPU].gotREP) //Non-blocked non-REP?
+	if (!CPU[activeCPU].gotREP) //Non-blocked non-REP?
 	{
 		if (CPU8086_instructionstepdelayBIU(counter, 3)) return 1; //3 cycles for REP!
 		counter += 2;
@@ -3962,7 +3962,7 @@ OPTINLINE byte CPU8086_internal_SCASW()
 	}
 	if (CPU8086_instructionstepdelayBIU(counter, 2)) return 1; //2 cycles always!
 	counter += 2;
-	if (CPU[activeCPU].gotREP) //Non-blocked non-REP?
+	if (!CPU[activeCPU].gotREP) //Non-blocked non-REP?
 	{
 		if (CPU8086_instructionstepdelayBIU(counter, 3)) return 1; //3 cycles for REP!
 		counter += 2;
