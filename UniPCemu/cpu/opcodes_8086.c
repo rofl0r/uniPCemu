@@ -5578,10 +5578,22 @@ void CPU8086_OP9A()
 {
 	/*CALL Ap*/ INLINEREGISTER uint_32 segmentoffset = imm32;
 	debugger_setcommand(debugger_forceEIP()?"CALL %04X:%08X":"CALL %04x:%04x", (segmentoffset>>16), ((segmentoffset&0xFFFF)&CPU_EIPmask(0)));
-	if (CPU8086_CALLF((segmentoffset>>16)&0xFFFF,(segmentoffset&0xFFFF)&CPU_EIPmask(0))) return;
-	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
+	if (EMULATED_CPU <= CPU_NECV30) //8086 timings?
 	{
-		CPU[activeCPU].cycles_OP += 28; /* Intersegment direct */
+		if (CPU8086_PUSHw(0, &REG_CS, 0)) return; //CS pushed!
+		if (CPU8086_instructionstepdelayBIU(2, 5)) return; //Wait 5 cycles!
+		if (CPU8086_instructionstepdelayBIU(4, 4)) return; //Wait 4 cycles!
+		if (CPU8086_PUSHw(6, &REG_IP, 0)) return; //IP pushed!
+		destEIP = (segmentoffset & 0xFFFF) & CPU_EIPmask(0); //IP destination!
+		segmentWritten(CPU_SEGMENT_CS, (segmentoffset >> 16) & 0xFFFF, 0); //Set CS&IP!
+	}
+	else //Other CPU?
+	{
+		if (CPU8086_CALLF((segmentoffset >> 16) & 0xFFFF, (segmentoffset & 0xFFFF) & CPU_EIPmask(0))) return;
+		if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+		{
+			CPU[activeCPU].cycles_OP += 28; /* Intersegment direct */
+		}
 	}
 }
 void CPU8086_OP9B()
