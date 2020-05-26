@@ -7897,71 +7897,104 @@ void op_grp5()
 	switch (thereg)
 	{
 	case 0: //INC Ev
-		if (unlikely(CPU[activeCPU].internalinstructionstep==0)) 
+		if (unlikely(CPU[activeCPU].internalinstructionstep == 0))
 		{
-			if (modrm_check16(&params,MODRM_src0,0|0x40)) return; //Abort when needed!
-			if (modrm_check16(&params,MODRM_src0,0|0xA0)) return; //Abort when needed!
+			if (modrm_check16(&params, MODRM_src0, 0 | 0x40)) return; //Abort when needed!
+			if (modrm_check16(&params, MODRM_src0, 0 | 0xA0)) return; //Abort when needed!
 		}
-		CPU8086_internal_INC16(modrm_addr16(&params,MODRM_src0,0));
+		CPU8086_internal_INC16(modrm_addr16(&params, MODRM_src0, 0));
 		break;
 	case 1: //DEC Ev
-		if (unlikely(CPU[activeCPU].internalinstructionstep==0)) 
+		if (unlikely(CPU[activeCPU].internalinstructionstep == 0))
 		{
-			if (modrm_check16(&params,MODRM_src0,0|0x40)) return; //Abort when needed!
-			if (modrm_check16(&params,MODRM_src0,0|0xA0)) return; //Abort when needed!
+			if (modrm_check16(&params, MODRM_src0, 0 | 0x40)) return; //Abort when needed!
+			if (modrm_check16(&params, MODRM_src0, 0 | 0xA0)) return; //Abort when needed!
 		}
-		CPU8086_internal_DEC16(modrm_addr16(&params,MODRM_src0,0));
+		CPU8086_internal_DEC16(modrm_addr16(&params, MODRM_src0, 0));
 		break;
 	case 2: //CALL Ev
-		if (unlikely(CPU[activeCPU].stackchecked==0))
+		if (unlikely(CPU[activeCPU].stackchecked == 0))
 		{
-			if (checkStackAccess(1,1,0)) return;
+			if (checkStackAccess(1, 1, 0)) return;
 			++CPU[activeCPU].stackchecked;
 		}
-		if (CPU8086_PUSHw(0,&REG_IP,0)) return;
-		CPU_JMPabs((uint_32)oper1,0);
-		if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
+		if (EMULATED_CPU <= CPU_NECV30) //8086 timings?
 		{
-			if (MODRM_EA(params)) //Mem?
+			if (CPU8086_instructionstepdelayBIUidle(0, 1)) return; //Wait 1 cycle!
+			if (CPU8086_instructionstepdelayBIUidle(2, 4 + (MODRM_EA(params) ? 1 : 0))) return; //Wait 4 idle cycles, wait 1 more for memory!
+			if (CPU8086_instructionstepwaitBIUready(4)) return; //Wait for the BIU to become ready!
+			if (CPU8086_instructionstepdelayBIUidle(6, 1)) return; //Wait 1 cycle more!
+			if (CPU8086_instructionstepdelayBIUidle(8, 2)) return; //Wait 2 cycles more!
+			if (CPU8086_PUSHw(10, &REG_IP, 0)) return; //PUSH IP!
+		}
+		else
+		{
+			if (CPU8086_PUSHw(0, &REG_IP, 0)) return; //PUSH IP!
+		}
+		CPU_JMPabs((uint_32)oper1, 0);
+		if (EMULATED_CPU > CPU_NECV30) //Not 8086 timings?
+		{
+			if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
 			{
-				CPU[activeCPU].cycles_OP += 9; /* Intrasegment indirect through memory */
+				if (MODRM_EA(params)) //Mem?
+				{
+					CPU[activeCPU].cycles_OP += 9; /* Intrasegment indirect through memory */
+				}
+				else //Register?
+				{
+					CPU[activeCPU].cycles_OP += 8; /* Intrasegment indirect through register */
+				}
+				CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
 			}
-			else //Register?
-			{
-				CPU[activeCPU].cycles_OP += 8; /* Intrasegment indirect through register */
-			}
-			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
 		}
 		CPU_flushPIQ(-1); //We're jumping to another address!
 		break;
 	case 3: //CALL Mp
-		memcpy(&info,&params.info[MODRM_src0],sizeof(info)); //Get data!
+		memcpy(&info, &params.info[MODRM_src0], sizeof(info)); //Get data!
 
 		modrm_addoffset = 0;
 
 		destEIP = (uint_32)oper1; //Convert to EIP!
-		CPUPROT1
-		modrm_addoffset = 2; //Then destination CS!
-		if (CPU8086_instructionstepreadmodrmw(2,&destCS,MODRM_src0)) return; //Get destination CS!
-		CPUPROT1
-		modrm_addoffset = 0;
-		if (CPU8086_CALLF(destCS,destEIP)) return; //Call the destination address!
-		CPUPROT1
-		if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
+		if (EMULATED_CPU <= CPU_NECV30) //8086 timings?
 		{
-			if (MODRM_EA(params)) //Mem?
-			{
-				CPU[activeCPU].cycles_OP += 4; /* Intersegment indirect */
-			}
-			else //Register?
-			{
-				CPU[activeCPU].cycles_OP += 4; /* Intersegment direct */
-			}
-			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
+			if (CPU8086_instructionstepdelayBIU(0, 2+MODRM_EA(params)?1:0)) return; //2+ 1 for memory cycle first!
+			modrm_addoffset = 2; //Then destination CS!
+			if (CPU8086_instructionstepreadmodrmw(2, &destCS, MODRM_src0)) return; //Get destination CS!
+			if (CPU8086_instructionstepdelayBIU(2, 2 + (MODRM_EA(params) ? 1 : 0))) return; //2 + 1 for memory cycle first!
+			if (CPU8086_PUSHw(4, &REG_CS, 0)) return; //PUSH CS!
+			if (CPU8086_instructionstepdelayBIU(6, 3)) return; //3 cycles for after the push!
+			if (CPU8086_instructionstepdelayBIU(8, 4)) return; //4 cycles delay!
+			//We set CS:IP now?
+			if (CPU8086_instructionstepdelayBIU(10, 1)) return; //1 more cycle before starting the push of IP!
+			if (CPU8086_PUSHw(12, &REG_IP, 0)) return; //PUSH IP!
+			//Now, set CS:IP directly!
+			segmentWritten(CPU_SEGMENT_CS, destCS, 0); //Set CS:IP directly!
 		}
-		CPUPROT2
-		CPUPROT2
-		CPUPROT2
+		else //Not 8086 timings?
+		{
+			CPUPROT1
+			modrm_addoffset = 2; //Then destination CS!
+			if (CPU8086_instructionstepreadmodrmw(2, &destCS, MODRM_src0)) return; //Get destination CS!
+			CPUPROT1
+			modrm_addoffset = 0;
+			if (CPU8086_CALLF(destCS, destEIP)) return; //Call the destination address!
+			CPUPROT1
+			if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+			{
+				if (MODRM_EA(params)) //Mem?
+				{
+					CPU[activeCPU].cycles_OP += 4; /* Intersegment indirect */
+				}
+				else //Register?
+				{
+					CPU[activeCPU].cycles_OP += 4; /* Intersegment direct */
+				}
+				CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
+			}
+			CPUPROT2
+			CPUPROT2
+			CPUPROT2
+			}
 		break;
 	case 4: //JMP Ev
 		CPU_JMPabs((uint_32)oper1,0);
@@ -7985,26 +8018,38 @@ void op_grp5()
 		CPUPROT1
 		destEIP = (uint_32)oper1; //Convert to EIP!
 		modrm_addoffset = 2; //Then destination CS!
-		if (CPU8086_instructionstepreadmodrmw(2,&destCS,MODRM_src0)) return; //Get destination CS!
-		modrm_addoffset = 0;
-		CPUPROT1
-		if (segmentWritten(CPU_SEGMENT_CS, destCS, 1)) return;
-		CPUPROT1
-		if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
+		if (EMULATED_CPU <= CPU_NECV30) //8086 timings?
 		{
-			if (MODRM_EA(params)) //Memory?
-			{
-				CPU[activeCPU].cycles_OP += 24 - (EU_CYCLES_SUBSTRACT_ACCESSREAD*2); /* Intersegment indirect through memory */
-			}
-			else //Register?
-			{
-				CPU[activeCPU].cycles_OP += 11; /* Intersegment indirect through register */
-			}
-			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
+			if (CPU8086_instructionstepdelayBIU(0, 2 + MODRM_EA(params) ? 1 : 0)) return; //2+ 1 for memory cycle first!
+			if (CPU8086_instructionstepreadmodrmw(2, &destCS, MODRM_src0)) return; //Get destination CS!
+			if (CPU8086_instructionstepdelayBIU(2, 3)) return; //3 cycles for after the read!
+			if (CPU8086_instructionstepdelayBIU(4, 1)) return; //1 cycles for after that!
+			modrm_addoffset = 0;
+			if (segmentWritten(CPU_SEGMENT_CS, destCS, 1)) return;
 		}
-		CPUPROT2
-		CPUPROT2
-		CPUPROT2
+		else
+		{
+			if (CPU8086_instructionstepreadmodrmw(2, &destCS, MODRM_src0)) return; //Get destination CS!
+			modrm_addoffset = 0;
+			CPUPROT1
+			if (segmentWritten(CPU_SEGMENT_CS, destCS, 1)) return;
+			CPUPROT1
+				if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
+				{
+					if (MODRM_EA(params)) //Memory?
+					{
+						CPU[activeCPU].cycles_OP += 24 - (EU_CYCLES_SUBSTRACT_ACCESSREAD * 2); /* Intersegment indirect through memory */
+					}
+					else //Register?
+					{
+						CPU[activeCPU].cycles_OP += 11; /* Intersegment indirect through register */
+					}
+					CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
+				}
+			CPUPROT2
+			CPUPROT2
+			CPUPROT2
+		}
 		break;
 	case 6: //PUSH Ev
 		if (unlikely(CPU[activeCPU].stackchecked==0))
