@@ -1736,12 +1736,12 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		case 0xA6: //A6: REPNZ CMPSB
 			if (CPU[activeCPU].is0Fopcode) goto noREPNE0Fand8086; //0F opcode?
 			REPZ = 1; //Check the zero flag!
-			if (EMULATED_CPU<=CPU_NECV30) CPU[activeCPU].REPfinishtiming += 4; //Finish timing!
+			if (EMULATED_CPU<=CPU_NECV30) CPU[activeCPU].REPfinishtiming = 7; //Finish timing 3+4 in instruction!
 			break;
 		case 0xA7: //A7: REPNZ CMPSW
 			if (CPU[activeCPU].is0Fopcode) goto noREPNE0Fand8086; //0F opcode?
 			REPZ = 1; //Check the zero flag!
-			if (EMULATED_CPU<=CPU_NECV30) CPU[activeCPU].REPfinishtiming += 4; //Finish timing!
+			if (EMULATED_CPU<=CPU_NECV30) CPU[activeCPU].REPfinishtiming = 7; //Finish timing 3+4 in instruction!
 			break;
 
 		//New:
@@ -1762,12 +1762,12 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		case 0xAE: //AE: REPNZ SCASB
 			if (CPU[activeCPU].is0Fopcode) goto noREPNE0Fand8086; //0F opcode?
 			REPZ = 1; //Check the zero flag!
-			if (EMULATED_CPU<=CPU_NECV30) CPU[activeCPU].REPfinishtiming += 4; //Finish timing!
+			if (EMULATED_CPU<=CPU_NECV30) CPU[activeCPU].REPfinishtiming += 7; //Finish timing 3+4 in instruction!
 			break;
 		case 0xAF: //AF: REPNZ SCASW
 			if (CPU[activeCPU].is0Fopcode) goto noREPNE0Fand8086; //0F opcode?
 			REPZ = 1; //Check the zero flag!
-			if (EMULATED_CPU<=CPU_NECV30) CPU[activeCPU].REPfinishtiming += 4; //Finish timing!
+			if (EMULATED_CPU<=CPU_NECV30) CPU[activeCPU].REPfinishtiming += 7; //Finish timing 3+4 in instruction!
 			break;
 		default: //Unknown yet?
 		noREPNE0Fand8086: //0F/8086 #UD exception!
@@ -1800,12 +1800,12 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		case 0xA6: //A6: REPE CMPSB
 			if (CPU[activeCPU].is0Fopcode) goto noREPE0Fand8086; //0F opcode?
 			REPZ = 1; //Check the zero flag!
-			if (EMULATED_CPU<=CPU_NECV30) CPU[activeCPU].REPfinishtiming += 4; //Finish timing!
+			if (EMULATED_CPU<=CPU_NECV30) CPU[activeCPU].REPfinishtiming = 7; //Finish timing 3+4 in instruction!
 			break;
 		case 0xA7: //A7: REPE CMPSW
 			if (CPU[activeCPU].is0Fopcode) goto noREPE0Fand8086; //0F opcode?
 			REPZ = 1; //Check the zero flag!
-			if (EMULATED_CPU<=CPU_NECV30) CPU[activeCPU].REPfinishtiming += 4; //Finish timing!
+			if (EMULATED_CPU<=CPU_NECV30) CPU[activeCPU].REPfinishtiming = 7; //Finish timing 3+4 in instruction!
 			break;
 		case 0xAA: //AA: REP STOSB
 			if (CPU[activeCPU].is0Fopcode) goto noREPE0Fand8086; //0F opcode?
@@ -1822,12 +1822,12 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		case 0xAE: //AE: REPE SCASB
 			if (CPU[activeCPU].is0Fopcode) goto noREPE0Fand8086; //0F opcode?
 			REPZ = 1; //Check the zero flag!
-			if (EMULATED_CPU<=CPU_NECV30) CPU[activeCPU].REPfinishtiming += 4; //Finish timing!
+			if (EMULATED_CPU<=CPU_NECV30) CPU[activeCPU].REPfinishtiming = 7; //Finish timing 3+4 in instruction!
 			break;
 		case 0xAF: //AF: REPE SCASW
 			if (CPU[activeCPU].is0Fopcode) goto noREPE0Fand8086; //0F opcode?
 			REPZ = 1; //Check the zero flag!
-			if (EMULATED_CPU<=CPU_NECV30) CPU[activeCPU].REPfinishtiming += 4; //Finish timing!
+			if (EMULATED_CPU<=CPU_NECV30) CPU[activeCPU].REPfinishtiming = 7; //Finish timing 3+4 in instruction!
 			break;
 		default: //Unknown yet?
 			noREPE0Fand8086: //0F exception!
@@ -1843,8 +1843,6 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 			blockREP = 1; //Block the CPU instruction from executing!
 		}
 	}
-
-	if (gotREP==0) ++CPU[activeCPU].cycles_OP; //Non-REP adds 1 cycle!
 
 	if (unlikely(cpudebugger)) //Need to set any debugger info?
 	{
@@ -1872,10 +1870,68 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		}
 	}
 
-	if (gotREP) CPU[activeCPU].cycles_OP += 4; //rep!
+	if (CPU[activeCPU].is0Fopcode == 0) //REP instruction affected?
+	{
+		switch (OP) //Check for string instructions!
+		{
+		case 0xA4:
+		case 0xA5: //MOVS
+			if ((CPU[activeCPU].repeating == 0) && gotREP) CPU[activeCPU].cycles_OP += 1; //1 cycle for starting REP MOVS!
+		case 0xAC:
+		case 0xAD: //LODS
+		case 0xA6:
+		case 0xA7: //CMPS
+		case 0xAE:
+		case 0xAF: //SCAS
+			if (!gotREP) CPU[activeCPU].cycles_OP += 1; //1 cycle for non-REP!
+			break;
+		case 0xAA:
+		case 0xAB: //STOS
+			if (!gotREP) CPU[activeCPU].cycles_OP += 1; //1 cycle for non-REP!
+			if (gotREP) CPU[activeCPU].cycles_OP += 1; //1 cycle for REP prefix used!
+			break;
+		default: //Not a string instruction?
+			break;
+		}
+	}
+
+	//Perform REPaction timing before instructions!
+	if (gotREP) //Starting/continuing a REP instruction? Not finishing?
+	{
+		//Don't apply finishing timing, this is done automatically!
+		CPU[activeCPU].cycles_OP += 2; //rep active!
+		//Check for pending interrupts could be done here?
+		if (unlikely(blockREP)) ++CPU[activeCPU].cycles_OP; //1 cycle for CX=0 or interrupt!
+		else //Normally repeating?
+		{
+			CPU[activeCPU].cycles_OP += 2; //CX used!
+			if (newREP) CPU[activeCPU].cycles_OP += 2; //New REP takes two cycles!
+			switch (OP)
+			{
+			case 0xAC:
+			case 0xAD: //LODS
+				CPU[activeCPU].cycles_OP += 1; //1 cycle!
+			case 0xA4:
+			case 0xA5: //MOVS
+			case 0xAA:
+			case 0xAB: //STOS
+				CPU[activeCPU].cycles_OP += 1; //1 cycle!
+				break;
+			case 0xA6:
+			case 0xA7: //CMPS
+			case 0xAE:
+			case 0xAF: //SCAS
+				CPU[activeCPU].cycles_OP += 2; //2 cycles!
+				break;
+			default: //Unknown timings?
+				break;
+			}
+		}
+	}
 	
 	didRepeating = CPU[activeCPU].repeating; //Were we doing REP?
 	didNewREP = newREP; //Were we doing a REP for the first time?
+	CPU[activeCPU].gotREP = gotREP; //Did we got REP?
 	CPU[activeCPU].executed = 0; //Not executing it yet, wait for the BIU to catch up if required!
 	goto fetchinginstruction; //Just update the BIU until it's ready to start executing the instruction!
 	executionphase_running:

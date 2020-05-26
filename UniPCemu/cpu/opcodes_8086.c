@@ -3120,6 +3120,7 @@ OPTINLINE byte CPU8086_internal_CWD()
 //Now the repeatable instructions!
 
 extern byte newREP; //Are we a new repeating instruction (REP issued for a new instruction, not repeating?)
+byte counter;
 
 byte MOVSB_data;
 OPTINLINE byte CPU8086_internal_MOVSB()
@@ -3145,6 +3146,7 @@ OPTINLINE byte CPU8086_internal_MOVSB()
 		}
 		++CPU[activeCPU].internalinstructionstep; //Next step!
 	}
+	counter = 0; //Init counter!
 	if (CPU[activeCPU].internalinstructionstep==1) //First Execution step?
 	{
 		//Needs a read from memory?
@@ -3155,6 +3157,7 @@ OPTINLINE byte CPU8086_internal_MOVSB()
 	{
 		if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
 		{
+			/*
 			if (CPU[activeCPU].repeating) //Are we a repeating instruction?
 			{
 				if (newREP) //Include the REP?
@@ -3170,12 +3173,19 @@ OPTINLINE byte CPU8086_internal_MOVSB()
 			{
 				CPU[activeCPU].cycles_OP += 4; //Clock cycles!
 			}
+			++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+			CPU[activeCPU].executed = 0; return 1; //Wait for execution phase to finish!
+			*/
 		}
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
-		CPU[activeCPU].executed = 0; return 1; //Wait for execution phase to finish!
 	}
 	//Writeback phase!
 	if (CPU8086_internal_stepwritedirectb(2,CPU_SEGMENT_ES,REG_ES,(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),MOVSB_data,!CPU_Address_size[activeCPU])) return 1;
+	if (!CPU[activeCPU].gotREP) //Non-blocked non-REP?
+	{
+		if (CPU8086_instructionstepdelayBIU(counter, 3)) return 1; //3 cycles for non-REP!
+		counter += 2;
+	}
 	CPUPROT1
 	if (FLAG_DF)
 	{
@@ -3231,16 +3241,23 @@ OPTINLINE byte CPU8086_internal_MOVSW()
 		}
 		++CPU[activeCPU].internalinstructionstep; //Next step!
 	}
+	counter = 0; //Init counter!
 	if (CPU[activeCPU].internalinstructionstep==1) //First Execution step?
 	{
 		//Needs a read from memory?
 		if (CPU8086_internal_stepreaddirectw(0,CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI), &MOVSW_data,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 	}
+	if (!CPU[activeCPU].gotREP) //Non-blocked non-REP?
+	{
+		if (CPU8086_instructionstepdelayBIU(counter, 3)) return 1; //3 cycles for non-REP!
+		counter += 2;
+	}
 	if (CPU[activeCPU].internalinstructionstep==2) //Execution step?
 	{
 		if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
 		{
+			/*
 			if (CPU[activeCPU].repeating) //Are we a repeating instruction?
 			{
 				if (newREP) //Include the REP?
@@ -3256,9 +3273,11 @@ OPTINLINE byte CPU8086_internal_MOVSW()
 			{
 				CPU[activeCPU].cycles_OP += 4; //Clock cycles!
 			}
+			++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+			CPU[activeCPU].executed = 0; return 1; //Wait for execution phase to finish!
+			*/
 		}
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
-		CPU[activeCPU].executed = 0; return 1; //Wait for execution phase to finish!
 	}
 	//Writeback phase!
 	if (CPU8086_internal_stepwritedirectw(2,CPU_SEGMENT_ES,REG_ES,(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),MOVSW_data,!CPU_Address_size[activeCPU])) return 1;
@@ -3317,13 +3336,36 @@ OPTINLINE byte CPU8086_internal_CMPSB()
 		}
 		++CPU[activeCPU].internalinstructionstep; //Next step!
 	}
+	counter = 0; //Init counter!
+	if (CPU[activeCPU].gotREP) //Non-blocked non-REP?
+	{
+		if (CPU8086_instructionstepdelayBIU(counter, 1)) return 1; //1 cycles for REP!
+		counter += 2;
+	}
+	if (CPU8086_instructionstepdelayBIU(counter, 1)) return 1; //1 cycles always!
+	counter += 2;
 	if (CPU[activeCPU].internalinstructionstep==1) //First Execution step?
 	{
 		//Needs a read from memory?
 		if (CPU8086_internal_stepreaddirectb(0,CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI),&CMPSB_data1,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
+		if (CPU8086_instructionstepdelayBIU(counter, 1)) return 1; //1 cycles delay!
+		counter += 2;
+		if (CPU8086_instructionstepdelayBIU(counter, 1)) return 1; //1 cycles after!
+		counter += 2;
 		if (CPU8086_internal_stepreaddirectb(2,CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI), &CMPSB_data2,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
 		
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+	}
+	else
+	{
+		counter += 4;
+	}
+	if (CPU8086_instructionstepdelayBIU(counter, 2+((BIU_getcycle()==0)?1:0))) return 1; //2 cycles + 1 for idle bus!
+	if (CPU8086_instructionstepdelayBIU(counter, 2)) return 1; //2 cycles always!
+	if (CPU[activeCPU].gotREP) //Non-blocked non-REP?
+	{
+		if (CPU8086_instructionstepdelayBIU(counter, 3)) return 1; //3 cycles for REP!
+		counter += 2;
 	}
 	CMP_b(CMPSB_data1,CMPSB_data2,4);
 	if (FLAG_DF)
@@ -3354,6 +3396,7 @@ OPTINLINE byte CPU8086_internal_CMPSB()
 	}
 	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
 	{
+		/*
 		if (CPU[activeCPU].repeating) //Are we a repeating instruction?
 		{
 			if (newREP) //Include the REP?
@@ -3369,6 +3412,7 @@ OPTINLINE byte CPU8086_internal_CMPSB()
 		{
 			CPU[activeCPU].cycles_OP += 8; //Clock cycles!
 		}
+		*/
 	}
 	return 0;
 }
@@ -3397,13 +3441,36 @@ OPTINLINE byte CPU8086_internal_CMPSW()
 		}
 		++CPU[activeCPU].internalinstructionstep; //Next step!
 	}
+	counter = 0; //Init counter!
+	if (CPU[activeCPU].gotREP) //Non-blocked non-REP?
+	{
+		if (CPU8086_instructionstepdelayBIU(counter, 1)) return 1; //1 cycles for REP!
+		counter += 2;
+	}
+	if (CPU8086_instructionstepdelayBIU(counter, 1)) return 1; //1 cycles always!
+	counter += 2;
 	if (CPU[activeCPU].internalinstructionstep==1) //First Execution step?
 	{
 		//Needs a read from memory?
 		if (CPU8086_internal_stepreaddirectw(0,CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI),&CMPSW_data1,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
+		if (CPU8086_instructionstepdelayBIU(counter, 1)) return 1; //1 cycles delay!
+		counter += 2;
+		if (CPU8086_instructionstepdelayBIU(counter, 1)) return 1; //1 cycles after!
+		counter += 2;
 		if (CPU8086_internal_stepreaddirectw(2,CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI), &CMPSW_data2,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
 		
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+	}
+	else
+	{
+		counter += 4;
+	}
+	if (CPU8086_instructionstepdelayBIU(counter, 2 + ((BIU_getcycle() == 0) ? 1 : 0))) return 1; //2 cycles + 1 for idle bus!
+	if (CPU8086_instructionstepdelayBIU(counter, 2)) return 1; //2 cycles always!
+	if (CPU[activeCPU].gotREP) //Non-blocked non-REP?
+	{
+		if (CPU8086_instructionstepdelayBIU(counter, 3)) return 1; //3 cycles for REP!
+		counter += 2;
 	}
 	CMP_w(CMPSW_data1,CMPSW_data2,4);
 	if (FLAG_DF)
@@ -3464,11 +3531,17 @@ OPTINLINE byte CPU8086_internal_STOSB()
 		}
 		++CPU[activeCPU].internalinstructionstep; //Next step!
 	}
+	counter = 0; //Init counter!
 	if (CPU[activeCPU].internalinstructionstep==1) //First Execution step?
 	{
 		//Needs a read from memory?
 		if (CPU8086_internal_stepwritedirectb(0,CPU_SEGMENT_ES,REG_ES,(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),REG_AL,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+	}
+	if (!CPU[activeCPU].gotREP) //Non-blocked REP?
+	{
+		if (CPU8086_instructionstepdelayBIU(counter, 3)) return 1; //3 cycles for REP!
+		counter += 2;
 	}
 
 	CPUPROT1
@@ -3497,6 +3570,7 @@ OPTINLINE byte CPU8086_internal_STOSB()
 	CPUPROT2
 	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
 	{
+		/*
 		if (CPU[activeCPU].repeating) //Are we a repeating instruction?
 		{
 			if (newREP) //Include the REP?
@@ -3512,6 +3586,7 @@ OPTINLINE byte CPU8086_internal_STOSB()
 		{
 			CPU[activeCPU].cycles_OP += 4; //Clock cycles!
 		}
+		*/
 	}
 	return 0;
 }
@@ -3530,11 +3605,17 @@ OPTINLINE byte CPU8086_internal_STOSW()
 		}
 		++CPU[activeCPU].internalinstructionstep; //Next step!
 	}
+	counter = 0; //Init counter!
 	if (CPU[activeCPU].internalinstructionstep==1) //First Execution step?
 	{
 		//Needs a read from memory?
 		if (CPU8086_internal_stepwritedirectw(0,CPU_SEGMENT_ES,REG_ES,(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),REG_AX,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+	}
+	if (!CPU[activeCPU].gotREP) //Non-blocked REP?
+	{
+		if (CPU8086_instructionstepdelayBIU(counter, 3)) return 1; //3 cycles for REP!
+		counter += 2;
 	}
 	CPUPROT1
 	if (FLAG_DF)
@@ -3562,6 +3643,7 @@ OPTINLINE byte CPU8086_internal_STOSW()
 	CPUPROT2
 	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
 	{
+		/*
 		if (CPU[activeCPU].repeating) //Are we a repeating instruction?
 		{
 			if (newREP) //Include the REP?
@@ -3577,6 +3659,7 @@ OPTINLINE byte CPU8086_internal_STOSW()
 		{
 			CPU[activeCPU].cycles_OP += 4; //Clock cycles!
 		}
+		*/
 	}
 	return 0;
 }
@@ -3593,11 +3676,32 @@ OPTINLINE byte CPU8086_internal_LODSB()
 		}
 		++CPU[activeCPU].internalinstructionstep;
 	}
+	counter = 0; //Init counter!
+	if (CPU[activeCPU].gotREP) //Non-blocked REP?
+	{
+		if (CPU8086_instructionstepdelayBIU(counter, 1)) return 1; //1 cycle for REP LODS!
+		counter += 2;
+	}
 	if (CPU[activeCPU].internalinstructionstep==1) //First Execution step?
 	{
 		//Needs a read from memory?
 		if (CPU8086_internal_stepreaddirectb(0,CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI), &LODSB_value,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+	}
+	if (CPU[activeCPU].gotREP) //Non-blocked REP?
+	{
+		if (CPU8086_instructionstepdelayBIU(counter, 2)) return 1; //2 cycles for REP LODS!
+		counter += 2;
+	}
+	else
+	{
+		if (CPU8086_instructionstepdelayBIU(counter, 3)) return 1; //3 cycles for non-REP!
+		counter += 2;
+	}
+	if (!CPU[activeCPU].gotREP) //Non-blocked REP?
+	{
+		if (CPU8086_instructionstepdelayBIU(counter, 1)) return 1; //1 cycles for non-REP LODS!
+		counter += 2;
 	}
 	CPUPROT1
 	REG_AL = LODSB_value;
@@ -3627,6 +3731,7 @@ OPTINLINE byte CPU8086_internal_LODSB()
 
 	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
 	{
+		/*
 		if (CPU[activeCPU].repeating) //Are we a repeating instruction?
 		{
 			if (newREP) //Include the REP?
@@ -3642,6 +3747,7 @@ OPTINLINE byte CPU8086_internal_LODSB()
 		{
 			CPU[activeCPU].cycles_OP += 5; //Clock cycles!
 		}
+		*/
 	}
 	return 0;
 }
@@ -3662,11 +3768,32 @@ OPTINLINE byte CPU8086_internal_LODSW()
 		}
 		++CPU[activeCPU].internalinstructionstep;
 	}
+	counter = 0; //Init counter!
+	if (CPU[activeCPU].gotREP) //Non-blocked REP?
+	{
+		if (CPU8086_instructionstepdelayBIU(counter, 1)) return 1; //1 cycle for REP LODS!
+		counter += 2;
+	}
 	if (CPU[activeCPU].internalinstructionstep==1) //First Execution step?
 	{
 		//Needs a read from memory?
 		if (CPU8086_internal_stepreaddirectw(0,CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI), &LODSW_value,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+	}
+	if (CPU[activeCPU].gotREP) //Non-blocked REP?
+	{
+		if (CPU8086_instructionstepdelayBIU(counter, 2)) return 1; //2 cycles for REP LODS!
+		counter += 2;
+	}
+	else
+	{
+		if (CPU8086_instructionstepdelayBIU(counter, 3)) return 1; //3 cycles for non-REP!
+		counter += 2;
+	}
+	if (!CPU[activeCPU].gotREP) //Non-blocked REP?
+	{
+		if (CPU8086_instructionstepdelayBIU(counter, 1)) return 1; //1 cycles for non-REP LODS!
+		counter += 2;
 	}
 	CPUPROT1
 	REG_AX = LODSW_value;
@@ -3695,6 +3822,7 @@ OPTINLINE byte CPU8086_internal_LODSW()
 	CPUPROT2
 	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
 	{
+		/*
 		if (CPU[activeCPU].repeating) //Are we a repeating instruction?
 		{
 			if (newREP) //Include the REP?
@@ -3710,6 +3838,7 @@ OPTINLINE byte CPU8086_internal_LODSW()
 		{
 			CPU[activeCPU].cycles_OP += 5; //Clock cycles!
 		}
+		*/
 	}
 	return 0;
 }
@@ -3726,11 +3855,25 @@ OPTINLINE byte CPU8086_internal_SCASB()
 		}
 		++CPU[activeCPU].internalinstructionstep;
 	}
+	counter = 0; //Init counter!
+	if (CPU[activeCPU].gotREP) //Non-blocked non-REP?
+	{
+		if (CPU8086_instructionstepdelayBIU(counter, 1)) return 1; //1 cycles for REP!
+		counter += 2;
+	}
+	if (CPU8086_instructionstepdelayBIU(counter, 1)) return 1; //1 cycles always!
+	counter += 2;
 	if (CPU[activeCPU].internalinstructionstep==1) //First Execution step?
 	{
 		//Needs a read from memory?
 		if (CPU8086_internal_stepreaddirectb(0,CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI), &SCASB_cmp1,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+	}
+	if (CPU8086_instructionstepdelayBIU(counter, 2)) return 1; //2 cycles always!
+	if (CPU[activeCPU].gotREP) //Non-blocked non-REP?
+	{
+		if (CPU8086_instructionstepdelayBIU(counter, 3)) return 1; //3 cycles for REP!
+		counter += 2;
 	}
 
 	//Old function
@@ -3761,6 +3904,7 @@ OPTINLINE byte CPU8086_internal_SCASB()
 	CPUPROT2
 	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
 	{
+		/*
 		if (CPU[activeCPU].repeating) //Are we a repeating instruction?
 		{
 			if (newREP) //Include the REP?
@@ -3776,6 +3920,7 @@ OPTINLINE byte CPU8086_internal_SCASB()
 		{
 			CPU[activeCPU].cycles_OP += 7; //Clock cycles!
 		}
+		*/
 	}
 	return 0;
 }
@@ -3796,11 +3941,25 @@ OPTINLINE byte CPU8086_internal_SCASW()
 		}
 		++CPU[activeCPU].internalinstructionstep;
 	}
+	counter = 0; //Init counter!
+	if (CPU[activeCPU].gotREP) //Non-blocked non-REP?
+	{
+		if (CPU8086_instructionstepdelayBIU(counter, 1)) return 1; //1 cycles for REP!
+		counter += 2;
+	}
+	if (CPU8086_instructionstepdelayBIU(counter, 1)) return 1; //1 cycles always!
+	counter += 2;
 	if (CPU[activeCPU].internalinstructionstep==1) //First Execution step?
 	{
 		//Needs a read from memory?
 		if (CPU8086_internal_stepreaddirectw(0,CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI), &SCASW_cmp1,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
+	}
+	if (CPU8086_instructionstepdelayBIU(counter, 2)) return 1; //2 cycles always!
+	if (CPU[activeCPU].gotREP) //Non-blocked non-REP?
+	{
+		if (CPU8086_instructionstepdelayBIU(counter, 3)) return 1; //3 cycles for REP!
+		counter += 2;
 	}
 
 	CPUPROT1
@@ -3830,6 +3989,7 @@ OPTINLINE byte CPU8086_internal_SCASW()
 	CPUPROT2
 	if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
 	{
+		/*
 		if (CPU[activeCPU].repeating) //Are we a repeating instruction?
 		{
 			if (newREP) //Include the REP?
@@ -3845,6 +4005,7 @@ OPTINLINE byte CPU8086_internal_SCASW()
 		{
 			CPU[activeCPU].cycles_OP += 7; //Clock cycles!
 		}
+		*/
 	}
 	return 0;
 }
