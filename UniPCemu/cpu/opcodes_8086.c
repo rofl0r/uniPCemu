@@ -3542,6 +3542,8 @@ OPTINLINE byte CPU8086_internal_STOSB()
 		if (CPU8086_internal_stepwritedirectb(0,CPU_SEGMENT_ES,REG_ES,(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),REG_AL,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 	}
+	if (CPU8086_instructionstepdelayBIU(counter, 1)) return 1; //1 cycle after!
+	counter += 2;
 	if (!CPU[activeCPU].gotREP) //Non-blocked REP?
 	{
 		if (CPU8086_instructionstepdelayBIU(counter, 3)) return 1; //3 cycles for REP!
@@ -3616,6 +3618,8 @@ OPTINLINE byte CPU8086_internal_STOSW()
 		if (CPU8086_internal_stepwritedirectw(0,CPU_SEGMENT_ES,REG_ES,(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),REG_AX,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 	}
+	if (CPU8086_instructionstepdelayBIU(counter, 1)) return 1; //1 cycle after!
+	counter += 2;
 	if (!CPU[activeCPU].gotREP) //Non-blocked REP?
 	{
 		if (CPU8086_instructionstepdelayBIU(counter, 3)) return 1; //3 cycles for REP!
