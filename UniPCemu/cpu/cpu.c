@@ -2009,6 +2009,10 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		}
 		else
 		{
+			if (unlikely(gotREP && !CPU[activeCPU].faultraised)) //Finished REP?
+			{
+				CPU[activeCPU].cycles_OP += CPU[activeCPU].REPfinishtiming; //Apply finishing REP timing!
+			}
 			REPPending = CPU[activeCPU].repeating = 0; //Not repeating anymore!
 		}
 		blockREP = 0; //Don't block REP anymore!
