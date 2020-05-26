@@ -2004,7 +2004,6 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 			else //Finished looping?
 			{
 				CPU[activeCPU].cycles_OP += CPU[activeCPU].REPfinishtiming; //Apply finishing REP timing!
-				if ((didRepeating) && (EMULATED_CPU<=CPU_NECV30)) CPU[activeCPU].cycles_OP += 2; //Additional finish timing!
 				CPU[activeCPU].repeating = 0; //Not repeating anymore!
 			}
 		}
