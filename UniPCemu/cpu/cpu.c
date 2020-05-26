@@ -1876,7 +1876,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 
 	CPU[activeCPU].preinstructiontimingnotready = 0; //Timing ready for the instruction to execute?
 	CPUtimingready: //Timing in preparation?
-	if (CPU[activeCPU].is0Fopcode == 0) //REP instruction affected?
+	if ((CPU[activeCPU].is0Fopcode == 0) && newREP) //REP instruction affected?
 	{
 		switch (OP) //Check for string instructions!
 		{
