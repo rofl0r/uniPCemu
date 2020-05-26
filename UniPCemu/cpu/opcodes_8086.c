@@ -3348,12 +3348,11 @@ OPTINLINE byte CPU8086_internal_CMPSB()
 	{
 		//Needs a read from memory?
 		if (CPU8086_internal_stepreaddirectb(0,CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI),&CMPSB_data1,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
-		if (CPU8086_instructionstepdelayBIU(counter, 1)) return 1; //1 cycles delay!
+		if (CPU8086_instructionstepdelayBIU(counter, 2 + ((BIU_getcycle() == 0) ? 1 : 0))) return 1; //2 cycles + 1 for idle bus!
 		counter += 2;
 		if (CPU8086_instructionstepdelayBIU(counter, 1)) return 1; //1 cycles after!
 		counter += 2;
 		if (CPU8086_internal_stepreaddirectb(2,CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI), &CMPSB_data2,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
-		
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 	}
 	else
@@ -3455,12 +3454,11 @@ OPTINLINE byte CPU8086_internal_CMPSW()
 	{
 		//Needs a read from memory?
 		if (CPU8086_internal_stepreaddirectw(0,CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI),&CMPSW_data1,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
-		if (CPU8086_instructionstepdelayBIU(counter, 1)) return 1; //1 cycles delay!
+		if (CPU8086_instructionstepdelayBIU(counter, 2 + ((BIU_getcycle() == 0) ? 1 : 0))) return 1; //2 cycles + 1 for idle bus!
 		counter += 2;
 		if (CPU8086_instructionstepdelayBIU(counter, 1)) return 1; //1 cycles after!
 		counter += 2;
 		if (CPU8086_internal_stepreaddirectw(2,CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI), &CMPSW_data2,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
-		
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 	}
 	else
