@@ -1550,13 +1550,14 @@ int BIOS_SaveData() //Save BIOS settings!
 	{
 		safescatnprintf(cmos_comment, sizeof(cmos_comment), (c == 0) ? "%i=%s" : ", %i=%s", c, floppygeometries[c].text);
 	}
+	safestrcat(cmos_comment, sizeof(cmos_comment), "\n"); //End of the nodisk_type setting!
 
 	safestrcat(cmos_comment, sizeof(cmos_comment), "cpu: 0=8086/8088, 1=NEC V20/V30, 2=80286, 3=80386, 4=80486, 5=Intel Pentium(without FPU)\n");
 	safestrcat(cmos_comment, sizeof(cmos_comment), "databussize: 0=Full sized data bus of 16/32-bits, 1=Reduced data bus size\n");
 	safestrcat(cmos_comment, sizeof(cmos_comment), "cpuspeed: 0=default, otherwise, limited to n cycles(>=0)\n");
 	safestrcat(cmos_comment, sizeof(cmos_comment), "turbocpuspeed: 0=default, otherwise, limit to n cycles(>=0)\n");
 	safestrcat(cmos_comment, sizeof(cmos_comment), "useturbocpuspeed: 0=Don't use, 1=Use\n");
-	safestrcat(cmos_comment, sizeof(cmos_comment), "clockingmode: 0=Cycle-accurate clock, 1=IPS clock\n");
+	safestrcat(cmos_comment, sizeof(cmos_comment), "clockingmode: 0=Cycle-accurate clock, 1=IPS clock");
 
 	char *cmos_commentused=NULL;
 	if (cmos_comment[0]) cmos_commentused = &cmos_comment[0];
