@@ -311,6 +311,7 @@ int BIOS_SaveData(); //Save BIOS settings!
 //Stuff for other units:
 //Retrieve the current architecture's memory size field for manipulation of it!
 uint_32* getarchmemory(); //Get the memory field for the current architecture!
+char* getcurrentarchtext(); //Get the current architecture!
 byte* getarchemulated_CPU(); //Get the memory field for the current architecture!
 byte* getarchDataBusSize(); //Get the memory field for the current architecture!
 uint_32* getarchCPUSpeed(); //Get the memory field for the current architecture!

@@ -76,6 +76,32 @@ extern char ROMpath[256];
 extern byte is_XT; //Are we emulating a XT architecture?
 extern byte is_Compaq; //Are we emulating a Compaq architecture?
 extern byte is_PS2; //Are we emulating PS/2 architecture extensions?
+
+extern char currentarchtext[4][256]; //The current architecture texts!
+
+char* getcurrentarchtext() //Get the current architecture!
+{
+	//First, determine the current CMOS!
+	if (is_PS2) //PS/2?
+	{
+		return &currentarchtext[3][0]; //We've used!
+	}
+	else if (is_Compaq)
+	{
+		return &currentarchtext[2][0]; //We've used!
+	}
+	else if (is_XT)
+	{
+		return &currentarchtext[0][0]; //We've used!
+	}
+	else //AT?
+	{
+		return &currentarchtext[1][0]; //We've used!
+	}
+	//Now, give the selected CMOS's memory field!
+	return &currentarchtext[1][0]; //We've used!
+}
+
 uint_32 *getarchmemory() //Get the memory field for the current architecture!
 {
 	//First, determine the current CMOS!

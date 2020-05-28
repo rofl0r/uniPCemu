@@ -757,6 +757,8 @@ void BIOS_MenuChooser() //The menu chooser!
 void BIOS_Title(char *text)
 {
 	BIOSClearScreen(); //Clear our screen first!
+	EMU_textcolor(BIOS_ATTR_TEXT); //Header fontcolor!
+	printcenter(getcurrentarchtext(), 1); //Show title text!
 	EMU_textcolor(BIOSHEADER_ATTR); //Header fontcolor!
 	printcenter(text,2); //Show title text!
 }
@@ -5186,6 +5188,8 @@ void BIOS_MusicPlayer() //Music Player!
 	sound_playSoundfile(0); //Play one or more Music files! Don't show any information!
 	BIOS_Menu = 31; //Return to the Sound menu!
 }
+
+char currentarchtext[4][256] = { "XT","AT","Compaq Deskpro 386","Compaq Deskpro 386 with PS/2 mouse" }; //The text values for the results of getcurrentarch().
 
 void BIOS_Architecture()
 {
