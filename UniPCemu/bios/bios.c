@@ -1370,10 +1370,10 @@ int BIOS_SaveData() //Save BIOS settings!
 	memset(&modem_comment, 0, sizeof(modem_comment)); //Init!
 	memset(currentstr, 0, sizeof(currentstr)); //Init!
 	snprintf(modem_comment, sizeof(modem_comment), "listenport: listen port to listen on when not connected(defaults to %u)\n", DEFAULT_MODEMLISTENPORT);
-	snprintf(currentstr, sizeof(currentstr), "phonebook0-%u: Phonebook entry #n\n", (byte)(NUMITEMS(BIOS_Settings.phonebook) - 1)); //Information about the phonebook!
+	snprintf(currentstr, sizeof(currentstr), "phonebook0-%u: Phonebook entry #n", (byte)(NUMITEMS(BIOS_Settings.phonebook) - 1)); //Information about the phonebook!
 	safestrcat(modem_comment, sizeof(modem_comment), currentstr); //MAC address information!
 #ifdef PACKETSERVER_ENABLED
-	safestrcat(modem_comment, sizeof(modem_comment), "ethernetcard: -1 for disabled(use normal emulation), 0-254 selected and use a network card, 255 to generate a list of network cards to select\n");
+	safestrcat(modem_comment, sizeof(modem_comment), "\nethernetcard: -1 for disabled(use normal emulation), 0-254 selected and use a network card, 255 to generate a list of network cards to select\n");
 	snprintf(currentstr, sizeof(currentstr), "MACaddress: MAC address to emulate as a virtual NIC and send/receive packets on(defaults to %02x:%02x:%02x:%02x:%02x:%02x)\n", maclocal_default[0], maclocal_default[1], maclocal_default[2], maclocal_default[3], maclocal_default[4], maclocal_default[5]);
 	safestrcat(modem_comment, sizeof(modem_comment), currentstr); //MAC address information!
 	safestrcat(modem_comment, sizeof(modem_comment), "gatewayMACaddress: gateway MAC address to send/receive packets on\n");
@@ -1383,7 +1383,7 @@ int BIOS_SaveData() //Save BIOS settings!
 	safestrcat(modem_comment, sizeof(modem_comment), "Specify username/password/IPaddress for the default account(required when using authentication).");
 	if (NUMITEMS(BIOS_Settings.ethernetserver_settings.users) > 1) //More than one available?
 	{
-		snprintf(currentstr, sizeof(currentstr), "Add 1 - %i to the username/password/IPaddress key for multiple accounts(when username and password are non - empty, it's used).", (int)NUMITEMS(BIOS_Settings.ethernetserver_settings.users) - 1);
+		snprintf(currentstr, sizeof(currentstr), "\nAdd 1 - %i to the username/password/IPaddress key for multiple accounts(when username and password are non - empty, it's used).", (int)NUMITEMS(BIOS_Settings.ethernetserver_settings.users) - 1);
 		safestrcat(modem_comment, sizeof(modem_comment), currentstr); //Extra user information!
 		safestrcat(modem_comment, sizeof(modem_comment), "Specifying no or an invalid IP address for the numbered IPaddress fields other than the default will use the default field instead.\n");
 	}
@@ -1436,7 +1436,7 @@ int BIOS_SaveData() //Save BIOS settings!
 	//Disks
 	memset(&disks_comment,0,sizeof(disks_comment)); //Init!
 	safestrcat(disks_comment,sizeof(disks_comment),"floppy[number]/hdd[number]/cdrom[number]: The disk to be mounted. Empty for none.\n");
-	safestrcat(disks_comment,sizeof(disks_comment),"floppy[number]_readonly/hdd[number]_readonly: 0=Writable, 1=Read-only\n");
+	safestrcat(disks_comment,sizeof(disks_comment),"floppy[number]_readonly/hdd[number]_readonly: 0=Writable, 1=Read-only");
 	char *disks_commentused=NULL;
 	if (disks_comment[0]) disks_commentused = &disks_comment[0];
 	if (!write_private_profile_string("disks",disks_commentused,"floppy0",&BIOS_Settings.floppy0[0],BIOS_Settings_file)) return 0; //Read entry!
@@ -1452,11 +1452,11 @@ int BIOS_SaveData() //Save BIOS settings!
 
 	//BIOS
 	memset(&bios_comment,0,sizeof(bios_comment)); //Init!
-	safestrcat(bios_comment,sizeof(bios_comment),"bootorder: The boot order of the internal BIOS:\n");
+	safestrcat(bios_comment,sizeof(bios_comment),"bootorder: The boot order of the internal BIOS:");
 	byte currentitem;
 	for (currentitem=0;currentitem<NUMITEMS(BOOT_ORDER_STRING);++currentitem)
 	{
-		snprintf(currentstr,sizeof(currentstr),"%u=%s\n",currentitem,BOOT_ORDER_STRING[currentitem]); //A description of all boot orders!
+		snprintf(currentstr,sizeof(currentstr),"\n%u=%s",currentitem,BOOT_ORDER_STRING[currentitem]); //A description of all boot orders!
 		safestrcat(bios_comment,sizeof(bios_comment),currentstr); //Add the string!
 	}
 	char *bios_commentused=NULL;
@@ -1484,7 +1484,7 @@ int BIOS_SaveData() //Save BIOS settings!
 	safestrcat(input_comment, sizeof(input_comment), "DirectInput_remap_RCTRL_to_LWIN: Remap RCTRL to LWIN during Direct Input.\n");
 	safestrcat(input_comment, sizeof(input_comment), "DirectInput_remap_accentgrave_to_tab: Remap Accent Grave to Tab during LALT.\n");
 	safestrcat(input_comment, sizeof(input_comment), "DirectInput_remap_NUM0_to_Delete: Remap NUM0 to Delete during Direct Input.\n");
-	safestrcat(input_comment, sizeof(input_comment), "DirectInput_disable_RALT: Disable RALT being pressed during Direct Input mode.\n");
+	safestrcat(input_comment, sizeof(input_comment), "DirectInput_disable_RALT: Disable RALT being pressed during Direct Input mode.");
 	char *input_commentused=NULL;
 	if (input_comment[0]) input_commentused = &input_comment[0];
 	if (!write_private_profile_uint64("input",input_commentused,"analog_minrange",BIOS_Settings.input_settings.analog_minrange,BIOS_Settings_file)) return 0; //Minimum adjustment x&y(0,0) for keyboard&mouse to change states (from center)
