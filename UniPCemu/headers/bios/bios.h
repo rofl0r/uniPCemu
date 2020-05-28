@@ -69,7 +69,7 @@ typedef struct
 	byte hdd0_readonly; //read-only?
 	byte hdd1_readonly; //read-only?
 
-	word emulated_CPU; //Emulated CPU?
+	word emulated_CPU; //Original: Emulated CPU?
 
 	byte bootorder; //Boot order?
 	byte debugmode; //What debug mode?
@@ -91,10 +91,10 @@ typedef struct
 	byte executionmode; //What mode to execute in during runtime?
 	byte VGA_Mode; //Enable VGA NMI on precursors?
 	byte architecture; //Are we using the XT/AT/PS/2 architecture?
-	uint_32 CPUSpeed;
+	uint_32 CPUSpeed; //Original: CPU Speed!
 	uint_32 SoundSource_Volume; //The sound source volume knob!
 	byte ShowFramerate; //Show the frame rate?
-	byte DataBusSize; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+	byte DataBusSize; //Original: The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
 	byte ShowCPUSpeed; //Show the relative CPU speed together with the framerate?
 	byte usePCSpeaker; //Emulate PC Speaker sound?
 	byte useAdlib; //Emulate Adlib?
@@ -104,8 +104,8 @@ typedef struct
 	byte useGameBlaster; //Emulate Game Blaster?
 	uint_32 GameBlaster_Volume; //The Game Blaster volume knob!
 	byte useSoundBlaster; //Emulate Sound Blaster?
-	uint_32 TurboCPUSpeed;
-	byte useTurboSpeed; //Are we to use Turbo CPU speed?
+	uint_32 TurboCPUSpeed; //Original: Turbo CPU Speed!
+	byte useTurboSpeed; //Original: Are we to use Turbo CPU speed?
 	sword diagnosticsportoutput_breakpoint; //Use a diagnostics port breakpoint?
 	uint_32 diagnosticsportoutput_timeout; //Breakpoint timeout used!
 	byte useDirectMIDI; //Use Direct MIDI synthesis by using a passthrough to the OS?
@@ -118,7 +118,7 @@ typedef struct
 	byte got_CompaqCMOS; //Gotten an CMOS?
 	byte InboardInitialWaitstates; //Inboard 386 initial delay used?
 	word modemlistenport; //What port does the modem need to listen on?
-	byte clockingmode; //Are we using the IPS clock instead of cycle-accurate clock?
+	byte clockingmode; //Original: Are we using the IPS clock instead of cycle-accurate clock?
 	byte debugger_logregisters; //Are we to log registers when debugging?
 	//CMOS for XT systems!
 	CMOSDATA XTCMOS; //The full saved CMOS!
@@ -311,6 +311,12 @@ int BIOS_SaveData(); //Save BIOS settings!
 //Stuff for other units:
 //Retrieve the current architecture's memory size field for manipulation of it!
 uint_32* getarchmemory(); //Get the memory field for the current architecture!
+byte* getarchemulated_CPU(); //Get the memory field for the current architecture!
+byte* getarchDataBusSize(); //Get the memory field for the current architecture!
+uint_32* getarchCPUSpeed(); //Get the memory field for the current architecture!
+uint_32* getarchTurboCPUSpeed(); //Get the memory field for the current architecture!
+byte* getarchuseTurboCPUSpeed(); //Get the memory field for the current architecture!
+byte* getarchclockingmode(); //Get the memory field for the current architecture!
 
 //Retrieve the MMU size to use!
 uint_32 BIOS_GetMMUSize(); //For MMU!

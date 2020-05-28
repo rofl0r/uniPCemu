@@ -100,6 +100,145 @@ uint_32 *getarchmemory() //Get the memory field for the current architecture!
 	return &currentCMOS->memory; //Give the memory field for the current architecture!
 }
 
+byte* getarchemulated_CPU() //Get the memory field for the current architecture!
+{
+	//First, determine the current CMOS!
+	CMOSDATA* currentCMOS;
+	if (is_PS2) //PS/2?
+	{
+		currentCMOS = &BIOS_Settings.PS2CMOS; //We've used!
+	}
+	else if (is_Compaq)
+	{
+		currentCMOS = &BIOS_Settings.CompaqCMOS; //We've used!
+	}
+	else if (is_XT)
+	{
+		currentCMOS = &BIOS_Settings.XTCMOS; //We've used!
+	}
+	else //AT?
+	{
+		currentCMOS = &BIOS_Settings.ATCMOS; //We've used!
+	}
+	//Now, give the selected CMOS's memory field!
+	return &currentCMOS->emulated_CPU; //Give the memory field for the current architecture!
+}
+byte* getarchDataBusSize() //Get the memory field for the current architecture!
+{
+	//First, determine the current CMOS!
+	CMOSDATA* currentCMOS;
+	if (is_PS2) //PS/2?
+	{
+		currentCMOS = &BIOS_Settings.PS2CMOS; //We've used!
+	}
+	else if (is_Compaq)
+	{
+		currentCMOS = &BIOS_Settings.CompaqCMOS; //We've used!
+	}
+	else if (is_XT)
+	{
+		currentCMOS = &BIOS_Settings.XTCMOS; //We've used!
+	}
+	else //AT?
+	{
+		currentCMOS = &BIOS_Settings.ATCMOS; //We've used!
+	}
+	//Now, give the selected CMOS's memory field!
+	return &currentCMOS->DataBusSize; //Give the memory field for the current architecture!
+}
+uint_32* getarchCPUSpeed() //Get the memory field for the current architecture!
+{
+	//First, determine the current CMOS!
+	CMOSDATA* currentCMOS;
+	if (is_PS2) //PS/2?
+	{
+		currentCMOS = &BIOS_Settings.PS2CMOS; //We've used!
+	}
+	else if (is_Compaq)
+	{
+		currentCMOS = &BIOS_Settings.CompaqCMOS; //We've used!
+	}
+	else if (is_XT)
+	{
+		currentCMOS = &BIOS_Settings.XTCMOS; //We've used!
+	}
+	else //AT?
+	{
+		currentCMOS = &BIOS_Settings.ATCMOS; //We've used!
+	}
+	//Now, give the selected CMOS's memory field!
+	return &currentCMOS->CPUspeed; //Give the memory field for the current architecture!
+}
+uint_32* getarchTurboCPUSpeed() //Get the memory field for the current architecture!
+{
+	//First, determine the current CMOS!
+	CMOSDATA* currentCMOS;
+	if (is_PS2) //PS/2?
+	{
+		currentCMOS = &BIOS_Settings.PS2CMOS; //We've used!
+	}
+	else if (is_Compaq)
+	{
+		currentCMOS = &BIOS_Settings.CompaqCMOS; //We've used!
+	}
+	else if (is_XT)
+	{
+		currentCMOS = &BIOS_Settings.XTCMOS; //We've used!
+	}
+	else //AT?
+	{
+		currentCMOS = &BIOS_Settings.ATCMOS; //We've used!
+	}
+	//Now, give the selected CMOS's memory field!
+	return &currentCMOS->TurboCPUspeed; //Give the memory field for the current architecture!
+}
+byte* getarchuseTurboCPUSpeed() //Get the memory field for the current architecture!
+{
+	//First, determine the current CMOS!
+	CMOSDATA* currentCMOS;
+	if (is_PS2) //PS/2?
+	{
+		currentCMOS = &BIOS_Settings.PS2CMOS; //We've used!
+	}
+	else if (is_Compaq)
+	{
+		currentCMOS = &BIOS_Settings.CompaqCMOS; //We've used!
+	}
+	else if (is_XT)
+	{
+		currentCMOS = &BIOS_Settings.XTCMOS; //We've used!
+	}
+	else //AT?
+	{
+		currentCMOS = &BIOS_Settings.ATCMOS; //We've used!
+	}
+	//Now, give the selected CMOS's memory field!
+	return &currentCMOS->useTurboCPUSpeed; //Give the memory field for the current architecture!
+}
+byte* getarchclockingmode() //Get the memory field for the current architecture!
+{
+	//First, determine the current CMOS!
+	CMOSDATA* currentCMOS;
+	if (is_PS2) //PS/2?
+	{
+		currentCMOS = &BIOS_Settings.PS2CMOS; //We've used!
+	}
+	else if (is_Compaq)
+	{
+		currentCMOS = &BIOS_Settings.CompaqCMOS; //We've used!
+	}
+	else if (is_XT)
+	{
+		currentCMOS = &BIOS_Settings.XTCMOS; //We've used!
+	}
+	else //AT?
+	{
+		currentCMOS = &BIOS_Settings.ATCMOS; //We've used!
+	}
+	//Now, give the selected CMOS's memory field!
+	return &currentCMOS->clockingmode; //Give the memory field for the current architecture!
+}
+
 void BIOS_updateDirectories()
 {
 #if defined(ANDROID) || defined(IS_LINUX)
@@ -738,7 +877,7 @@ void BIOS_LoadDefaults(int tosave) //Load BIOS defaults, but not memory size!
 	memset(&BIOS_Settings.SoundFont[0],0,sizeof(BIOS_Settings.SoundFont)); //Reset the currently mounted soundfont!
 
 	BIOS_Settings.bootorder = DEFAULT_BOOT_ORDER; //Default boot order!
-	BIOS_Settings.emulated_CPU = DEFAULT_CPU; //Which CPU to be emulated?
+	*(getarchemulated_CPU()) = DEFAULT_CPU; //Which CPU to be emulated?
 
 	BIOS_Settings.debugmode = DEFAULT_DEBUGMODE; //Default debug mode!
 	BIOS_Settings.executionmode = DEFAULT_EXECUTIONMODE; //Default execution mode!
@@ -815,6 +954,14 @@ void loadBIOSCMOS(CMOSDATA *CMOS, char *section)
 	if (CMOS->floppy0_nodisk_type >= NUMFLOPPYGEOMETRIES) CMOS->floppy0_nodisk_type = 0; //Default if invalid!
 	CMOS->floppy1_nodisk_type = (byte)get_private_profile_uint64(section, "floppy1_nodisk_type", 0, BIOS_Settings_file);
 	if (CMOS->floppy1_nodisk_type >= NUMFLOPPYGEOMETRIES) CMOS->floppy1_nodisk_type = 0; //Default if invalid!
+
+	CMOS->emulated_CPU = (word)get_private_profile_uint64(section, "cpu", BIOS_Settings.emulated_CPU, BIOS_Settings_file);
+	CMOS->DataBusSize = (byte)get_private_profile_uint64(section, "databussize", BIOS_Settings.DataBusSize, BIOS_Settings_file); //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+	CMOS->CPUspeed = (uint_32)get_private_profile_uint64(section, "cpuspeed", BIOS_Settings.CPUSpeed, BIOS_Settings_file);
+	CMOS->TurboCPUspeed = (uint_32)get_private_profile_uint64(section, "turbocpuspeed", BIOS_Settings.TurboCPUSpeed, BIOS_Settings_file);
+	CMOS->useTurboCPUSpeed = (byte)get_private_profile_uint64(section, "useturbocpuspeed", BIOS_Settings.useTurboSpeed, BIOS_Settings_file); //Are we to use Turbo CPU speed?
+	CMOS->clockingmode = (byte)get_private_profile_uint64(section, "clockingmode", BIOS_Settings.clockingmode, BIOS_Settings_file); //Are we using the IPS clock?
+
 	for (index=0;index<NUMITEMS(CMOS->DATA80.data);++index) //Process extra RAM data!
 	{
 		snprintf(field,sizeof(field),"RAM%02X",index); //The field!
@@ -1055,6 +1202,12 @@ byte saveBIOSCMOS(CMOSDATA *CMOS, char *section, char *section_comment)
 	if (!write_private_profile_uint64(section,section_comment,"cycletiming",CMOS->cycletiming,BIOS_Settings_file)) return 0;
 	if (!write_private_profile_uint64(section, section_comment, "floppy0_nodisk_type", CMOS->floppy0_nodisk_type, BIOS_Settings_file)) return 0;
 	if (!write_private_profile_uint64(section, section_comment, "floppy1_nodisk_type", CMOS->floppy1_nodisk_type, BIOS_Settings_file)) return 0;
+	if (!write_private_profile_uint64(section, section_comment, "cpu", CMOS->emulated_CPU, BIOS_Settings_file)) return 0;
+	if (!write_private_profile_uint64(section, section_comment, "databussize", CMOS->DataBusSize, BIOS_Settings_file)) return 0; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+	if (!write_private_profile_uint64(section, section_comment, "cpuspeed", CMOS->CPUspeed, BIOS_Settings_file)) return 0;
+	if (!write_private_profile_uint64(section, section_comment, "turbocpuspeed", CMOS->TurboCPUspeed, BIOS_Settings_file)) return 0;
+	if (!write_private_profile_uint64(section, section_comment, "useturbocpuspeed", CMOS->useTurboCPUSpeed, BIOS_Settings_file)) return 0; //Are we to use Turbo CPU speed?
+	if (!write_private_profile_uint64(section, section_comment, "clockingmode", CMOS->clockingmode, BIOS_Settings_file)) return 0; //Are we using the IPS clock?
 	for (index=0;index<NUMITEMS(CMOS->DATA80.data);++index) //Process extra RAM data!
 	{
 		snprintf(field,sizeof(field),"RAM%02X",index); //The field!
@@ -1115,28 +1268,28 @@ int BIOS_SaveData() //Save BIOS settings!
 
 	//Machine
 	memset(&machine_comment, 0, sizeof(machine_comment)); //Init!
-	safestrcat(machine_comment, sizeof(machine_comment), "cpu: 0=8086/8088, 1=NEC V20/V30, 2=80286, 3=80386, 4=80486, 5=Intel Pentium(without FPU)\n");
-	safestrcat(machine_comment, sizeof(machine_comment), "databussize: 0=Full sized data bus of 16/32-bits, 1=Reduced data bus size\n");
+	//safestrcat(machine_comment, sizeof(machine_comment), "cpu: 0=8086/8088, 1=NEC V20/V30, 2=80286, 3=80386, 4=80486, 5=Intel Pentium(without FPU)\n");
+	//safestrcat(machine_comment, sizeof(machine_comment), "databussize: 0=Full sized data bus of 16/32-bits, 1=Reduced data bus size\n");
 	safestrcat(machine_comment, sizeof(machine_comment), "architecture: 0=XT, 1=AT, 2=Compaq Deskpro 386, 3=Compaq Deskpro 386 with PS/2 mouse\n");
 	safestrcat(machine_comment, sizeof(machine_comment), "executionmode: 0=Use emulator internal BIOS, 1=Run debug directory files, else TESTROM.DAT at 0000:0000, 2=Run TESTROM.DAT at 0000:0000, 3=Debug video card output, 4=Load BIOS from ROM directory as BIOSROM.u* and OPTROM.*, 5=Run sound test\n");
-	safestrcat(machine_comment, sizeof(machine_comment), "cpuspeed: 0=default, otherwise, limited to n cycles(>=0)\n");
+	//safestrcat(machine_comment, sizeof(machine_comment), "cpuspeed: 0=default, otherwise, limited to n cycles(>=0)\n");
 	safestrcat(machine_comment, sizeof(machine_comment), "showcpuspeed: 0=Don't show, 1=Show\n");
-	safestrcat(machine_comment, sizeof(machine_comment), "turbocpuspeed: 0=default, otherwise, limit to n cycles(>=0)\n");
-	safestrcat(machine_comment, sizeof(machine_comment), "useturbocpuspeed: 0=Don't use, 1=Use\n");
-	safestrcat(machine_comment, sizeof(machine_comment), "clockingmode: 0=Cycle-accurate clock, 1=IPS clock\n");
+	//safestrcat(machine_comment, sizeof(machine_comment), "turbocpuspeed: 0=default, otherwise, limit to n cycles(>=0)\n");
+	//safestrcat(machine_comment, sizeof(machine_comment), "useturbocpuspeed: 0=Don't use, 1=Use\n");
+	//safestrcat(machine_comment, sizeof(machine_comment), "clockingmode: 0=Cycle-accurate clock, 1=IPS clock\n");
 	safestrcat(machine_comment, sizeof(machine_comment), "BIOSROMmode: 0=Normal BIOS ROM, 1=Diagnostic ROM, 2=Enforce normal U-ROMs\n");
 	safestrcat(machine_comment, sizeof(machine_comment), "inboardinitialwaitstates: 0=Default waitstates, 1=No waitstates");
 	char *machine_commentused = NULL;
 	if (machine_comment[0]) machine_commentused = &machine_comment[0];
-	if (!write_private_profile_uint64("machine", machine_commentused, "cpu", BIOS_Settings.emulated_CPU, BIOS_Settings_file)) return 0;
-	if (!write_private_profile_uint64("machine", machine_commentused, "databussize", BIOS_Settings.DataBusSize, BIOS_Settings_file)) return 0; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+	//if (!write_private_profile_uint64("machine", machine_commentused, "cpu", BIOS_Settings.emulated_CPU, BIOS_Settings_file)) return 0;
+	//if (!write_private_profile_uint64("machine", machine_commentused, "databussize", BIOS_Settings.DataBusSize, BIOS_Settings_file)) return 0; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
 	if (!write_private_profile_uint64("machine", machine_commentused, "architecture", BIOS_Settings.architecture, BIOS_Settings_file)) return 0; //Are we using the XT/AT/PS/2 architecture?
 	if (!write_private_profile_uint64("machine", machine_commentused, "executionmode", BIOS_Settings.executionmode, BIOS_Settings_file)) return 0; //What mode to execute in during runtime?
-	if (!write_private_profile_uint64("machine", machine_commentused, "cpuspeed", BIOS_Settings.CPUSpeed, BIOS_Settings_file)) return 0;
+	//if (!write_private_profile_uint64("machine", machine_commentused, "cpuspeed", BIOS_Settings.CPUSpeed, BIOS_Settings_file)) return 0;
 	if (!write_private_profile_uint64("machine", machine_commentused, "showcpuspeed", BIOS_Settings.ShowCPUSpeed, BIOS_Settings_file)) return 0; //Show the relative CPU speed together with the framerate?
-	if (!write_private_profile_uint64("machine", machine_commentused, "turbocpuspeed", BIOS_Settings.TurboCPUSpeed, BIOS_Settings_file)) return 0;
-	if (!write_private_profile_uint64("machine", machine_commentused, "useturbocpuspeed", BIOS_Settings.useTurboSpeed, BIOS_Settings_file)) return 0; //Are we to use Turbo CPU speed?
-	if (!write_private_profile_uint64("machine", machine_commentused, "clockingmode", BIOS_Settings.clockingmode, BIOS_Settings_file)) return 0; //Are we using the IPS clock?
+	//if (!write_private_profile_uint64("machine", machine_commentused, "turbocpuspeed", BIOS_Settings.TurboCPUSpeed, BIOS_Settings_file)) return 0;
+	//if (!write_private_profile_uint64("machine", machine_commentused, "useturbocpuspeed", BIOS_Settings.useTurboSpeed, BIOS_Settings_file)) return 0; //Are we to use Turbo CPU speed?
+	//if (!write_private_profile_uint64("machine", machine_commentused, "clockingmode", BIOS_Settings.clockingmode, BIOS_Settings_file)) return 0; //Are we using the IPS clock?
 	if (!write_private_profile_uint64("machine", machine_commentused, "BIOSROMmode", BIOS_Settings.BIOSROMmode, BIOS_Settings_file)) return 0; //BIOS ROM mode.
 	if (!write_private_profile_uint64("machine", machine_commentused, "inboardinitialwaitstates", BIOS_Settings.InboardInitialWaitstates, BIOS_Settings_file)) return 0; //Inboard 386 initial delay used?
 
@@ -1397,6 +1550,14 @@ int BIOS_SaveData() //Save BIOS settings!
 	{
 		safescatnprintf(cmos_comment, sizeof(cmos_comment), (c == 0) ? "%i=%s" : ", %i=%s", c, floppygeometries[c].text);
 	}
+
+	safestrcat(cmos_comment, sizeof(cmos_comment), "cpu: 0=8086/8088, 1=NEC V20/V30, 2=80286, 3=80386, 4=80486, 5=Intel Pentium(without FPU)\n");
+	safestrcat(cmos_comment, sizeof(cmos_comment), "databussize: 0=Full sized data bus of 16/32-bits, 1=Reduced data bus size\n");
+	safestrcat(cmos_comment, sizeof(cmos_comment), "cpuspeed: 0=default, otherwise, limited to n cycles(>=0)\n");
+	safestrcat(cmos_comment, sizeof(cmos_comment), "turbocpuspeed: 0=default, otherwise, limit to n cycles(>=0)\n");
+	safestrcat(cmos_comment, sizeof(cmos_comment), "useturbocpuspeed: 0=Don't use, 1=Use\n");
+	safestrcat(cmos_comment, sizeof(cmos_comment), "clockingmode: 0=Cycle-accurate clock, 1=IPS clock\n");
+
 	char *cmos_commentused=NULL;
 	if (cmos_comment[0]) cmos_commentused = &cmos_comment[0];
 
@@ -1543,9 +1704,9 @@ void BIOS_ValidateData() //Validates all data and unmounts/remounts if needed!
 		bioschanged = 1; //BIOS changed!
 	}
 
-	if (BIOS_Settings.DataBusSize > 1) //Invalid bus size?
+	if (*(getarchDataBusSize()) > 1) //Invalid bus size?
 	{
-		BIOS_Settings.DataBusSize = 0; //Default bus size!
+		*(getarchDataBusSize()) = 0; //Default bus size!
 		bioschanged = 1; //BIOS changed!
 	}
 
@@ -1642,9 +1803,9 @@ void BIOS_ShowBIOS() //Shows mounted drives etc!
 		++numdrives;
 	}
 
-	if (BIOS_Settings.emulated_CPU==CPU_8086) //8086?
+	if (*(getarchemulated_CPU())==CPU_8086) //8086?
 	{
-		if (BIOS_Settings.DataBusSize) //8-bit bus?
+		if (*(getarchDataBusSize())) //8-bit bus?
 		{
 			printmsg(0xF, "Installed CPU: Intel 8088\r\n"); //Emulated CPU!
 		}
@@ -1653,9 +1814,9 @@ void BIOS_ShowBIOS() //Shows mounted drives etc!
 			printmsg(0xF,"Installed CPU: Intel 8086\r\n"); //Emulated CPU!
 		}
 	}
-	else if (BIOS_Settings.emulated_CPU==CPU_NECV30) //NECV30?
+	else if (*(getarchemulated_CPU())==CPU_NECV30) //NECV30?
 	{
-		if (BIOS_Settings.DataBusSize) //8-bit bus?
+		if (*(getarchDataBusSize())) //8-bit bus?
 		{
 			printmsg(0xF, "Installed CPU: NEC V20\r\n"); //Emulated CPU!
 		}
@@ -1664,19 +1825,19 @@ void BIOS_ShowBIOS() //Shows mounted drives etc!
 			printmsg(0xF, "Installed CPU: NEC V30\r\n"); //Emulated CPU!
 		}
 	}
-	else if (BIOS_Settings.emulated_CPU == CPU_80286) //80286?
+	else if (*(getarchemulated_CPU()) == CPU_80286) //80286?
 	{
 		printmsg(0xF, "Installed CPU: Intel 80286\r\n"); //Emulated CPU!
 	}
-	else if (BIOS_Settings.emulated_CPU == CPU_80386) //80386?
+	else if (*(getarchemulated_CPU()) == CPU_80386) //80386?
 	{
 		printmsg(0xF, "Installed CPU: Intel 80386\r\n"); //Emulated CPU!
 	}
-	else if (BIOS_Settings.emulated_CPU == CPU_80486) //80486?
+	else if (*(getarchemulated_CPU()) == CPU_80486) //80486?
 	{
 		printmsg(0xF, "Installed CPU: Intel 80486\r\n"); //Emulated CPU!
 	}
-	else if (BIOS_Settings.emulated_CPU == CPU_PENTIUM) //80286?
+	else if (*(getarchemulated_CPU()) == CPU_PENTIUM) //80286?
 	{
 		printmsg(0xF, "Installed CPU: Intel Pentium(without FPU)\r\n"); //Emulated CPU!
 	}

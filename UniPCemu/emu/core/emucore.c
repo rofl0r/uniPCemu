@@ -584,8 +584,8 @@ void initEMU(int full) //Init!
 	updateEMUSingleStep(4); //Start our breakpoint at the specified settings!
 
 	debugrow("Initializing CPU...");
-	CPU_databussize = BIOS_Settings.DataBusSize; //Apply the bus to use for our emulation!
-	useIPSclock = BIOS_Settings.clockingmode; //Are we using the IPS clock instead?
+	CPU_databussize = *(getarchDataBusSize()); //Apply the bus to use for our emulation!
+	useIPSclock = *(getarchclockingmode()); //Are we using the IPS clock instead?
 	initCPU(); //Initialise CPU for emulation!
 
 	debugrow("Initializing Inboard when required...");
@@ -846,10 +846,10 @@ void updateSpeedLimit()
 {
 	uint_32 CPUSpeed;
 	byte is_Turbo=0; //Turbo mode?
-	CPUSpeed = BIOS_Settings.CPUSpeed; //Default speed!
-	if (TurboMode && BIOS_Settings.useTurboSpeed) //Turbo Speed enabled?
+	CPUSpeed = *(getarchCPUSpeed()); //Default speed!
+	if (TurboMode && *(getarchuseTurboCPUSpeed())) //Turbo Speed enabled?
 	{
-		CPUSpeed = BIOS_Settings.TurboCPUSpeed;
+		CPUSpeed = *(getarchTurboCPUSpeed());
 		is_Turbo = 1; //Enable Turbo Speed calculations!
 	}
 

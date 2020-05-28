@@ -48,7 +48,7 @@ extern BIOS_Settings_TYPE BIOS_Settings; //BIOS Settings (required for determini
 #define CPU_MODES 2
 
 //Currently emulating CPU (values see above, formula later)?
-#define EMULATED_CPU BIOS_Settings.emulated_CPU
+#define EMULATED_CPU *(getarchemulated_CPU())
 //Since we're comparing to Bochs, emulate a Pentium PC!
 //#define EMULATED_CPU CPU_PENTIUM
 

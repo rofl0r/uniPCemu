@@ -62,6 +62,12 @@ typedef struct
 	byte floppy0_nodisk_type; //No mounted disk type for Floppy A
 	byte floppy1_nodisk_type; //No mounted disk type for Floppy B
 	uint_32 memory; //Memory used by the emulator!
+	byte emulated_CPU; //Emulated CPU?
+	byte DataBusSize; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+	uint_32 CPUspeed; //CPU speed
+	uint_32 TurboCPUspeed; //Turbo CPU speed
+	byte useTurboCPUSpeed; //Are we to use Turbo CPU speed?
+	byte clockingmode; //Are we using the IPS clock instead of cycle-accurate clock?
 } CMOSDATA;
 
 typedef struct
