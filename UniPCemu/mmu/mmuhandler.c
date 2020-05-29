@@ -243,7 +243,7 @@ OPTINLINE byte MMU_IO_readhandler(uint_32 offset)
 	byte dataread;
 	MMU_RHANDLER *list; //Current list item!
 	MMU_RHANDLER current; //Current handler!
-	memory_datasize = 1; //Default to a size of 1!
+	memory_datasize = 0; //Default to a size of invalid!
 	memory_dataaddr = offset; //What address has been cached!
 	if (BIOS_readhandler(offset)) return 0; //BIOS responded!
 	if (VGAmemIO_rb(offset)) return 0; //Video responded!
@@ -253,6 +253,8 @@ OPTINLINE byte MMU_IO_readhandler(uint_32 offset)
 	{
 		if (unlikely(current(offset,&dataread))) //Success reading?
 		{
+			memory_dataaddr = offset; //What address!
+			memory_datasize = 1; //Only 1 byte!
 			memory_dataread = dataread; //What has been read?
 			return 0; //Abort searching: we're processed!
 		}
@@ -693,6 +695,7 @@ byte MMU_INTERNAL_directrb_debugger(uint_32 realaddress, word index, uint_32 *re
 	}
 
 	*result = memorymapinfo[precalcval].cache[realaddress & MMU_BLOCKALIGNMENT]; //Get data from memory!
+	memory_dataaddr = originaladdress; //What is the cached data address!
 	memory_datasize = 1; //1 byte only!
 	debugger_logmemoryaccess(0, (uint_32)((ptrnum)&memorymapinfo[precalcval].cache[realaddress & MMU_BLOCKALIGNMENT]-(ptrnum)MMU.memory), *result, LOGMEMORYACCESS_RAM_LOGMMUALL | (((index & 0x20) >> 5) << LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
 	//is_debugging |= 2; //Already gotten!
@@ -723,25 +726,31 @@ byte MMU_INTERNAL_directrb_nodebugger(uint_32 realaddress, word index, uint_32 *
 	}
 	if ((memorymapinfo[precalcval].byteaddr & MMU_BLOCKALIGNMENT) == 0) //Cachable?
 	{
+		/*
 		if (((realaddress & MMU_BLOCKALIGNMENT) & 3) == 0) //Fully cacheable?
 		{
 			*result = SDL_SwapLE32(*((uint_32*)&memorymapinfo[precalcval].cache[realaddress & MMU_BLOCKALIGNMENT])); //Read 32-bit aligned!
+			memory_dataaddr = originaladdress; //What is the cached data address!
 			memory_datasize = 4; //4 bytes only!
 		}
 		else if (((realaddress & MMU_BLOCKALIGNMENT) & 1) == 0) //16-bit cacheable?
 		{
 			*result = SDL_SwapLE16(*((word*)&memorymapinfo[precalcval].cache[realaddress & MMU_BLOCKALIGNMENT])); //Read 16-bit aligned!
+			memory_dataaddr = originaladdress; //What is the cached data address!
 			memory_datasize = 2; //2 bytes only!
 		}
 		else //Single, unaligned read?
 		{
+		*/
 			*result = memorymapinfo[precalcval].cache[realaddress & MMU_BLOCKALIGNMENT]; //Get data from memory!
+			memory_dataaddr = originaladdress; //What is the cached data address!
 			memory_datasize = 1; //1 byte only!
-		}
+		//}
 	}
 	else //Not cacheable?
 	{
 		*result = memorymapinfo[precalcval].cache[realaddress & MMU_BLOCKALIGNMENT]; //Get data from memory!
+		memory_dataaddr = originaladdress; //What is the cached data address!
 		memory_datasize = 1; //1 byte only!
 	}
 	if (unlikely(doDRAM_access)) //DRAM access?
@@ -833,7 +842,7 @@ OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, word index
 	}
 #endif
 	memorymapinfo[precalcval].cache[realaddress & MMU_BLOCKALIGNMENT] = value; //Set data, full memory protection!
-	if (unlikely((memorymapinfo[precalcval].cache == memorymapinfo[3].cache) || (memorymapinfo[precalcval].cache == memorymapinfo[1].cache))) //Matched a read cache?
+	//if (unlikely((memorymapinfo[precalcval].cache == memorymapinfo[3].cache) || (memorymapinfo[precalcval].cache == memorymapinfo[1].cache))) //Matched a read cache?
 	{
 		memory_datasize = 0; //Invalidate the read cache to re-read memory!
 	}
@@ -852,34 +861,43 @@ word MMU_INTERNAL_directrw(uint_32 realaddress, word index) //Direct read from r
 {
 	word result;
 	uint_32 temp;
-	if (MMU_INTERNAL_directrb(realaddress + 1, index | 1, &temp))
-	{
-		if (likely((is_XT == 0) || (EMULATED_CPU >= CPU_80286))) //To give NOT for detecting memory on AT only?
-		{
-			temp = 0xFF; //Give the last data read/written by the BUS!
-			memory_datasize = 1; //1 byte only!
-		}
-		else
-		{
-			temp = (byte)(mem_BUSValue >> ((index & 3) << 3)); //Give the last data read/written by the BUS!
-			memory_datasize = 1; //1 byte only!
-		}
-	}
-	result = (temp << 8); //Higher byte!
 	if (MMU_INTERNAL_directrb(realaddress, index, &temp)) //Get data, wrap arround!
 	{
 		if (likely((is_XT == 0) || (EMULATED_CPU >= CPU_80286))) //To give NOT for detecting memory on AT only?
 		{
 			temp = 0xFF; //Give the last data read/written by the BUS!
+			memory_dataread = temp; //What is read!
+			memory_dataaddr = realaddress; //What address!
 			memory_datasize = 1; //1 byte only!
 		}
 		else
 		{
 			temp = (byte)(mem_BUSValue >> ((index & 3) << 3)); //Give the last data read/written by the BUS!
+			memory_dataread = temp; //What is read!
+			memory_dataaddr = realaddress; //What address!
 			memory_datasize = 1; //1 byte only!
 		}
 	}
-	result |= temp; //Add the low byte too!
+	result = temp; //The low byte too!
+	if (MMU_INTERNAL_directrb(realaddress + 1, index | 1, &temp))
+	{
+		if (likely((is_XT == 0) || (EMULATED_CPU >= CPU_80286))) //To give NOT for detecting memory on AT only?
+		{
+			temp = 0xFF; //Give the last data read/written by the BUS!
+			memory_dataaddr = realaddress; //What address!
+			memory_dataread = temp; //What is read!
+			memory_datasize = 1; //1 byte only!
+		}
+		else
+		{
+			temp = (byte)(mem_BUSValue >> ((index & 3) << 3)); //Give the last data read/written by the BUS!
+			memory_dataaddr = realaddress; //What address!
+			memory_datasize = 1; //1 byte only!
+		}
+	}
+	result |= (temp << 8); //Higher byte!
+	memory_dataread = result;
+	memory_datasize = 2; //How much is read!
 	return result; //Give the result!
 }
 
@@ -912,16 +930,18 @@ byte MMU_INTERNAL_directrb_realaddr(uint_32 realaddress, byte index) //Read with
 			if (likely((is_XT == 0) || (EMULATED_CPU >= CPU_80286))) //To give NOT for detecting memory on AT only?
 			{
 				memory_dataread = 0xFF; //Give the last data read/written by the BUS!
+				memory_dataaddr = realaddress; //What address!
 				memory_datasize = 1; //Only 1 byte long!
 			}
 			else
 			{
 				memory_dataread = (byte)(mem_BUSValue >> ((index & 3) << 3)); //Give the last data read/written by the BUS!
+				memory_dataaddr = realaddress; //What address!
 				memory_datasize = 1; //Only 1 byte long!
 			}
 		}
 	}
-	//Are we debugging?
+//Are we debugging?
 #ifdef LOG_HIGH_MEMORY
 	#define is_debugging ((MMU_logging == 1) || (specialdebugger && (realaddress >= 0x100000)))
 #else
@@ -931,7 +951,6 @@ byte MMU_INTERNAL_directrb_realaddr(uint_32 realaddress, byte index) //Read with
 	{
 		debugger_logmemoryaccess(0,realaddress,memory_dataread,LOGMEMORYACCESS_DIRECT|(((index&0x20)>>5)<<LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
 	}
-	memory_datasize = 0; //Nothing to cache!
 	return memory_dataread;
 #undef is_debugging
 }
