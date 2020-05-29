@@ -421,7 +421,8 @@ void applyCGAMDAOffset(byte CPUtiming, uint_32 *offset)
 	}
 }
 
-extern byte memory_dataread;
+extern uint_32 memory_dataread;
+extern byte memory_datasize; //The size of the data that has been read!
 byte VGAmemIO_rb(uint_32 offset)
 {
 	if (unlikely(is_A000VRAM(offset))) //VRAM and within range?
@@ -434,6 +435,7 @@ byte VGAmemIO_rb(uint_32 offset)
 		{
 			memory_dataread = getActiveVGA()->CGAMDAShadowRAM[offset]; //Read from shadow RAM!
 		}
+		memory_datasize = 1; //Only 1 byte chunks can be read!
 		return 1; //Read!
 	}
 	return 0; //Not read!

@@ -39,6 +39,8 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 byte EMU_BIOS[0x10000]; //Full custom BIOS from 0xF0000-0xFFFFF for the emulator itself to use!
 byte EMU_VGAROM[0x10000]; //Maximum size custom BIOS VGA ROM!
 
+byte* BIOS_combinedROM; //Combined ROM with all odd/even made linear!
+uint_32 BIOS_combinedROM_size = 0; //The size of the combined ROM!
 byte *BIOS_ROMS[0x100]; //All possible BIOS roms!
 byte BIOS_ROMS_ext[0x100]; //Extended load used to load us?
 uint_32 BIOS_ROM_size[0x100]; //All possible BIOS ROM sizes!
@@ -313,6 +315,8 @@ uint_32 BIOS_ROM_U13_15_double = 0, BIOS_ROM_U13_15_single = 0;
 
 int BIOS_load_ROM(byte nr)
 {
+	uint_32 ROMdst, ROMsrc;
+	byte srcROM;
 	byte tryext = 0; //Try extra ROMs for different architectures?
 	uint_32 ROM_size=0; //The size of both ROMs!
 	BIGFILE *f;
@@ -465,6 +469,24 @@ retryext:
 				{
 					BIOS_ROM_type = BIOSROMTYPE_U34_35; //u34/35 combo!
 					ROM_size = BIOS_ROM_size[34]+BIOS_ROM_size[35]; //ROM size!
+					//Preprocess the ROM into a linear one instead of interleaved!
+					BIOS_combinedROM = (byte*)zalloc(ROM_size, "BIOS_combinedROM", getLock(LOCK_CPU));
+					if (!BIOS_combinedROM) //Failed to allocate?
+					{
+						freez((void**)&BIOS_ROMS[nr], BIOS_ROM_size[nr], filename); //Failed to read!
+						return 0; //Abort!
+					}
+					BIOS_ROMS_ext[nr] |= 0x10; //Tell we're using an combined ROM!
+					BIOS_combinedROM_size = ROM_size; //The size of the combined ROM!
+					//Combined ROM allocated?
+					srcROM = 34; //The first byte is this ROM!
+					ROMdst = ROMsrc = 0; //Init!
+					for (; ROMdst < ROM_size;) //Process the entire ROM!
+					{
+						BIOS_combinedROM[ROMdst++] = BIOS_ROMS[srcROM][ROMsrc]; //Take a byte from the source ROM!
+						srcROM = (srcROM == 34) ? 35 : 34; //Toggle the src ROM!
+						if (srcROM == 34) ++ROMsrc; //Next position when two ROMs have been processed!
+					}
 				}
 				else
 				{
@@ -478,6 +500,24 @@ retryext:
 				{
 					BIOS_ROM_type = BIOSROMTYPE_U27_47; //u27/47 combo!
 					ROM_size = BIOS_ROM_size[27]+BIOS_ROM_size[47]; //ROM size!
+					//Preprocess the ROM into a linear one instead of interleaved!
+					BIOS_combinedROM = (byte*)zalloc(ROM_size, "BIOS_combinedROM", getLock(LOCK_CPU));
+					if (!BIOS_combinedROM) //Failed to allocate?
+					{
+						freez((void**)&BIOS_ROMS[nr], BIOS_ROM_size[nr], filename); //Failed to read!
+						return 0; //Abort!
+					}
+					BIOS_ROMS_ext[nr] |= 0x10; //Tell we're using an combined ROM!
+					BIOS_combinedROM_size = ROM_size; //The size of the combined ROM!
+					//Combined ROM allocated?
+					srcROM = 27; //The first byte is this ROM!
+					ROMdst = ROMsrc = 0; //Init!
+					for (; ROMdst < ROM_size;) //Process the entire ROM!
+					{
+						BIOS_combinedROM[ROMdst++] = BIOS_ROMS[srcROM][ROMsrc]; //Take a byte from the source ROM!
+						srcROM = (srcROM == 27) ? 47 : 27; //Toggle the src ROM!
+						if (srcROM == 27) ++ROMsrc; //Next position when two ROMs have been processed!
+					}
 				}
 				else
 				{
@@ -493,6 +533,24 @@ retryext:
 					ROM_size = (BIOS_ROM_size[13]+BIOS_ROM_size[15])<<1; //ROM size! The ROM is doubled in RAM(duplicated twice)
 					BIOS_ROM_U13_15_double = ROM_size; //Save the loaded ROM size for easier processing!
 					BIOS_ROM_U13_15_single = ROM_size>>1; //Half the ROM for easier lookup!
+					//Preprocess the ROM into a linear one instead of interleaved!
+					BIOS_combinedROM = (byte*)zalloc(BIOS_ROM_U13_15_single, "BIOS_combinedROM", getLock(LOCK_CPU));
+					if (!BIOS_combinedROM) //Failed to allocate?
+					{
+						freez((void**)&BIOS_ROMS[nr], BIOS_ROM_size[nr], filename); //Failed to read!
+						return 0; //Abort!
+					}
+					BIOS_ROMS_ext[nr] |= 0x10; //Tell we're using an combined ROM!
+					BIOS_combinedROM_size = BIOS_ROM_U13_15_single; //The size of the combined ROM!
+					//Combined ROM allocated?
+					srcROM = 13; //The first byte is this ROM!
+					ROMdst = ROMsrc = 0;
+					for (; ROMdst < BIOS_combinedROM_size;) //Process the entire ROM!
+					{
+						BIOS_combinedROM[ROMdst++] = BIOS_ROMS[srcROM][ROMsrc]; //Take a byte from the source ROM!
+						srcROM = (srcROM == 13) ? 15 : 13; //Toggle the src ROM!
+						if (srcROM == 13) ++ROMsrc; //Next position when two ROMs have been processed!
+					}
 				}
 				else
 				{
@@ -653,6 +711,10 @@ void BIOS_free_ROM(byte nr)
 	}
 	if (BIOS_ROM_size[nr]) //Has size?
 	{
+		if (BIOS_ROMS_ext[nr] & 0x10) //Needs freeing of the combined ROM as well?
+		{
+			freez((void **)&BIOS_combinedROM,BIOS_combinedROM_size,"BIOS_combinedROM"); //Free the combined ROM!
+		}
 		freez((void **)&BIOS_ROMS[nr],BIOS_ROM_size[nr],filename); //Release the BIOS ROM!
 	}
 }
@@ -731,8 +793,8 @@ int BIOS_load_VGAROM() //Load custom ROM from emulator itself!
 
 byte BIOSROM_DisableLowMemory = 0; //Disable low-memory mapping of the BIOS and OPTROMs! Disable mapping of low memory locations E0000-FFFFF used on the Compaq Deskpro 386.
 
-extern byte memory_dataread;
-
+extern uint_32 memory_dataread;
+extern byte memory_datasize; //The size of the data that has been read!
 byte OPTROM_readhandler(uint_32 offset)    /* A pointer to a handler function */
 {
 	uint_32 ROMsize;
@@ -781,11 +843,43 @@ byte OPTROM_readhandler(uint_32 offset)    /* A pointer to a handler function */
 				}
 				if ((ISVGA==4) && (i==0)) //EGA ROM is reversed?
 				{
-					memory_dataread = OPT_ROMS[i][ROMsize-temppos-1]; //Read the data from the ROM, reversed!
+					if (((ROMsize - temppos - 1) >= 3) && (((ROMsize - temppos - 4) & 3) == 0)) //Enough to read a dword?
+					{
+						memory_dataread = SDL_SwapLE32(*((uint_32*)(&OPT_ROMS[i][ROMsize - temppos - 4]))); //Read the data from the ROM, reversed!
+						memory_datasize = 4; //A whole dword!
+						return 1; //Done: we've been read!
+					}
+					else if (((ROMsize - temppos - 1) >= 1) && (((ROMsize - temppos - 2)&1)==0)) //Enough to read a word, aligned?
+					{
+						memory_dataread = SDL_SwapLE16(*((word*)(&OPT_ROMS[i][ROMsize - temppos - 2]))); //Read the data from the ROM, reversed!
+						memory_datasize = 2; //Only 2 bytes!
+						return 1; //Done: we've been read!				
+					}
+					else //Enough to read a byte only?
+					{
+						memory_dataread = OPT_ROMS[i][ROMsize - temppos - 1]; //Read the data from the ROM, reversed!
+						memory_datasize = 1; //Only 1 byte!
+						return 1; //Done: we've been read!				
+					}
+				}
+				if (((temppos & 3) == 0) && ((temppos|3)<=ROMsize)) //Enough to read a dword?
+				{
+					memory_dataread = SDL_SwapLE32(*((uint_32*)(&OPT_ROMS[i][temppos]))); //Read the data from the ROM!
+					memory_datasize = 4; //A whole dword!
+					return 1; //Done: we've been read!
+				}
+				else if (((temppos & 1) == 0) && ((temppos|1)<=ROMsize)) //Enough to read a word, aligned?
+				{
+					memory_dataread = SDL_SwapLE16(*((word*)(&OPT_ROMS[i][temppos]))); //Read the data from the ROM, reversed!
+					memory_datasize = 2; //Only 2 bytes!
 					return 1; //Done: we've been read!				
 				}
-				memory_dataread = OPT_ROMS[i][temppos]; //Read the data from the ROM!
-				return 1; //Done: we've been read!
+				else //Enough to read a byte only?
+				{
+					memory_dataread = OPT_ROMS[i][temppos]; //Read the data from the ROM, reversed!
+					memory_datasize = 1; //Only 1 byte!
+					return 1; //Done: we've been read!				
+				}
 			}
 		}
 		++i;
@@ -795,7 +889,24 @@ byte OPTROM_readhandler(uint_32 offset)    /* A pointer to a handler function */
 	{
 		if (likely(basepos < BIOS_custom_VGAROM_size)) //OK?
 		{
-			memory_dataread = BIOS_custom_VGAROM[basepos]; //Give the value!
+			if (((basepos & 3) == 0) && ((basepos | 3) <= BIOS_custom_VGAROM_size)) //Enough to read a dword?
+			{
+				memory_dataread = SDL_SwapLE32(*((uint_32*)(BIOS_custom_VGAROM[basepos]))); //Read the data from the ROM!
+				memory_datasize = 4; //A whole dword!
+				return 1; //Done: we've been read!
+			}
+			else if (((basepos & 1) == 0) && ((basepos | 1) <= BIOS_custom_VGAROM_size)) //Enough to read a word, aligned?
+			{
+				memory_dataread = SDL_SwapLE16(*((word*)(BIOS_custom_VGAROM[basepos]))); //Read the data from the ROM, reversed!
+				memory_datasize = 2; //Only 2 bytes!
+				return 1; //Done: we've been read!				
+			}
+			else //Enough to read a byte only?
+			{
+				memory_dataread = BIOS_custom_VGAROM[basepos]; //Read the data from the ROM, reversed!
+				memory_datasize = 1; //Only 1 byte!
+				return 1; //Done: we've been read!				
+			}
 			return 1;
 		}
 	}
@@ -1186,8 +1297,24 @@ byte BIOS_readhandler(uint_32 offset) /* A pointer to a handler function */
 			if (likely(tempoffset<0x10000)) //Within range?
 			{
 				tempoffset &= 0xFFFF; //16-bit ROM!
-				memory_dataread = BIOS_custom_ROM[tempoffset]; //Give the value!
-				return 1; //Direct offset used!
+				if (((tempoffset & 3) == 0) && ((tempoffset | 3) <= BIOS_custom_ROM_size)) //Enough to read a dword?
+				{
+					memory_dataread = SDL_SwapLE32(*((uint_32*)(&BIOS_custom_ROM[tempoffset]))); //Read the data from the ROM!
+					memory_datasize = 4; //A whole dword!
+					return 1; //Done: we've been read!
+				}
+				else if (((tempoffset & 1) == 0) && ((tempoffset | 1) <= BIOS_custom_ROM_size)) //Enough to read a word, aligned?
+				{
+					memory_dataread = SDL_SwapLE16(*((word*)(&BIOS_custom_ROM[tempoffset]))); //Read the data from the ROM, reversed!
+					memory_datasize = 2; //Only 2 bytes!
+					return 1; //Done: we've been read!				
+				}
+				else //Enough to read a byte only?
+				{
+					memory_dataread = BIOS_custom_ROM[tempoffset]; //Read the data from the ROM, reversed!
+					memory_datasize = 1; //Only 1 byte!
+					return 1; //Done: we've been read!				
+				}
 			}
 		}
 		if ((EMULATED_CPU>=CPU_80386) && (is_XT==0)) //Compaq compatible?
@@ -1200,8 +1327,24 @@ byte BIOS_readhandler(uint_32 offset) /* A pointer to a handler function */
 		tempoffset = (uint_32)(BIOS_custom_ROM_size-(endpos-(tempoffset+baseposbackup))); //Patch to the end block of the ROM instead of the start.
 		if (likely(tempoffset<BIOS_custom_ROM_size)) //Within range?
 		{
-			memory_dataread = BIOS_custom_ROM[tempoffset]; //Give the value!
-			return 1; //ROM offset from the end of RAM used!
+			if (((tempoffset & 3) == 0) && ((tempoffset | 3) <= BIOS_custom_ROM_size)) //Enough to read a dword?
+			{
+				memory_dataread = SDL_SwapLE32(*((uint_32*)(&BIOS_custom_ROM[tempoffset]))); //Read the data from the ROM!
+				memory_datasize = 4; //A whole dword!
+				return 1; //Done: we've been read!
+			}
+			else if (((tempoffset & 1) == 0) && ((tempoffset | 1) <= BIOS_custom_ROM_size)) //Enough to read a word, aligned?
+			{
+				memory_dataread = SDL_SwapLE16(*((word*)(&BIOS_custom_ROM[tempoffset]))); //Read the data from the ROM, reversed!
+				memory_datasize = 2; //Only 2 bytes!
+				return 1; //Done: we've been read!				
+			}
+			else //Enough to read a byte only?
+			{
+				memory_dataread = BIOS_custom_ROM[tempoffset]; //Read the data from the ROM, reversed!
+				memory_datasize = 1; //Only 1 byte!
+				return 1; //Done: we've been read!				
+			}
 		}
 		else //Custom ROM, but nothing to give? Give 0x00!
 		{
@@ -1222,12 +1365,28 @@ byte BIOS_readhandler(uint_32 offset) /* A pointer to a handler function */
 			segment += 18; //The ROM number!
 			if (likely(BIOS_ROM_size[segment]>tempoffset)) //Within range?
 			{
-				memory_dataread = BIOS_ROMS[segment][tempoffset]; //Give the value!
-				return 1;
+				if (((tempoffset & 3) == 0) && ((tempoffset | 3) <= BIOS_ROM_size[segment])) //Enough to read a dword?
+				{
+					memory_dataread = SDL_SwapLE32(*((uint_32*)(&BIOS_ROMS[segment][tempoffset]))); //Read the data from the ROM!
+					memory_datasize = 4; //A whole dword!
+					return 1; //Done: we've been read!
+				}
+				else if (((tempoffset & 1) == 0) && ((tempoffset | 1) <= BIOS_ROM_size[segment])) //Enough to read a word, aligned?
+				{
+					memory_dataread = SDL_SwapLE16(*((word*)(&BIOS_ROMS[segment][tempoffset]))); //Read the data from the ROM, reversed!
+					memory_datasize = 2; //Only 2 bytes!
+					return 1; //Done: we've been read!				
+				}
+				else //Enough to read a byte only?
+				{
+					memory_dataread = BIOS_ROMS[segment][tempoffset]; //Read the data from the ROM, reversed!
+					memory_datasize = 1; //Only 1 byte!
+					return 1; //Done: we've been read!				
+				}
 			}
 			break;
 		case BIOSROMTYPE_U13_15: //U13&15 combo?
-			segment = tempoffset = basepos; //Load the offset! General for AT+ ROMs!
+			/*segment =*/ tempoffset = basepos; //Load the offset! General for AT+ ROMs!
 			if (likely(tempoffset<BIOS_ROM_U13_15_double)) //This is doubled in ROM!
 			{
 				if (unlikely(tempoffset>=BIOS_ROM_U13_15_single)) //Second copy?
@@ -1235,6 +1394,7 @@ byte BIOS_readhandler(uint_32 offset) /* A pointer to a handler function */
 					tempoffset -= BIOS_ROM_U13_15_single; //Patch to first block to address!
 				}
 			}
+			/*
 			tempoffset >>= 1; //The offset is at every 2 bytes of memory!
 			segment &= 1; //Even=u27, Odd=u47
 			segment <<= 1; //1:15(+2),0=13(+0).
@@ -1242,11 +1402,36 @@ byte BIOS_readhandler(uint_32 offset) /* A pointer to a handler function */
 			if (likely(BIOS_ROM_size[segment]>tempoffset)) //Within range?
 			{
 				memory_dataread = BIOS_ROMS[segment][tempoffset]; //Give the value!
+				memory_datasize = 1; //Only 1 byte!
 				return 1;
+			}
+			*/
+
+			if (likely(BIOS_combinedROM_size > tempoffset)) //Within range?
+			{
+				if (((tempoffset & 3) == 0) && ((tempoffset | 3) <= BIOS_combinedROM_size)) //Enough to read a dword?
+				{
+					memory_dataread = SDL_SwapLE32(*((uint_32*)(&BIOS_combinedROM[tempoffset]))); //Read the data from the ROM!
+					memory_datasize = 4; //A whole dword!
+					return 1; //Done: we've been read!
+				}
+				else if (((tempoffset & 1) == 0) && ((tempoffset | 1) <= BIOS_combinedROM_size)) //Enough to read a word, aligned?
+				{
+					memory_dataread = SDL_SwapLE16(*((word*)(&BIOS_combinedROM[tempoffset]))); //Read the data from the ROM, reversed!
+					memory_datasize = 2; //Only 2 bytes!
+					return 1; //Done: we've been read!				
+				}
+				else //Enough to read a byte only?
+				{
+					memory_dataread = BIOS_combinedROM[tempoffset]; //Read the data from the ROM, reversed!
+					memory_datasize = 1; //Only 1 byte!
+					return 1; //Done: we've been read!				
+				}
 			}
 			break;
 		case BIOSROMTYPE_U27_47: //U27&47 combo?
-			segment = tempoffset = basepos; //Load the offset! General for AT+ ROMs!
+			/*segment =*/ tempoffset = basepos; //Load the offset! General for AT+ ROMs!
+			/*
 			tempoffset >>= 1; //The offset is at every 2 bytes of memory!
 			segment &= 1; //Even=u27, Odd=u47
 			segment = (((segment << 3) + (segment << 1)) << 1); //Set to 20 for the (*10*2 using bit shifts) for the offset to the ROM number!
@@ -1256,9 +1441,32 @@ byte BIOS_readhandler(uint_32 offset) /* A pointer to a handler function */
 				memory_dataread = BIOS_ROMS[segment][tempoffset]; //Give the value!
 				return 1;
 			}
+			*/
+			if (likely(BIOS_combinedROM_size > tempoffset)) //Within range?
+			{
+				if (((tempoffset & 3) == 0) && ((tempoffset | 3) <= BIOS_combinedROM_size)) //Enough to read a dword?
+				{
+					memory_dataread = SDL_SwapLE32(*((uint_32*)(&BIOS_combinedROM[tempoffset]))); //Read the data from the ROM!
+					memory_datasize = 4; //A whole dword!
+					return 1; //Done: we've been read!
+				}
+				else if (((tempoffset & 1) == 0) && ((tempoffset | 1) <= BIOS_combinedROM_size)) //Enough to read a word, aligned?
+				{
+					memory_dataread = SDL_SwapLE16(*((word*)(&BIOS_combinedROM[tempoffset]))); //Read the data from the ROM, reversed!
+					memory_datasize = 2; //Only 2 bytes!
+					return 1; //Done: we've been read!				
+				}
+				else //Enough to read a byte only?
+				{
+					memory_dataread = BIOS_combinedROM[tempoffset]; //Read the data from the ROM, reversed!
+					memory_datasize = 1; //Only 1 byte!
+					return 1; //Done: we've been read!				
+				}
+			}
 			break;
 		case BIOSROMTYPE_U34_35: //U34&35 combo?
-			segment = tempoffset = basepos; //Load the offset! General for AT+ ROMs!
+			/*segment =*/ tempoffset = basepos; //Load the offset! General for AT+ ROMs!
+			/*
 			tempoffset >>= 1; //The offset is at every 2 bytes of memory!
 			segment &= 1; //Even=u27, Odd=u47
 			segment += 34; //The segment number to use!
@@ -1266,6 +1474,29 @@ byte BIOS_readhandler(uint_32 offset) /* A pointer to a handler function */
 			{
 				memory_dataread = BIOS_ROMS[segment][tempoffset]; //Give the value!
 				return 1;
+			}
+			*/
+
+			if (likely(BIOS_combinedROM_size > tempoffset)) //Within range?
+			{
+				if (((tempoffset & 3) == 0) && ((tempoffset | 3) <= BIOS_combinedROM_size)) //Enough to read a dword?
+				{
+					memory_dataread = SDL_SwapLE32(*((uint_32*)(&BIOS_combinedROM[tempoffset]))); //Read the data from the ROM!
+					memory_datasize = 4; //A whole dword!
+					return 1; //Done: we've been read!
+				}
+				else if (((tempoffset & 1) == 0) && ((tempoffset | 1) <= BIOS_combinedROM_size)) //Enough to read a word, aligned?
+				{
+					memory_dataread = SDL_SwapLE16(*((word*)(&BIOS_combinedROM[tempoffset]))); //Read the data from the ROM, reversed!
+					memory_datasize = 2; //Only 2 bytes!
+					return 1; //Done: we've been read!				
+				}
+				else //Enough to read a byte only?
+				{
+					memory_dataread = BIOS_combinedROM[tempoffset]; //Read the data from the ROM, reversed!
+					memory_datasize = 1; //Only 1 byte!
+					return 1; //Done: we've been read!				
+				}
 			}
 			break;
 			default: break; //Unknown even/odd mapping!
