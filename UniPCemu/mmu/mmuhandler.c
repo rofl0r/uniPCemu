@@ -633,6 +633,8 @@ byte readCompaqMMURegister() //Read the Compaq MMU register!
 	return result; //Give the result!
 }
 
+extern byte BIU_cachedmemorysize; //For the BIU to flush it's cache!
+
 void writeCompaqMMUregister(uint_32 originaladdress, byte value)
 {
 #ifdef LOG_HIGH_MEMORY
@@ -659,6 +661,7 @@ void writeCompaqMMUregister(uint_32 originaladdress, byte value)
 	MMU.maxsize = MMU.size - (0x100000 - 0xA0000); //Limit the memory size!
 	MMU_updatemaxsize(); //updated the maximum size!
 	memory_datasize = 0; //Invalidate the read cache!
+	BIU_cachedmemorysize = 0; //Make the BIU properly aware by flushing it's caches!
 }
 
 BUShandler bushandler = NULL; //Remember the last access?
@@ -928,6 +931,7 @@ byte MMU_INTERNAL_directrb_realaddr(uint_32 realaddress, byte index) //Read with
 	{
 		debugger_logmemoryaccess(0,realaddress,memory_dataread,LOGMEMORYACCESS_DIRECT|(((index&0x20)>>5)<<LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
 	}
+	memory_datasize = 0; //Nothing to cache!
 	return memory_dataread;
 #undef is_debugging
 }

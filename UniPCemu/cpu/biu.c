@@ -353,8 +353,19 @@ extern MMU_type MMU; //MMU support!
 extern byte is_Compaq; //Are we emulating a Compaq architecture?
 uint_32 wrapaddr[2] = {0xFFFFFFFF,0xFFFFFFFF}; //What wrap to apply!
 extern uint_32 effectivecpuaddresspins; //What address pins are supported?
+
+//Some cached memory line!
+uint_32 BIU_cachedmemoryaddr=0;
+uint_32 BIU_cachedmemoryread=0;
+byte BIU_cachedmemorysize=0;
+
+extern uint_32 memory_dataaddr; //The data address that's cached!
+extern uint_32 memory_dataread;
+extern byte memory_datasize; //The size of the data that has been read!
+
 OPTINLINE byte BIU_directrb(uint_32 realaddress, word index)
 {
+	INLINEREGISTER byte cachedmemorybyte;
 	uint_32 originaladdr;
 	byte result;
 	//Apply A20!
@@ -363,12 +374,55 @@ OPTINLINE byte BIU_directrb(uint_32 realaddress, word index)
 	originaladdr = realaddress; //Save the address before the A20 is modified!
 	realaddress &= wrapaddr[(((MMU.A20LineEnabled==0) && (((realaddress&~0xFFFFF)==0x100000)||(is_Compaq!=1)))&1)]; //Apply A20, when to be applied!
 
-	//Normal memory access!
-	result = MMU_INTERNAL_directrb_realaddr(realaddress,(byte)(index&0xFF)); //Read from MMU/hardware!
-
-	if (unlikely(MMU_logging==1) && ((index & 0x100) == 0)) //To log?
+	if (likely(BIU_cachedmemorysize)) //Anything left cached?
 	{
-		debugger_logmemoryaccess(0,originaladdr,result,LOGMEMORYACCESS_PAGED|(((index&0x20)>>5)<<LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
+		//First, validate the cache itself!
+		if (unlikely(BIU_cachedmemorysize != memory_datasize)) //Not cached properly?
+		{
+			goto uncachedread; //Uncached read!
+		}
+		if (unlikely(BIU_cachedmemoryaddr != memory_dataaddr)) //Different address cached in real memory?
+		{
+			goto uncachedread; //Uncached read!
+		}
+		//Now, validate the active address!
+		cachedmemorybyte = (realaddress - BIU_cachedmemoryaddr); //What byte in the cache are we?
+		if (unlikely(cachedmemorybyte >= BIU_cachedmemorysize)) //Past what's cached?
+		{
+			goto uncachedread; //Uncached read!
+		}
+		if (unlikely(realaddress < BIU_cachedmemoryaddr)) //Out of range?
+		{
+			goto uncachedread; //Uncached read!
+		}
+		//We're the same address block that's already loaded!
+		cachedmemorybyte <<= 3; //Make it a multiple of 8 bits!
+		result = BIU_cachedmemoryread >> cachedmemorybyte; //Read the data from the local cache!
+	}
+	else //Start uncached read!
+	{
+		uncachedread: //Perform an uncached read!
+		//Normal memory access!
+		result = MMU_INTERNAL_directrb_realaddr(realaddress, (byte)(index & 0xFF)); //Read from MMU/hardware!
+
+		if (unlikely(MMU_logging == 1) && ((index & 0x100) == 0)) //To log?
+		{
+			debugger_logmemoryaccess(0, originaladdr, result, LOGMEMORYACCESS_PAGED | (((index & 0x20) >> 5) << LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
+		}
+		if (unlikely(memory_datasize > 1)) //Valid to cache?
+		{
+			BIU_cachedmemoryaddr = memory_dataaddr; //The address that's cached now!
+			BIU_cachedmemoryread = memory_dataread; //What has been read!
+			BIU_cachedmemorysize = memory_datasize; //How much has been read!
+			if (BIU_cachedmemorysize == 1) //1 byte cached only?
+			{
+				BIU_cachedmemorysize = 0; //Immediately invalidate when nothing is left!
+			}
+		}
+		else
+		{
+			BIU_cachedmemorysize = 0; //Invalidate the local cache!
+		}
 	}
 
 	return result; //Give the result!
