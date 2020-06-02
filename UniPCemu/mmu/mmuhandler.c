@@ -716,6 +716,8 @@ byte MMU_INTERNAL_directrb_nodebugger(uint_32 realaddress, word index, uint_32 *
 	if (unlikely(emulateCompaqMMURegisters && (realaddress == 0x80C00000))) //Compaq special register?
 	{
 		*result = readCompaqMMURegister(); //Read the Compaq MMU register!
+		memory_dataaddr = originaladdress; //What is the cached data address!
+		memory_datasize = 1; //1 byte only!
 		goto specialreadcycle; //Apply the special read cycle!
 	}
 	precalcval = index_readprecalcs[index]; //Lookup the precalc val!
