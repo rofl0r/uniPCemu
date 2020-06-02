@@ -2,7 +2,6 @@ apply plugin: 'com.android.application'
 apply from: "$project.rootDir/../commonemuframework/script-git-version.gradle"
 android {
     compileSdkVersion 26
-    buildToolsVersion '28.0.3'
     defaultConfig {
         applicationId 'com.unipcemu.app'
         minSdkVersion 14
