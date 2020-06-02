@@ -681,6 +681,8 @@ byte MMU_INTERNAL_directrb_debugger(uint_32 realaddress, word index, uint_32 *re
 	if (unlikely(emulateCompaqMMURegisters && (realaddress == 0x80C00000))) //Compaq special register?
 	{
 		*result = readCompaqMMURegister(); //Read the Compaq MMU register!
+		memory_dataaddr = originaladdress; //What is the cached data address!
+		memory_datasize = 1; //1 byte only!
 		goto specialreadcycledebugger; //Apply the special read cycle!
 	}
 	precalcval = index_readprecalcs[index]; //Lookup the precalc val!
@@ -830,6 +832,11 @@ OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, word index
 	if (unlikely(emulateCompaqMMURegisters && (realaddress==0x80C00000))) //Compaq special register?
 	{
 		writeCompaqMMUregister(originaladdress, value); //Update the Compaq MMU register!
+		if (unlikely(BIU_cachedmemorysize && (BIU_cachedmemoryaddr <= originaladdress) && ((BIU_cachedmemoryaddr + BIU_cachedmemorysize) > originaladdress))) //Matched an active read cache(allowing self-modifying code)?
+		{
+			memory_datasize = 0; //Invalidate the read cache to re-read memory!
+			BIU_cachedmemorysize = 0; //Invalidate the BIU cache as well!
+		}
 		return; //Count as a memory mapped register!
 	}
 	if (unlikely(((index&0xFF) != 0xFF) && bushandler)) //Don't ignore BUS?
