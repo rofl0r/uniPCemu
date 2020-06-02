@@ -238,14 +238,14 @@ OPTINLINE byte MMU_IO_writehandler(uint_32 offset, byte value)
 uint_32 memory_dataaddr = 0; //The data address that's cached!
 uint_32 memory_dataread = 0;
 byte memory_datasize = 0; //The size of the data that has been read!
-OPTINLINE byte MMU_IO_readhandler(uint_32 offset)
+OPTINLINE byte MMU_IO_readhandler(uint_32 offset, byte index)
 {
 	byte dataread;
 	MMU_RHANDLER *list; //Current list item!
 	MMU_RHANDLER current; //Current handler!
 	memory_datasize = 0; //Default to a size of invalid!
 	memory_dataaddr = offset; //What address has been cached!
-	if (BIOS_readhandler(offset)) return 0; //BIOS responded!
+	if (BIOS_readhandler(offset,index)) return 0; //BIOS responded!
 	if (VGAmemIO_rb(offset)) return 0; //Video responded!
 	current = *(list = &MMUHANDLER.readhandlers[0]); //Start of our list!
 	if (likely(current == NULL)) return 1; //Finished?
@@ -726,26 +726,33 @@ byte MMU_INTERNAL_directrb_nodebugger(uint_32 realaddress, word index, uint_32 *
 	}
 	if ((memorymapinfo[precalcval].byteaddr & MMU_BLOCKALIGNMENT) == 0) //Cachable?
 	{
-		/*
-		if (((realaddress & MMU_BLOCKALIGNMENT) & 3) == 0) //Fully cacheable?
+		if ((index & 3) == 0)
 		{
-			*result = SDL_SwapLE32(*((uint_32*)&memorymapinfo[precalcval].cache[realaddress & MMU_BLOCKALIGNMENT])); //Read 32-bit aligned!
-			memory_dataaddr = originaladdress; //What is the cached data address!
-			memory_datasize = 4; //4 bytes only!
-		}
-		else if (((realaddress & MMU_BLOCKALIGNMENT) & 1) == 0) //16-bit cacheable?
-		{
-			*result = SDL_SwapLE16(*((word*)&memorymapinfo[precalcval].cache[realaddress & MMU_BLOCKALIGNMENT])); //Read 16-bit aligned!
-			memory_dataaddr = originaladdress; //What is the cached data address!
-			memory_datasize = 2; //2 bytes only!
+			if (((realaddress & MMU_BLOCKALIGNMENT) & 3) == 0) //Fully cacheable?
+			{
+				*result = SDL_SwapLE32(*((uint_32*)&memorymapinfo[precalcval].cache[realaddress & MMU_BLOCKALIGNMENT])); //Read 32-bit aligned!
+				memory_dataaddr = originaladdress; //What is the cached data address!
+				memory_datasize = 4; //4 bytes only!
+			}
+			else if (((realaddress & MMU_BLOCKALIGNMENT) & 1) == 0) //16-bit cacheable?
+			{
+				*result = SDL_SwapLE16(*((word*)&memorymapinfo[precalcval].cache[realaddress & MMU_BLOCKALIGNMENT])); //Read 16-bit aligned!
+				memory_dataaddr = originaladdress; //What is the cached data address!
+				memory_datasize = 2; //2 bytes only!
+			}
+			else //Single, unaligned read?
+			{
+				*result = memorymapinfo[precalcval].cache[realaddress & MMU_BLOCKALIGNMENT]; //Get data from memory!
+				memory_dataaddr = originaladdress; //What is the cached data address!
+				memory_datasize = 1; //1 byte only!
+			}
 		}
 		else //Single, unaligned read?
 		{
-		*/
 			*result = memorymapinfo[precalcval].cache[realaddress & MMU_BLOCKALIGNMENT]; //Get data from memory!
 			memory_dataaddr = originaladdress; //What is the cached data address!
 			memory_datasize = 1; //1 byte only!
-		//}
+		}
 	}
 	else //Not cacheable?
 	{
@@ -923,7 +930,7 @@ byte MMUbuffer_pending = 0; //Anything pending?
 //Direct memory access with Memory mapped I/O (for the CPU).
 byte MMU_INTERNAL_directrb_realaddr(uint_32 realaddress, byte index) //Read without segment/offset translation&protection (from system/interrupt)!
 {
-	if (likely(MMU_IO_readhandler(realaddress))) //Normal memory address?
+	if (likely(MMU_IO_readhandler(realaddress, index))) //Normal memory address?
 	{
 		if (unlikely(MMU_INTERNAL_directrb(realaddress, index, &memory_dataread))) //Read the data from memory (and port I/O)!		
 		{
