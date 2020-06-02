@@ -49,10 +49,15 @@ byte readEMSMem(uint_32 address, byte *value)
 	return 1; //We're mapped!
 }
 
+extern uint_32 BIU_cachedmemoryaddr;
+extern uint_32 BIU_cachedmemoryread;
+extern byte BIU_cachedmemorysize; //To invalidate the BIU cache!
+extern byte memory_datasize; //The size of the data that has been read!
 byte writeEMSMem(uint_32 address, byte value)
 {
 	byte block;
-	uint_32 memoryaddress;
+	uint_32 memoryaddress,originaladdress;
+	originaladdress = address; //Backup for comparing with the BIU cache!
 	if (address < EMS_baseaddr) return 0; //No EMS!
 	address -= EMS_baseaddr; //Get the EMS address!
 	if (address >= 0x10000) return 0; //No EMS!
@@ -62,6 +67,11 @@ byte writeEMSMem(uint_32 address, byte value)
 	memoryaddress |= address; //The address of the byte in memory!
 	if (memoryaddress >= EMS_size) return 0; //Out of range?
 	EMS[memoryaddress] = value; //Set the byte in memory!
+	if (unlikely(BIU_cachedmemorysize && (BIU_cachedmemoryaddr <= originaladdress) && ((BIU_cachedmemoryaddr + BIU_cachedmemorysize) > originaladdress))) //Matched an active read cache(allowing self-modifying code)?
+	{
+		memory_datasize = 0; //Invalidate the read cache to re-read memory!
+		BIU_cachedmemorysize = 0; //Invalidate the BIU cache as well!
+	}
 	return 1; //We're mapped!
 }
 
