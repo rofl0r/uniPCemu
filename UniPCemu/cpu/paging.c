@@ -701,6 +701,7 @@ void Paging_writeTLB(sbyte TLB_way, uint_32 logicaladdress, byte W, byte U, byte
 	curentry->data = result; //The result for the lookup!
 	curentry->TAG = TAG; //The TAG to find it by!
 	curentry->addrmask = addrmask; //Save the address mask for matching a TLB entry after it's stored!
+	curentry->addrmaskset = (addrmask|0xFFF); //Save the address mask for matching a TLB entry after it's stored!
 	mostrecentTAGread = 0; //Invalidate to be sure!
 	BIU_recheckmemory(); //Recheck anything that's fetching from now on!
 }
@@ -716,7 +717,7 @@ byte Paging_readTLB(byte *TLB_way, uint_32 logicaladdress, uint_32 LWUDAS, byte 
 	if (likely(curentry)) //Valid entries to search?
 	{
 		TAGMask = ~WDMask; //Store for fast usage to mask the tag bits unused off!
-		TAGMask &= (curentry->entry->addrmask | 0xFFF); //The full search mask, with the address width(KB vs MB) applied!
+		TAGMask &= curentry->entry->addrmaskset; //The full search mask, with the address width(KB vs MB) applied!
 		TAG = LWUDAS; //Generate a TAG!
 		TAG &= TAGMask; //Premask the search tag for faster comparison!
 
