@@ -814,6 +814,11 @@ OPTINLINE byte MMU_INTERNAL_directrb(uint_32 realaddress, word index, uint_32 *r
 	return 0; //Give the result that's gotten!
 }
 
+//Cache invalidation behaviour!
+extern uint_32 BIU_cachedmemoryaddr;
+extern uint_32 BIU_cachedmemoryread;
+extern byte BIU_cachedmemorysize;
+
 OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, word index) //Direct write to real memory (with real data direct)!
 {
 	byte precalcval;
@@ -828,6 +833,11 @@ OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, word index
 	if (unlikely(((index&0xFF) != 0xFF) && bushandler)) //Don't ignore BUS?
 	{
 		bushandler((byte)index, value); //Update the bus handler!
+	}
+	if (unlikely(BIU_cachedmemorysize && (BIU_cachedmemoryaddr <= originaladdress) && ((BIU_cachedmemoryaddr+BIU_cachedmemorysize)>originaladdress))) //Matched an active read cache(allowing self-modifying code)?
+	{
+		memory_datasize = 0; //Invalidate the read cache to re-read memory!
+		BIU_cachedmemorysize = 0; //Invalidate the BIU cache as well!
 	}
 	precalcval = index_writeprecalcs[index]; //Lookup the precalc val!
 	if (unlikely(applyMemoryHoles(realaddress,precalcval))) //Overflow/invalid location?
@@ -849,10 +859,6 @@ OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, word index
 	}
 #endif
 	memorymapinfo[precalcval].cache[realaddress & MMU_BLOCKALIGNMENT] = value; //Set data, full memory protection!
-	//if (unlikely((memorymapinfo[precalcval].cache == memorymapinfo[3].cache) || (memorymapinfo[precalcval].cache == memorymapinfo[1].cache))) //Matched a read cache?
-	{
-		memory_datasize = 0; //Invalidate the read cache to re-read memory!
-	}
 	if (unlikely(doDRAM_access)) //DRAM access?
 	{
 		doDRAM_access(realaddress); //Tick the DRAM!

@@ -936,6 +936,10 @@ void BIOSROM_updateTimers(DOUBLE timepassed)
 	}
 }
 
+
+extern uint_32 BIU_cachedmemoryaddr;
+extern uint_32 BIU_cachedmemoryread;
+extern byte BIU_cachedmemorysize; //To invalidate the BIU cache!
 byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handler function */
 {
 	INLINEREGISTER uint_32 basepos, currentpos;
@@ -1106,6 +1110,11 @@ byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handle
 					}
 					emufclose64(f); //Close the file!
 					OPT_ROMS[i][OPTROM_address] = value; //Write the data to the ROM in memory!
+					if (unlikely(BIU_cachedmemorysize && (BIU_cachedmemoryaddr <= offset) && ((BIU_cachedmemoryaddr + BIU_cachedmemorysize) > offset))) //Matched an active read cache(allowing self-modifying code)?
+					{
+						memory_datasize = 0; //Only 1 byte invalidated!
+						BIU_cachedmemorysize = 0; //Make sure that the BIU has an updated copy of this in it's cache!
+					}
 					if (OPTROM_pending55_0AAA[i] && ((OPTROM_location[i]>>32)>0x0AAA)) //Pending write and within ROM range?
 					{
 						OPTROM_pending55_0AAA[i] = 0; //Not pending anymore, processing now!
