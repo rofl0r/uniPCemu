@@ -365,7 +365,7 @@ extern byte memory_datasize; //The size of the data that has been read!
 
 OPTINLINE byte BIU_directrb(uint_32 realaddress, word index)
 {
-	INLINEREGISTER byte cachedmemorybyte;
+	INLINEREGISTER uint_32 cachedmemorybyte;
 	uint_32 originaladdr;
 	byte result;
 	//Apply A20!
@@ -409,15 +409,11 @@ OPTINLINE byte BIU_directrb(uint_32 realaddress, word index)
 		{
 			debugger_logmemoryaccess(0, originaladdr, result, LOGMEMORYACCESS_PAGED | (((index & 0x20) >> 5) << LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
 		}
+		BIU_cachedmemoryaddr = memory_dataaddr; //The address that's cached now!
+		BIU_cachedmemoryread = memory_dataread; //What has been read!
 		if (unlikely(memory_datasize > 1)) //Valid to cache?
 		{
-			BIU_cachedmemoryaddr = memory_dataaddr; //The address that's cached now!
-			BIU_cachedmemoryread = memory_dataread; //What has been read!
 			BIU_cachedmemorysize = memory_datasize; //How much has been read!
-			if (BIU_cachedmemorysize == 1) //1 byte cached only?
-			{
-				BIU_cachedmemorysize = 0; //Immediately invalidate when nothing is left!
-			}
 		}
 		else
 		{
