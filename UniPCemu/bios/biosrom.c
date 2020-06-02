@@ -891,13 +891,13 @@ byte OPTROM_readhandler(uint_32 offset, byte index)    /* A pointer to a handler
 		{
 			if (((basepos & 3) == 0) && ((basepos | 3) <= BIOS_custom_VGAROM_size)) //Enough to read a dword?
 			{
-				memory_dataread = SDL_SwapLE32(*((uint_32*)(BIOS_custom_VGAROM[basepos]))); //Read the data from the ROM!
+				memory_dataread = SDL_SwapLE32(*((uint_32*)(&BIOS_custom_VGAROM[basepos]))); //Read the data from the ROM!
 				memory_datasize = 4; //A whole dword!
 				return 1; //Done: we've been read!
 			}
 			else if (((basepos & 1) == 0) && ((basepos | 1) <= BIOS_custom_VGAROM_size)) //Enough to read a word, aligned?
 			{
-				memory_dataread = SDL_SwapLE16(*((word*)(BIOS_custom_VGAROM[basepos]))); //Read the data from the ROM, reversed!
+				memory_dataread = SDL_SwapLE16(*((word*)(&BIOS_custom_VGAROM[basepos]))); //Read the data from the ROM, reversed!
 				memory_datasize = 2; //Only 2 bytes!
 				return 1; //Done: we've been read!				
 			}
