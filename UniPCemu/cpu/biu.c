@@ -377,21 +377,13 @@ OPTINLINE byte BIU_directrb(uint_32 realaddress, word index)
 	if (likely(BIU_cachedmemorysize)) //Anything left cached?
 	{
 		//First, validate the cache itself!
-		if (unlikely(BIU_cachedmemorysize != memory_datasize)) //Not cached properly?
-		{
-			goto uncachedread; //Uncached read!
-		}
-		if (unlikely(BIU_cachedmemoryaddr != memory_dataaddr)) //Different address cached in real memory?
+		if (unlikely((BIU_cachedmemorysize != memory_datasize) || (BIU_cachedmemoryaddr != memory_dataaddr))) //Not cached properly or different address in the memory cache?
 		{
 			goto uncachedread; //Uncached read!
 		}
 		//Now, validate the active address!
 		cachedmemorybyte = (realaddress - BIU_cachedmemoryaddr); //What byte in the cache are we?
-		if (unlikely(cachedmemorybyte >= BIU_cachedmemorysize)) //Past what's cached?
-		{
-			goto uncachedread; //Uncached read!
-		}
-		if (unlikely(realaddress < BIU_cachedmemoryaddr)) //Out of range?
+		if (unlikely((cachedmemorybyte >= BIU_cachedmemorysize) || (realaddress < BIU_cachedmemoryaddr))) //Past or before what's cached?
 		{
 			goto uncachedread; //Uncached read!
 		}
