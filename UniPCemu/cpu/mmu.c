@@ -158,7 +158,7 @@ uint_32 MMU_realaddr(sword segdesc, word segment, uint_32 offset, byte wordop, b
 			}
 		}
 	}*/
-	if (likely((segdesc!=-3) && (segdesc>=0))) //Not using the actual literal value?
+	if (likely(segdesc>=0)) //Not using the actual literal value?
 	{
 		realaddress += (uint_32)CPU_MMU_start(segdesc, segment);
 	}
