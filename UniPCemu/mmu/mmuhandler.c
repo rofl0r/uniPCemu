@@ -730,15 +730,15 @@ byte MMU_INTERNAL_directrb_nodebugger(uint_32 realaddress, word index, uint_32 *
 	}
 	if ((memorymapinfo[precalcval].byteaddr & MMU_BLOCKALIGNMENT) == 0) //Cachable?
 	{
-		if ((index & 3) == 0)
+		if (likely((index & 3) == 0))
 		{
-			if (((realaddress & MMU_BLOCKALIGNMENT) & 3) == 0) //Fully cacheable?
+			if (likely(((realaddress & MMU_BLOCKALIGNMENT) & 3) == 0)) //Fully cacheable?
 			{
 				*result = SDL_SwapLE32(*((uint_32*)&memorymapinfo[precalcval].cache[realaddress & MMU_BLOCKALIGNMENT])); //Read 32-bit aligned!
 				memory_dataaddr = originaladdress; //What is the cached data address!
 				memory_datasize = 4; //4 bytes only!
 			}
-			else if (((realaddress & MMU_BLOCKALIGNMENT) & 1) == 0) //16-bit cacheable?
+			else if (likely(((realaddress & MMU_BLOCKALIGNMENT) & 1) == 0)) //16-bit cacheable?
 			{
 				*result = SDL_SwapLE16(*((word*)&memorymapinfo[precalcval].cache[realaddress & MMU_BLOCKALIGNMENT])); //Read 16-bit aligned!
 				memory_dataaddr = originaladdress; //What is the cached data address!

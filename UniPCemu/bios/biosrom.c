@@ -843,17 +843,26 @@ byte OPTROM_readhandler(uint_32 offset, byte index)    /* A pointer to a handler
 				}
 				if ((ISVGA==4) && (i==0)) //EGA ROM is reversed?
 				{
-					if (((ROMsize - temppos - 1) >= 3) && (((ROMsize - temppos - 4) & 3) == 0)) //Enough to read a dword?
+					if (likely((index & 3) == 0))
 					{
-						memory_dataread = SDL_SwapLE32(*((uint_32*)(&OPT_ROMS[i][ROMsize - temppos - 4]))); //Read the data from the ROM, reversed!
-						memory_datasize = 4; //A whole dword!
-						return 1; //Done: we've been read!
-					}
-					else if (((ROMsize - temppos - 1) >= 1) && (((ROMsize - temppos - 2)&1)==0)) //Enough to read a word, aligned?
-					{
-						memory_dataread = SDL_SwapLE16(*((word*)(&OPT_ROMS[i][ROMsize - temppos - 2]))); //Read the data from the ROM, reversed!
-						memory_datasize = 2; //Only 2 bytes!
-						return 1; //Done: we've been read!				
+						if (likely(((ROMsize - temppos - 1) >= 3) && (((ROMsize - temppos - 4) & 3) == 0))) //Enough to read a dword?
+						{
+							memory_dataread = SDL_SwapLE32(*((uint_32*)(&OPT_ROMS[i][ROMsize - temppos - 4]))); //Read the data from the ROM, reversed!
+							memory_datasize = 4; //A whole dword!
+							return 1; //Done: we've been read!
+						}
+						else if (likely(((ROMsize - temppos - 1) >= 1) && (((ROMsize - temppos - 2) & 1) == 0))) //Enough to read a word, aligned?
+						{
+							memory_dataread = SDL_SwapLE16(*((word*)(&OPT_ROMS[i][ROMsize - temppos - 2]))); //Read the data from the ROM, reversed!
+							memory_datasize = 2; //Only 2 bytes!
+							return 1; //Done: we've been read!				
+						}
+						else //Enough to read a byte only?
+						{
+							memory_dataread = OPT_ROMS[i][ROMsize - temppos - 1]; //Read the data from the ROM, reversed!
+							memory_datasize = 1; //Only 1 byte!
+							return 1; //Done: we've been read!				
+						}
 					}
 					else //Enough to read a byte only?
 					{
@@ -862,17 +871,26 @@ byte OPTROM_readhandler(uint_32 offset, byte index)    /* A pointer to a handler
 						return 1; //Done: we've been read!				
 					}
 				}
-				if (((temppos & 3) == 0) && ((temppos|3)<=ROMsize)) //Enough to read a dword?
+				if (likely((index & 3) == 0))
 				{
-					memory_dataread = SDL_SwapLE32(*((uint_32*)(&OPT_ROMS[i][temppos]))); //Read the data from the ROM!
-					memory_datasize = 4; //A whole dword!
-					return 1; //Done: we've been read!
-				}
-				else if (((temppos & 1) == 0) && ((temppos|1)<=ROMsize)) //Enough to read a word, aligned?
-				{
-					memory_dataread = SDL_SwapLE16(*((word*)(&OPT_ROMS[i][temppos]))); //Read the data from the ROM, reversed!
-					memory_datasize = 2; //Only 2 bytes!
-					return 1; //Done: we've been read!				
+					if (likely(((temppos & 3) == 0) && ((temppos | 3) <= ROMsize))) //Enough to read a dword?
+					{
+						memory_dataread = SDL_SwapLE32(*((uint_32*)(&OPT_ROMS[i][temppos]))); //Read the data from the ROM!
+						memory_datasize = 4; //A whole dword!
+						return 1; //Done: we've been read!
+					}
+					else if (likely(((temppos & 1) == 0) && ((temppos | 1) <= ROMsize))) //Enough to read a word, aligned?
+					{
+						memory_dataread = SDL_SwapLE16(*((word*)(&OPT_ROMS[i][temppos]))); //Read the data from the ROM, reversed!
+						memory_datasize = 2; //Only 2 bytes!
+						return 1; //Done: we've been read!				
+					}
+					else //Enough to read a byte only?
+					{
+						memory_dataread = OPT_ROMS[i][temppos]; //Read the data from the ROM, reversed!
+						memory_datasize = 1; //Only 1 byte!
+						return 1; //Done: we've been read!				
+					}
 				}
 				else //Enough to read a byte only?
 				{
@@ -889,17 +907,26 @@ byte OPTROM_readhandler(uint_32 offset, byte index)    /* A pointer to a handler
 	{
 		if (likely(basepos < BIOS_custom_VGAROM_size)) //OK?
 		{
-			if (((basepos & 3) == 0) && ((basepos | 3) <= BIOS_custom_VGAROM_size)) //Enough to read a dword?
+			if (likely((index & 3) == 0))
 			{
-				memory_dataread = SDL_SwapLE32(*((uint_32*)(&BIOS_custom_VGAROM[basepos]))); //Read the data from the ROM!
-				memory_datasize = 4; //A whole dword!
-				return 1; //Done: we've been read!
-			}
-			else if (((basepos & 1) == 0) && ((basepos | 1) <= BIOS_custom_VGAROM_size)) //Enough to read a word, aligned?
-			{
-				memory_dataread = SDL_SwapLE16(*((word*)(&BIOS_custom_VGAROM[basepos]))); //Read the data from the ROM, reversed!
-				memory_datasize = 2; //Only 2 bytes!
-				return 1; //Done: we've been read!				
+				if (likely(((basepos & 3) == 0) && ((basepos | 3) <= BIOS_custom_VGAROM_size))) //Enough to read a dword?
+				{
+					memory_dataread = SDL_SwapLE32(*((uint_32*)(&BIOS_custom_VGAROM[basepos]))); //Read the data from the ROM!
+					memory_datasize = 4; //A whole dword!
+					return 1; //Done: we've been read!
+				}
+				else if (likely(((basepos & 1) == 0) && ((basepos | 1) <= BIOS_custom_VGAROM_size))) //Enough to read a word, aligned?
+				{
+					memory_dataread = SDL_SwapLE16(*((word*)(&BIOS_custom_VGAROM[basepos]))); //Read the data from the ROM, reversed!
+					memory_datasize = 2; //Only 2 bytes!
+					return 1; //Done: we've been read!				
+				}
+				else //Enough to read a byte only?
+				{
+					memory_dataread = BIOS_custom_VGAROM[basepos]; //Read the data from the ROM, reversed!
+					memory_datasize = 1; //Only 1 byte!
+					return 1; //Done: we've been read!				
+				}
 			}
 			else //Enough to read a byte only?
 			{
@@ -1306,15 +1333,15 @@ byte BIOS_readhandler(uint_32 offset, byte index) /* A pointer to a handler func
 			if (likely(tempoffset<0x10000)) //Within range?
 			{
 				tempoffset &= 0xFFFF; //16-bit ROM!
-				if ((index & 3) == 0) //First byte?
+				if (likely((index & 3) == 0)) //First byte?
 				{
-					if (((tempoffset & 3) == 0) && ((tempoffset | 3) <= BIOS_custom_ROM_size)) //Enough to read a dword?
+					if (likely(((tempoffset & 3) == 0) && ((tempoffset | 3) <= BIOS_custom_ROM_size))) //Enough to read a dword?
 					{
 						memory_dataread = SDL_SwapLE32(*((uint_32*)(&BIOS_custom_ROM[tempoffset]))); //Read the data from the ROM!
 						memory_datasize = 4; //A whole dword!
 						return 1; //Done: we've been read!
 					}
-					else if (((tempoffset & 1) == 0) && ((tempoffset | 1) <= BIOS_custom_ROM_size)) //Enough to read a word, aligned?
+					else if (likely(((tempoffset & 1) == 0) && ((tempoffset | 1) <= BIOS_custom_ROM_size))) //Enough to read a word, aligned?
 					{
 						memory_dataread = SDL_SwapLE16(*((word*)(&BIOS_custom_ROM[tempoffset]))); //Read the data from the ROM, reversed!
 						memory_datasize = 2; //Only 2 bytes!
@@ -1345,15 +1372,15 @@ byte BIOS_readhandler(uint_32 offset, byte index) /* A pointer to a handler func
 		tempoffset = (uint_32)(BIOS_custom_ROM_size-(endpos-(tempoffset+baseposbackup))); //Patch to the end block of the ROM instead of the start.
 		if (likely(tempoffset<BIOS_custom_ROM_size)) //Within range?
 		{
-			if ((index & 3) == 0)
+			if (likely((index & 3) == 0))
 			{
-				if (((tempoffset & 3) == 0) && ((tempoffset | 3) <= BIOS_custom_ROM_size)) //Enough to read a dword?
+				if (likely(((tempoffset & 3) == 0) && ((tempoffset | 3) <= BIOS_custom_ROM_size))) //Enough to read a dword?
 				{
 					memory_dataread = SDL_SwapLE32(*((uint_32*)(&BIOS_custom_ROM[tempoffset]))); //Read the data from the ROM!
 					memory_datasize = 4; //A whole dword!
 					return 1; //Done: we've been read!
 				}
-				else if (((tempoffset & 1) == 0) && ((tempoffset | 1) <= BIOS_custom_ROM_size)) //Enough to read a word, aligned?
+				else if (likely(((tempoffset & 1) == 0) && ((tempoffset | 1) <= BIOS_custom_ROM_size))) //Enough to read a word, aligned?
 				{
 					memory_dataread = SDL_SwapLE16(*((word*)(&BIOS_custom_ROM[tempoffset]))); //Read the data from the ROM, reversed!
 					memory_datasize = 2; //Only 2 bytes!
@@ -1392,15 +1419,15 @@ byte BIOS_readhandler(uint_32 offset, byte index) /* A pointer to a handler func
 			segment += 18; //The ROM number!
 			if (likely(BIOS_ROM_size[segment]>tempoffset)) //Within range?
 			{
-				if ((index & 3) == 0)
+				if (likely((index & 3) == 0))
 				{
-					if (((tempoffset & 3) == 0) && ((tempoffset | 3) <= BIOS_ROM_size[segment])) //Enough to read a dword?
+					if (likely(((tempoffset & 3) == 0) && ((tempoffset | 3) <= BIOS_ROM_size[segment]))) //Enough to read a dword?
 					{
 						memory_dataread = SDL_SwapLE32(*((uint_32*)(&BIOS_ROMS[segment][tempoffset]))); //Read the data from the ROM!
 						memory_datasize = 4; //A whole dword!
 						return 1; //Done: we've been read!
 					}
-					else if (((tempoffset & 1) == 0) && ((tempoffset | 1) <= BIOS_ROM_size[segment])) //Enough to read a word, aligned?
+					else if (likely(((tempoffset & 1) == 0) && ((tempoffset | 1) <= BIOS_ROM_size[segment]))) //Enough to read a word, aligned?
 					{
 						memory_dataread = SDL_SwapLE16(*((word*)(&BIOS_ROMS[segment][tempoffset]))); //Read the data from the ROM, reversed!
 						memory_datasize = 2; //Only 2 bytes!
@@ -1421,7 +1448,9 @@ byte BIOS_readhandler(uint_32 offset, byte index) /* A pointer to a handler func
 				}
 			}
 			break;
-		case BIOSROMTYPE_U13_15: //U13&15 combo?
+		case BIOSROMTYPE_U34_35: //Odd/even ROM
+		case BIOSROMTYPE_U27_47: //Odd/even ROM
+		case BIOSROMTYPE_U13_15: //U13&15 combo? Also Odd/even ROM!
 			/*segment =*/ tempoffset = basepos; //Load the offset! General for AT+ ROMs!
 			if (likely(tempoffset<BIOS_ROM_U13_15_double)) //This is doubled in ROM!
 			{
@@ -1447,13 +1476,13 @@ byte BIOS_readhandler(uint_32 offset, byte index) /* A pointer to a handler func
 			{
 				if ((index & 3) == 0)
 				{
-					if (((tempoffset & 3) == 0) && ((tempoffset | 3) <= BIOS_combinedROM_size)) //Enough to read a dword?
+					if (likely(((tempoffset & 3) == 0) && ((tempoffset | 3) <= BIOS_combinedROM_size))) //Enough to read a dword?
 					{
 						memory_dataread = SDL_SwapLE32(*((uint_32*)(&BIOS_combinedROM[tempoffset]))); //Read the data from the ROM!
 						memory_datasize = 4; //A whole dword!
 						return 1; //Done: we've been read!
 					}
-					else if (((tempoffset & 1) == 0) && ((tempoffset | 1) <= BIOS_combinedROM_size)) //Enough to read a word, aligned?
+					else if (likely(((tempoffset & 1) == 0) && ((tempoffset | 1) <= BIOS_combinedROM_size))) //Enough to read a word, aligned?
 					{
 						memory_dataread = SDL_SwapLE16(*((word*)(&BIOS_combinedROM[tempoffset]))); //Read the data from the ROM, reversed!
 						memory_datasize = 2; //Only 2 bytes!
@@ -1474,8 +1503,8 @@ byte BIOS_readhandler(uint_32 offset, byte index) /* A pointer to a handler func
 				}
 			}
 			break;
-		case BIOSROMTYPE_U27_47: //U27&47 combo?
-			/*segment =*/ tempoffset = basepos; //Load the offset! General for AT+ ROMs!
+		//case BIOSROMTYPE_U27_47: //U27&47 combo?
+			/*segment =*/ /*tempoffset = basepos;*/ //Load the offset! General for AT+ ROMs!
 			/*
 			tempoffset >>= 1; //The offset is at every 2 bytes of memory!
 			segment &= 1; //Even=u27, Odd=u47
@@ -1487,6 +1516,7 @@ byte BIOS_readhandler(uint_32 offset, byte index) /* A pointer to a handler func
 				return 1;
 			}
 			*/
+			/*
 			if (likely(BIOS_combinedROM_size > tempoffset)) //Within range?
 			{
 				if ((index & 3) == 0)
@@ -1518,8 +1548,9 @@ byte BIOS_readhandler(uint_32 offset, byte index) /* A pointer to a handler func
 				}
 			}
 			break;
-		case BIOSROMTYPE_U34_35: //U34&35 combo?
-			/*segment =*/ tempoffset = basepos; //Load the offset! General for AT+ ROMs!
+			*/
+		//case BIOSROMTYPE_U34_35: //U34&35 combo?
+			/*segment =*/ /*tempoffset = basepos;*/ //Load the offset! General for AT+ ROMs!
 			/*
 			tempoffset >>= 1; //The offset is at every 2 bytes of memory!
 			segment &= 1; //Even=u27, Odd=u47
@@ -1531,6 +1562,7 @@ byte BIOS_readhandler(uint_32 offset, byte index) /* A pointer to a handler func
 			}
 			*/
 
+			/*
 			if (likely(BIOS_combinedROM_size > tempoffset)) //Within range?
 			{
 				if ((index & 3) == 0)
@@ -1562,6 +1594,7 @@ byte BIOS_readhandler(uint_32 offset, byte index) /* A pointer to a handler func
 				}
 			}
 			break;
+			*/
 			default: break; //Unknown even/odd mapping!
 	}
 	return OPTROM_readhandler(offset,index); //OPTROM or nothing? Out of range (32-bit)?
