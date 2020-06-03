@@ -130,6 +130,7 @@ MMU_realaddrHandler realaddrHandlers[2] = {MMU_realaddrGeneric,MMU_realaddr186};
 MMU_realaddrHandler realaddrCSHandlers[2] = { MMU_realaddrGenericCS,MMU_realaddr186CS };
 MMU_realaddrHandler realaddrHandler = &MMU_realaddrGeneric;
 MMU_realaddrHandler realaddrHandlerCS = &MMU_realaddrGenericCS;
+uint_32 addresswrappingbase_simple=0xFFFFFFFF;
 
 void MMU_determineAddressWrapping()
 {
@@ -137,6 +138,7 @@ void MMU_determineAddressWrapping()
 	applyspecialaddress = (EMULATED_CPU == CPU_NECV30); //Apply a special base with 2 entries?
 	realaddrHandler = realaddrHandlers[applyspecialaddress & 1]; //To apply the special addressing mode? For generic segmentation!
 	realaddrHandlerCS = realaddrCSHandlers[applyspecialaddress & 1]; //To apply the special addressing mode? For CS only!
+	addresswrappingbase_simple = *addresswrappingbase; //Simple version!
 }
 
 //Address translation routine.
@@ -181,7 +183,7 @@ uint_32 MMU_realaddrGeneric(sword segdesc, word segment, uint_32 offset, byte wo
 
 	writeword = 0; //Reset word-write flag for checking next bytes!
 	realaddress = offset; //Load the address!
-	realaddress &= *addresswrappingbase; //Apply address wrapping for the CPU offset, when needed!
+	realaddress &= addresswrappingbase_simple; //Apply address wrapping for the CPU offset, when needed!
 
 	if (likely(segdesc >= 0)) //Not using the actual literal value?
 	{
@@ -202,7 +204,7 @@ uint_32 MMU_realaddrGenericCS(sword segdesc, word segment, uint_32 offset, byte 
 
 	writeword = 0; //Reset word-write flag for checking next bytes!
 	realaddress = offset; //Load the address!
-	realaddress &= *addresswrappingbase; //Apply address wrapping for the CPU offset, when needed!
+	realaddress &= addresswrappingbase_simple; //Apply address wrapping for the CPU offset, when needed!
 
 	return realaddress + (uint_32)CPU_MMU_startCS(CPU_SEGMENT_CS);
 }
@@ -232,7 +234,7 @@ uint_32 MMU_realaddrPhys(SEGMENT_DESCRIPTOR *segdesc, word segment, uint_32 offs
 	}
 	else
 	{
-		realaddress &= *addresswrappingbase; //Apply address wrapping for the CPU offset, when needed!
+		realaddress &= addresswrappingbase_simple; //Apply address wrapping for the CPU offset, when needed!
 	}
 
 	/*if (likely(segdesc!=-1)) //valid segment descriptor?
