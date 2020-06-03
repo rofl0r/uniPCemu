@@ -393,8 +393,8 @@ byte checkPhysMMUaccess32(void *segdesc, word segment, uint_64 offset, word read
 }
 
 extern byte MMU_logging; //Are we logging?
-extern uint_32 wrapaddr[2]; //What wrap to apply!
 extern uint_32 effectivecpuaddresspins; //What address pins are supported?
+extern byte CompaqWrapping[0x1000]; //Compaq Wrapping precalcs!
 byte Paging_directrb(sword segdesc, uint_32 realaddress, byte writewordbackup, byte opcode, byte index, byte CPL)
 {
 	byte result;
@@ -414,9 +414,8 @@ byte Paging_directrb(sword segdesc, uint_32 realaddress, byte writewordbackup, b
 	}
 
 	//Apply A20!
-	wrapaddr[1] = MMU.wraparround; //What wrap to apply when enabled!
 	realaddress &= effectivecpuaddresspins; //Only 20-bits address is available on a XT without newer CPU! Only 24-bits is available on a AT!
-	realaddress &= wrapaddr[(((MMU.A20LineEnabled==0) && (((realaddress&~0xFFFFF)==0x100000)||(is_Compaq!=1)))&1)]; //Apply A20, when to be applied!
+	realaddress &= (MMU.wraparround | (CompaqWrapping[(realaddress >> 20)] << 20)); //Apply A20, when to be applied, including Compaq-style wrapping!
 
 	//Normal memory access!
 	result = MMU_INTERNAL_directrb_realaddr(realaddress,index); //Read from MMU/hardware!
@@ -453,9 +452,8 @@ void Paging_directwb(sword segdesc, uint_32 realaddress, byte val, byte index, b
 	}
 
 	//Apply A20!
-	wrapaddr[1] = MMU.wraparround; //What wrap to apply when enabled!
 	realaddress &= effectivecpuaddresspins; //Only 20-bits address is available on a XT without newer CPU! Only 24-bits is available on a AT!
-	realaddress &= wrapaddr[(((MMU.A20LineEnabled==0) && (((realaddress&~0xFFFFF)==0x100000)||(is_Compaq!=1)))&1)]; //Apply A20, when to be applied!
+	realaddress &= (MMU.wraparround | (CompaqWrapping[(realaddress >> 20)] << 20)); //Apply A20, when to be applied, including Compaq-style wrapping!
 	processBUS(realaddress, index, val); //Process us on the BUS!
 
 	//Normal memory access!
@@ -645,7 +643,6 @@ uint_32 MMU_rdw0(sword segdesc, word segment, uint_32 offset, byte opcode, byte 
 void MMU_setA20(byte where, byte enabled) //To enable A20?
 {
 	MMU.enableA20[where] = enabled?1:0; //Enabled?
-	MMU.A20LineEnabled = (MMU.enableA20[0]|MMU.enableA20[1]); //Line enabled?
-	MMU.A20LineDisabled = !MMU.A20LineEnabled; //Line disabled?
-	MMU.wraparround = ((~0)^(((MMU.A20LineEnabled^1)&1)<<20)); //Clear A20 when both lines that specify it are disabled! Convert it to a simple mask to use!
+	MMU.A20LineDisabled = ((MMU.A20LineEnabled = (MMU.enableA20[0]|MMU.enableA20[1]))^1); //Line enabled/disabled?
+	MMU.wraparround = ((~0)^(MMU.A20LineDisabled<<20)); //Clear A20 when both lines that specify it are disabled! Convert it to a simple mask to use!
 }

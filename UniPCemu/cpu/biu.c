@@ -90,6 +90,8 @@ byte BIU_is_486 = 0;
 byte BIU_numcyclesmask;
 
 extern byte cpudebugger; //To debug the CPU?
+byte CompaqWrapping[0x1000]; //Compaq Wrapping precalcs!
+extern byte is_Compaq; //Are we emulating a Compaq architecture?
 
 void detectBIUactiveCycleHandler(); //For detecting the cycle handler to use for this CPU!
 
@@ -102,24 +104,37 @@ Handler BIU_handleRequests = &BIU_handleRequestsNOP; //Handle all pending reques
 
 void CPU_initBIU()
 {
+	word b;
 	if (BIU[activeCPU].ready) //Are we ready?
 	{
 		CPU_doneBIU(); //Finish us first!
 	}
-	
+
 	if (PIQSizes[CPU_databussize][EMULATED_CPU]) //Gotten any PIQ installed with the CPU?
 	{
-		BIU[activeCPU].PIQ = allocfifobuffer(PIQSizes[CPU_databussize][EMULATED_CPU],0); //Our PIQ we use!
+		BIU[activeCPU].PIQ = allocfifobuffer(PIQSizes[CPU_databussize][EMULATED_CPU], 0); //Our PIQ we use!
 	}
 	CPU_databusmask = BUSmasks[CPU_databussize][EMULATED_CPU]; //Our data bus mask we use for splitting memory chunks!
-	BIU[activeCPU].requests = allocfifobuffer(20,0); //Our request buffer to use(1 64-bit entry being 2 32-bit entries, for 2 64-bit entries(payload) and 1 32-bit entry(the request identifier))!
-	BIU[activeCPU].responses = allocfifobuffer(sizeof(uint_32)<<1,0); //Our response buffer to use(1 64-bit entry as 2 32-bit entries)!
+	BIU[activeCPU].requests = allocfifobuffer(20, 0); //Our request buffer to use(1 64-bit entry being 2 32-bit entries, for 2 64-bit entries(payload) and 1 32-bit entry(the request identifier))!
+	BIU[activeCPU].responses = allocfifobuffer(sizeof(uint_32) << 1, 0); //Our response buffer to use(1 64-bit entry as 2 32-bit entries)!
 	BIU_is_486 = (EMULATED_CPU >= CPU_80486); //486+ handling?
 	detectBIUactiveCycleHandler(); //Detect the active cycle handler to use!
 	BIU[activeCPU].ready = 1; //We're ready to be used!
 	BIU[activeCPU].PIQ_checked = 0; //Reset to not checked!
 	CPU_flushPIQ(-1); //Init us to start!
 	BIU_numcyclesmask = (1 | ((((EMULATED_CPU > CPU_NECV30) & 1) ^ 1) << 1)); //1(80286+) or 3(80(1)86)!
+	if (is_Compaq) //Compaq wrapping instead?
+	{
+		CompaqWrapping[0] = CompaqWrapping[1] = 0; //Wrap only for the 1-2MB on Compaq!
+		for (b = 2; b < NUMITEMS(CompaqWrapping); ++b)
+		{
+			CompaqWrapping[b] = 1; //Don't wrap A20 for all other lines when A20 is disabled!
+		}
+	}
+	else
+	{
+		memset(&CompaqWrapping, 0, sizeof(CompaqWrapping)); //Wrapping applied always!
+	}
 }
 
 void CPU_doneBIU()
@@ -350,8 +365,6 @@ byte BIU_access_readshift[4] = {0,8,16,24}; //Shift to put the result byte in th
 //Linear memory access for the CPU through the Memory Unit!
 extern byte MMU_logging; //Are we logging?
 extern MMU_type MMU; //MMU support!
-extern byte non_Compaq; //Are we not emulating a Compaq architecture?
-uint_32 wrapaddr[2] = {0xFFFFFFFF,0xFFFFFFFF}; //What wrap to apply!
 extern uint_32 effectivecpuaddresspins; //What address pins are supported?
 
 //Some cached memory line!
@@ -369,10 +382,9 @@ OPTINLINE byte BIU_directrb(uint_32 realaddress, word index)
 	uint_32 originaladdr;
 	byte result;
 	//Apply A20!
-	wrapaddr[1] = MMU.wraparround; //What wrap to apply when enabled!
 	realaddress &= effectivecpuaddresspins; //Only 20-bits address is available on a XT without newer CPU! Only 24-bits is available on a AT!
 	originaladdr = realaddress; //Save the address before the A20 is modified!
-	realaddress &= wrapaddr[(((MMU.A20LineDisabled) && (((realaddress&~0xFFFFF)==0x100000)||(non_Compaq)))&1)]; //Apply A20, when to be applied!
+	realaddress &= (MMU.wraparround | (CompaqWrapping[(realaddress >> 20)] << 20)); //Apply A20, when to be applied, including Compaq-style wrapping!
 
 	if (likely(BIU_cachedmemorysize)) //Anything left cached?
 	{
@@ -395,7 +407,7 @@ OPTINLINE byte BIU_directrb(uint_32 realaddress, word index)
 	{
 		uncachedread: //Perform an uncached read!
 		//Normal memory access!
-		result = MMU_INTERNAL_directrb_realaddr(realaddress, (byte)(index & 0xFF)); //Read from MMU/hardware!
+		result = MMU_INTERNAL_directrb_realaddr(realaddress, (index & 0xFF)); //Read from MMU/hardware!
 
 		if (unlikely(MMU_logging == 1) && ((index & 0x100) == 0)) //To log?
 		{
@@ -424,7 +436,6 @@ byte BIU_directrb_external(uint_32 realaddress, word index)
 OPTINLINE void BIU_directwb(uint_32 realaddress, byte val, word index) //Access physical memory dir
 {
 	//Apply A20!
-	wrapaddr[1] = MMU.wraparround; //What wrap to apply when enabled!
 	realaddress &= effectivecpuaddresspins; //Only 20-bits address is available on a XT without newer CPU! Only 24-bits is available on a AT!
 
 	if (unlikely(MMU_logging==1) && ((index&0x100)==0)) //To log?
@@ -432,7 +443,7 @@ OPTINLINE void BIU_directwb(uint_32 realaddress, byte val, word index) //Access 
 		debugger_logmemoryaccess(1,realaddress,val,LOGMEMORYACCESS_PAGED); //Log it!
 	}
 
-	realaddress &= wrapaddr[(((MMU.A20LineDisabled) && (((realaddress&~0xFFFFF)==0x100000)||(non_Compaq)))&1)]; //Apply A20, when to be applied!
+	realaddress &= (MMU.wraparround | (CompaqWrapping[(realaddress >> 20)] << 20)); //Apply A20, when to be applied, including Compaq-style wrapping!
 
 	//Normal memory access!
 	MMU_INTERNAL_directwb_realaddr(realaddress,val,(byte)(index&0xFF)); //Set data!
