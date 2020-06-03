@@ -372,7 +372,7 @@ OPTINLINE byte BIU_directrb(uint_32 realaddress, word index)
 	wrapaddr[1] = MMU.wraparround; //What wrap to apply when enabled!
 	realaddress &= effectivecpuaddresspins; //Only 20-bits address is available on a XT without newer CPU! Only 24-bits is available on a AT!
 	originaladdr = realaddress; //Save the address before the A20 is modified!
-	realaddress &= wrapaddr[(((MMU.A20LineEnabled==0) && (((realaddress&~0xFFFFF)==0x100000)||(non_Compaq)))&1)]; //Apply A20, when to be applied!
+	realaddress &= wrapaddr[(((MMU.A20LineDisabled) && (((realaddress&~0xFFFFF)==0x100000)||(non_Compaq)))&1)]; //Apply A20, when to be applied!
 
 	if (likely(BIU_cachedmemorysize)) //Anything left cached?
 	{
@@ -432,7 +432,7 @@ OPTINLINE void BIU_directwb(uint_32 realaddress, byte val, word index) //Access 
 		debugger_logmemoryaccess(1,realaddress,val,LOGMEMORYACCESS_PAGED); //Log it!
 	}
 
-	realaddress &= wrapaddr[(((MMU.A20LineEnabled==0) && (((realaddress&~0xFFFFF)==0x100000)||(non_Compaq)))&1)]; //Apply A20, when to be applied!
+	realaddress &= wrapaddr[(((MMU.A20LineDisabled) && (((realaddress&~0xFFFFF)==0x100000)||(non_Compaq)))&1)]; //Apply A20, when to be applied!
 
 	//Normal memory access!
 	MMU_INTERNAL_directwb_realaddr(realaddress,val,(byte)(index&0xFF)); //Set data!

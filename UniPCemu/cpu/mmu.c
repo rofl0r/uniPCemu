@@ -646,5 +646,6 @@ void MMU_setA20(byte where, byte enabled) //To enable A20?
 {
 	MMU.enableA20[where] = enabled?1:0; //Enabled?
 	MMU.A20LineEnabled = (MMU.enableA20[0]|MMU.enableA20[1]); //Line enabled?
+	MMU.A20LineDisabled = !MMU.A20LineEnabled; //Line disabled?
 	MMU.wraparround = ((~0)^(((MMU.A20LineEnabled^1)&1)<<20)); //Clear A20 when both lines that specify it are disabled! Convert it to a simple mask to use!
 }

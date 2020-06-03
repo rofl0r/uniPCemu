@@ -33,6 +33,7 @@ typedef struct
 	uint_32 wraparround; //To wrap arround memory mask?
 	byte enableA20[2];
 	byte A20LineEnabled; //Is the line enabled?
+	byte A20LineDisabled; //Is the line disabled?
 } MMU_type;
 
 /*
