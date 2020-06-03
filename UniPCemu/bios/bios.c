@@ -75,6 +75,7 @@ extern char ROMpath[256];
 
 extern byte is_XT; //Are we emulating a XT architecture?
 extern byte is_Compaq; //Are we emulating a Compaq architecture?
+extern byte non_Compaq; //Are we not emulating a Compaq architecture?
 extern byte is_PS2; //Are we emulating PS/2 architecture extensions?
 
 extern char currentarchtext[4][256]; //The current architecture texts!
@@ -662,6 +663,7 @@ void autoDetectArchitecture()
 		is_XT = 0; //AT compatible!
 		is_Compaq = 1; //Compaq compatible!
 	}
+	non_Compaq = !is_Compaq; //Are we not using a Compaq architecture?
 }
 
 //Custom feof, because Windows feof seems to fail in some strange cases?
