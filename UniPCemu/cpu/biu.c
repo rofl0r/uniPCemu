@@ -476,6 +476,8 @@ void BIU_directwdw(uint_32 realaddress, uint_32 value, word index)
 	BIU_directww(realaddress + 2, (value >> 16) & 0xFFFF, index | 2); //High!
 }
 
+extern MMU_realaddrHandler realaddrHandlerCS; //CS real addr handler!
+
 extern uint_32 checkMMUaccess_linearaddr; //Saved linear address for the BIU to use!
 byte PIQ_block = 0; //Blocking any PIQ access now?
 #ifdef IS_WINDOWS
@@ -491,7 +493,7 @@ OPTINLINE void CPU_fillPIQ() //Fill the PIQ until it's full!
 	if (unlikely(((PIQ_block==1) || (PIQ_block==9)) && (useIPSclock==0))) { PIQ_block = 0; return; /* Blocked access: only fetch one byte/word instead of a full word/dword! */ }
 	if (unlikely(BIU[activeCPU].PIQ==0)) return; //Not gotten a PIQ? Abort!
 	realaddress = BIU[activeCPU].PIQ_Address; //Next address to fetch(Logical address)!
-	checkMMUaccess_linearaddr = physaddr = MMU_realaddr(CPU_SEGMENT_CS, REG_CS, realaddress, 0,0); //Linear adress!
+	checkMMUaccess_linearaddr = physaddr = realaddrHandlerCS(CPU_SEGMENT_CS, REG_CS, realaddress, 0,0); //Linear adress!
 	if (likely(BIU[activeCPU].PIQ_checked)) //Checked left not performing any memory checks?
 	{
 		--BIU[activeCPU].PIQ_checked; //Tick checked data to not check!
@@ -587,7 +589,7 @@ void BIU_dosboxTick()
 				if (unlikely(checkMMUaccess(CPU_SEGMENT_CS, REG_CS, realaddress, 0xA0 | 0x10 | 3, getCPL(), 0, 0) && BIUsize)) //Couldn't fetch?
 				{
 					//The only thing stopping us here is the page boundary, so round down to a lower one, if possible!
-					endpos = MMU_realaddr(CPU_SEGMENT_CS, REG_CS, realaddress, 0, 0); //Linear address of the failing byte!
+					endpos = realaddrHandlerCS(CPU_SEGMENT_CS, REG_CS, realaddress, 0, 0); //Linear address of the failing byte!
 					maxaddress = 0; //Our flag for determining if we can just take the previous page by calculating it normally!
 					endpos -= (((endpos & 0xFFFFF000ULL) - 1) & 0xFFFFFFFFULL); //How much to substract for getting the valid previous page!
 					endpos &= 0xFFFFFFFFULL; //Make sure we're proper 32-bit!

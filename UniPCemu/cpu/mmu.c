@@ -118,58 +118,103 @@ uint_32 addresswrapping[12] = { //-NEC V20/V30 wraps offset arround 64kB? NEC V2
 							0xFFFFFFFF //80586+
 							}; //Address wrapping lookup table!
 
+//Some prototypes for definition!
+uint_32 MMU_realaddr186(sword segdesc, word segment, uint_32 offset, byte wordop, byte is_offset16); //Real adress?
+uint_32 MMU_realaddr186CS(sword segdesc, word segment, uint_32 offset, byte wordop, byte is_offset16); //Real adress?
+uint_32 MMU_realaddrGeneric(sword segdesc, word segment, uint_32 offset, byte wordop, byte is_offset16); //Real adress?
+uint_32 MMU_realaddrGenericCS(sword segdesc, word segment, uint_32 offset, byte wordop, byte is_offset16); //Real adress?
+
 byte applyspecialaddress;
 uint_32* addresswrappingbase = &addresswrapping[0];
+MMU_realaddrHandler realaddrHandlers[2] = {MMU_realaddrGeneric,MMU_realaddr186};
+MMU_realaddrHandler realaddrCSHandlers[2] = { MMU_realaddrGenericCS,MMU_realaddr186CS };
+MMU_realaddrHandler realaddrHandler = &MMU_realaddrGeneric;
+MMU_realaddrHandler realaddrHandlerCS = &MMU_realaddrGenericCS;
 
 void MMU_determineAddressWrapping()
 {
 	addresswrappingbase = &addresswrapping[(EMULATED_CPU << 1)]; //The base for address wrapping!
 	applyspecialaddress = (EMULATED_CPU == CPU_NECV30); //Apply a special base with 2 entries?
+	realaddrHandler = realaddrHandlers[applyspecialaddress & 1]; //To apply the special addressing mode? For generic segmentation!
+	realaddrHandlerCS = realaddrCSHandlers[applyspecialaddress & 1]; //To apply the special addressing mode? For CS only!
 }
 
 //Address translation routine.
 //segdesc: >=0=use it's descriptor for segment #x, -1=No descriptor, use paging, -2=Direct physical memory access, -3=Use special ES, calculated in a 8086 way
-uint_32 MMU_realaddr(sword segdesc, word segment, uint_32 offset, byte wordop, byte is_offset16) //Real adress?
+uint_32 MMU_realaddr186(sword segdesc, word segment, uint_32 offset, byte wordop, byte is_offset16) //Real adress?
 {
 	//SEGMENT_DESCRIPTOR *descriptor; //For checking Expand-down data descriptors!
 	INLINEREGISTER uint_32 realaddress;
 
-	//word originalsegment = segment;
-	//uint_32 originaloffset = offset; //Save!
 	writeword = 0; //Reset word-write flag for checking next bytes!
 	realaddress = offset; //Load the address!
-	if (likely(applyspecialaddress==0))
-	{
-		realaddress &= *addresswrappingbase; //Apply address wrapping for the CPU offset, when needed!
-	}
-	else //Applying special addressing?
-	{
-		realaddress &= addresswrappingbase[(((realaddress == 0x10000) && wordop) & 1)]; //Apply the correct wrapping!
-	}
+	realaddress &= addresswrappingbase[(((realaddress == 0x10000) && wordop) & 1)]; //Apply the correct wrapping!
 
-	/*if (likely(segdesc!=-1)) //valid segment descriptor?
-	{
-		descriptor = &CPU[activeCPU].SEG_DESCRIPTOR[segdesc]; //Get our using descriptor!
-		if (unlikely((GENERALSEGMENTPTR_S(descriptor) == 1) && (EXECSEGMENTPTR_ISEXEC(descriptor) == 0) && DATASEGMENTPTR_E(descriptor))) //Data segment that's expand-down?
-		{
-			if (is_offset16) //16-bits offset? Set the high bits for compatibility!
-			{
-				realaddress |= 0xFFFF0000; //Convert to 32-bits for adding correctly!
-			}
-		}
-	}*/
 	if (likely(segdesc>=0)) //Not using the actual literal value?
 	{
-		realaddress += (uint_32)CPU_MMU_start(segdesc, segment);
+		return realaddress + (uint_32)CPU_MMU_start(segdesc, segment);
 	}
 	else if (segdesc==-3) //Special?
 	{
-		realaddress += (REG_ES<<4); //Apply literal address!
+		return realaddress + (REG_ES<<4); //Apply literal address!
 	}
 
-	//We work!
-	//dolog("MMU","\nAddress translation: %04X:%08X=%08X",originalsegment,originaloffset,realaddress); //Log the converted address!
-	return realaddress; //Give real adress!
+	return realaddress; //Give original adress!
+}
+
+uint_32 MMU_realaddr186CS(sword segdesc, word segment, uint_32 offset, byte wordop, byte is_offset16) //Real adress?
+{
+	//SEGMENT_DESCRIPTOR *descriptor; //For checking Expand-down data descriptors!
+	INLINEREGISTER uint_32 realaddress;
+
+	writeword = 0; //Reset word-write flag for checking next bytes!
+	realaddress = offset; //Load the address!
+	realaddress &= addresswrappingbase[(((realaddress == 0x10000) && wordop) & 1)]; //Apply the correct wrapping!
+
+	return realaddress + (uint_32)CPU_MMU_startCS(CPU_SEGMENT_CS);
+}
+
+uint_32 MMU_realaddrGeneric(sword segdesc, word segment, uint_32 offset, byte wordop, byte is_offset16) //Real adress?
+{
+	//SEGMENT_DESCRIPTOR *descriptor; //For checking Expand-down data descriptors!
+	INLINEREGISTER uint_32 realaddress;
+
+	writeword = 0; //Reset word-write flag for checking next bytes!
+	realaddress = offset; //Load the address!
+	realaddress &= *addresswrappingbase; //Apply address wrapping for the CPU offset, when needed!
+
+	if (likely(segdesc >= 0)) //Not using the actual literal value?
+	{
+		return realaddress + (uint_32)CPU_MMU_start(segdesc, segment);
+	}
+	else if (segdesc == -3) //Special?
+	{
+		return realaddress + (REG_ES << 4); //Apply literal address!
+	}
+
+	return realaddress; //Give original adress!
+}
+
+uint_32 MMU_realaddrGenericCS(sword segdesc, word segment, uint_32 offset, byte wordop, byte is_offset16) //Real adress?
+{
+	//SEGMENT_DESCRIPTOR *descriptor; //For checking Expand-down data descriptors!
+	INLINEREGISTER uint_32 realaddress;
+
+	writeword = 0; //Reset word-write flag for checking next bytes!
+	realaddress = offset; //Load the address!
+	realaddress &= *addresswrappingbase; //Apply address wrapping for the CPU offset, when needed!
+
+	return realaddress + (uint_32)CPU_MMU_startCS(CPU_SEGMENT_CS);
+}
+
+uint_32 MMU_realaddr(sword segdesc, word segment, uint_32 offset, byte wordop, byte is_offset16) //Real adress?
+{
+	return realaddrHandler(segdesc, segment, offset, wordop, is_offset16); //Passthrough!
+}
+
+uint_32 MMU_realaddrCS(sword segdesc, word segment, uint_32 offset, byte wordop, byte is_offset16) //Real adress?
+{
+	return realaddrHandlerCS(segdesc, segment, offset, wordop, is_offset16); //Passthrough!
 }
 
 uint_32 MMU_realaddrPhys(SEGMENT_DESCRIPTOR *segdesc, word segment, uint_32 offset, byte wordop, byte is_offset16) //Real adress?
