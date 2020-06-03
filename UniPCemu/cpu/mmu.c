@@ -138,13 +138,13 @@ uint_32 MMU_realaddr(sword segdesc, word segment, uint_32 offset, byte wordop, b
 	//uint_32 originaloffset = offset; //Save!
 	writeword = 0; //Reset word-write flag for checking next bytes!
 	realaddress = offset; //Load the address!
-	if (likely(applyspecialaddress))
-	{
-		realaddress &= addresswrappingbase[(((realaddress == 0x10000) && wordop) & 1)]; //Apply the correct wrapping!
-	}
-	else
+	if (likely(applyspecialaddress==0))
 	{
 		realaddress &= *addresswrappingbase; //Apply address wrapping for the CPU offset, when needed!
+	}
+	else //Applying special addressing?
+	{
+		realaddress &= addresswrappingbase[(((realaddress == 0x10000) && wordop) & 1)]; //Apply the correct wrapping!
 	}
 
 	/*if (likely(segdesc!=-1)) //valid segment descriptor?
