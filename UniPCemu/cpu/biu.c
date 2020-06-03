@@ -624,12 +624,15 @@ void BIU_dosboxTick()
 		}
 		for (;BIUsize2 && (MMU_invaddr()==0);)
 		{
-			if ((BIU[activeCPU].PIQ_checked == 0) && BIUsize) goto recheckmemory; //Recheck anything that's needed, only when not starting off as zeroed!
-			PIQ_block = 0; //We're never blocking(only 1 access)!
-			CPU_fillPIQ(); //Keep the FIFO fully filled!
-			BIU[activeCPU].BUSactive = 0; //Inactive BUS!
-			BIU[activeCPU].requestready = 1; //The request is ready to be served!
-			--BIUsize2; //One item has been processed!
+			if (likely(((BIU[activeCPU].PIQ_checked == 0) && BIUsize)==0)) //Not rechecking yet(probably not)?
+			{
+				PIQ_block = 0; //We're never blocking(only 1 access)!
+				CPU_fillPIQ(); //Keep the FIFO fully filled!
+				BIU[activeCPU].BUSactive = 0; //Inactive BUS!
+				BIU[activeCPU].requestready = 1; //The request is ready to be served!
+				--BIUsize2; //One item has been processed!
+			}
+			else goto recheckmemory; //Recheck anything that's needed, only when not starting off as zeroed!
 		}
 		BIU[activeCPU].BUSactive = 0; //Inactive BUS!
 		BIU[activeCPU].requestready = 1; //The request is ready to be served!
