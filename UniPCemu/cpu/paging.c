@@ -17,7 +17,8 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 */
-
+//We're the paging unit itself!
+#define IS_PAGING
 #include "headers/cpu/mmu.h" //MMU reqs!
 #include "headers/cpu/cpu.h" //CPU reqs!
 #include "headers/mmu/mmu_internals.h" //Internal transfer support!
@@ -347,7 +348,7 @@ byte CPU_Paging_checkPage(uint_32 address, byte readflags, byte CPL)
 
 byte successfullpagemapping = 0;
 
-uint_32 mappage(uint_32 address, byte iswrite, byte CPL) //Maps a page to real memory when needed!
+uint_32 mappagenonPSE(uint_32 address, byte iswrite, byte CPL) //Maps a page to real memory when needed!
 {
 	uint_32 result; //What address?
 	successfullpagemapping = 1; //Set the flag for debugging!
@@ -357,51 +358,87 @@ uint_32 mappage(uint_32 address, byte iswrite, byte CPL) //Maps a page to real m
 	uint_32 tag;
 	RW = iswrite?1:0; //Are we trying to write?
 	effectiveUS = getUserLevel(CPL); //Our effective user level!
-	retrymapping: //Retry the mapping when not cached!
+	retrymapping386: //Retry the mapping when not cached!
 	if (iswrite) //Writes are limited?
 	{
-		tag = Paging_readTLBLWUDAS(address,1, effectiveUS, 1, 1, 1); //Large page tag!
-		if (unlikely(EMULATED_CPU >= CPU_PENTIUM)) //Needs 4MB support?
-		{
-			if (likely(Paging_readTLB(NULL, address, tag, 1, 0|TLB_NOIGNOREACCESSMASK, &result, 1))) //Cache hit for a written dirty entry? Match completely only!
-			{
-				return (result | (address&PDE_LARGEACTIVEMASK)); //Give the actual address from the TLB!
-			}
-		}
-		tag &= ~PAGINGTAG_S; //Without S-bit!
+		tag = Paging_readTLBLWUDAS(address,1, effectiveUS, 1, 1, 0); //Small page tag!
 		if (likely(Paging_readTLB(NULL,address, tag, 0, 0|TLB_NOIGNOREACCESSMASK, &result, 1))) //Cache hit for a written dirty entry? Match completely only!
 		{
 			return (result|(address&PXE_ACTIVEMASK)); //Give the actual address from the TLB!
 		}
-		else goto loadWTLB;
+		else goto loadWTLB386;
 	}
 	else //Read?
 	{
-		tag = Paging_readTLBLWUDAS(address,RW, effectiveUS, RW, 1, 1); //Large paging tag!
-		if (unlikely(EMULATED_CPU >= CPU_PENTIUM)) //Needs 4MB support?
-		{
-			if (likely(Paging_readTLB(NULL, address, tag, 1, TLB_IGNOREREADMASK|TLB_NOIGNOREACCESSMASK, &result, 1))) //Cache hit for an the entry, any during reads, Write Dirty on write?
-			{
-				return (result | (address&PDE_LARGEACTIVEMASK)); //Give the actual address from the TLB!
-			}
-		}
-		tag &= ~PAGINGTAG_S; //Without S-bit!
+		tag = Paging_readTLBLWUDAS(address,RW, effectiveUS, RW, 1, 0); //Small paging tag!
 		if (likely(Paging_readTLB(NULL, address, tag, 0, TLB_IGNOREREADMASK|TLB_NOIGNOREACCESSMASK, &result, 1))) //Cache hit for an the entry, any during reads, Write Dirty on write?
 		{
 			return (result | (address&PXE_ACTIVEMASK)); //Give the actual address from the TLB!
 		}
 		else
 		{
-		loadWTLB:
+		loadWTLB386:
 			if (likely(isvalidpage(address, iswrite, CPL, 0, 1))) //Retry checking if possible!
 			{
-				goto retrymapping;
+				goto retrymapping386;
 			}
 		}
 	}
 	successfullpagemapping = 0; //Insuccessful: errored out!
 	return address; //Untranslated!
 }
+
+uint_32 mappagePSE(uint_32 address, byte iswrite, byte CPL) //Maps a page to real memory when needed!
+{
+	uint_32 result; //What address?
+	successfullpagemapping = 1; //Set the flag for debugging!
+	if (is_paging() == 0) return address; //Direct address when not paging!
+	byte effectiveUS;
+	byte RW;
+	uint_32 tag;
+	RW = iswrite ? 1 : 0; //Are we trying to write?
+	effectiveUS = getUserLevel(CPL); //Our effective user level!
+	retrymappingPentium: //Retry the mapping when not cached!
+	if (iswrite) //Writes are limited?
+	{
+		tag = Paging_readTLBLWUDAS(address, 1, effectiveUS, 1, 1, 1); //Large page tag!
+		if (likely(Paging_readTLB(NULL, address, tag, 1, 0 | TLB_NOIGNOREACCESSMASK, &result, 1))) //Cache hit for a written dirty entry? Match completely only!
+		{
+			return (result | (address & PDE_LARGEACTIVEMASK)); //Give the actual address from the TLB!
+		}
+		tag &= ~PAGINGTAG_S; //Without S-bit!
+		if (likely(Paging_readTLB(NULL, address, tag, 0, 0 | TLB_NOIGNOREACCESSMASK, &result, 1))) //Cache hit for a written dirty entry? Match completely only!
+		{
+			return (result | (address & PXE_ACTIVEMASK)); //Give the actual address from the TLB!
+		}
+		else goto loadWTLBPentium;
+	}
+	else //Read?
+	{
+		tag = Paging_readTLBLWUDAS(address, RW, effectiveUS, RW, 1, 1); //Large paging tag!
+		if (likely(Paging_readTLB(NULL, address, tag, 1, TLB_IGNOREREADMASK | TLB_NOIGNOREACCESSMASK, &result, 1))) //Cache hit for an the entry, any during reads, Write Dirty on write?
+		{
+			return (result | (address & PDE_LARGEACTIVEMASK)); //Give the actual address from the TLB!
+		}
+		tag &= ~PAGINGTAG_S; //Without S-bit!
+		if (likely(Paging_readTLB(NULL, address, tag, 0, TLB_IGNOREREADMASK | TLB_NOIGNOREACCESSMASK, &result, 1))) //Cache hit for an the entry, any during reads, Write Dirty on write?
+		{
+			return (result | (address & PXE_ACTIVEMASK)); //Give the actual address from the TLB!
+		}
+		else
+		{
+		loadWTLBPentium:
+			if (likely(isvalidpage(address, iswrite, CPL, 0, 1))) //Retry checking if possible!
+			{
+				goto retrymappingPentium;
+			}
+		}
+	}
+	successfullpagemapping = 0; //Insuccessful: errored out!
+	return address; //Untranslated!
+}
+
+mappageHandler effectivemappageHandler = &mappagenonPSE; //Default to the non-PSE paging handler!
 
 OPTINLINE byte Paging_TLBSet(uint_32 logicaladdress, byte S) //Automatic set determination when using a set number <0!
 {
@@ -776,6 +813,7 @@ void Paging_initTLB()
 {
 	PagingTLB_initlists(); //Initialize the TLB lists to become empty!
 	Paging_clearTLB(); //Clear the TLB! This also calls clearlists, initializing the linked lists!
+	effectivemappageHandler = (EMULATED_CPU >= CPU_PENTIUM) ? &mappagePSE : &mappagenonPSE; //Use either a PSE or non-PSE paging handler!
 }
 
 void Paging_TestRegisterWritten(byte TR)

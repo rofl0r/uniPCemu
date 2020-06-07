@@ -24,7 +24,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/types.h"
 
 #define is_paging() CPU[activeCPU].is_paging
-uint_32 mappage(uint_32 address, byte iswrite, byte CPL); //Maps a page to real memory when needed!
+#define mappage(address, iswrite, CPL) effectivemappageHandler(address, iswrite, CPL)
 byte CPU_Paging_checkPage(uint_32 address, byte readflags, byte CPL); //Do we have paging without error? userlevel=CPL usually.
 
 typedef struct
@@ -58,5 +58,11 @@ byte Paging_readTLB(byte *TLB_way, uint_32 logicaladdress, uint_32 LWUDAS, byte 
 void Paging_initTLB(); //Initialize the Paging TLB!
 void Paging_Invalidate(uint_32 logicaladdress); //Invalidate a single address!
 void Paging_TestRegisterWritten(byte TR); //A Test Register has been written to?
+
+typedef uint_32(*mappageHandler)(uint_32 address, byte iswrite, byte CPL); //Maps a page to real memory when needed!
+
+#ifndef IS_PAGING
+extern mappageHandler effectivemappageHandler; //Paging handler!
+#endif
 
 #endif
