@@ -359,7 +359,7 @@ uint_32 mappagenonPSE(uint_32 address, byte iswrite, byte CPL) //Maps a page to 
 	RW = iswrite?1:0; //Are we trying to write?
 	effectiveUS = getUserLevel(CPL); //Our effective user level!
 	retrymapping386: //Retry the mapping when not cached!
-	if (iswrite) //Writes are limited?
+	if (unlikely(iswrite)) //Writes are limited?
 	{
 		tag = Paging_readTLBLWUDAS(address,1, effectiveUS, 1, 1, 0); //Small page tag!
 		if (likely(Paging_readTLB(NULL,address, tag, 0, 0|TLB_NOIGNOREACCESSMASK, &result, 1))) //Cache hit for a written dirty entry? Match completely only!
@@ -399,7 +399,7 @@ uint_32 mappagePSE(uint_32 address, byte iswrite, byte CPL) //Maps a page to rea
 	RW = iswrite ? 1 : 0; //Are we trying to write?
 	effectiveUS = getUserLevel(CPL); //Our effective user level!
 	retrymappingPentium: //Retry the mapping when not cached!
-	if (iswrite) //Writes are limited?
+	if (unlikely(iswrite)) //Writes are limited?
 	{
 		tag = Paging_readTLBLWUDAS(address, 1, effectiveUS, 1, 1, 1); //Large page tag!
 		if (likely(Paging_readTLB(NULL, address, tag, 1, 0 | TLB_NOIGNOREACCESSMASK, &result, 1))) //Cache hit for a written dirty entry? Match completely only!
