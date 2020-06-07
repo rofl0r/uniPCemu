@@ -386,7 +386,14 @@ skipdebugger:
 byte checkMMUaccess16(sword segdesc, word segment, uint_64 offset, word readflags, byte CPL, byte is_offset16, byte subbyte) //Check if a byte address is invalid to read/write for a purpose! Used in all CPU modes! Subbyte is used for alignment checking!
 {
 	byte result;
-	if ((result = checkMMUaccess(segdesc, segment, offset, readflags, CPL, is_offset16, subbyte)) != 0) //Lower bound!
+	if (((MMU_realaddr(segdesc, segment, (uint_32)offset, 0,is_offset16)&~0xFFF)==(MMU_realaddr(segdesc, segment, (uint_32)(offset+1), 0,is_offset16)&~0xFFF)) && ((readflags & 0x40) == 0)) //Same page being checked?
+	{
+		if ((result = checkMMUaccess(segdesc, segment, offset, readflags, CPL, is_offset16, subbyte)) != 0) //Lower bound!
+		{
+			return result; //Give the result!
+		}
+	}
+	else if ((result = checkMMUaccess(segdesc, segment, offset, readflags, CPL, is_offset16, subbyte)) != 0) //Lower bound!
 	{
 		return result; //Give the result!
 	}
@@ -400,7 +407,14 @@ byte checkMMUaccess16(sword segdesc, word segment, uint_64 offset, word readflag
 byte checkPhysMMUaccess16(void *segdesc, word segment, uint_64 offset, word readflags, byte CPL, byte is_offset16, byte subbyte) //Check if a byte address is invalid to read/write for a purpose! Used in all CPU modes! Subbyte is used for alignment checking!
 {
 	byte result;
-	if ((result = checkPhysMMUaccess(segdesc, segment, offset, readflags, CPL, is_offset16, subbyte)) != 0) //Lower bound!
+	if (((MMU_realaddr(segdesc, segment, (uint_32)offset, 0,is_offset16)&~0xFFF)==(MMU_realaddr(segdesc, segment, (uint_32)(offset+1), 0,is_offset16)&~0xFFF)) && ((readflags & 0x40) == 0)) //Same page being checked?
+	{
+		if ((result = checkPhysMMUaccess(segdesc, segment, offset, readflags, CPL, is_offset16, subbyte)) != 0) //Lower bound!
+		{
+			return result; //Give the result!
+		}
+	}
+	else if ((result = checkPhysMMUaccess(segdesc, segment, offset, readflags, CPL, is_offset16, subbyte)) != 0) //Lower bound!
 	{
 		return result; //Give the result!
 	}
@@ -414,7 +428,14 @@ byte checkPhysMMUaccess16(void *segdesc, word segment, uint_64 offset, word read
 byte checkMMUaccess32(sword segdesc, word segment, uint_64 offset, word readflags, byte CPL, byte is_offset16, byte subbyte) //Check if a byte address is invalid to read/write for a purpose! Used in all CPU modes! Subbyte is used for alignment checking!
 {
 	byte result;
-	if ((result = checkMMUaccess(segdesc, segment, offset, readflags, CPL, is_offset16, subbyte)) != 0) //Lower bound!
+	if (((MMU_realaddr(segdesc, segment, (uint_32)offset, 0,is_offset16)&~0xFFF)==(MMU_realaddr(segdesc, segment, (uint_32)(offset+3), 0,is_offset16)&~0xFFF)) && ((readflags & 0x40) == 0)) //Same page being checked?
+	{
+		if ((result = checkMMUaccess(segdesc, segment, offset, readflags, CPL, is_offset16, subbyte)) != 0) //Lower bound!
+		{
+			return result; //Give the result!
+		}
+	}
+	else if ((result = checkMMUaccess(segdesc, segment, offset, readflags, CPL, is_offset16, subbyte)) != 0) //Lower bound!
 	{
 		return result; //Give the result!
 	}
@@ -428,7 +449,14 @@ byte checkMMUaccess32(sword segdesc, word segment, uint_64 offset, word readflag
 byte checkPhysMMUaccess32(void *segdesc, word segment, uint_64 offset, word readflags, byte CPL, byte is_offset16, byte subbyte) //Check if a byte address is invalid to read/write for a purpose! Used in all CPU modes! Subbyte is used for alignment checking!
 {
 	byte result;
-	if ((result = checkPhysMMUaccess(segdesc, segment, offset, readflags, CPL, is_offset16, subbyte)) != 0) //Lower bound!
+	if (((MMU_realaddr(segdesc, segment, (uint_32)offset, 0,is_offset16)&~0xFFF)==(MMU_realaddr(segdesc, segment, (uint_32)(offset+3), 0,is_offset16)&~0xFFF)) && ((readflags & 0x40) == 0)) //Same page being checked?
+	{
+		if ((result = checkPhysMMUaccess(segdesc, segment, offset, readflags, CPL, is_offset16, subbyte)) != 0) //Lower bound!
+		{
+			return result; //Give the result!
+		}
+	}
+	else if ((result = checkPhysMMUaccess(segdesc, segment, offset, readflags, CPL, is_offset16, subbyte)) != 0) //Lower bound!
 	{
 		return result; //Give the result!
 	}
