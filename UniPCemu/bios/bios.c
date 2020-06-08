@@ -400,6 +400,9 @@ void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start onl
 			}
 			recursive_mkdir(UniPCEmu_root_dir); //Make sure our directory exists, if it doesn't yet!
 		}
+		#else
+		//SDL1.2.x on linux?
+		safestrcpy(UniPCEmu_root_dir, sizeof(UniPCEmu_root_dir), "~/UniPCemu");
 		#endif
 		#endif
 		BIGFILE *f;
@@ -415,7 +418,10 @@ void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start onl
 		#ifdef PELYAS_SDL
 		if (environment = getenv("SECONDARY_STORAGE")) //Autodetected try secondary storage?
 		#else
+		#ifdef ANDROID
 		if ((environment = SDL_getenv("SECONDARY_STORAGE"))!=NULL) //Autodetected try secondary storage?
+		#else
+		if (0) //Don't use on non-Android!
 		#endif
 		{
 			scanNextSecondaryPath:
@@ -453,8 +459,11 @@ void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start onl
 		#ifdef ANDROID
 		//Android changes the root path!
 		#ifdef PELYAS_SDL
-			safestrcpy(UniPCEmu_root_dir,sizeof(UniPCEmu_root_dir) getenv("SDCARD")); //path!
-			safestrcat(UniPCEmu_root_dir,sizeof(UniPCEmu_root_dir), "/Android/data/com.unipcemu.app/files");
+			if ((environment = getenv("SDCARD"))!=NULL)
+			{
+				safestrcpy(UniPCEmu_root_dir,sizeof(UniPCEmu_root_dir), environment); //path!
+				safestrcat(UniPCEmu_root_dir,sizeof(UniPCEmu_root_dir), "/Android/data/com.unipcemu.app/files");
+			}
 		#else
 			if ((environment = SDL_getenv("SDCARD"))!=NULL) //Autodetected?
 			{
