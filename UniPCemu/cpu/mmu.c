@@ -311,14 +311,18 @@ byte checkMMUaccess(sword segdesc, word segment, uint_64 offset, word readflags,
 	INLINEREGISTER uint_32 realaddress;
 	if (EMULATED_CPU<=CPU_NECV30) return 0; //No checks are done in the old processors!
 
+	//Create a linear address first!
+	realaddress = MMU_realaddr(segdesc, segment, (uint_32)offset, 0,is_offset16); //Real adress!
+
 	if ((readflags & 0x80) == 0) //Allow basic segmentation checks?
 	{
-		if (unlikely(CPU[activeCPU].is_aligning && (segdesc != -1) && (CPL == 3) && (
-			(((subbyte&7)==0) && (offset & alignmentrequirement[(subbyte>>3)&7])) //Alignment requirements!
-			))) //Aligment enforced and wrong? Don't apply on internal accesses!
+		if (CPU[activeCPU].is_aligning && (segdesc >= 0) && (CPL == 3)) //Apply #AC?
 		{
-			CPU_AC(0); //Alignment WORD/DWORD/QWORD check fault!
-			return 1; //Error out!
+			if (unlikely(((subbyte&7)==0) && (realaddress & alignmentrequirement[(subbyte>>3)&7]))) //Aligment enforced and wrong? Don't apply on internal accesses!
+			{
+				CPU_AC(0); //Alignment WORD/DWORD/QWORD check fault!
+				return 1; //Error out!
+			}
 		}
 
 		if (unlikely(CPU_MMU_checklimit(segdesc, segment, offset, readflags, is_offset16))) //Disallowed?
@@ -329,7 +333,6 @@ byte checkMMUaccess(sword segdesc, word segment, uint_64 offset, word readflags,
 	}
 
 	//Check for paging and debugging next!
-	realaddress = MMU_realaddr(segdesc, segment, (uint_32)offset, 0,is_offset16); //Real adress!
 
 	if ((readflags & 0x20) == 0) //Allow debugger checks?
 	{
