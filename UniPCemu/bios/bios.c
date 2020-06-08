@@ -427,6 +427,7 @@ void BIOS_DetectStorage() //Auto-Detect the current storage to use, on start onl
 		#else
 		if (0) //Don't use on non-Android!
 		#endif
+		#endif
 		{
 			scanNextSecondaryPath:
 			if (environment==NULL) goto scanDefaultpath; //Start scanning the default path, nothing found!
