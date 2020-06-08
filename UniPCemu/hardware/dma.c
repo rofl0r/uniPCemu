@@ -398,46 +398,39 @@ void DMA_SampleDREQ() //Sample all DREQ lines for both controllers!
 {
 	INLINEREGISTER byte startcurrent = 0; //Current backup for checking for finished!
 	INLINEREGISTER byte controller,current=0; //Current controller!
+	DMATickHandler currentHandler;
 	byte controllerdisabled = 0; //Controller disabled when set, so skip all checks!
-	byte controllerdisabled2[2];
-	controllerdisabled2[0] = (DMAController[0].CommandRegister & 4);
-	controllerdisabled2[1] = (DMAController[1].CommandRegister & 4);
+	byte controllerenabled;
+	byte channel;
+	controllerenabled = (((DMAController[1].CommandRegister & 4)|((DMAController[0].CommandRegister & 4)>>1)>>1)^3);
+	channel = (current & 3); //Channel to use! Channels 0 are unused (DRAM memory refresh (controller 0) and cascade DMA controller (controller 1))
 	nextcycle: //Next cycle to process!
-		controller = ((current&4)>>2); //Init controller
-		if (!controllerdisabled) //Controller not disabled?
+		controller = (current>>2); //Init controller
+		if (likely(controllerdisabled==0)) //Controller not disabled?
 		{
-			if (controllerdisabled2[controller]) //Controller disabled?
+			if (likely(((controllerenabled>>controller)&1))) //Controller enabled?
 			{
-				if ((current & 3) != 3) //Controller is disabled, but not processed yet? Disable next channels if required!
+				//Handle the current channel, since the controller is enabled!
+				if (unlikely((currentHandler = DMAController[controller].DMAChannel[channel].DREQHandler) && ((DMAController[controller].DMAChannel[channel].ModeRegister&0xC0)!=0xC0))) //Skip channel: invalid! We don't process a cascade mode channel or a channel without handler!
 				{
-					controllerdisabled = 3;
-					controllerdisabled -= (current & 3); //Disable checking for up to 3 more channels(all other channels belonging to the controller)!
+					currentHandler(); //Execute the tick handler!
 				}
 			}
-			else //Controller enabled?
+			else if (channel != 3) //Controller is disabled, but not processed yet? Disable next channels if required!
 			{
-				byte channel = (current & 3); //Channel to use! Channels 0 are unused (DRAM memory refresh (controller 0) and cascade DMA controller (controller 1))
-
-				//Handle the current channel, since the controller is enabled!
-				byte moderegister;
-				moderegister = DMAController[controller].DMAChannel[channel].ModeRegister; //Read the mode register to use!
-				if (((moderegister>>6)&3)==3) goto skipdmachannel; //Skip channel: invalid! We don't process a cascade mode channel!
-				{
-					if (DMAController[controller].DMAChannel[channel].DREQHandler) //Gotten a tick handler?
-					{
-						DMAController[controller].DMAChannel[channel].DREQHandler(); //Execute the tick handler!
-					}
-				}
+				controllerdisabled = 3;
+				controllerdisabled -= (current & 3); //Disable checking for up to 3 more channels(all other channels belonging to the controller)!
 			}
 		} //Controller not already disabled?
 		else //Disabled controller checking?
 		{
 			--controllerdisabled; //Skipped one channel, continue when done skipping!
 		}
-		skipdmachannel: //Skipping the channel?
 		++current; //Next channel!
+		++channel; //Next channel!
+		channel &= 3; //Only 4 channels/controller!
 		current &= 0x7; //Wrap arround our 2 DMA controllers?
-		if (startcurrent==current)
+		if (unlikely(startcurrent==current))
 		{
 			lastcycle = current; //Save the current item we've left off!
 			return; //Back to our original cycle? We don't have anything to transfer!
