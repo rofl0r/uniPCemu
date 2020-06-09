@@ -448,6 +448,7 @@ void CGAMDA_doWriteRAMrefresh(uint_32 offset)
 	VGA_WriteModeOperation(planes, realoffset, getActiveVGA()->CGAMDAShadowRAM[offset]); //Apply the operation on write mode!
 }
 
+extern byte memory_datawrittensize; //How many bytes have been written to memory during a write!
 byte VGAmemIO_wb(uint_32 offset, byte value)
 {
 	if (unlikely(is_A000VRAM(offset))) //VRAM and within range?
@@ -460,6 +461,7 @@ byte VGAmemIO_wb(uint_32 offset, byte value)
 		{
 			getActiveVGA()->CGAMDAShadowRAM[offset] = value; //Write to shadow RAM!
 		}
+		memory_datawrittensize = 1; //Only 1 byte written!
 		return 1; //Written!
 	}
 	return 0; //Not written!
