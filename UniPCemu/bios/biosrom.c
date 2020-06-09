@@ -987,6 +987,8 @@ void BIOSROM_updateTimers(DOUBLE timepassed)
 extern uint_32 BIU_cachedmemoryaddr;
 extern uint_32 BIU_cachedmemoryread;
 extern byte BIU_cachedmemorysize; //To invalidate the BIU cache!
+extern byte memory_datawrittensize; //How many bytes have been written to memory during a write!
+
 byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handler function */
 {
 	INLINEREGISTER uint_32 basepos, currentpos, ROMaddress;
@@ -1116,10 +1118,15 @@ byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handle
 						break;
 					}
 					uint_32 originaladdress = (uint_32)OPTROM_address; //Save the address we're writing to!
-					if ((!OPTROM_writeenabled[i]) || OPTROM_inhabitwrite) return 1; //Handled: ignore writes to ROM or protected ROM!
+					if ((!OPTROM_writeenabled[i]) || OPTROM_inhabitwrite)
+					{
+						memory_datawrittensize = 1; //Only 1 byte written!
+						return 1; //Handled: ignore writes to ROM or protected ROM!
+					}
 					else if (OPTROM_writeenabled[i]==2)
 					{
 						OPTROM_writeenabled[i] = 1; //Start next write!
+						memory_datawrittensize = 1; //Only 1 byte written!
 						return 1; //Disable this write, enable next write!
 					}
 					if (OPTROM_writetimeout[i]) //Timing?
@@ -1144,16 +1151,19 @@ byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handle
 					if (emufseek64(f, (uint_32)OPTROM_address, SEEK_SET)) //Couldn't seek?
 					{
 						emufclose64(f); //Close the file!
+						memory_datawrittensize = 1; //Only 1 byte written!
 						return 1; //Abort!
 					}
 					if (emuftell64(f) != OPTROM_address) //Failed seek position?
 					{
 						emufclose64(f); //Close the file!
+						memory_datawrittensize = 1; //Only 1 byte written!
 						return 1; //Abort!
 					}
 					if (emufwrite64(&value, 1, 1, f) != 1) //Failed to write the data to the file?
 					{
 						emufclose64(f); //Close thefile!
+						memory_datawrittensize = 1; //Only 1 byte written!
 						return 1; //Abort!
 					}
 					emufclose64(f); //Close the file!
@@ -1178,6 +1188,7 @@ byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handle
 						OPTROM_address = 0x1555; //The address to write to!
 						if (originaladdress!=0x1555) goto processPendingWrites; //Process the pending write!
 					}
+					memory_datawrittensize = 1; //Only 1 byte written!
 					return 1; //Ignore writes to memory: we've handled it!
 				}
 			}
@@ -1189,6 +1200,7 @@ byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handle
 	{
 		if (likely(basepos < BIOS_custom_VGAROM_size)) //OK?
 		{
+			memory_datawrittensize = 1; //Only 1 byte written!
 			return 1; //Ignore writes!
 		}
 	}
@@ -1219,6 +1231,7 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 			if (likely(tempoffset<0x10000)) //Within range?
 			{
 				tempoffset &= 0xFFFF; //16-bit ROM!
+				memory_datawrittensize = 1; //Only 1 byte written!
 				return 1; //Ignore writes!
 			}
 		}
@@ -1229,6 +1242,7 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 				tempoffset -= BIOS_custom_ROM_size; //Double in memory!
 			}
 		}
+		memory_datawrittensize = 1; //Only 1 byte written!
 		if (likely(tempoffset<BIOS_custom_ROM_size)) //Within range?
 		{
 			return 1; //Ignore writes!
@@ -1253,6 +1267,7 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 			{
 				if (likely(BIOS_ROM_size[18]>basepos)) //Within range?
 				{
+					memory_datawrittensize = 1; //Only 1 byte written!
 					return 1; //Ignore writes!
 				}
 			}
@@ -1260,6 +1275,7 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 			{
 				if (likely(BIOS_ROM_size[19]>basepos)) //Within range?
 				{
+					memory_datawrittensize = 1; //Only 1 byte written!
 					return 1; //Ignore writes!
 				}
 			}
@@ -1278,6 +1294,7 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 			{
 				if (likely(BIOS_ROM_size[15]>tempoffset)) //Within range?
 				{
+					memory_datawrittensize = 1; //Only 1 byte written!
 					return 1; //Ignore writes!
 				}					
 			}
@@ -1285,6 +1302,7 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 			{
 				if (likely(BIOS_ROM_size[13]>tempoffset)) //Within range?
 				{
+					memory_datawrittensize = 1; //Only 1 byte written!
 					return 1; //Ignore writes!
 				}
 			}
@@ -1296,6 +1314,7 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 			{
 				if (likely(BIOS_ROM_size[35]>tempoffset)) //Within range?
 				{
+					memory_datawrittensize = 1; //Only 1 byte written!
 					return 1; //Ignore writes!
 				}
 			}
@@ -1303,6 +1322,7 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 			{
 				if (likely(BIOS_ROM_size[34]>tempoffset)) //Within range?
 				{
+					memory_datawrittensize = 1; //Only 1 byte written!
 					return 1; //Ignore writes!
 				}
 			}
@@ -1314,6 +1334,7 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 			{
 				if (likely(BIOS_ROM_size[47]>tempoffset)) //Within range?
 				{
+					memory_datawrittensize = 1; //Only 1 byte written!
 					return 1; //Ignore writes!
 				}
 			}
@@ -1321,6 +1342,7 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 			{
 				if (likely(BIOS_ROM_size[27]>tempoffset)) //Within range?
 				{
+					memory_datawrittensize = 1; //Only 1 byte written!
 					return 1; //Ignore writes!
 				}
 			}
