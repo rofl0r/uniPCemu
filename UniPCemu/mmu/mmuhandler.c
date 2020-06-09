@@ -876,11 +876,10 @@ OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, word index
 		#endif
 		)
 	{
-		memory_datawritesize = 1; //Enforce byte size!
 		if (likely(((((realaddress & MMU_BLOCKALIGNMENT) | 3) <= MMU_BLOCKALIGNMENT) && ((realaddress&3)==0)) && (memory_datawritesize==4))) //Enough to write a dword?
 		{
 			*((uint_32*)&memorymapinfo[precalcval].cache[realaddress & MMU_BLOCKALIGNMENT]) = SDL_SwapLE32(memory_datawrite); //Write the data to the ROM!
-			memory_datawrittensize = 4; //Full dword written!
+			memory_datawrittensize = 1; //Full dword written!
 			BIU_cache_start = BIU_cachedmemoryaddr;
 			BIU_cache_end = (BIU_cachedmemoryaddr + BIU_cachedmemorysize);
 			if (likely(BIU_cachedmemorysize)) //Cache active?
@@ -911,7 +910,7 @@ OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, word index
 			if (likely(((((realaddress & MMU_BLOCKALIGNMENT) | 1) <= MMU_BLOCKALIGNMENT) && ((realaddress&1)==0) && (memory_datawritesize==2)))) //Enough to write a word, aligned?
 			{
 				*((word*)(&memorymapinfo[precalcval].cache[realaddress & MMU_BLOCKALIGNMENT])) = SDL_SwapLE16(memory_datawrite); //Read the data from the ROM!
-				memory_datawrittensize = 2; //Full word written!
+				memory_datawrittensize = 1; //Full word written!
 				if (unlikely(BIU_cachedmemorysize && (BIU_cachedmemoryaddr <= (originaladdress + 1)) && ((BIU_cachedmemoryaddr + BIU_cachedmemorysize) > (originaladdress + 1)))) //Matched an active read cache(allowing self-modifying code)?
 				{
 					memory_datasize = 0; //Invalidate the read cache to re-read memory!
