@@ -474,7 +474,7 @@ void BIU_directww(uint_32 realaddress, word value, word index) //Direct write to
 	BIU_directwb(realaddress, value & 0xFF, index); //Low!
 	if (memory_datawrittensize != 2) //Word not written?
 	{
-		memory_datawrittensize = 1; //1 byte only!
+		memory_datawritesize = 1; //1 byte only!
 		BIU_directwb(realaddress + 1, (value >> 8) & 0xFF, index | 1); //High!
 	}
 }
@@ -494,7 +494,7 @@ void BIU_directwdw(uint_32 realaddress, uint_32 value, word index)
 	BIU_directwb(realaddress, value & 0xFF, index); //Low!
 	if (memory_datawrittensize != 4) //Not fully written?
 	{
-		memory_datawrittensize = 1; //1 byte only!
+		memory_datawritesize = 1; //1 byte only!
 		BIU_directwb(realaddress + 1, (value >> 8) & 0xFF, index | 1); //High!
 		BIU_directww(realaddress + 2, (value >> 16) & 0xFFFF, index | 2); //High!
 	}
