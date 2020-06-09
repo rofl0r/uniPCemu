@@ -879,6 +879,11 @@ OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, word index
 		{
 			*((uint_32*)&memorymapinfo[precalcval].cache[realaddress & MMU_BLOCKALIGNMENT]) = SDL_SwapLE32(memory_datawrite); //Write the data to the ROM!
 			memory_datawrittensize = 4; //Full dword written!
+			if (unlikely(BIU_cachedmemorysize && (BIU_cachedmemoryaddr <= (originaladdress+3)) && ((BIU_cachedmemoryaddr + BIU_cachedmemorysize) > (originaladdress+3)))) //Matched an active read cache(allowing self-modifying code)?
+			{
+				memory_datasize = 0; //Invalidate the read cache to re-read memory!
+				BIU_cachedmemorysize = 0; //Invalidate the BIU cache as well!
+			}
 		}
 		else
 		{
@@ -886,6 +891,11 @@ OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, word index
 			{
 				*((word*)(&memorymapinfo[precalcval].cache[realaddress & MMU_BLOCKALIGNMENT])) = SDL_SwapLE16(memory_datawrite); //Read the data from the ROM!
 				memory_datawrittensize = 2; //Full word written!
+				if (unlikely(BIU_cachedmemorysize && (BIU_cachedmemoryaddr <= (originaladdress + 1)) && ((BIU_cachedmemoryaddr + BIU_cachedmemorysize) > (originaladdress + 1)))) //Matched an active read cache(allowing self-modifying code)?
+				{
+					memory_datasize = 0; //Invalidate the read cache to re-read memory!
+					BIU_cachedmemorysize = 0; //Invalidate the BIU cache as well!
+				}
 			}
 			else //Enough to read a byte only?
 			{
