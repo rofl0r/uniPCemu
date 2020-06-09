@@ -837,6 +837,7 @@ extern byte BIU_cachedmemorysize;
 
 OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, word index) //Direct write to real memory (with real data direct)!
 {
+	uint_32 BIU_cache_start, BIU_cache_end, BIU_checkaddr;
 	byte precalcval;
 	uint_32 originaladdress = realaddress; //Original address!
 	//Apply the 640K memory hole!
@@ -879,10 +880,29 @@ OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, word index
 		{
 			*((uint_32*)&memorymapinfo[precalcval].cache[realaddress & MMU_BLOCKALIGNMENT]) = SDL_SwapLE32(memory_datawrite); //Write the data to the ROM!
 			memory_datawrittensize = 4; //Full dword written!
-			if (unlikely(BIU_cachedmemorysize && (BIU_cachedmemoryaddr <= (originaladdress+3)) && ((BIU_cachedmemoryaddr + BIU_cachedmemorysize) > (originaladdress+3)))) //Matched an active read cache(allowing self-modifying code)?
+			BIU_cache_start = BIU_cachedmemoryaddr;
+			BIU_cache_end = (BIU_cachedmemoryaddr + BIU_cachedmemorysize);
+			if (likely(BIU_cachedmemorysize)) //Cache active?
 			{
-				memory_datasize = 0; //Invalidate the read cache to re-read memory!
-				BIU_cachedmemorysize = 0; //Invalidate the BIU cache as well!
+				BIU_checkaddr = realaddress;
+				++BIU_checkaddr;
+				if (unlikely((BIU_cache_start <= BIU_checkaddr) && (BIU_cache_end > BIU_checkaddr))) //Matched an active read cache(allowing self-modifying code)?
+				{
+					memory_datasize = 0; //Invalidate the read cache to re-read memory!
+					BIU_cachedmemorysize = 0; //Invalidate the BIU cache as well!
+				}
+				++BIU_checkaddr;
+				if (unlikely((BIU_cache_start <= BIU_checkaddr) && (BIU_cache_end > BIU_checkaddr))) //Matched an active read cache(allowing self-modifying code)?
+				{
+					memory_datasize = 0; //Invalidate the read cache to re-read memory!
+					BIU_cachedmemorysize = 0; //Invalidate the BIU cache as well!
+				}
+				++BIU_checkaddr;
+				if (unlikely((BIU_cache_start <= (originaladdress + 3)) && (BIU_cache_end > BIU_checkaddr))) //Matched an active read cache(allowing self-modifying code)?
+				{
+					memory_datasize = 0; //Invalidate the read cache to re-read memory!
+					BIU_cachedmemorysize = 0; //Invalidate the BIU cache as well!
+				}
 			}
 		}
 		else
