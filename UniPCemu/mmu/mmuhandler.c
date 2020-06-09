@@ -849,6 +849,7 @@ OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, word index
 			memory_datasize = 0; //Invalidate the read cache to re-read memory!
 			BIU_cachedmemorysize = 0; //Invalidate the BIU cache as well!
 		}
+		memory_datawrittensize = 1; //Only 1 byte written!
 		return; //Count as a memory mapped register!
 	}
 	if (unlikely(((index&0xFF) != 0xFF) && bushandler)) //Don't ignore BUS?
@@ -968,6 +969,7 @@ word MMU_INTERNAL_directrw(uint_32 realaddress, word index) //Direct read from r
 
 void MMU_INTERNAL_directww(uint_32 realaddress, word value, word index) //Direct write to real memory (with real data direct)!
 {
+	memory_
 	MMU_INTERNAL_directwb(realaddress, value & 0xFF, index); //Low!
 	MMU_INTERNAL_directwb(realaddress + 1, (value >> 8) & 0xFF, index | 1); //High!
 }
