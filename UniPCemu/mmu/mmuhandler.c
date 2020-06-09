@@ -238,6 +238,9 @@ OPTINLINE byte MMU_IO_writehandler(uint_32 offset, byte value)
 uint_32 memory_dataaddr = 0; //The data address that's cached!
 uint_32 memory_dataread = 0;
 byte memory_datasize = 0; //The size of the data that has been read!
+uint_32 memory_datawrite = 0; //Data to be written!
+byte memory_datawritesize = 1; //How much bytes are requested to be written?
+byte memory_datawrittensize = 1; //How many bytes have been written to memory during a write!
 OPTINLINE byte MMU_IO_readhandler(uint_32 offset, byte index)
 {
 	byte dataread;
@@ -834,6 +837,7 @@ extern byte BIU_cachedmemorysize;
 
 OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, word index) //Direct write to real memory (with real data direct)!
 {
+	uint_32 temp;
 	byte precalcval;
 	uint_32 originaladdress = realaddress; //Original address!
 	//Apply the 640K memory hole!
@@ -863,11 +867,43 @@ OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, word index
 		MMU_INTERNAL_INVMEM(originaladdress,realaddress,1,value,(index&0xFF),nonexistant); //Invalid memory accessed!
 		return; //Abort!
 	}
-#ifdef LOG_HIGH_MEMORY
-	if (unlikely((MMU_logging==1) || (specialdebugger && (originaladdress>=0x100000)))) //Data debugging?
+	if (likely((index & 3) == 0) //Might be able to use direct mapping?
+		#ifdef LOG_HIGH_MEMORY
+		&& (unlikely((MMU_logging == 1) || (specialdebugger && (originaladdress >= 0x100000)))) //Data debugging?
+		#else
+		&& (unlikely(MMU_logging == 1)) //Data debugging?
+		#endif
+		)
 	{
-		debugger_logmemoryaccess(1,originaladdress,value,LOGMEMORYACCESS_RAM);
-		debugger_logmemoryaccess(1,realaddress,value,LOGMEMORYACCESS_RAM_LOGMMUALL); //Log it!
+		if (likely(((((realaddress & MMU_BLOCKALIGNMENT) | 3) <= MMU_BLOCKALIGNMENT) && ((realaddress&3)==0)) && (memory_datawritesize==4))) //Enough to write a dword?
+		{
+			*((uint_32*)&memorymapinfo[precalcval].cache[realaddress & MMU_BLOCKALIGNMENT]) = SDL_SwapLE32(memory_datawrite); //Write the data to the ROM!
+			memory_datawrittensize = 4; //Full dword written!
+		}
+		else
+		{
+			if (likely(((((realaddress & MMU_BLOCKALIGNMENT) | 1) <= MMU_BLOCKALIGNMENT) && ((realaddress&1)==0) && (memory_datawritesize==2)))) //Enough to write a word, aligned?
+			{
+				*((word*)(&memorymapinfo[precalcval].cache[realaddress & MMU_BLOCKALIGNMENT])) = SDL_SwapLE16(memory_datawrite); //Read the data from the ROM!
+				memory_datawrittensize = 2; //Full word written!
+			}
+			else //Enough to read a byte only?
+			{
+				memorymapinfo[precalcval].cache[realaddress & MMU_BLOCKALIGNMENT] = value; //Set data, full memory protection!
+				memory_datawrittensize = 1; //Only 1 byte written!
+			}
+		}
+	}
+	else //Single, unaligned write?
+	{
+		memorymapinfo[precalcval].cache[realaddress & MMU_BLOCKALIGNMENT] = value; //Set data, full memory protection!
+		memory_datawrittensize = 1; //Only 1 byte written!
+	}
+#ifdef LOG_HIGH_MEMORY
+	if (unlikely((MMU_logging == 1) || (specialdebugger && (originaladdress >= 0x100000)))) //Data debugging?
+	{
+		debugger_logmemoryaccess(1, originaladdress, value, LOGMEMORYACCESS_RAM);
+		debugger_logmemoryaccess(1, realaddress, value, LOGMEMORYACCESS_RAM_LOGMMUALL); //Log it!
 	}
 #else
 	if (unlikely(MMU_logging == 1)) //Data debugging?
@@ -876,14 +912,13 @@ OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, word index
 		debugger_logmemoryaccess(1, (uint_32)((ptrnum)&memorymapinfo[0].cache[realaddress & MMU_BLOCKALIGNMENT] - (ptrnum)MMU.memory), value, LOGMEMORYACCESS_RAM_LOGMMUALL); //Log it!
 	}
 #endif
-	memorymapinfo[precalcval].cache[realaddress & MMU_BLOCKALIGNMENT] = value; //Set data, full memory protection!
 	if (unlikely(doDRAM_access)) //DRAM access?
 	{
 		doDRAM_access(realaddress); //Tick the DRAM!
 	}
-	if (unlikely((realaddress+1)>user_memory_used)) //More written than present in memory (first write to addr)?
+	if (unlikely((realaddress+memory_datawrittensize)>user_memory_used)) //More written than present in memory (first write to addr)?
 	{
-		user_memory_used = (realaddress+1); //Update max memory used!
+		user_memory_used = (realaddress+memory_datawrittensize); //Update max memory used!
 	}
 }
 
