@@ -977,7 +977,7 @@ void MMU_INTERNAL_directww(uint_32 realaddress, word value, word index) //Direct
 	MMU_INTERNAL_directwb(realaddress, value & 0xFF, index); //Low!
 	if ((memory_datawrittensize != 2) || (index&3)) //Not matched?
 	{
-		memory_datawrittensize = 1; //1 byte only!
+		memory_datawritesize = 1; //1 byte only!
 		MMU_INTERNAL_directwb(realaddress + 1, (value >> 8) & 0xFF, index | 1); //High!
 	}
 }
@@ -994,7 +994,7 @@ void MMU_INTERNAL_directwdw(uint_32 realaddress, uint_32 value, word index)
 	MMU_INTERNAL_directwb(realaddress, value & 0xFF, index); //Low!
 	if (memory_datawrittensize != 4) //Not matched?
 	{
-		memory_datawrittensize = 1; //1 byte only!
+		memory_datawritesize = 1; //1 byte only!
 		value >>= 8;
 		MMU_INTERNAL_directwb(realaddress + 1, (value & 0xFF), index | 1); //High!
 		value >>= 8;
