@@ -884,7 +884,7 @@ OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, word index
 			BIU_cache_end = (BIU_cachedmemoryaddr + BIU_cachedmemorysize);
 			if (likely(BIU_cachedmemorysize)) //Cache active?
 			{
-				BIU_checkaddr = realaddress;
+				BIU_checkaddr = originaladdress;
 				++BIU_checkaddr;
 				if (unlikely((BIU_cache_start <= BIU_checkaddr) && (BIU_cache_end > BIU_checkaddr))) //Matched an active read cache(allowing self-modifying code)?
 				{
@@ -898,7 +898,7 @@ OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, word index
 					BIU_cachedmemorysize = 0; //Invalidate the BIU cache as well!
 				}
 				++BIU_checkaddr;
-				if (unlikely((BIU_cache_start <= (originaladdress + 3)) && (BIU_cache_end > BIU_checkaddr))) //Matched an active read cache(allowing self-modifying code)?
+				if (unlikely((BIU_cache_start <= BIU_checkaddr) && (BIU_cache_end > BIU_checkaddr))) //Matched an active read cache(allowing self-modifying code)?
 				{
 					memory_datasize = 0; //Invalidate the read cache to re-read memory!
 					BIU_cachedmemorysize = 0; //Invalidate the BIU cache as well!
