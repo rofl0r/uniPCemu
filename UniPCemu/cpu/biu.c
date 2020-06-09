@@ -917,9 +917,9 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates, byte bus_waitstates)
 				{
 					debugger_logmemoryaccess(1, BIU[activeCPU].currentaddress, value, LOGMEMORYACCESS_PAGED | (((0 & 0x20) >> 5) << LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
 				}
-				if (memory_datawrittensize != BIU[activeCPU].datawritesizeexpected) //Unexpected size?
+				if (memory_datawritesize != BIU[activeCPU].datawritesizeexpected) //Unexpected size?
 				{
-					memory_datawritesize = 1; //1 bvte only for now!
+					memory_datawritesize = BIU[activeCPU].datawritesizeexpected = 1; //1 bvte only for now!
 					BIU_directwb((physicaladdress), value, ((BIU[activeCPU].currentrequest & REQUEST_SUBMASK) >> REQUEST_SUBSHIFT) | 0x100); //Write directly to memory now!
 				}
 				if ((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)==((BIU[activeCPU].currentrequest&REQUEST_16BIT)?REQUEST_SUB1:REQUEST_SUB3)) //Finished the request?
