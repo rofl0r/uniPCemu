@@ -969,9 +969,17 @@ word MMU_INTERNAL_directrw(uint_32 realaddress, word index) //Direct read from r
 
 void MMU_INTERNAL_directww(uint_32 realaddress, word value, word index) //Direct write to real memory (with real data direct)!
 {
-	memory_
+	if ((index & 3) == 0) //First byte?
+	{
+		memory_datawrite = value; //What to write!
+		memory_datawritesize = 2; //How much to write!
+	}
 	MMU_INTERNAL_directwb(realaddress, value & 0xFF, index); //Low!
-	MMU_INTERNAL_directwb(realaddress + 1, (value >> 8) & 0xFF, index | 1); //High!
+	if ((memory_datawrittensize != 2) || (index&3)) //Not matched?
+	{
+		memory_datawrittensize = 1; //1 byte only!
+		MMU_INTERNAL_directwb(realaddress + 1, (value >> 8) & 0xFF, index | 1); //High!
+	}
 }
 
 //Used by paging only!
@@ -981,8 +989,19 @@ uint_32 MMU_INTERNAL_directrdw(uint_32 realaddress, word index)
 }
 void MMU_INTERNAL_directwdw(uint_32 realaddress, uint_32 value, word index)
 {
-	MMU_INTERNAL_directww(realaddress, value & 0xFFFF, index); //Low!
-	MMU_INTERNAL_directww(realaddress + 2, (value >> 16) & 0xFFFF, index | 2); //High!
+	memory_datawrite = value; //What to write!
+	memory_datawritesize = 4; //How much to write!
+	MMU_INTERNAL_directwb(realaddress, value & 0xFF, index); //Low!
+	if (memory_datawrittensize != 4) //Not matched?
+	{
+		memory_datawrittensize = 1; //1 byte only!
+		value >>= 8;
+		MMU_INTERNAL_directwb(realaddress + 1, (value & 0xFF), index | 1); //High!
+		value >>= 8;
+		MMU_INTERNAL_directww(realaddress + 2, (value & 0xFF), index | 2); //High!
+		value >>= 8;
+		MMU_INTERNAL_directwb(realaddress + 3, (value & 0xFF), index | 3); //High!
+	}
 }
 
 byte MMUbuffer_pending = 0; //Anything pending?
@@ -1165,13 +1184,18 @@ uint_32 memory_directrdw(uint_32 realaddress) //Direct read from real memory (wi
 }
 void memory_directwb(uint_32 realaddress, byte value) //Direct write to real memory (with real data direct)!
 {
+	memory_datawritesize = 1; //Work in byte chunks always!
 	MMU_INTERNAL_directwb(realaddress, value, 0x100);
 }
 void memory_directww(uint_32 realaddress, word value) //Direct write to real memory (with real data direct)!
 {
+	memory_datawritesize = 2; //Work in word chunks always!
+	memory_datawrite = value; //The value to write!
 	MMU_INTERNAL_directww(realaddress, value, 0x100);
 }
 void memory_directwdw(uint_32 realaddress, uint_32 value) //Direct write to real memory (with real data direct)!
 {
+	memory_datawritesize = 4; //Work in dword chunks always!
+	memory_datawrite = value; //The value to write!
 	MMU_INTERNAL_directwdw(realaddress, value, 0x100);
 }

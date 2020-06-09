@@ -433,6 +433,10 @@ byte BIU_directrb_external(uint_32 realaddress, word index)
 	return BIU_directrb(realaddress, index); //External!
 }
 
+extern uint_32 memory_datawrite; //Data to be written!
+extern byte memory_datawritesize; //How much bytes are requested to be written?
+extern byte memory_datawrittensize; //How many bytes have been written to memory during a write!
+
 OPTINLINE void BIU_directwb(uint_32 realaddress, byte val, word index) //Access physical memory dir
 {
 	//Apply A20!
@@ -451,6 +455,7 @@ OPTINLINE void BIU_directwb(uint_32 realaddress, byte val, word index) //Access 
 
 void BIU_directwb_external(uint_32 realaddress, byte val, word index) //Access physical memory dir
 {
+	memory_datawritesize = 1; //Work in byte chunks always for now!
 	BIU_directwb(realaddress, val, index); //External!
 }
 
@@ -461,8 +466,17 @@ word BIU_directrw(uint_32 realaddress, word index) //Direct read from real memor
 
 void BIU_directww(uint_32 realaddress, word value, word index) //Direct write to real memory (with real data direct)!
 {
+	if ((index & 3) == 0) //First byte?
+	{
+		memory_datawritesize = 2; //Work in byte chunks always for now!
+		memory_datawrite = value; //What to write!
+	}
 	BIU_directwb(realaddress, value & 0xFF, index); //Low!
-	BIU_directwb(realaddress + 1, (value >> 8) & 0xFF, index | 1); //High!
+	if (memory_datawrittensize != 2) //Word not written?
+	{
+		memory_datawrittensize = 1; //1 byte only!
+		BIU_directwb(realaddress + 1, (value >> 8) & 0xFF, index | 1); //High!
+	}
 }
 
 //Used by paging only!
@@ -472,8 +486,18 @@ uint_32 BIU_directrdw(uint_32 realaddress, word index)
 }
 void BIU_directwdw(uint_32 realaddress, uint_32 value, word index)
 {
-	BIU_directww(realaddress, value & 0xFFFF, index); //Low!
-	BIU_directww(realaddress + 2, (value >> 16) & 0xFFFF, index | 2); //High!
+	if ((index & 3) == 0) //First byte?
+	{
+		memory_datawritesize = 4; //DWord!
+		memory_datawrite = value; //What to write!
+	}
+	BIU_directwb(realaddress, value & 0xFF, index); //Low!
+	if (memory_datawrittensize != 4) //Not fully written?
+	{
+		memory_datawrittensize = 1; //1 byte only!
+		BIU_directwb(realaddress + 1, (value >> 8) & 0xFF, index | 1); //High!
+		BIU_directww(realaddress + 2, (value >> 16) & 0xFFFF, index | 2); //High!
+	}
 }
 
 extern MMU_realaddrHandler realaddrHandlerCS; //CS real addr handler!
@@ -893,7 +917,11 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates, byte bus_waitstates)
 				{
 					debugger_logmemoryaccess(1, BIU[activeCPU].currentaddress, value, LOGMEMORYACCESS_PAGED | (((0 & 0x20) >> 5) << LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
 				}
-				BIU_directwb((physicaladdress),value,((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)>>REQUEST_SUBSHIFT)|0x100); //Write directly to memory now!
+				if (memory_datawrittensize != BIU[activeCPU].datawritesizeexpected) //Unexpected size?
+				{
+					memory_datawritesize = 1; //1 bvte only for now!
+					BIU_directwb((physicaladdress), value, ((BIU[activeCPU].currentrequest & REQUEST_SUBMASK) >> REQUEST_SUBSHIFT) | 0x100); //Write directly to memory now!
+				}
 				if ((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)==((BIU[activeCPU].currentrequest&REQUEST_16BIT)?REQUEST_SUB1:REQUEST_SUB3)) //Finished the request?
 				{
 					if (BIU_response(1)) //Result given? We're giving OK!
@@ -1044,6 +1072,7 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates, byte bus_waitstates)
 							{
 								debugger_logmemoryaccess(1, BIU[activeCPU].currentaddress, value, LOGMEMORYACCESS_PAGED | (((0 & 0x20) >> 5) << LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
 							}
+							memory_datawritesize = 1; //1 byte only!
 							BIU_directwb(physicaladdress,value,0x100); //Write directly to memory now!
 							BIU[activeCPU].currentrequest = REQUEST_NONE; //No request anymore! We're finished!
 						}
@@ -1059,7 +1088,24 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates, byte bus_waitstates)
 						{
 							debugger_logmemoryaccess(1, BIU[activeCPU].currentaddress, value, LOGMEMORYACCESS_PAGED | (((0 & 0x20) >> 5) << LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
 						}
+						if (BIU[activeCPU].currentrequest & REQUEST_32BIT) //32-bit request?
+						{
+							memory_datawritesize = 4; //4 bytes only!
+							memory_datawrite = (BIU[activeCPU].currentpayload[0] >> 32); //What to write!
+							BIU[activeCPU].datawritesizeexpected = 4; //We expect 4 to be set!
+						}
+						else //16-bit request?
+						{
+							memory_datawritesize = 2; //2 bytes only!
+							memory_datawrite = ((BIU[activeCPU].currentpayload[0] >> 32)&0xFFFF); //What to write!
+							BIU[activeCPU].datawritesizeexpected = 2; //We expect 2 to be set!
+						}
 						BIU_directwb(physicaladdress, value, 0x100); //Write directly to memory now!
+						if (unlikely(memory_datawrittensize != BIU[activeCPU].datawritesizeexpected)) //Wrong size than expected?
+						{
+							BIU[activeCPU].datawritesizeexpected = 1; //Expect 1 byte for all other bytes!
+							memory_datawritesize = 1; //1 byte from now on!
+						}
 						++BIU[activeCPU].currentaddress; //Next address!
 						if (unlikely((BIU[activeCPU].currentaddress&CPU_databusmask)==0))
 						{

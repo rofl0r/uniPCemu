@@ -58,6 +58,7 @@ typedef struct
 	byte requestready; //Request not ready to retrieve?
 	byte TState; //What T-state is the BIU running at?
 	byte stallingBUS; //Are we stalling the BUS!
+	byte datawritesizeexpected; //What to expect for a data size for a write!
 } BIU_type;
 
 void CPU_initBIU(); //Initialize the BIU!
