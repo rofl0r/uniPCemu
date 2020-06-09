@@ -869,9 +869,9 @@ OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, word index
 	}
 	if (likely((index & 3) == 0) //Might be able to use direct mapping?
 		#ifdef LOG_HIGH_MEMORY
-		&& (unlikely((MMU_logging == 1) || (specialdebugger && (originaladdress >= 0x100000)))) //Data debugging?
+		&& (unlikely((MMU_logging != 1) && (!(specialdebugger && (originaladdress >= 0x100000))))) //Data debugging?
 		#else
-		&& (unlikely(MMU_logging == 1)) //Data debugging?
+		&& (unlikely(MMU_logging != 1)) //Data debugging?
 		#endif
 		)
 	{
