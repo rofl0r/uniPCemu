@@ -32,9 +32,6 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/bios/biosrom.h" //BIOS/option ROM support!
 #include "headers/hardware/vga/vga.h" //Video memory support!
 
-#define collision(x1,x2,y1,y2) (((x2)>=(y1)) && ((y2)>=(x1)))
-#define collisionw(x1,xw,y1,yw) (collision((x1),((x1)+(xw)-1),(y1),((y1)+(yw)-1)) && (xw) && (yw))
-
 extern BIOS_Settings_TYPE BIOS_Settings; //Settings!
 extern MMU_type MMU; //MMU for direct access!
 
@@ -842,10 +839,6 @@ extern byte BIU_cachedmemorysize;
 
 OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, word index) //Direct write to real memory (with real data direct)!
 {
-	/*
-	uint_32 BIU_cache_start, BIU_cache_end, BIU_checkaddr;
-	byte cachematched;
-	*/ //Cache variables!
 	byte precalcval;
 	uint_32 originaladdress = realaddress; //Original address!
 	//Apply the 640K memory hole!
@@ -877,7 +870,7 @@ OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, word index
 		memory_datawrittensize = 1; //Only 1 byte written!
 		return; //Abort!
 	}
-	/*
+
 	if (likely((index & 3) == 0) //Might be able to use direct mapping?
 		#ifdef LOG_HIGH_MEMORY
 		&& (unlikely((MMU_logging != 1) && (!(specialdebugger && (originaladdress >= 0x100000))))) //Data debugging?
@@ -890,22 +883,10 @@ OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, word index
 		{
 			*((uint_32*)&memorymapinfo[precalcval].cache[realaddress & MMU_BLOCKALIGNMENT]) = SDL_SwapLE32(memory_datawrite); //Write the data to the ROM!
 			memory_datawrittensize = 4; //Full dword written!
-			BIU_cache_start = BIU_cachedmemoryaddr;
-			BIU_cache_end = (BIU_cachedmemoryaddr + BIU_cachedmemorysize);
-			if (likely(BIU_cachedmemorysize)) //Cache active?
+			if (unlikely(isoverlappingw((uint_64)originaladdress,4,(uint_64)BIU_cachedmemoryaddr,BIU_cachedmemorysize))) //Cached?
 			{
-				BIU_checkaddr = originaladdress;
-				++BIU_checkaddr; //Check first byte unchekced!
-				cachematched = ((BIU_cache_start <= BIU_checkaddr) && (BIU_cache_end > BIU_checkaddr)); //Matched an active read cache(allowing self-modifying code)?
-				++BIU_checkaddr; //Check second byte!
-				cachematched |= ((BIU_cache_start <= BIU_checkaddr) && (BIU_cache_end > BIU_checkaddr)); //Matched an active read cache(allowing self-modifying code)?
-				++BIU_checkaddr; //Check final byte!
-				cachematched |= ((BIU_cache_start <= BIU_checkaddr) && (BIU_cache_end > BIU_checkaddr)); //Matched an active read cache(allowing self-modifying code)?
-				if (unlikely(cachematched)) //Cache matched?
-				{
-					memory_datasize = 0; //Invalidate the read cache to re-read memory!
-					BIU_cachedmemorysize = 0; //Invalidate the BIU cache as well!
-				}
+				memory_datasize = 0; //Invalidate the read cache to re-read memory!
+				BIU_cachedmemorysize = 0; //Invalidate the BIU cache as well!
 			}
 		}
 		else
@@ -929,10 +910,9 @@ OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, word index
 	}
 	else //Single, unaligned write?
 	{
-	*/
 		memorymapinfo[precalcval].cache[realaddress & MMU_BLOCKALIGNMENT] = value; //Set data, full memory protection!
 		memory_datawrittensize = 1; //Only 1 byte written!
-	//}
+	}
 #ifdef LOG_HIGH_MEMORY
 	if (unlikely((MMU_logging == 1) || (specialdebugger && (originaladdress >= 0x100000)))) //Data debugging?
 	{
