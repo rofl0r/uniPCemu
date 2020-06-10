@@ -32,6 +32,9 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/bios/biosrom.h" //BIOS/option ROM support!
 #include "headers/hardware/vga/vga.h" //Video memory support!
 
+#define collision(x1,x2,y1,y2) (((x2)>=(y1)) && ((y2)>=(x1)))
+#define collisionw(x1,xw,y1,yw) (collision((x1),((x1)+(xw)-1),(y1),((y1)+(yw)-1)) && (xw) && (yw))
+
 extern BIOS_Settings_TYPE BIOS_Settings; //Settings!
 extern MMU_type MMU; //MMU for direct access!
 
