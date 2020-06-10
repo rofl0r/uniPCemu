@@ -840,6 +840,7 @@ extern byte BIU_cachedmemorysize;
 OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, word index) //Direct write to real memory (with real data direct)!
 {
 	uint_32 BIU_cache_start, BIU_cache_end, BIU_checkaddr;
+	byte cachematched;
 	byte precalcval;
 	uint_32 originaladdress = realaddress; //Original address!
 	//Apply the 640K memory hole!
@@ -888,20 +889,13 @@ OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, word index
 			if (likely(BIU_cachedmemorysize)) //Cache active?
 			{
 				BIU_checkaddr = originaladdress;
-				++BIU_checkaddr;
-				if (unlikely((BIU_cache_start <= BIU_checkaddr) && (BIU_cache_end > BIU_checkaddr))) //Matched an active read cache(allowing self-modifying code)?
-				{
-					memory_datasize = 0; //Invalidate the read cache to re-read memory!
-					BIU_cachedmemorysize = 0; //Invalidate the BIU cache as well!
-				}
-				++BIU_checkaddr;
-				if (unlikely((BIU_cache_start <= BIU_checkaddr) && (BIU_cache_end > BIU_checkaddr))) //Matched an active read cache(allowing self-modifying code)?
-				{
-					memory_datasize = 0; //Invalidate the read cache to re-read memory!
-					BIU_cachedmemorysize = 0; //Invalidate the BIU cache as well!
-				}
-				++BIU_checkaddr;
-				if (unlikely((BIU_cache_start <= BIU_checkaddr) && (BIU_cache_end > BIU_checkaddr))) //Matched an active read cache(allowing self-modifying code)?
+				++BIU_checkaddr; //Check first byte unchekced!
+				cachematched = ((BIU_cache_start <= BIU_checkaddr) && (BIU_cache_end > BIU_checkaddr)); //Matched an active read cache(allowing self-modifying code)?
+				++BIU_checkaddr; //Check second byte!
+				cachematched |= ((BIU_cache_start <= BIU_checkaddr) && (BIU_cache_end > BIU_checkaddr)); //Matched an active read cache(allowing self-modifying code)?
+				++BIU_checkaddr; //Check final byte!
+				cachematched |= ((BIU_cache_start <= BIU_checkaddr) && (BIU_cache_end > BIU_checkaddr)); //Matched an active read cache(allowing self-modifying code)?
+				if (unlikely(cachematched)) //Cache matched?
 				{
 					memory_datasize = 0; //Invalidate the read cache to re-read memory!
 					BIU_cachedmemorysize = 0; //Invalidate the BIU cache as well!
