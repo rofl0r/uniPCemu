@@ -839,8 +839,10 @@ extern byte BIU_cachedmemorysize;
 
 OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, word index) //Direct write to real memory (with real data direct)!
 {
+	/*
 	uint_32 BIU_cache_start, BIU_cache_end, BIU_checkaddr;
 	byte cachematched;
+	*/ //Cache variables!
 	byte precalcval;
 	uint_32 originaladdress = realaddress; //Original address!
 	//Apply the 640K memory hole!
