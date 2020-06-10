@@ -486,13 +486,10 @@ uint_32 BIU_directrdw(uint_32 realaddress, word index)
 }
 void BIU_directwdw(uint_32 realaddress, uint_32 value, word index)
 {
-	if ((index & 3) == 0) //First byte?
-	{
-		memory_datawritesize = 4; //DWord!
-		memory_datawrite = value; //What to write!
-	}
+	memory_datawritesize = 4; //DWord!
+	memory_datawrite = value; //What to write!
 	BIU_directwb(realaddress, value & 0xFF, index); //Low!
-	if (memory_datawrittensize != 4) //Not fully written?
+	//if (memory_datawrittensize != 4) //Not fully written? Somehow this doesn't work correctly yet with 32-bit writes?
 	{
 		memory_datawritesize = 1; //1 byte only!
 		BIU_directwb(realaddress + 1, (value >> 8) & 0xFF, index | 1); //High!
@@ -917,7 +914,7 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates, byte bus_waitstates)
 				{
 					debugger_logmemoryaccess(1, BIU[activeCPU].currentaddress, value, LOGMEMORYACCESS_PAGED | (((0 & 0x20) >> 5) << LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
 				}
-				if ((memory_datawritesize != BIU[activeCPU].datawritesizeexpected) || (BIU[activeCPU].datawritesizeexpected==1)) //Unexpected size or required to write manually?
+				//if ((memory_datawritesize != BIU[activeCPU].datawritesizeexpected) || (BIU[activeCPU].datawritesizeexpected==1)) //Unexpected size or required to write manually?
 				{
 					memory_datawritesize = BIU[activeCPU].datawritesizeexpected = 1; //1 bvte only for now!
 					BIU_directwb((physicaladdress), value, ((BIU[activeCPU].currentrequest & REQUEST_SUBMASK) >> REQUEST_SUBSHIFT) | 0x100); //Write directly to memory now!
@@ -1101,7 +1098,7 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates, byte bus_waitstates)
 							BIU[activeCPU].datawritesizeexpected = 2; //We expect 2 to be set!
 						}
 						BIU_directwb(physicaladdress, value, 0x100); //Write directly to memory now!
-						if (unlikely(memory_datawrittensize != BIU[activeCPU].datawritesizeexpected)) //Wrong size than expected?
+						//if (unlikely(memory_datawrittensize != BIU[activeCPU].datawritesizeexpected)) //Wrong size than expected?
 						{
 							BIU[activeCPU].datawritesizeexpected = 1; //Expect 1 byte for all other bytes!
 							memory_datawritesize = 1; //1 byte from now on!
