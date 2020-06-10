@@ -213,11 +213,16 @@ byte MMU_registerReadHandler(MMU_RHANDLER handler, char *module) //Register a re
 	return 0; //Error: ran out of space!
 }
 
+uint_32 memory_datawrite = 0; //Data to be written!
+byte memory_datawritesize = 1; //How much bytes are requested to be written?
+byte memory_datawrittensize = 1; //How many bytes have been written to memory during a write!
+
 //Handler for special MMU-based I/O, direct addresses used!
 OPTINLINE byte MMU_IO_writehandler(uint_32 offset, byte value)
 {
 	MMU_WHANDLER *list; //Current list item!
 	MMU_WHANDLER current; //Current handler!
+	memory_datawrittensize = 1; //Default to only 1 byte responding!
 	if (unlikely(BIOS_writehandler(offset, value))) return 0; //BIOS responded!
 	if (VGAmemIO_wb(offset, value)) return 0; //Video responded!
 	current = *(list = &MMUHANDLER.writehandlers[0]); //Start of our list!
@@ -238,9 +243,6 @@ OPTINLINE byte MMU_IO_writehandler(uint_32 offset, byte value)
 uint_32 memory_dataaddr = 0; //The data address that's cached!
 uint_32 memory_dataread = 0;
 byte memory_datasize = 0; //The size of the data that has been read!
-uint_32 memory_datawrite = 0; //Data to be written!
-byte memory_datawritesize = 1; //How much bytes are requested to be written?
-byte memory_datawrittensize = 1; //How many bytes have been written to memory during a write!
 OPTINLINE byte MMU_IO_readhandler(uint_32 offset, byte index)
 {
 	byte dataread;
@@ -866,6 +868,7 @@ OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, word index
 	if (unlikely(applyMemoryHoles(realaddress,precalcval))) //Overflow/invalid location?
 	{
 		MMU_INTERNAL_INVMEM(originaladdress,realaddress,1,value,(index&0xFF),nonexistant); //Invalid memory accessed!
+		memory_datawrittensize = 1; //Only 1 byte written!
 		return; //Abort!
 	}
 	if (likely((index & 3) == 0) //Might be able to use direct mapping?
@@ -879,7 +882,7 @@ OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, word index
 		if (likely(((((realaddress & MMU_BLOCKALIGNMENT) | 3) <= MMU_BLOCKALIGNMENT) && ((realaddress&3)==0)) && (memory_datawritesize==4))) //Enough to write a dword?
 		{
 			*((uint_32*)&memorymapinfo[precalcval].cache[realaddress & MMU_BLOCKALIGNMENT]) = SDL_SwapLE32(memory_datawrite); //Write the data to the ROM!
-			memory_datawrittensize = 1; //Full dword written!
+			memory_datawrittensize = 4; //Full dword written!
 			BIU_cache_start = BIU_cachedmemoryaddr;
 			BIU_cache_end = (BIU_cachedmemoryaddr + BIU_cachedmemorysize);
 			if (likely(BIU_cachedmemorysize)) //Cache active?
@@ -910,7 +913,7 @@ OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, word index
 			if (likely(((((realaddress & MMU_BLOCKALIGNMENT) | 1) <= MMU_BLOCKALIGNMENT) && ((realaddress&1)==0) && (memory_datawritesize==2)))) //Enough to write a word, aligned?
 			{
 				*((word*)(&memorymapinfo[precalcval].cache[realaddress & MMU_BLOCKALIGNMENT])) = SDL_SwapLE16(memory_datawrite); //Read the data from the ROM!
-				memory_datawrittensize = 1; //Full word written!
+				memory_datawrittensize = 2; //Full word written!
 				if (unlikely(BIU_cachedmemorysize && (BIU_cachedmemoryaddr <= (originaladdress + 1)) && ((BIU_cachedmemoryaddr + BIU_cachedmemorysize) > (originaladdress + 1)))) //Matched an active read cache(allowing self-modifying code)?
 				{
 					memory_datasize = 0; //Invalidate the read cache to re-read memory!
@@ -1080,6 +1083,7 @@ void MMU_INTERNAL_directwb_realaddr(uint_32 realaddress, byte val, byte index) /
 	} addressconverter;
 	byte status;
 	//Are we debugging?
+	memory_datawrittensize = 1; //Default to 1 byte being written if nothing responds!
 #ifdef LOG_HIGH_MEMORY
 #define is_debugging ((MMU_logging == 1) || (specialdebugger && (realaddress >= 0x100000))
 #else
