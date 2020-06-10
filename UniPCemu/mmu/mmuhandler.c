@@ -872,6 +872,7 @@ OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, word index
 		memory_datawrittensize = 1; //Only 1 byte written!
 		return; //Abort!
 	}
+	/*
 	if (likely((index & 3) == 0) //Might be able to use direct mapping?
 		#ifdef LOG_HIGH_MEMORY
 		&& (unlikely((MMU_logging != 1) && (!(specialdebugger && (originaladdress >= 0x100000))))) //Data debugging?
@@ -923,9 +924,10 @@ OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, word index
 	}
 	else //Single, unaligned write?
 	{
+	*/
 		memorymapinfo[precalcval].cache[realaddress & MMU_BLOCKALIGNMENT] = value; //Set data, full memory protection!
 		memory_datawrittensize = 1; //Only 1 byte written!
-	}
+	//}
 #ifdef LOG_HIGH_MEMORY
 	if (unlikely((MMU_logging == 1) || (specialdebugger && (originaladdress >= 0x100000)))) //Data debugging?
 	{
