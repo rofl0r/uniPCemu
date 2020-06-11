@@ -45,6 +45,10 @@ byte memory_BIUdirectrb(uint_32 realaddress) //Direct read from real memory (wit
 {
 	return BIU_directrb_external(realaddress, 0x100);
 }
+OPTINLINE byte memory_BIUdirectrbIndex(uint_32 realaddress, word index) //Direct read from real memory (with real data direct)!
+{
+	return BIU_directrb_external(realaddress, index);
+}
 word memory_BIUdirectrw(uint_32 realaddress) //Direct read from real memory (with real data direct)!
 {
 	return BIU_directrw(realaddress, 0x100);
@@ -56,6 +60,10 @@ uint_32 memory_BIUdirectrdw(uint_32 realaddress) //Direct read from real memory 
 void memory_BIUdirectwb(uint_32 realaddress, byte value) //Direct write to real memory (with real data direct)!
 {
 	BIU_directwb_external(realaddress, value, 0x100);
+}
+OPTINLINE void memory_BIUdirectwbIndex(uint_32 realaddress, byte value, word index) //Direct write to real memory (with real data direct)!
+{
+	BIU_directwb_external(realaddress, value, index);
 }
 void memory_BIUdirectww(uint_32 realaddress, word value) //Direct write to real memory (with real data direct)!
 {
@@ -491,7 +499,7 @@ byte Paging_directrb(sword segdesc, uint_32 realaddress, byte writewordbackup, b
 		}
 	}
 
-	result = memory_BIUdirectrb(realaddress); //Use the BIU to read the data from memory in a cached way!
+	result = memory_BIUdirectrbIndex(realaddress,index|0x100); //Use the BIU to read the data from memory in a cached way!
 
 	if (unlikely(MMU_logging==1)) //To log?
 	{
@@ -523,7 +531,7 @@ void Paging_directwb(sword segdesc, uint_32 realaddress, byte val, byte index, b
 		debugger_logmemoryaccess(1,originaladdr,val,LOGMEMORYACCESS_PAGED); //Log it!
 	}
 
-	memory_BIUdirectwb(realaddress, val); //Use the BIU to write the data to memory!
+	memory_BIUdirectwbIndex(realaddress, val,(index|0x100)); //Use the BIU to write the data to memory!
 }
 
 OPTINLINE byte MMU_INTERNAL_rb(sword segdesc, word segment, uint_32 offset, byte opcode, byte index, byte is_offset16) //Get adress, opcode=1 when opcode reading, else 0!
