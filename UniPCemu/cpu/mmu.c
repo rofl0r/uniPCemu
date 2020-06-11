@@ -491,13 +491,7 @@ byte Paging_directrb(sword segdesc, uint_32 realaddress, byte writewordbackup, b
 		}
 	}
 
-	//Apply A20!
-	realaddress &= effectivecpuaddresspins; //Only 20-bits address is available on a XT without newer CPU! Only 24-bits is available on a AT!
-	realaddress &= (MMU.wraparround | (CompaqWrapping[(realaddress >> 20)] << 20)); //Apply A20, when to be applied, including Compaq-style wrapping!
-
-	//Normal memory access!
-	result = MMU_INTERNAL_directrb_realaddr(realaddress,index); //Read from MMU/hardware!
-	processBUS(realaddress, index, result); //Process us on the BUS!
+	result = memory_BIUdirectrb(realaddress); //Use the BIU to read the data from memory in a cached way!
 
 	if (unlikely(MMU_logging==1)) //To log?
 	{
@@ -529,13 +523,7 @@ void Paging_directwb(sword segdesc, uint_32 realaddress, byte val, byte index, b
 		debugger_logmemoryaccess(1,originaladdr,val,LOGMEMORYACCESS_PAGED); //Log it!
 	}
 
-	//Apply A20!
-	realaddress &= effectivecpuaddresspins; //Only 20-bits address is available on a XT without newer CPU! Only 24-bits is available on a AT!
-	realaddress &= (MMU.wraparround | (CompaqWrapping[(realaddress >> 20)] << 20)); //Apply A20, when to be applied, including Compaq-style wrapping!
-	processBUS(realaddress, index, val); //Process us on the BUS!
-
-	//Normal memory access!
-	MMU_INTERNAL_directwb_realaddr(realaddress,val,index); //Set data!
+	memory_BIUdirectwb(realaddress, val); //Use the BIU to write the data to memory!
 }
 
 OPTINLINE byte MMU_INTERNAL_rb(sword segdesc, word segment, uint_32 offset, byte opcode, byte index, byte is_offset16) //Get adress, opcode=1 when opcode reading, else 0!
