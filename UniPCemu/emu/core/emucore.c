@@ -189,6 +189,7 @@ debugging for us!
 extern GPU_TEXTSURFACE *frameratesurface;
 
 byte currentbusy[6] = {0,0,0,0,0,0}; //Current busy status; default none!
+byte activebusy[6] = { 0,0,0,0,0,0 }; //Current busy status; default none!
 
 void updateEMUSingleStep(byte index) //Update our single-step address!
 {
@@ -261,9 +262,9 @@ void EMU_drawBusy(byte disk) //Draw busy on-screen!
 	text[0] = 'A'; //Start with A and increase!
 	text[0] += disk; //Increasing disk letter!
 	uint_32 busycolor;
-	busycolor = (currentbusy[disk] == 1) ? RGB(0x00, 0xFF, 0x00) : RGB(0xFF, 0x66, 0x00); //Busy color Read/Write!
+	busycolor = (activebusy[disk] == 1) ? RGB(0x00, 0xFF, 0x00) : RGB(0xFF, 0x66, 0x00); //Busy color Read/Write!
 	GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 7 + disk, 1); //Goto second row column!
-	if (currentbusy[disk]) //Busy?
+	if (activebusy[disk]) //Busy?
 	{
 		GPU_textprintf(frameratesurface, busycolor, RGB(00, 00, 00), text);
 	}
@@ -293,62 +294,54 @@ void EMU_setDiskBusy(byte disk, byte busy) //Are we busy?
 	switch (disk) //What disk?
 	{
 	case FLOPPY0:
-		if (currentbusy[0]!=busy) //Changed?
-		{
-			GPU_text_locksurface(frameratesurface);
-			currentbusy[0] = busy; //New busy status!
-			EMU_drawBusy(0); //Draw the current busy!
-			GPU_text_releasesurface(frameratesurface);
-		}
+		lock(LOCK_DISKINDICATOR);
+		currentbusy[0] = busy; //New busy status!
+		unlock(LOCK_DISKINDICATOR);
 		break;
 	case FLOPPY1:
-		if (currentbusy[1] != busy) //Changed?
-		{
-			GPU_text_locksurface(frameratesurface);
-			currentbusy[1] = busy; //New busy status!
-			EMU_drawBusy(1); //Draw the current busy!
-			GPU_text_releasesurface(frameratesurface);
-		}
+		lock(LOCK_DISKINDICATOR);
+		currentbusy[1] = busy; //New busy status!
+		unlock(LOCK_DISKINDICATOR);
 		break;
 	case HDD0:
-		if (currentbusy[2] != busy) //Changed?
-		{
-			GPU_text_locksurface(frameratesurface);
-			currentbusy[2] = busy; //New busy status!
-			EMU_drawBusy(2); //Draw the current busy!
-			GPU_text_releasesurface(frameratesurface);
-		}
+		lock(LOCK_DISKINDICATOR);
+		currentbusy[2] = busy; //New busy status!
+		unlock(LOCK_DISKINDICATOR);
 		break;
 	case HDD1:
-		if (currentbusy[3] != busy) //Changed?
-		{
-			GPU_text_locksurface(frameratesurface);
-			currentbusy[3] = busy; //New busy status!
-			EMU_drawBusy(3); //Draw the current busy!
-			GPU_text_releasesurface(frameratesurface);
-		}
+		lock(LOCK_DISKINDICATOR);
+		currentbusy[3] = busy; //New busy status!
+		unlock(LOCK_DISKINDICATOR);
 		break;
 	case CDROM0:
-		if (currentbusy[4] != busy) //Changed?
-		{
-			GPU_text_locksurface(frameratesurface);
-			currentbusy[4] = busy; //New busy status!
-			EMU_drawBusy(4); //Draw the current busy!
-			GPU_text_releasesurface(frameratesurface);
-		}
+		lock(LOCK_DISKINDICATOR);
+		currentbusy[4] = busy; //New busy status!
+		unlock(LOCK_DISKINDICATOR);
 		break;
 	case CDROM1:
-		if (currentbusy[5] != busy) //Changed?
-		{
-			GPU_text_locksurface(frameratesurface);
-			currentbusy[5] = busy; //New busy status!
-			EMU_drawBusy(5); //Draw the current busy!
-			GPU_text_releasesurface(frameratesurface);
-		}
+		lock(LOCK_DISKINDICATOR);
+		currentbusy[5] = busy; //New busy status!
+		unlock(LOCK_DISKINDICATOR);
 		break;
 	default:
 		break;
 	}
+}
+
+void UniPCemu_onRenderingFrame() //Going to be rendering a frame!
+{
+	byte i;
+	lock(LOCK_DISKINDICATOR);
+	for (i = 0; i < 6; ++i)
+	{
+		activebusy[i] = MAX(currentbusy[i], activebusy[i]); //Take the maximum value for the busy value to be active! Write overrides reads!
+	}
+	unlock(LOCK_DISKINDICATOR);
+}
+
+void UniPCemu_afterRenderingFrameFPS() //When finished rendering an update 10FPS frame!
+{
+	memset(&activebusy,0,sizeof(activebusy)); //Clear all busy flags!
 }
 
 void debugrow(char *text)
