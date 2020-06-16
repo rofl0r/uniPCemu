@@ -469,6 +469,10 @@ OPTINLINE void DSP_writeCommand(byte command)
 	byte AutoInit = 0; //Auto initialize command?
 	byte result;
 	SOUNDBLASTER.originalcommand = command; //The last command that was written!
+	if (SOUNDBLASTER.command == 0x90) //High-speed data transfer is running?
+	{
+		return; //Only a reset can bring the sound blaster to accept commands again!
+	}
 	switch (command) //What command?
 	{
 	case 0x04: //DSP Status
@@ -509,7 +513,7 @@ OPTINLINE void DSP_writeCommand(byte command)
 		AutoInit = 1; //Auto initialize command instead!
 	case 0x14: //DMA DAC, 8-bit
 		SOUNDBLASTER.commandstep = 0; //We're at the parameter phase!
-		SOUNDBLASTER.command = 0x14; //Starting this command!
+		SOUNDBLASTER.command = command; //Starting this command!
 		SOUNDBLASTER.dataleft = 0; //counter of parameters!
 		SOUNDBLASTER.DREQ = 0; //Disable DMA!
 		SOUNDBLASTER.ADPCM_format = ADPCM_FORMAT_NONE; //Plain samples!
