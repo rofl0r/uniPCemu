@@ -1265,7 +1265,6 @@ recalcsignal: //Recalculate the signal to process!
 				{
 					vblank = 0; //We're not blanking anymore!
 					vblankendpending = 0; //Remove from flags pending!
-					SETBITS(VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER,3,1,0); //No vertical retrace?
 				}
 				else
 				{
