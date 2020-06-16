@@ -1090,19 +1090,23 @@ OPTINLINE byte readDSPData(byte isDMA)
 
 void DSP_HWreset()
 {
-	SOUNDBLASTER.command = 0; //No command!
-	SOUNDBLASTER.busy = 0; //Busy for a little time!
-	SOUNDBLASTER.silencesamples = 0; //No silenced samples!
-	SOUNDBLASTER.IRQ8Pending = 0; //No IRQ pending!
-	SOUNDBLASTER.singen = 0; //Disable the sine wave generator if it's running!
-	SOUNDBLASTER.DREQ = 0; //Disable any DMA requests!
-	SOUNDBLASTER.ADPCM_reference = 0; //No reference byte anymore!
-	SOUNDBLASTER.ADPCM_currentreference = 0; //Reset the reference!
-	fifobuffer_clear(SOUNDBLASTER.DSPindata); //Clear the input buffer!
-	fifobuffer_clear(SOUNDBLASTER.DSPoutdata); //Clear the output buffer!
-	lowerirq(__SOUNDBLASTER_IRQ8); //Lower the IRQ!
-	acnowledgeIRQrequest(__SOUNDBLASTER_IRQ8); //Acnowledge!
-	sb_leftsample = sb_rightsample = 0x80; //Silence output!
+	if (likely(!((SOUNDBLASTER.command == 0x90) || (SOUNDBLASTER.command == 0x91)))) //High-speed DMA DAC being reset causes us to not reset all settings?
+	{
+		//Reset all settings that are allowed to be reset without High-speed DMA DAC being terminated!
+		SOUNDBLASTER.busy = 0; //Busy for a little time!
+		SOUNDBLASTER.silencesamples = 0; //No silenced samples!
+		SOUNDBLASTER.IRQ8Pending = 0; //No IRQ pending!
+		SOUNDBLASTER.singen = 0; //Disable the sine wave generator if it's running!
+		SOUNDBLASTER.DREQ = 0; //Disable any DMA requests!
+		SOUNDBLASTER.ADPCM_reference = 0; //No reference byte anymore!
+		SOUNDBLASTER.ADPCM_currentreference = 0; //Reset the reference!
+		fifobuffer_clear(SOUNDBLASTER.DSPindata); //Clear the input buffer!
+		fifobuffer_clear(SOUNDBLASTER.DSPoutdata); //Clear the output buffer!
+		lowerirq(__SOUNDBLASTER_IRQ8); //Lower the IRQ!
+		acnowledgeIRQrequest(__SOUNDBLASTER_IRQ8); //Acnowledge!
+		sb_leftsample = sb_rightsample = 0x80; //Silence output!
+	}
+	SOUNDBLASTER.command = 0; //No command! This terminates high-speed auto-init DMA DAC too!
 }
 
 void DSP_reset(byte data)
