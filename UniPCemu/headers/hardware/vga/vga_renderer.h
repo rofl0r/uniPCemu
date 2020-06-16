@@ -78,6 +78,13 @@ typedef struct
 	word topwindowCRTbase; //What top-window scanline are we at?
 	byte pixelclockdivider; //Pixel clock divider to divide the pixel clock by!
 	byte currentpixelclock; //What are we dividing by the pixel clock divider!
+
+	byte frame_pixelshiftcount; //Our pre-calculated pixel shift count!
+	byte frame_presetrowscan; //Our pre-calculated preset row scan!
+	byte frame_activepresetrowscan; //Our pre-calculated preset row scan!
+	uint_32 frame_bytepanning; //Our pre-calculated byte panning!
+	byte frame_AttributeModeControlRegister_PixelPanningMode; //Pixel panning mode enabled?
+	byte frame_characterheight; //Character height!
 } SEQ_DATA; //Sequencer used data!
 
 #include "headers/packed.h"

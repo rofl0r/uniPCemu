@@ -243,9 +243,9 @@ void VGA_Sequencer_calcScanlineData(VGA_Type *VGA) //Recalcs all scanline data f
 	Sequencer = GETSEQUENCER(VGA); //Our sequencer!
 
 	//Determine panning
-	bytepanning = VGA->precalcs.PresetRowScanRegister_BytePanning; //Byte panning for Start Address Register for characters or 0,0 pixel!
-	presetrowscan = VGA->precalcs.presetrowscan; //Preset row scan!
-	pixelshiftcount = VGA->precalcs.pixelshiftcount; //Allowable pixel shift count!
+	bytepanning = Sequencer->frame_bytepanning; //Byte panning for Start Address Register for characters or 0,0 pixel!
+	presetrowscan = Sequencer->frame_presetrowscan; //Preset row scan!
+	pixelshiftcount = Sequencer->frame_pixelshiftcount; //Allowable pixel shift count!
 
 	//Determine shifts and reset the start map if needed!
 	if (Sequencer->is_topwindow) //Top window reached?
@@ -253,14 +253,14 @@ void VGA_Sequencer_calcScanlineData(VGA_Type *VGA) //Recalcs all scanline data f
 		Sequencer->startmap = 0; //The current scanline address is reset!
 		presetrowscan = 0; //Preset row scan is presumed to be 0!
 		//Enforce start of map to beginning in VRAM for the top window!
-		if (VGA->precalcs.AttributeModeControlRegister_PixelPanningMode) //Pixel panning mode enabled?
+		if (Sequencer->frame_AttributeModeControlRegister_PixelPanningMode) //Pixel panning mode enabled?
 		{
 			pixelshiftcount = 0; //Reset to 0 for the remainder of the display!
 			bytepanning = 0; //Reset to 0 for the remainder of the display!
 		}
 	}
 
-	if (presetrowscan > VGA->precalcs.characterheight) //More than the character height?
+	if (presetrowscan > Sequencer->frame_characterheight) //More than the character height?
 	{
 		presetrowscan = 0; //No row scan preset to apply past the character height!
 	}
@@ -1304,18 +1304,25 @@ recalcsignal: //Recalculate the signal to process!
 		{
 			if (unlikely(tempsignal&VGA_SIGNAL_VRETRACEEND)) //VRetrace end?
 			{
+				//Reload the byte panning/preset row scan/pixel shift count for the new frame!
+				Sequencer->frame_bytepanning = VGA->precalcs.PresetRowScanRegister_BytePanning; //Byte panning for Start Address Register for characters or 0,0 pixel!
+				Sequencer->frame_presetrowscan = VGA->precalcs.presetrowscan; //Preset row scan!
+				Sequencer->frame_pixelshiftcount = VGA->precalcs.pixelshiftcount; //Allowable pixel shift count!
+				Sequencer->frame_AttributeModeControlRegister_PixelPanningMode = VGA->precalcs.AttributeModeControlRegister_PixelPanningMode; //Pixel panning mode!
+				Sequencer->frame_characterheight = VGA->precalcs.characterheight; //The character height to compare to when checking for validity of the preset row scan!
+
 				vretrace = 0; //We're not retracing anymore!
-				SETBITS(VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER,3,1,0); //Vertical retrace?
+				SETBITS(VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER,3,1,vretrace); //Vertical retrace?
 			}
 			else
 			{
-				SETBITS(VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER,3,1,1); //Vertical retrace?
+				SETBITS(VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER,3,1,vretrace); //Vertical retrace?
 				VGA_VRetracePending(Sequencer, VGA); //Execute the handler!
 			}
 		}
 		else //No vretrace?
 		{
-			SETBITS(VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER,3,1,0); //Vertical retrace?
+			SETBITS(VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER,3,1,vretrace); //Vertical retrace?
 		}
 	}
 	else
@@ -1325,7 +1332,7 @@ recalcsignal: //Recalculate the signal to process!
 			vblank = 0; //We're not blanking anymore!
 			vblankendpending = 0; //Remove from flags pending!
 		}
-		SETBITS(VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER,3,1,0); //No vertical retrace?
+		SETBITS(VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER,3,1,vretrace); //No vertical retrace?
 	}
 
 	//Both H&VBlank count!
