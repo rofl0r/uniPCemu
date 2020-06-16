@@ -85,6 +85,7 @@ typedef struct
 	uint_32 frame_bytepanning; //Our pre-calculated byte panning!
 	byte frame_AttributeModeControlRegister_PixelPanningMode; //Pixel panning mode enabled?
 	byte frame_characterheight; //Character height!
+	word frame_topwindowstart;
 } SEQ_DATA; //Sequencer used data!
 
 #include "headers/packed.h"
