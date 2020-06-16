@@ -403,6 +403,7 @@ OPTINLINE void SoundBlaster_DetectDMALength(byte command, word length)
 	{
 	case 0x90: //Auto-Initialize DMA DAC, high speed(DSP 2.01+)
 	case 0x1C: //Auto-Initialize DMA DAC, 8-bit(DSP 2.01+)
+	case 0x91: //DMA DAC, high speed(DSP 2.01+)
 	case 0x14: //DMA DAC, 8-bit
 	case 0x16: //DMA DAC, 2-bit ADPCM
 	case 0x17: //DMA DAC, 2-bit ADPCM reference
@@ -492,6 +493,7 @@ OPTINLINE void DSP_writeCommand(byte command)
 			{
 			case 0x90: //Auto-Initialize DMA DAC, high speed(DSP 2.01+)
 			case 0x1C: //Auto-Initialize DMA DAC, 8-bit(DSP 2.01+)
+			case 0x91: //DMA DAC, high speed(DSP 2.01+)
 			case 0x14: //DMA DAC, 8-bit
 				if (SOUNDBLASTER.DREQ & 1) //DMA transfer busy?
 				{
@@ -511,6 +513,8 @@ OPTINLINE void DSP_writeCommand(byte command)
 	case 0x1C: //Auto-Initialize DMA DAC, 8-bit(DSP 2.01+)
 		SB2COMMAND
 		AutoInit = 1; //Auto initialize command instead!
+	case 0x91: //DMA DAC, high speed(DSP 2.01+)
+		SB2COMMAND
 	case 0x14: //DMA DAC, 8-bit
 		SOUNDBLASTER.commandstep = 0; //We're at the parameter phase!
 		SOUNDBLASTER.command = command; //Starting this command!
@@ -826,6 +830,7 @@ OPTINLINE void DSP_writeData(byte data, byte isDMA)
 		SOUNDBLASTER.timeconstant = data; //What time constant is set!
 		SOUNDBLASTER.command = 0; //No command anymore!
 		break;
+	case 0x91: //DMA DAC, high speed(DSP 2.01+)
 	case 0x14: //DMA DAC, 8-bit
 	case 0x16: //DMA DAC, 2-bit ADPCM
 	case 0x17: //DMA DAC, 2-bit ADPCM reference
@@ -899,6 +904,7 @@ OPTINLINE void DSP_writeData(byte data, byte isDMA)
 						SoundBlaster_IRQ8(); //Raise the 8-bit IRQ!
 						SOUNDBLASTER.timer = 0; //Stop ticking the timer at the current rate!
 						SOUNDBLASTER.DREQ = 0; //Stop DMA: we're finished!
+						SOUNDBLASTER.command = 0; //No active command anymore! High-speed DMA commands now stop!
 					}
 				}
 				else
@@ -1143,7 +1149,7 @@ byte inSoundBlaster(word port, byte *result)
 		}
 		return 1; //Handled!
 	case 0xE: //DSP - Data Available Status, DSP - IRQ Acknowledge, 8-bit
-		*result = (peekfifobuffer(SOUNDBLASTER.DSPindata,&dummy)<<7)|0x7F; //Do we have data available? Also check for the Direct DMA on older Sound Blasters!
+		*result = (peekfifobuffer(SOUNDBLASTER.DSPindata,&dummy)<<7)| /*0x7F*/ 0x2A; //Do we have data available? Also check for the Direct DMA on older Sound Blasters! Apparently, 0x2A is set for the bits other than bit 7, according to Dosbox-X.
 		if ((SOUNDBLASTER.IRQ8Pending&3)==3) //Pending and acnowledged(might not have been done)?
 		{
 			SOUNDBLASTER.IRQ8Pending = 0; //Not pending anymore!
