@@ -103,6 +103,7 @@ struct
 	byte AutoInit; //The current AutoInit setting to use!
 	byte AutoInitBuf; //The buffered autoinit setting to be applied when starting!
 	word AutoInitBlockSize; //Auto-init block size, as set by the Set DMA Block Size command for Auto-Init commands!
+	byte AutoInitBlockSizeset; //Is the auto-init block size set using a Set DMA Block Size command?
 	byte TestRegister; //Sound Blaster 2.01+ Test register!
 	DOUBLE frequency; //The frequency we're currently rendering at!
 	TicksHolder recordingtimer; //Real-time recording support!
@@ -523,10 +524,15 @@ OPTINLINE void DSP_writeCommand(byte command)
 		SOUNDBLASTER.ADPCM_format = ADPCM_FORMAT_NONE; //Plain samples!
 		SOUNDBLASTER.AutoInitBuf = AutoInit; //The autoinit setting to use!
 		SB_LOGCOMMAND
-		if (AutoInit)
+		if (AutoInit && SOUNDBLASTER.AutoInitBlockSizeset) //Auto init with block size already set?
 		{
 			SOUNDBLASTER.wordparamoutput = SOUNDBLASTER.AutoInitBlockSize; //Start this transfer now!
 			DSP_startDMADAC(1,0); //Start DMA transfer!
+		}
+		else if (AutoInit) //Hack: Input the block size first, then set it and start DMA transfers!
+		{
+			SOUNDBLASTER.AutoInitBlockSizeset = 2; //Pending setting the auto-init block size with the parameters!
+			SOUNDBLASTER.commandstep = 0; //We're at the parameter phase!
 		}
 		break;
 	case 0x1F: //Auto-Initialize DMA DAC, 2-bit ADPCM reference(DSP 2.01+)
@@ -556,10 +562,15 @@ OPTINLINE void DSP_writeCommand(byte command)
 		SOUNDBLASTER.DREQ = 0; //Disable DMA!
 		SOUNDBLASTER.dataleft = 0; //counter of parameters!
 		SOUNDBLASTER.AutoInitBuf = AutoInit; //The autoinit setting to use!
-		if (AutoInit)
+		if (AutoInit && SOUNDBLASTER.AutoInitBlockSizeset)
 		{
 			SOUNDBLASTER.wordparamoutput = SOUNDBLASTER.AutoInitBlockSize; //Start this transfer now!
 			DSP_startDMADAC(1,1); //Start DMA transfer!
+		}
+		else if (AutoInit) //Hack: Input the block size first, then set it and start DMA transfers!
+		{
+			SOUNDBLASTER.AutoInitBlockSizeset = 2; //Pending setting the auto-init block size with the parameters!
+			SOUNDBLASTER.commandstep = 0; //We're at the parameter phase!
 		}
 		break;
 	case 0x30: //MIDI read poll
@@ -926,7 +937,20 @@ OPTINLINE void DSP_writeData(byte data, byte isDMA)
 				break;
 			case 1: //Length hi byte!
 				SOUNDBLASTER.wordparamoutput |= (((word)data)<<8); //The second parameter!
-				DSP_startDMADAC(SOUNDBLASTER.AutoInitBuf,0); //Start the DMA DAC!
+				if ((SOUNDBLASTER.AutoInitBlockSizeset == 2) && SOUNDBLASTER.AutoInitBuf) //Special: set the block size to what's inputted!
+				{
+					//Perform the set block size command first!
+					SOUNDBLASTER.AutoInitBlockSize = SOUNDBLASTER.wordparamoutput; //The length of the Auto-Init DMA transfer to play back, in bytes!
+					SOUNDBLASTER.AutoInitBlockSizeset = 1; //Block size is set!
+
+					//Now, start the DMA transfer normally, as the command is supposed to do when receiving this command!
+					SOUNDBLASTER.wordparamoutput = SOUNDBLASTER.AutoInitBlockSize; //Start this transfer now!
+					DSP_startDMADAC(1, 0); //Start DMA transfer!
+				}
+				else //Normal startup!
+				{
+					DSP_startDMADAC(SOUNDBLASTER.AutoInitBuf, 0); //Start the DMA DAC!
+				}
 				break;
 			default:
 				break;
@@ -957,8 +981,21 @@ OPTINLINE void DSP_writeData(byte data, byte isDMA)
 			case 1: //Length hi byte!
 				SOUNDBLASTER.wordparamoutput |= (((word)data) << 8); //The second parameter!
 				SOUNDBLASTER.commandstep = 1; //Goto step 1!
-				//Sound Blasters prior to SB16 return the first sample in Direct Mode! Not anymore according to the current Dosbox commits!
-				DSP_startDMADAC(SOUNDBLASTER.AutoInitBuf,1); //Start DMA DAC, autoinit supplied!
+				if ((SOUNDBLASTER.AutoInitBlockSizeset == 2) && SOUNDBLASTER.AutoInitBuf) //Special: set the block size to what's inputted!
+				{
+					//Perform the set block size command first!
+					SOUNDBLASTER.AutoInitBlockSize = SOUNDBLASTER.wordparamoutput; //The length of the Auto-Init DMA transfer to play back, in bytes!
+					SOUNDBLASTER.AutoInitBlockSizeset = 1; //Block size is set!
+
+					//Now, start the DMA transfer normally, as the command is supposed to do when receiving this command!
+					SOUNDBLASTER.wordparamoutput = SOUNDBLASTER.AutoInitBlockSize; //Start this transfer now!
+					DSP_startDMADAC(1, 1); //Start DMA transfer!
+				}
+				else //Normal startup!
+				{
+					//Sound Blasters prior to SB16 return the first sample in Direct Mode! Not anymore according to the current Dosbox commits!
+					DSP_startDMADAC(SOUNDBLASTER.AutoInitBuf, 1); //Start DMA DAC, autoinit supplied!
+				}
 				break;
 			default:
 				break;
@@ -1011,6 +1048,7 @@ OPTINLINE void DSP_writeData(byte data, byte isDMA)
 			SOUNDBLASTER.wordparamoutput |= (((word)data) << 8); //The second parameter!
 			SOUNDBLASTER.AutoInitBlockSize = SOUNDBLASTER.wordparamoutput; //The length of the Auto-Init DMA transfer to play back, in bytes!
 			SOUNDBLASTER.command = 0; //Finished!
+			SOUNDBLASTER.AutoInitBlockSizeset = 1; //Block size is set!
 			break;
 		default:
 			break;
@@ -1100,6 +1138,8 @@ void DSP_HWreset()
 		SOUNDBLASTER.DREQ = 0; //Disable any DMA requests!
 		SOUNDBLASTER.ADPCM_reference = 0; //No reference byte anymore!
 		SOUNDBLASTER.ADPCM_currentreference = 0; //Reset the reference!
+		SOUNDBLASTER.AutoInitBlockSize = 0; //No block size!
+		SOUNDBLASTER.AutoInitBlockSizeset = 0; //No block size set yet!
 		fifobuffer_clear(SOUNDBLASTER.DSPindata); //Clear the input buffer!
 		fifobuffer_clear(SOUNDBLASTER.DSPoutdata); //Clear the output buffer!
 		lowerirq(__SOUNDBLASTER_IRQ8); //Lower the IRQ!
