@@ -1506,7 +1506,7 @@ void updateVGA(DOUBLE timepassed, uint_32 MHZ14passed)
 
 		if (getActiveVGA()->enable_SVGA!=4) //EGA/VGA+(Not MDA/CGA)?
 		{
-			SETBITS(getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS1REGISTER,0,1,retracing); //Only update the display disabled when required to: it's only needed by the CPU, not the renderer!
+			SETBITS(getActiveVGA()->registers->ExternalRegisters.INPUTSTATUS1REGISTER,0,1,(retracing^1)); //Only update the display disabled when required to: it's only needed by the CPU, not the renderer! EGA says it's display enabled?
 		}
 		else
 		{
