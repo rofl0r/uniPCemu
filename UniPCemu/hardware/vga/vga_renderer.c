@@ -1303,14 +1303,6 @@ recalcsignal: //Recalculate the signal to process!
 		{
 			if (unlikely(tempsignal&VGA_SIGNAL_VRETRACEEND)) //VRetrace end?
 			{
-				//Reload the byte panning/preset row scan/pixel shift count for the new frame!
-				Sequencer->frame_bytepanning = VGA->precalcs.PresetRowScanRegister_BytePanning; //Byte panning for Start Address Register for characters or 0,0 pixel!
-				Sequencer->frame_presetrowscan = VGA->precalcs.presetrowscan; //Preset row scan!
-				Sequencer->frame_pixelshiftcount = VGA->precalcs.pixelshiftcount; //Allowable pixel shift count!
-				Sequencer->frame_AttributeModeControlRegister_PixelPanningMode = VGA->precalcs.AttributeModeControlRegister_PixelPanningMode; //Pixel panning mode!
-				Sequencer->frame_characterheight = VGA->precalcs.characterheight; //The character height to compare to when checking for validity of the preset row scan!
-				Sequencer->frame_topwindowstart = VGA->precalcs.topwindowstart; //When does the top window start?
-
 				vretrace = 0; //We're not retracing anymore!
 				SETBITS(VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER,3,1,vretrace); //Vertical retrace?
 			}
@@ -1372,6 +1364,7 @@ recalcsignal: //Recalculate the signal to process!
 		displaystate = get_display(getActiveVGA(), Sequencer->Scanline, Sequencer->x++); //Current display state, keep x coordinate(retain x coordinate on the next frame)!
 		tempsignal = tempsignalbackup = displaystate; //The back-up of the signal!
 		vtotal = 1;
+		Sequencer->frame_latchpending = 1; //Latch is pending!
 	}
 	else if (unlikely(vtotal)) //VTotal ended?
 	{
@@ -1399,6 +1392,18 @@ recalcsignal: //Recalculate the signal to process!
 	currenttotalretracing = (tempsignal==VGA_DISPLAYACTIVE); //We're active display when not retracing/totalling and active display area!
 	currenttotalretracing &= retracemasks[isretrace]; //Apply the retrace mask: we're not using the displayenabled when retracing!
 	VGA->CRTC.DisplayEnabled = currenttotalretracing; //The Display Enable signal, which depends on the active video adapter how to use it!
+	if (unlikely(currenttotalretracing && Sequencer->frame_latchpending)) //Display became active again and a latch for it is pending?
+	{
+		Sequencer->frame_latchpending = 0; //Latch isn't pending anymore!
+		//Reload the byte panning/preset row scan/pixel shift count for the new frame!
+		Sequencer->frame_bytepanning = VGA->precalcs.PresetRowScanRegister_BytePanning; //Byte panning for Start Address Register for characters or 0,0 pixel!
+		Sequencer->frame_presetrowscan = VGA->precalcs.presetrowscan; //Preset row scan!
+		Sequencer->frame_pixelshiftcount = VGA->precalcs.pixelshiftcount; //Allowable pixel shift count!
+		Sequencer->frame_AttributeModeControlRegister_PixelPanningMode = VGA->precalcs.AttributeModeControlRegister_PixelPanningMode; //Pixel panning mode!
+		Sequencer->frame_characterheight = VGA->precalcs.characterheight; //The character height to compare to when checking for validity of the preset row scan!
+		Sequencer->frame_topwindowstart = VGA->precalcs.topwindowstart; //When does the top window start?
+		VGA_Sequencer_updateRow(VGA, Sequencer); //Update the row information with the updated values!
+	}
 	++VGA->PixelCounter; //Simply blindly increase the pixel counter!
 
 	if (unlikely(CurrentWaitState)) CurrentWaitState(VGA); //Execute the current waitstate, when used!

@@ -86,6 +86,7 @@ typedef struct
 	byte frame_AttributeModeControlRegister_PixelPanningMode; //Pixel panning mode enabled?
 	byte frame_characterheight; //Character height!
 	word frame_topwindowstart;
+	byte frame_latchpending; //Pending latch for the current frame?
 } SEQ_DATA; //Sequencer used data!
 
 #include "headers/packed.h"
