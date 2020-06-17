@@ -1297,6 +1297,9 @@ recalcsignal: //Recalculate the signal to process!
 					//The end of vertical retrace has been reached, reload start address!
 					Sequencer->startmap = VGA->precalcs.startaddress; //What start address to use for the next frame?
 				}
+				Sequencer->frame_bytepanning = VGA->precalcs.PresetRowScanRegister_BytePanning; //Byte panning for Start Address Register for characters or 0,0 pixel!
+				Sequencer->frame_presetrowscan = VGA->precalcs.presetrowscan; //Preset row scan!
+				Sequencer->frame_characterheight = VGA->precalcs.characterheight; //The character height to compare to when checking for validity of the preset row scan!
 			}
 			SETBITS(VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER,3,1,(vretrace = 1)); //We're retracing!
 		}
@@ -1397,11 +1400,8 @@ recalcsignal: //Recalculate the signal to process!
 	{
 		Sequencer->frame_latchpending = 0; //Latch isn't pending anymore!
 		//Reload the byte panning/preset row scan/pixel shift count for the new frame!
-		Sequencer->frame_bytepanning = VGA->precalcs.PresetRowScanRegister_BytePanning; //Byte panning for Start Address Register for characters or 0,0 pixel!
-		Sequencer->frame_presetrowscan = VGA->precalcs.presetrowscan; //Preset row scan!
 		Sequencer->frame_pixelshiftcount = VGA->precalcs.pixelshiftcount; //Allowable pixel shift count!
 		Sequencer->frame_AttributeModeControlRegister_PixelPanningMode = VGA->precalcs.AttributeModeControlRegister_PixelPanningMode; //Pixel panning mode!
-		Sequencer->frame_characterheight = VGA->precalcs.characterheight; //The character height to compare to when checking for validity of the preset row scan!
 		Sequencer->frame_topwindowstart = VGA->precalcs.topwindowstart; //When does the top window start?
 		VGA_Sequencer_updateRow(VGA, Sequencer); //Update the row information with the updated values!
 	}
