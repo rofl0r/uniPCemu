@@ -1291,11 +1291,6 @@ recalcsignal: //Recalculate the signal to process!
 						}
 					}
 				}
-				if (VGA->enable_SVGA != 4) //Not CGA/MDA?
-				{
-					//The end of vertical retrace has been reached, reload start address!
-					Sequencer->startmap = VGA->precalcs.startaddress; //What start address to use for the next frame?
-				}
 			}
 			SETBITS(VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER,3,1,(vretrace = 1)); //We're retracing!
 		}
@@ -1395,6 +1390,11 @@ recalcsignal: //Recalculate the signal to process!
 	if (unlikely(currenttotalretracing && Sequencer->frame_latchpending)) //Display became active again and a latch for it is pending?
 	{
 		Sequencer->frame_latchpending = 0; //Latch isn't pending anymore!
+		if (VGA->enable_SVGA != 4) //Not CGA/MDA?
+		{
+			//The end of vertical retrace has been reached, reload start address!
+			Sequencer->startmap = VGA->precalcs.startaddress; //What start address to use for the next frame?
+		}
 		//Reload the byte panning/preset row scan/pixel shift count for the new frame!
 		Sequencer->frame_bytepanning = VGA->precalcs.PresetRowScanRegister_BytePanning; //Byte panning for Start Address Register for characters or 0,0 pixel!
 		Sequencer->frame_presetrowscan = VGA->precalcs.presetrowscan; //Preset row scan!
