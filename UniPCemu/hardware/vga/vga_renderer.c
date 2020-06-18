@@ -245,7 +245,7 @@ void VGA_Sequencer_calcScanlineData(VGA_Type *VGA) //Recalcs all scanline data f
 	//Determine panning
 	bytepanning = Sequencer->frame_bytepanning; //Byte panning for Start Address Register for characters or 0,0 pixel!
 	presetrowscan = Sequencer->frame_presetrowscan; //Preset row scan!
-	pixelshiftcount = Sequencer->frame_pixelshiftcount; //Allowable pixel shift count!
+	pixelshiftcount = VGA->precalcs.pixelshiftcount; //Allowable pixel shift count!
 
 	//Determine shifts and reset the start map if needed!
 	if (Sequencer->is_topwindow) //Top window reached?
@@ -253,11 +253,16 @@ void VGA_Sequencer_calcScanlineData(VGA_Type *VGA) //Recalcs all scanline data f
 		Sequencer->startmap = 0; //The current scanline address is reset!
 		presetrowscan = 0; //Preset row scan is presumed to be 0!
 		//Enforce start of map to beginning in VRAM for the top window!
-		if (Sequencer->frame_AttributeModeControlRegister_PixelPanningMode) //Pixel panning mode enabled?
+		if (VGA->precalcs.AttributeModeControlRegister_PixelPanningMode) //Pixel panning mode enabled?
 		{
-			pixelshiftcount = 0; //Reset to 0 for the remainder of the display!
-			bytepanning = 0; //Reset to 0 for the remainder of the display!
+			Sequencer->pixelshiftcount_cleared = 1; //Cleared from now on!
+			bytepanning = Sequencer->frame_bytepanning = 0; //Reset to 0 for the remainder of the display!
 		}
+	}
+
+	if (Sequencer->pixelshiftcount_cleared) //Cleared PEL panning from now on in the top window?
+	{
+		pixelshiftcount = 0; //Reset to 0 for the remainder of the display!
 	}
 
 	if (presetrowscan > Sequencer->frame_characterheight) //More than the character height?
@@ -1427,10 +1432,8 @@ recalcsignal: //Recalculate the signal to process!
 	VGA->CRTC.DisplayEnabled = currenttotalretracing; //The Display Enable signal, which depends on the active video adapter how to use it!
 	if (unlikely(currenttotalretracing && Sequencer->frame_latchpending)) //Display became active again and a latch for it is pending?
 	{
+		Sequencer->pixelshiftcount_cleared = 0; //Not cleared from now on!
 		Sequencer->frame_latchpending = 0; //Latch isn't pending anymore!
-		//Reload the byte panning/preset row scan/pixel shift count for the new frame!
-		Sequencer->frame_pixelshiftcount = VGA->precalcs.pixelshiftcount; //Allowable pixel shift count!
-		Sequencer->frame_AttributeModeControlRegister_PixelPanningMode = VGA->precalcs.AttributeModeControlRegister_PixelPanningMode; //Pixel panning mode!
 		Sequencer->frame_topwindowstart = VGA->precalcs.topwindowstart; //When does the top window start?
 		VGA_Sequencer_updateRow(VGA, Sequencer,1); //Update the row information with the updated values!
 	}
