@@ -38,8 +38,8 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 
 // From the depths of X86Config, probably inexact
 DOUBLE ET4K_clockFreq[16] = {
-	100000000.0, //25MHz: VGA standard clock: 100MHz instead?
-	122000000.0, //28MHz: VGA standard clock: 122MHz instead?
+	50000000.0, //25MHz: VGA standard clock: 50MHz instead?
+	66000000.0, //28MHz: VGA standard clock: 66MHz instead?
 	32400000.0, //ET3/4000 clock!
 	35900000.0, //ET3/4000 clock!
 	39900000.0, //ET3/4000 clock!
@@ -57,8 +57,8 @@ DOUBLE ET4K_clockFreq[16] = {
 };
 
 DOUBLE ET3K_clockFreq[16] = {
-	100000000.0, //25MHz: VGA standard clock: 50MHz instead?
-	122000000.0, //28MHz: VGA standard clock: 122MHz instead?
+	50000000.0, //25MHz: VGA standard clock: 50MHz instead?
+	66000000.0, //28MHz: VGA standard clock: 66MHz instead?
 	32400000.0, //ET3/4000 clock!
 	35900000.0, //ET3/4000 clock!
 	39900000.0, //ET3/4000 clock!
