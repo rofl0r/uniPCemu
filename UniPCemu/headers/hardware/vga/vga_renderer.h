@@ -87,6 +87,10 @@ typedef struct
 	byte frame_characterheight; //Character height!
 	word frame_topwindowstart;
 	byte frame_latchpending; //Pending latch for the current frame?
+
+	//Manual frame timekeeping instead:
+	byte scandoublingcounter;
+	uint_32 baselineaddr; //Base line address for the currently clocking scanline!
 } SEQ_DATA; //Sequencer used data!
 
 #include "headers/packed.h"

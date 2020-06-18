@@ -473,7 +473,7 @@ OPTINLINE byte VGA_AttributeController(VGA_AttributeInfo *Sequencer_attributeinf
 	return attrmode(Sequencer_attributeinfo, VGA); //Passthrough!
 }
 
-OPTINLINE void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
+OPTINLINE void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer, byte isinit)
 {
 	byte x; //For horizontal shifting/temp storage!
 	INLINEREGISTER word row;
@@ -483,6 +483,7 @@ OPTINLINE void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
 	{
 		row -= Sequencer->frame_topwindowstart; //This starts after the row specified, at row #0!
 		Sequencer->is_topwindow = 1; //We're starting the top window rendering!
+		isinit |= (row == 0); //Init when the first row of the top window!
 	}
 	else
 	{
@@ -495,23 +496,45 @@ OPTINLINE void VGA_Sequencer_updateRow(VGA_Type *VGA, SEQ_DATA *Sequencer)
 		Sequencer->activepresetrowscan = Sequencer->presetrowscan; //Activate!
 	}
 
-	//row is the vertical timing counter
-	row >>= VGA->precalcs.scandoubling; //Apply scan doubling to the row scan counter(inner character row and thus, by extension, the row itself)!
-	//Apply scanline division to the current row timing!
+	if (isinit) //Are we the initialization for the top/bottom window?
+	{
+		Sequencer->chary = 0; //Init!
+		Sequencer->rowscancounter = Sequencer->charinner_y = Sequencer->activepresetrowscan; //Init scanline within the character!
+		charystart = 0; //Calculate row start!
+		charystart += Sequencer->startmap; //Calculate the start of the map while we're at it: it's faster this way!
+		charystart += Sequencer->bytepanning; //Apply byte panning!
+		Sequencer->baselineaddr = charystart; //Load the first base line address!
+		Sequencer->scandoublingcounter = 0; //First of the scan doubling counter! Don't tick on the next one when double scanning!
+	}
+	else
+	{
+		//row is the vertical timing counter
+		//Apply scan doubling to the row scan counter(inner character row and thus, by extension, the row itself)!
+		Sequencer->scandoublingcounter ^= 1; //Check for scan doubling!
+		if ((Sequencer->scandoublingcounter ^ 1) | (VGA->precalcs.scandoubling ^ 1)) //Scan doubling overflow when set or no scan doubling? We're ticking!
+		{
+			//We''re ticking an undoubled or doubling scanline that needs reloading!
+			if (VGA->precalcs.scandoubling == 0) //Not scan doubling?
+			{
+				Sequencer->scandoublingcounter = 1; //First the counter on the next when not double scanning to start any pending double scanning operation!
+			}
 
-	row += Sequencer->activepresetrowscan; //Apply the preset row scan to the scanline!
+			//Now that the scanline doubling is applied, apply the remaining counters!
+			//Apply scanline division to the current row timing?
+			//Increase the rowscancounter, overflowing the character height causes adding to the 
+			++Sequencer->rowscancounter; //Increase the row scan counter!
+			if (Sequencer->rowscancounter >= VGA->precalcs.characterheight) //Height reached?
+			{
+				Sequencer->rowscancounter = 0; //Reset the row scan counter!
+				++Sequencer->chary; //Next row is used to render!
+				Sequencer->baselineaddr += VGA->precalcs.rowsize; //The offset calculation is added to the memory base address, as is documented!
+			}
+		}
+	}
 
-	row <<= 1; //We're always a multiple of 2 by index into charrowstatus!
+	Sequencer->charinner_y = Sequencer->rowscancounter; //Inner y is the row scan counter!
 
-	//Row now is an index into charrowstatus
-	word *currowstatus = &VGA->CRTC.charrowstatus[row]; //Current row status!
-	Sequencer->chary = row = *currowstatus++; //First is chary (effective character/graphics row)!
-	Sequencer->rowscancounter = (word)(Sequencer->charinner_y = (byte)*currowstatus); //Second is charinner_y, which is also the row scan counter!
-
-	charystart = VGA->precalcs.rowsize*row; //Calculate row start!
-	charystart += Sequencer->startmap; //Calculate the start of the map while we're at it: it's faster this way!
-	charystart += Sequencer->bytepanning; //Apply byte panning!
-	Sequencer->memoryaddress = Sequencer->charystart = charystart; //What row to start with our pixels! Apply the line and start map to retrieve(start at the new start of the scanline to draw)!
+	Sequencer->memoryaddress = Sequencer->charystart = Sequencer->baselineaddr; //What row to start with our pixels! Apply the line and start map to retrieve(start at the new start of the scanline to draw)!
 
 	//Some attribute controller special 8-bit mode support!
 	Sequencer->extrastatus = &VGA->CRTC.extrahorizontalstatus[0]; //Start our extra status at the beginning of the row!
@@ -591,7 +614,7 @@ void VGA_VTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
 		//The end of vertical total has been reached, reload start address!
 		Sequencer->startmap = VGA->precalcs.startaddress; //What start address to use for the next frame?
 	}
-	VGA_Sequencer_updateRow(VGA, Sequencer); //Scanline has been changed!
+	VGA_Sequencer_updateRow(VGA, Sequencer,1); //Scanline has been changed!
 }
 
 void VGA_HTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
@@ -605,7 +628,7 @@ void VGA_HTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
 	Sequencer->lastDACcolor = 0; //Reset the last DAC color!
 	Sequencer->currentpixelclock = 0; //Reset the pixel clock we're dividing!
 	++Sequencer->Scanline; //Next scanline to process!
-	VGA_Sequencer_updateRow(VGA, Sequencer); //Scanline has been changed!
+	VGA_Sequencer_updateRow(VGA, Sequencer,0); //Scanline has been changed!
 }
 
 //Retrace handlers!
@@ -1291,7 +1314,13 @@ recalcsignal: //Recalculate the signal to process!
 						}
 					}
 				}
-
+			}
+			SETBITS(VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER,3,1,(vretrace = 1)); //We're retracing!
+		}
+		else if (unlikely(vretrace))
+		{
+			if (unlikely(tempsignal&VGA_SIGNAL_VRETRACEEND)) //VRetrace end?
+			{
 				if (VGA->enable_SVGA != 4) //Not CGA/MDA?
 				{
 					//The end of vertical retrace has been reached, reload start address!
@@ -1300,13 +1329,6 @@ recalcsignal: //Recalculate the signal to process!
 				Sequencer->frame_bytepanning = VGA->precalcs.PresetRowScanRegister_BytePanning; //Byte panning for Start Address Register for characters or 0,0 pixel!
 				Sequencer->frame_presetrowscan = VGA->precalcs.presetrowscan; //Preset row scan!
 				Sequencer->frame_characterheight = VGA->precalcs.characterheight; //The character height to compare to when checking for validity of the preset row scan!
-			}
-			SETBITS(VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER,3,1,(vretrace = 1)); //We're retracing!
-		}
-		else if (unlikely(vretrace))
-		{
-			if (unlikely(tempsignal&VGA_SIGNAL_VRETRACEEND)) //VRetrace end?
-			{
 				vretrace = 0; //We're not retracing anymore!
 				SETBITS(VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER,3,1,vretrace); //Vertical retrace?
 			}
@@ -1403,7 +1425,7 @@ recalcsignal: //Recalculate the signal to process!
 		Sequencer->frame_pixelshiftcount = VGA->precalcs.pixelshiftcount; //Allowable pixel shift count!
 		Sequencer->frame_AttributeModeControlRegister_PixelPanningMode = VGA->precalcs.AttributeModeControlRegister_PixelPanningMode; //Pixel panning mode!
 		Sequencer->frame_topwindowstart = VGA->precalcs.topwindowstart; //When does the top window start?
-		VGA_Sequencer_updateRow(VGA, Sequencer); //Update the row information with the updated values!
+		VGA_Sequencer_updateRow(VGA, Sequencer,1); //Update the row information with the updated values!
 	}
 	++VGA->PixelCounter; //Simply blindly increase the pixel counter!
 
