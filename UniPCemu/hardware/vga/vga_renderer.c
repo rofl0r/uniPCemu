@@ -1051,11 +1051,18 @@ void setVGASpeed(byte setting)
 				currentVGASpeed = 0; //Start tight synchronization!
 			}
 		}
-		else if ((!currentVGASpeed) && (setting==2)) //Tightly synchronized and request to use automatic synchronization?
+		else if ((!currentVGASpeed) && (setting!=2)) //Tightly synchronized and request to use automatic synchronization?
 		{
 			passedcounter = LIMITVGA; //Start speed detection with this many items!
 			currentVGASpeed = 1; //Start automatic synchronization!
 			SynchronizationMode = 1; //New style synchronization!
+		}
+		else if (setting == 2) //Tightly synchonized with the CPU?
+		{
+			passedcounter = 0; //No sync!
+			currentVGASpeed = 0;
+			SynchronizationMode = 0; //Unknown!
+			VGA_limit = 0; //Unlimited!
 		}
 		//When there's no change, do nothing!
 	}
