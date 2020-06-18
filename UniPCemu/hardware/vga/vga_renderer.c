@@ -1326,6 +1326,7 @@ recalcsignal: //Recalculate the signal to process!
 					//The end of vertical retrace has been reached, reload start address!
 					Sequencer->startmap = VGA->precalcs.startaddress; //What start address to use for the next frame?
 				}
+				Sequencer->frame_bytepanning = VGA->precalcs.PresetRowScanRegister_BytePanning; //Byte panning for Start Address Register for characters or 0,0 pixel!
 			}
 			SETBITS(VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER,3,1,(vretrace = 1)); //We're retracing!
 		}
@@ -1333,7 +1334,6 @@ recalcsignal: //Recalculate the signal to process!
 		{
 			if (unlikely(tempsignal&VGA_SIGNAL_VRETRACEEND)) //VRetrace end?
 			{
-				Sequencer->frame_bytepanning = VGA->precalcs.PresetRowScanRegister_BytePanning; //Byte panning for Start Address Register for characters or 0,0 pixel!
 				Sequencer->frame_presetrowscan = VGA->precalcs.presetrowscan; //Preset row scan!
 				Sequencer->frame_characterheight = VGA->precalcs.characterheight; //The character height to compare to when checking for validity of the preset row scan!
 				vretrace = 0; //We're not retracing anymore!
