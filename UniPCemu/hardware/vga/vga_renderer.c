@@ -619,6 +619,8 @@ void VGA_VTotal(SEQ_DATA *Sequencer, VGA_Type *VGA)
 		//The end of vertical total has been reached, reload start address!
 		Sequencer->startmap = VGA->precalcs.startaddress; //What start address to use for the next frame?
 	}
+	Sequencer->frame_presetrowscan = VGA->precalcs.presetrowscan; //Preset row scan!
+	Sequencer->frame_characterheight = VGA->precalcs.characterheight; //The character height to compare to when checking for validity of the preset row scan!
 	VGA_Sequencer_updateRow(VGA, Sequencer,1); //Scanline has been changed!
 }
 
@@ -1339,8 +1341,6 @@ recalcsignal: //Recalculate the signal to process!
 		{
 			if (unlikely(tempsignal&VGA_SIGNAL_VRETRACEEND)) //VRetrace end?
 			{
-				Sequencer->frame_presetrowscan = VGA->precalcs.presetrowscan; //Preset row scan!
-				Sequencer->frame_characterheight = VGA->precalcs.characterheight; //The character height to compare to when checking for validity of the preset row scan!
 				vretrace = 0; //We're not retracing anymore!
 				SETBITS(VGA->registers->ExternalRegisters.INPUTSTATUS1REGISTER,3,1,vretrace); //Vertical retrace?
 			}
