@@ -2525,6 +2525,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			FLOPPY.DriveData[FLOPPY_DOR_DRIVENUMBERR].steprate = FLOPPY_steprate(FLOPPY_DOR_DRIVENUMBERR); //Step rate!
 			FLOPPY.commandstep = 0; //Reset controller command status!
 			//No interrupt, according to http://wiki.osdev.org/Floppy_Disk_Controller
+			FLOPPY_lowerIRQ(); //Lower the IRQ anyways!
 			break;
 		case RECALIBRATE: //Calibrate drive
 			FLOPPY.commandstep = 0; //Start our timed execution!
@@ -3036,6 +3037,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			FLOPPY.Configuration.data[1] = FLOPPY.commandbuffer[2];
 			FLOPPY.Configuration.data[2] = FLOPPY.commandbuffer[3];
 			FLOPPY.commandstep = 0; //Finish silently! No result bytes or interrupt!
+			FLOPPY_lowerIRQ(); //Lower the IRQ anyways!
 			break;
 		case LOCK: //Lock command?
 			FLOPPY.Locked = FLOPPY.MT; //Set/unset the lock depending on the MT bit!
@@ -3069,8 +3071,10 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			FLOPPY.ST0 = 0x00 | (FLOPPY.ST0 & 0x38) | FLOPPY_DOR_DRIVENUMBERR | (FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR] << 2); //OK!
 			FLOPPY.commandstep = 0; //Ready for a new command!
 			//No interrupt!
+			FLOPPY_lowerIRQ(); //Lower the IRQ anyways!
 			break;
 		default: //Unknown command?
+			FLOPPY_lowerIRQ(); //Lower the IRQ anyways!
 			FLOPPY.commandstep = 0xFF; //Move to error phrase!
 			FLOPPY.ST0 = 0x80; //Invalid command!
 			floppy_erroringout(); //Erroring out!
