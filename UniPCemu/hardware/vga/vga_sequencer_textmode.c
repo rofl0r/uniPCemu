@@ -32,7 +32,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #define SCANLINEISCURSOR2 (Rendery<=VGA->precalcs.CursorEndRegister_CursorScanLineEnd)
 //Cursor is enabled atm?
 #define CURSORENABLED1 (!VGA->precalcs.CursorStartRegister_CursorDisable)
-#define CURSORENABLED2 (VGA->blink8)
+#define CURSORENABLED2 (VGA->blink16)
 
 OPTINLINE byte is_cursorscanline(VGA_Type *VGA,byte Rendery,word Sequencer_textmode_charindex) //Cursor scanline within character is cursor? Used to be: VGA_Type *VGA, byte ScanLine,uint_32 characterlocation
 {
