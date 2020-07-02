@@ -1755,7 +1755,7 @@ int CPU_MMU_checklimit(int segment, word segmentval, uint_64 offset, word forrea
 	return 0; //Don't give errors: handle like a 80(1)86!
 }
 
-byte checkSpecialRights() //Check special rights, common by any rights instructions!
+byte checkInterruptFlagRestricted() //Check special rights, common by any interrupt flag instructions!
 {
 	if (getcpumode() == CPU_MODE_REAL) return 0; //Allow all for real mode!
 	if (FLAG_PL < getCPL()) //We're not allowed!
@@ -1765,7 +1765,7 @@ byte checkSpecialRights() //Check special rights, common by any rights instructi
 	return 0; //Priviledged!
 }
 
-byte checkSpecialPortRights() //Check special rights, common by any rights instructions!
+byte checkPortRightsRestricted() //Check special rights, common by any port rights instructions!
 {
 	if (getcpumode() == CPU_MODE_REAL) return 0; //Allow all for real mode!
 	if ((getCPL()>FLAG_PL)||isV86()) //We're to check when not priviledged or Virtual 8086 mode!
@@ -1777,7 +1777,7 @@ byte checkSpecialPortRights() //Check special rights, common by any rights instr
 
 byte checkSTICLI() //Check STI/CLI rights!
 {
-	if (checkSpecialRights()) //Not priviledged?
+	if (checkInterruptFlagRestricted()) //Not priviledged?
 	{
 		THROWDESCGP(0,0,0); //Raise exception!
 		return 0; //Ignore this command!
@@ -1787,14 +1787,14 @@ byte checkSTICLI() //Check STI/CLI rights!
 
 byte disallowPOPFI() //Allow POPF to change interrupt flag?
 {
-	return checkSpecialRights(); //Simply ignore the change when not priviledged!
+	return checkInterruptFlagRestricted(); //Simply ignore the change when not priviledged!
 }
 
 byte portExceptionResult=0xFF;
 
 byte checkPortRights(word port) //Are we allowed to not use this port?
 {
-	if (checkSpecialPortRights()) //We're to check the I/O permission bitmap! 286+ only!
+	if (checkPortRightsRestricted()) //We're to check the I/O permission bitmap! 286+ only!
 	{
 		protection_PortRightsLookedup = 1; //The port rights are looked up!
 		uint_32 maplocation;
