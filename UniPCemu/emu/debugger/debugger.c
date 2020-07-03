@@ -72,7 +72,8 @@ byte debugger_logtimings = 1; //Are we to log the full timings of hardware and C
 extern byte dosoftreset; //To soft-reset?
 extern BIOS_Settings_TYPE BIOS_Settings; //The BIOS for CPU info!
 
-byte singlestep; //Enforce single step by CPU/hardware special debugging effects? 0=Don't step, 1=Step this instruction(invalid state when activated during the execution of the instruction), 2+ step next instruction etc.
+byte singlestep = 0; //Enforce single step by CPU/hardware special debugging effects? 0=Don't step, 1=Step this instruction(invalid state when activated during the execution of the instruction), 2+ step next instruction etc.
+byte BPsinglestep = 0; //Breakpoint-enforced single-step triggered?
 
 byte lastHLTstatus = 0; //Last halt status for debugger! 1=Was halting, 0=Not halting!
 
@@ -134,7 +135,7 @@ extern byte cpudebugger; //Are we currently debugging?
 OPTINLINE byte debugging() //Debugging?
 {
 	byte result=0;
-	if (singlestep==1) //EMU enforced single step?
+	if ((singlestep==1) || (BPsinglestep)) //EMU enforced single step?
 	{
 		return 1; //We're enabled now!
 	}
@@ -1407,7 +1408,7 @@ void debuggerThread()
 	restartdebugger: //Restart the debugger during debugging!
 	done = 0; //Init: not done yet!
 
-	if (!(done || skipopcodes || (skipstep&&CPU[activeCPU].repeating))) //Are we to show the (new) debugger screen?
+	if (!(done || skipopcodes || (skipstep&&CPU[activeCPU].repeating)) || (BPsinglestep==1)) //Are we to show the (new) debugger screen?
 	{
 		displayed = 1; //We're displayed!
 		lock(LOCK_MAINTHREAD); //Lock the main thread!
@@ -1418,7 +1419,7 @@ void debuggerThread()
 	lock(LOCK_INPUT);
 	for (;!(done || skipopcodes || (skipstep&&CPU[activeCPU].repeating));) //Still not done or skipping?
 	{
-		if (DEBUGGER_ALWAYS_STEP || (singlestep==1)) //Always step?
+		if (DEBUGGER_ALWAYS_STEP || ((singlestep==1) || (BPsinglestep==1))) //Always step?
 		{
 			//We're going though like a normal STEP. Ignore RTRIGGER.
 		}
@@ -1439,7 +1440,7 @@ void debuggerThread()
 				delay(0);
 				lock(LOCK_INPUT);
 			}
-			singlestep = 0; //If single stepping, stop doing so!
+			singlestep = BPsinglestep = 0; //If single stepping, stop doing so!
 			break;
 		}
 		if (psp_keypressed(BUTTON_SQUARE)) //Skip until finished command?
@@ -1471,6 +1472,7 @@ void debuggerThread()
 					skipstep = 2; //Simply skip until the next instruction is reached after this address!
 				}
 			}
+			BPsinglestep = 0; //Stop breakpoint single step when this is used!
 			break;
 		}
 		if (psp_keypressed(BUTTON_TRIANGLE)) //Might Dump memory?
@@ -1489,6 +1491,7 @@ void debuggerThread()
 			{
 				skipopcodes = 9; //Skip 9 additional opcodes!
 				singlestep = 0; //If single stepping, stop doing so!
+				BPsinglestep = 0; //If single stepping, stop doing so!
 				break;
 			}
 		}
@@ -1513,6 +1516,7 @@ void debuggerThread()
 			if (runBIOS(0)) //Run the BIOS, reboot needed?
 			{
 				skipopcodes = 0; //Nothing to be skipped!
+				BPsinglestep = 0; //Nothing to break on!
 				lock(LOCK_MAINTHREAD);
 				reset = 1; //We're resetting!
 				allow_debuggerstep = 0;
@@ -1598,7 +1602,7 @@ void debugger_step() //Processes the debugging step!
 			}
 			if (unlikely((!(skipopcodes || ((skipstep==1)&&CPU[activeCPU].repeating) || (skipstep==2))) && (skipstep!=4))) //To debug when not skipping repeating or skipping opcodes?
 			{
-				if (unlikely(!(DEBUGGER_KEEP_NOSHOW_RUNNING))) //Are we to show the debugger at all(not explicitly disabled)?
+				if (unlikely((!(DEBUGGER_KEEP_NOSHOW_RUNNING)) || (BPsinglestep==1))) //Are we to show the debugger at all(not explicitly disabled)?
 				{
 					if ((BIOSMenuThread==NULL) && (reset==0)) //These are mutually exclusive to run!
 					{
@@ -1701,6 +1705,7 @@ void initDebugger() //Initialize the debugger if needed!
 	debugger_logtimings = 1; //Are we to log the full timings of hardware and CPU as well?
 
 	singlestep = 0; //Enforce single step by CPU/hardware special debugging effects? 0=Don't step, 1=Step this instruction(invalid state when activated during the execution of the instruction), 2+ step next instruction etc.
+	BPsinglestep = 0; //Enforce single step by breakpoint once!
 
 	debuggerHLT = 0; //We're assuming CPU reset, so not halting!
 	debuggerReset = 1; //Are we a reset CPU(we assume so)?

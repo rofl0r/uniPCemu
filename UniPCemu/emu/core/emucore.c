@@ -213,12 +213,12 @@ void updateEMUSingleStep(byte index) //Update our single-step address!
 			{
 				case CPU_MODE_REAL: //Real mode?
 					//High 16 bits are CS, low 16 bits are IP
-					singlestepaddress[index] = ((((BIOS_Settings.breakpoint[index]>>SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT)&1)<<48) | (((BIOS_Settings.breakpoint[index]>>SETTINGS_BREAKPOINT_IGNOREADDRESS_SHIFT)&1)<<49) | (((BIOS_Settings.breakpoint[index]>>SETTINGS_BREAKPOINT_IGNORESEGMENT_SHIFT)&1)<<50) | (((BIOS_Settings.breakpoint[index]>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK)<<16) | ((BIOS_Settings.breakpoint[index]&SETTINGS_BREAKPOINT_OFFSET_MASK) & 0xFFFF)); //Single step address!
+					singlestepaddress[index] = ((((BIOS_Settings.breakpoint[index]>>SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT)&1)<<48) | (((BIOS_Settings.breakpoint[index]>>SETTINGS_BREAKPOINT_IGNOREADDRESS_SHIFT)&1)<<49) | (((BIOS_Settings.breakpoint[index]>>SETTINGS_BREAKPOINT_IGNORESEGMENT_SHIFT)&1)<<50) | (((BIOS_Settings.breakpoint[index] >> SETTINGS_BREAKPOINT_SINGLESTEP_SHIFT) & 1) << 51) | (((BIOS_Settings.breakpoint[index]>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK)<<16) | ((BIOS_Settings.breakpoint[index]&SETTINGS_BREAKPOINT_OFFSET_MASK) & 0xFFFF)); //Single step address!
 					break;
 				case CPU_MODE_PROTECTED: //Protected mode?
 				case CPU_MODE_8086: //Virtual 8086 mode?
 					//High 16 bits are CS, low 32 bits are EIP
-					singlestepaddress[index] = ((((BIOS_Settings.breakpoint[index]>>SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT)&1)<<48) | (((BIOS_Settings.breakpoint[index]>>SETTINGS_BREAKPOINT_IGNOREADDRESS_SHIFT)&1)<<49) | (((BIOS_Settings.breakpoint[index]>>SETTINGS_BREAKPOINT_IGNORESEGMENT_SHIFT)&1)<<50) | (((BIOS_Settings.breakpoint[index]>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK)<<32) | ((BIOS_Settings.breakpoint[index]&SETTINGS_BREAKPOINT_OFFSET_MASK) & 0xFFFFFFFF)); //Single step address!
+					singlestepaddress[index] = ((((BIOS_Settings.breakpoint[index]>>SETTINGS_BREAKPOINT_IGNOREEIP_SHIFT)&1)<<48) | (((BIOS_Settings.breakpoint[index]>>SETTINGS_BREAKPOINT_IGNOREADDRESS_SHIFT)&1)<<49) | (((BIOS_Settings.breakpoint[index]>>SETTINGS_BREAKPOINT_IGNORESEGMENT_SHIFT)&1)<<50) | (((BIOS_Settings.breakpoint[index] >> SETTINGS_BREAKPOINT_SINGLESTEP_SHIFT) & 1) << 51) | (((BIOS_Settings.breakpoint[index]>>SETTINGS_BREAKPOINT_SEGMENT_SHIFT)&SETTINGS_BREAKPOINT_SEGMENT_MASK)<<32) | ((BIOS_Settings.breakpoint[index]&SETTINGS_BREAKPOINT_OFFSET_MASK) & 0xFFFFFFFF)); //Single step address!
 					break;
 				default: //Just to be sure!
 					goto unknownmode; //Count as unknown/unset!
@@ -784,6 +784,7 @@ void initEMUreset() //Simple reset emulator!
 
 /* coreHandler: The core emulation handler (running CPU and external hardware required to run it.) */
 
+extern byte BPsinglestep; //Breakpoint-enforced single-step triggered?
 extern byte singlestep; //Enable EMU-driven single step!
 extern byte interruptsaved; //Primary interrupt saved?
 
@@ -1001,19 +1002,31 @@ extern byte lastHLTstatus; //Last halt status for debugger! 1=Was halting, 0=Not
 extern byte debugger_is_logging; //Are we logging?
 
 byte applysinglestep;
+byte applysinglestepBP;
 
 void calcGenericSinglestep(byte index)
 {
+	byte appliedBP;
 	if (doEMUsinglestep[index] && (getcpumode() == (doEMUsinglestep[index] - 1))) //Single step enabled?
 	{
 		switch (getcpumode()) //What CPU mode are we to debug?
 		{
 		case CPU_MODE_REAL: //Real mode?
-			applysinglestep |= ((((REG_CS == ((singlestepaddress[index] >> 16) & 0xFFFF)) | (singlestepaddress[index] & 0x4000000000000ULL)) && ((REG_IP == (singlestepaddress[index] & 0xFFFF)) || (singlestepaddress[index] & 0x1000000000000ULL))) || (singlestepaddress[index] & 0x2000000000000ULL)); //Single step enabled?
+			appliedBP = ((((REG_CS == ((singlestepaddress[index] >> 16) & 0xFFFF)) | (singlestepaddress[index] & 0x4000000000000ULL)) && ((REG_IP == (singlestepaddress[index] & 0xFFFF)) || (singlestepaddress[index] & 0x1000000000000ULL))) || (singlestepaddress[index] & 0x2000000000000ULL)); //Single step enabled?
+			applysinglestep |= appliedBP; //Applying this breakpoint?
+			if (unlikely(appliedBP && (singlestepaddress[index] & 0x8000000000000ULL))) //Single step enforced?
+			{
+				applysinglestepBP = 1; //Apply an enforced single step!
+			}
 			break;
 		case CPU_MODE_PROTECTED: //Protected mode?
 		case CPU_MODE_8086: //Virtual 8086 mode?
-			applysinglestep |= ((((REG_CS == ((singlestepaddress[index] >> 32) & 0xFFFF)) | (singlestepaddress[index] & 0x4000000000000ULL)) && ((REG_EIP == (singlestepaddress[index] & 0xFFFFFFFF)) || (singlestepaddress[index] & 0x1000000000000ULL))) || (singlestepaddress[index] & 0x2000000000000ULL)); //Single step enabled?
+			appliedBP = ((((REG_CS == ((singlestepaddress[index] >> 32) & 0xFFFF)) | (singlestepaddress[index] & 0x4000000000000ULL)) && ((REG_EIP == (singlestepaddress[index] & 0xFFFFFFFF)) || (singlestepaddress[index] & 0x1000000000000ULL))) || (singlestepaddress[index] & 0x2000000000000ULL)); //Single step enabled?
+			applysinglestep |= appliedBP; //Applying this breakpoint?
+			if (unlikely(appliedBP && (singlestepaddress[index] & 0x8000000000000ULL))) //Single step enforced?
+			{
+				applysinglestepBP = 1; //Apply an enforced single step!
+			}
 			break;
 		default: //Invalid mode?
 			break;
@@ -1180,7 +1193,7 @@ OPTINLINE byte coreHandler()
 				{
 					if (unlikely(CPU[activeCPU].registers && allow_debuggerstep && (doEMUsinglestep[0]|doEMUsinglestep[1]|doEMUsinglestep[2]|doEMUsinglestep[3]|doEMUsinglestep[4]|doEMUtasksinglestep|doEMUCR3singlestep))) //Single step allowed, CPU mode specified?
 					{
-						applysinglestep = 0; //Init!
+						applysinglestep = applysinglestepBP = 0; //Init!
 						calcGenericSinglestep(0);
 						calcGenericSinglestep(1);
 						calcGenericSinglestep(2);
@@ -1196,6 +1209,7 @@ OPTINLINE byte coreHandler()
 							applysinglestep &= (((CPU[activeCPU].registers->CR3&0xFFFFF000) == (singlestepCR3address & 0xFFFFF000))&CPU[activeCPU].is_paging); //Single step enabled?
 						}
 						singlestep |= applysinglestep; //Apply single step?
+						BPsinglestep |= applysinglestepBP; //Apply forced breakpoint on single step?
 					}
 					cpudebugger = needdebugger(); //Debugging information required? Refresh in case of external activation!
 					MMU_logging = debugger_is_logging; //Are we logging?
