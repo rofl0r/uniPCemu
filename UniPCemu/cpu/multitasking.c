@@ -309,11 +309,6 @@ byte checksaveTSS32(void* segdesc, word value, byte isBacklinked)
 
 byte enableMMUbuffer; //To buffer the MMU writes?
 
-extern word CPU_exec_CS; //Save for handling!
-extern uint_32 CPU_exec_EIP; //Save for handling!
-extern uint_32 CPU_InterruptReturn; //Interrupt return address!
-extern word CPU_exec_lastCS; //OPCode CS
-extern uint_32 CPU_exec_lastEIP; //OPCode EIP
 extern byte advancedlog; //Advanced log setting
 
 extern byte MMU_logging; //Are we logging from the MMU?
@@ -777,12 +772,12 @@ byte CPU_switchtask(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR, word 
 	CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_SS].desc.AccessRights = (CPU[activeCPU].CPL << 5); //Make sure that SS has the correct DPL(and Access Rights) for the selected task when erroring out!
 	CPU_commitState(); //Set the new fault as a return point when faulting!
 	//Clear all the descriptor caches to invalid!
-	CPU_exec_CS = REG_CS; //Save for error handling!
-	CPU_exec_EIP = (REG_EIP&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof); //Save for error handling!
-	CPU_InterruptReturn = REG_EIP; //Make sure that interrupts behave with a correct EIP after faulting on REP prefixed instructions!
+	CPU[activeCPU].exec_CS = REG_CS; //Save for error handling!
+	CPU[activeCPU].exec_EIP = (REG_EIP&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof); //Save for error handling!
+	CPU[activeCPU].InterruptReturnEIP = REG_EIP; //Make sure that interrupts behave with a correct EIP after faulting on REP prefixed instructions!
 	//No last: we're entering a task that has this information, so no return point is given!
-	CPU_exec_lastCS = CPU_exec_CS;
-	CPU_exec_lastEIP = CPU_exec_EIP;
+	CPU[activeCPU].exec_lastCS = CPU[activeCPU].exec_CS;
+	CPU[activeCPU].exec_lastEIP = CPU[activeCPU].exec_EIP;
 
 	//Update the x86 debugger, if needed!
 	protectedModeDebugger_taskswitching(); //Apply any action required for a task switch!

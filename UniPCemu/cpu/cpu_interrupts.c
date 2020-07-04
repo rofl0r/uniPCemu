@@ -199,9 +199,6 @@ byte CPU_INT(byte intnr, int_64 errorcode, byte is_interrupt) //Call an software
 
 byte NMIMasked = 0; //Are NMI masked?
 
-extern word CPU_exec_CS; //OPCode CS
-extern uint_32 CPU_exec_EIP; //OPCode EIP
-
 word IRET_IP=0, IRET_CS=0, IRET_FLAGS=0;
 
 void CPU_IRET()
@@ -226,7 +223,7 @@ void CPU_IRET()
 		REG_FLAGS = IRET_FLAGS; //Pop flags!
 		CPU_flushPIQ(-1); //We're jumping to another address!
 		#ifdef LOG_INTS
-		dolog("cpu","IRET@%04X:%08X to %04X:%04X; STACK=%04X:%08X",CPU_exec_CS,CPU_exec_EIP,REG_CS,REG_EIP,tempSS,backupESP); //Log the current info of the call!
+		dolog("cpu","IRET@%04X:%08X to %04X:%04X; STACK=%04X:%08X",CPU[activeCPU].exec_CS,CPU[activeCPU].exec_EIP,REG_CS,REG_EIP,tempSS,backupESP); //Log the current info of the call!
 		#endif
 		#ifdef LOG_ET34K640480256_SET
 		if (waitingforiret) //Waiting for IRET?
@@ -416,11 +413,6 @@ extern byte SystemControlPortB; //System control port B data!
 extern byte PPI62; //For XT support!
 byte NMI = 1; //NMI Disabled?
 
-extern uint_32 CPU_InterruptReturn, CPU_exec_EIP; //Interrupt return address!
-extern word CPU_exec_CS; //Executing CS for faults!
-extern word CPU_exec_lastCS; //OPCode CS
-extern uint_32 CPU_exec_lastEIP; //OPCode EIP
-
 byte NMIQueued = 0; //NMI raised to handle?
 
 
@@ -442,12 +434,12 @@ byte CPU_handleNMI()
 		else //Execute the CPU bug!
 		{
 			CPU_8086REPPending(1); //Process pending REPs normally as documented!
-			REG_EIP = CPU_InterruptReturn; //Use the special interrupt return address to return to the last prefix instead of the start!
+			REG_EIP = CPU[activeCPU].InterruptReturnEIP; //Use the special interrupt return address to return to the last prefix instead of the start!
 		}
-		CPU_exec_lastCS = CPU_exec_CS;
-		CPU_exec_lastEIP = CPU_exec_EIP;
-		CPU_exec_CS = REG_CS; //Save for error handling!
-		CPU_exec_EIP = (REG_EIP & CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof); //Save for error handling!
+		CPU[activeCPU].exec_lastCS = CPU[activeCPU].exec_CS;
+		CPU[activeCPU].exec_lastEIP = CPU[activeCPU].exec_EIP;
+		CPU[activeCPU].exec_CS = REG_CS; //Save for error handling!
+		CPU[activeCPU].exec_EIP = (REG_EIP & CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof); //Save for error handling!
 		CPU_prepareHWint(); //Prepares the CPU for hardware interrupts!
 		CPU_commitState(); //Save fault data to go back to when exceptions occur!
 		call_hard_inthandler(EXCEPTION_NMI); //Trigger the hardware interrupt-style NMI!

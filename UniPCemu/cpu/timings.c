@@ -1160,7 +1160,7 @@ byte CPU_apply286cycles() //Apply the 80286+ cycles method. Result: 0 when to ap
 	}
 	else
 	{
-		currentinstructiontiming = &timing286lookup[isPM() | ((CPU_Operand_size[activeCPU]) << 1)][ismemory][CPU[activeCPU].is0Fopcode][CPU[activeCPU].lastopcode][MODRM_REG(params.modrm)][0]; //Start by pointing to our records to process!
+		currentinstructiontiming = &timing286lookup[isPM() | ((CPU_Operand_size[activeCPU]) << 1)][ismemory][CPU[activeCPU].is0Fopcode][CPU[activeCPU].currentopcode][MODRM_REG(params.modrm)][0]; //Start by pointing to our records to process!
 	}
 	//Try to use the lookup table!
 	for (instructiontiming = 0; ((instructiontiming < 8) && *currentinstructiontiming); ++instructiontiming, ++currentinstructiontiming) //Process all timing candidates!

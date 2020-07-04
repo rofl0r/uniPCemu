@@ -836,9 +836,9 @@ typedef struct
 	int continue_int; //Continue interrupt call=1 or (POP CS:IP)=0?
 	int calllayer; //What CALL layer are we (Starts with 0 for none, 1+=CALL)
 	int running; //We're running?
-	byte lastopcode; //Currently/last running opcode!
-	byte lastopcode0F; //Currently/last opcode 0F state!
-	byte lastmodrm; //Currently/last ModR/M byte value!
+	byte currentopcode; //Currently/last running opcode!
+	byte currentopcode0F; //Currently/last opcode 0F state!
+	byte currentmodrm; //Currently/last ModR/M byte value!
 
 	byte previousopcode; //Previous opcode for diagnostic purposes!
 	byte previousopcode0F; //Previous opcode 0F state!
@@ -897,6 +897,9 @@ typedef struct
 	byte unaffectedRF; //Don't affect the resume flag this instruction!
 	byte BIUnotticking;
 	byte preinstructiontimingnotready; //Pre-instruction timing ready?
+	word exec_CS, exec_lastCS; //(Previous) Executing CS!
+	uint_32 exec_EIP, exec_lastEIP; //(Previous) Executing EIP!
+	uint_32 InterruptReturnEIP; //Interrupt return EIP!
 } CPU_type;
 
 #ifndef IS_CPU

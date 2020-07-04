@@ -1081,17 +1081,12 @@ OPTINLINE byte CPU_isPrefix(byte prefix)
 	return 0; //No prefix!
 }
 
-uint_32 CPU_InterruptReturn = 0;
-
 CPU_OpcodeInformation *currentOpcodeInformation = NULL; //The timing used for the current instruction!
 Handler currentOP_handler = &CPU_unkOP;
 extern Handler CurrentCPU_opcode_jmptbl[1024]; //Our standard internal standard opcode jmptbl!
 
-word CPU_exec_CS, CPU_debugger_CS; //OPCode CS
-uint_32 CPU_exec_EIP, CPU_debugger_EIP; //OPCode EIP
-
-word CPU_exec_lastCS = 0; //OPCode CS
-uint_32 CPU_exec_lastEIP = 0; //OPCode EIP
+word CPU_debugger_CS; //OPCode CS
+uint_32 CPU_debugger_EIP; //OPCode EIP
 
 extern byte custommem; //Used in some instructions!
 extern uint_32 customoffset; //Offset to use!
@@ -1113,10 +1108,10 @@ void CPU_interruptcomplete()
 {
 	CPU_resetInstructionSteps(); //Reset the instruction steps to properly handle it!
 	//Prepare in the case of hardware interrupts!
-	CPU_exec_CS = REG_CS; //CS to execute!
-	CPU_exec_EIP = REG_EIP; //EIP to execute!
+	CPU[activeCPU].exec_CS = REG_CS; //CS to execute!
+	CPU[activeCPU].exec_EIP = REG_EIP; //EIP to execute!
 	CPU_commitState(); //Commit the state of the CPU for any future faults or interrupts!
-	CPU_InterruptReturn = REG_EIP; //Make sure that interrupts behave with a correct EIP after faulting on REP prefixed instructions!
+	CPU[activeCPU].InterruptReturnEIP = REG_EIP; //Make sure that interrupts behave with a correct EIP after faulting on REP prefixed instructions!
 }
 
 uint_32 last_eip;
@@ -1131,7 +1126,7 @@ OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 		{
 			CPU_resetPrefixes(); //Reset all prefixes for this opcode!
 			reset_modrm(); //Reset modr/m for the current opcode, for detecting it!
-			CPU_InterruptReturn = last_eip = REG_EIP; //Interrupt return point by default!
+			CPU[activeCPU].InterruptReturnEIP = last_eip = REG_EIP; //Interrupt return point by default!
 			CPU[activeCPU].instructionfetch.CPU_fetchphase = 2; //Reading prefixes or opcode!
 			ismultiprefix = 0; //Default to not being multi prefix!
 		}
@@ -1145,7 +1140,7 @@ OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 				CPU[activeCPU].cycles_Prefix += 2; //Add timing for the prefix!
 				if (ismultiprefix && (EMULATED_CPU <= CPU_80286)) //This CPU has the bug and multiple prefixes are added?
 				{
-					CPU_InterruptReturn = last_eip; //Return to the last prefix only!
+					CPU[activeCPU].InterruptReturnEIP = last_eip; //Return to the last prefix only!
 				}
 				CPU_setprefix(*OP); //Set the prefix ON!
 				last_eip = REG_EIP; //Save the current EIP of the last prefix possibility!
@@ -1602,7 +1597,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 #ifdef DEBUG_BIUFIFO
 		if (fifobuffer_freesize(BIU[activeCPU].responses)!=BIU[activeCPU].responses->size) //Starting an instruction with a response remaining?
 		{
-			dolog("CPU","Warning: starting instruction with BIU still having a result buffered! Previous instruction: %02X(0F:%i,ModRM:%02X)@%04X:%08x",CPU[activeCPU].previousopcode,CPU[activeCPU].previousopcode0F,CPU[activeCPU].previousmodrm,CPU_exec_CS,CPU_exec_EIP);
+			dolog("CPU","Warning: starting instruction with BIU still having a result buffered! Previous instruction: %02X(0F:%i,ModRM:%02X)@%04X:%08x",CPU[activeCPU].previousopcode,CPU[activeCPU].previousopcode0F,CPU[activeCPU].previousmodrm,CPU[activeCPU].exec_CS,CPU[activeCPU].exec_EIP);
 			BIU_readResultb(&BIUresponsedummy); //Discard the result: we're logging but continuing on simply!
 		}
 #endif
@@ -1624,23 +1619,23 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		{
 			CPU[activeCPU].segment_register = CPU_SEGMENT_DEFAULT; //Default data segment register (default: auto)!
 			//Save the last coordinates!
-			CPU_exec_lastCS = CPU_exec_CS;
-			CPU_exec_lastEIP = CPU_exec_EIP;
+			CPU[activeCPU].exec_lastCS = CPU[activeCPU].exec_CS;
+			CPU[activeCPU].exec_lastEIP = CPU[activeCPU].exec_EIP;
 			//Save the current coordinates!
-			CPU_exec_CS = REG_CS; //CS of command!
-			CPU_exec_EIP = (REG_EIP&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof); //EIP of command!
+			CPU[activeCPU].exec_CS = REG_CS; //CS of command!
+			CPU[activeCPU].exec_EIP = (REG_EIP&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof); //EIP of command!
 		}
 	
 		//Save the starting point when debugging!
-		CPU_debugger_CS = CPU_exec_CS;
-		CPU_debugger_EIP = CPU_exec_EIP;
+		CPU_debugger_CS = CPU[activeCPU].exec_CS;
+		CPU_debugger_EIP = CPU[activeCPU].exec_EIP;
 		CPU_commitState(); //Save any fault data!
 
 		if (getcpumode()!=CPU_MODE_REAL) //Protected mode?
 		{
 			if (CPU[activeCPU].allowInterrupts) //Do we allow interrupts(and traps) to be fired?
 			{
-				if (checkProtectedModeDebugger(previousCSstart+CPU_exec_EIP,PROTECTEDMODEDEBUGGER_TYPE_EXECUTION)) //Breakpoint at the current address(linear address space)?
+				if (checkProtectedModeDebugger(previousCSstart+CPU[activeCPU].exec_EIP,PROTECTEDMODEDEBUGGER_TYPE_EXECUTION)) //Breakpoint at the current address(linear address space)?
 				{
 					return; //Protected mode debugger activated! Don't fetch or execute!
 				}
@@ -2081,9 +2076,9 @@ void CPU_RealResetOP(byte doReset) //Rerun current Opcode? (From interrupt calls
 	if (likely(doReset)) //Not a repeating reset?
 	{
 		//Actually reset the currrent instruction!
-		REG_CS = CPU_exec_CS; //CS is reset!
-		REG_EIP = CPU_exec_EIP; //Destination address is reset!
-		CPU_flushPIQ(CPU_exec_EIP); //Flush the PIQ, restoring the destination address to the start of the instruction!
+		REG_CS = CPU[activeCPU].exec_CS; //CS is reset!
+		REG_EIP = CPU[activeCPU].exec_EIP; //Destination address is reset!
+		CPU_flushPIQ(CPU[activeCPU].exec_EIP); //Flush the PIQ, restoring the destination address to the start of the instruction!
 	}
 }
 

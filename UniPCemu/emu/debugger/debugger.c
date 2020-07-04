@@ -746,9 +746,6 @@ void debugger_logdescriptors(char* filename)
 	}
 }
 
-extern word CPU_exec_lastCS; //OPCode CS
-extern uint_32 CPU_exec_lastEIP; //OPCode EIP
-
 void debugger_logregisters(char *filename, CPU_registers *registers, byte halted, byte isreset)
 {
 	if (likely(DEBUGGER_LOGREGISTERS==0)) //Disable register loggimg?
@@ -793,12 +790,12 @@ void debugger_logregisters(char *filename, CPU_registers *registers, byte halted
 		}
 		if (advancedlog) //Advanced log enabled?
 		{
-			if (CPU_exec_lastCS!=REGR_CS(registers))
+			if (CPU[activeCPU].exec_lastCS!=REGR_CS(registers))
 			{
 				if ((DEBUGGER_LOG == DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG == DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG == DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT)) //Common log format?
-					dolog(filename, "\t\t\tPrevious CS:IP: %04x:%04x", CPU_exec_lastCS,CPU_exec_lastEIP);
+					dolog(filename, "\t\t\tPrevious CS:IP: %04x:%04x", CPU[activeCPU].exec_lastCS,CPU[activeCPU].exec_lastEIP);
 				else
-					dolog(filename, "Previous CS:IP: %04x:%04x", CPU_exec_lastCS, CPU_exec_lastEIP);
+					dolog(filename, "Previous CS:IP: %04x:%04x", CPU[activeCPU].exec_lastCS, CPU[activeCPU].exec_lastEIP);
 			}
 		}
 		#endif
@@ -829,12 +826,12 @@ void debugger_logregisters(char *filename, CPU_registers *registers, byte halted
 		if (advancedlog) //Advanced log enabled?
 		{
 			debugger_logdescriptors(filename); //Log descriptors too!
-			if (CPU_exec_lastCS!=REGR_CS(registers))
+			if (CPU[activeCPU].exec_lastCS!=REGR_CS(registers))
 			{
 				if ((DEBUGGER_LOG == DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG == DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG == DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT)) //Common log format?
-					dolog(filename, "\t\t\tPrevious CS:EIP: %04x:%08x", CPU_exec_lastCS, CPU_exec_lastEIP);
+					dolog(filename, "\t\t\tPrevious CS:EIP: %04x:%08x", CPU[activeCPU].exec_lastCS, CPU[activeCPU].exec_lastEIP);
 				else
-					dolog(filename, "Previous CS:EIP: %04x:%08x", CPU_exec_lastCS, CPU_exec_lastEIP);
+					dolog(filename, "Previous CS:EIP: %04x:%08x", CPU[activeCPU].exec_lastCS, CPU[activeCPU].exec_lastEIP);
 			}
 		}
 		#endif
@@ -1202,9 +1199,6 @@ extern GPU_TEXTSURFACE *frameratesurface; //The framerate surface!
 
 word debuggerrow; //Debugger row after the final row!
 
-extern word CPU_exec_lastCS; //OPCode CS
-extern uint_32 CPU_exec_lastEIP; //OPCode EIP
-
 void debugger_screen() //Show debugger info on-screen!
 {
 	if (frameratesurface) //We can show?
@@ -1250,19 +1244,19 @@ void debugger_screen() //Show debugger info on-screen!
 		if ((((debuggerregisters.CR0&1)==0) || (REGD_EFLAGS(debuggerregisters)&F_V8)) || (EMULATED_CPU == CPU_80286)) //Real mode, virtual 8086 mode or normal real-mode registers used in 16-bit protected mode?
 		{
 			GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 18, debuggerrow++); //Second debug row!
-			GPU_textprintf(frameratesurface, fontcolor, backcolor, "P: CS:IP %04X:%04X", CPU_exec_lastCS, CPU_exec_lastEIP); //Debug CS:IP!
+			GPU_textprintf(frameratesurface, fontcolor, backcolor, "P: CS:IP %04X:%04X", CPU[activeCPU].exec_lastCS, CPU[activeCPU].exec_lastEIP); //Debug CS:IP!
 		}
 		else //386+?
 		{
 			if (EMULATED_CPU>=CPU_80386) //32-bit CPU?
 			{
 				GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 23, debuggerrow++); //Second debug row!
-				GPU_textprintf(frameratesurface, fontcolor, backcolor, "P: CS:EIP %04X:%08X", CPU_exec_lastCS, CPU_exec_lastEIP); //Debug IP!
+				GPU_textprintf(frameratesurface, fontcolor, backcolor, "P: CS:EIP %04X:%08X", CPU[activeCPU].exec_lastCS, CPU[activeCPU].exec_lastEIP); //Debug IP!
 			}
 			else //286-?
 			{
 				GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 19, debuggerrow++); //Second debug row!
-				GPU_textprintf(frameratesurface, fontcolor, backcolor, "P: CS:IP %04X:%04X", CPU_exec_lastCS, CPU_exec_lastEIP); //Debug IP!
+				GPU_textprintf(frameratesurface, fontcolor, backcolor, "P: CS:IP %04X:%04X", CPU[activeCPU].exec_lastCS, CPU[activeCPU].exec_lastEIP); //Debug IP!
 			}
 		}
 

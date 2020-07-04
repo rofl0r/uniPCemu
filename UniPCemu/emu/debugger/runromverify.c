@@ -54,12 +54,7 @@ extern byte MMU_logging; //Are we logging MMU accesses?
 
 extern byte REPPending; //REP pending reset?
 
-extern uint_32 CPU_InterruptReturn, CPU_exec_EIP; //Interrupt return address!
-
 extern ThreadParams_p debugger_thread; //Debugger menu thread!
-
-extern word CPU_exec_lastCS, CPU_exec_CS; //OPCode CS
-extern uint_32 CPU_exec_lastEIP, CPU_exec_EIP; //OPCode EIP
 
 extern byte debugger_is_logging; //Are we logging?
 
@@ -194,12 +189,12 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 							else //Execute the CPU bug!
 							{
 								CPU_8086REPPending(1); //Process pending REPs normally as documented!
-								REG_EIP = CPU_InterruptReturn; //Use the special interrupt return address to return to the last prefix instead of the start!
+								REG_EIP = CPU[activeCPU].InterruptReturnEIP; //Use the special interrupt return address to return to the last prefix instead of the start!
 							}
-							CPU_exec_lastCS = CPU_exec_CS;
-							CPU_exec_lastEIP = CPU_exec_EIP;
-							CPU_exec_CS = REG_CS; //Save for error handling!
-							CPU_exec_EIP = (REG_EIP&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof); //Save for error handling!
+							CPU[activeCPU].exec_lastCS = CPU[activeCPU].exec_CS;
+							CPU[activeCPU].exec_lastEIP = CPU[activeCPU].exec_EIP;
+							CPU[activeCPU].exec_CS = REG_CS; //Save for error handling!
+							CPU[activeCPU].exec_EIP = (REG_EIP&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof); //Save for error handling!
 							CPU_commitState(); //Save fault data to go back to when exceptions occur!
 							call_hard_inthandler(HWINT_nr); //get next interrupt from the i8259, if any!
 						}

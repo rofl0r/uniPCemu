@@ -4321,7 +4321,7 @@ Special stuff for NO COprocessor (8087) present/available (default)!
 
 void unkOP_80386() //Unknown opcode on 8086?
 {
-	//dolog("8086","Unknown opcode on 8086: %02X",CPU[activeCPU].lastopcode); //Last read opcode!
+	//dolog("8086","Unknown opcode on 8086: %02X",CPU[activeCPU].currentopcode); //Last read opcode!
 	CPU_unkOP(); //Execute the unknown opcode exception handler, if any!
 }
 
