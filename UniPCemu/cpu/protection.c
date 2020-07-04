@@ -2114,7 +2114,7 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 				#ifdef LOG_VIRTUALMODECALLS
 				if ((MMU_logging == 1) && advancedlog)
 				{
-					dolog("debugger", "Starting V86 interrupt/fault: INT %02X(%02X(0F:%02X)),immb:%02X,AX=%04X)", intnr, CPU[activeCPU].lastopcode, CPU[activeCPU].lastopcode0F, immb, REG_AX);
+					dolog("debugger", "Starting V86 interrupt/fault: INT %02X(%02X(0F:%02X)),immb:%02X,AX=%04X)", intnr, CPU[activeCPU].currentopcode, CPU[activeCPU].currentopcode0F, immb, REG_AX);
 				}
 				#endif
 				if (newCPL!=0) //Not switching to PL0?

@@ -1219,7 +1219,7 @@ void debugger_screen() //Show debugger info on-screen!
 		GPU_textprintf(frameratesurface, fontcolor, backcolor, "Command: %s%s", debugger_prefix, debugger_command_text); //Show our command!
 		debuggerrow = GPU_TEXT_DEBUGGERROW; //The debug row we're writing to!	
 		GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 22, debuggerrow++); //First debug row!
-		GPU_textprintf(frameratesurface, fontcolor, backcolor, "Prefix(0):%02X; ROP: %02X%u", OPbuffer[0], CPU[activeCPU].lastopcode, MODRM_REG(CPU[activeCPU].lastmodrm)); //Debug opcode and executed opcode!
+		GPU_textprintf(frameratesurface, fontcolor, backcolor, "Prefix(0):%02X; ROP: %02X%u", OPbuffer[0], CPU[activeCPU].currentopcode, MODRM_REG(CPU[activeCPU].currentmodrm)); //Debug opcode and executed opcode!
 
 		//First: location!
 		if ((((debuggerregisters.CR0&1)==0) || (REGD_EFLAGS(debuggerregisters)&F_V8)) || (EMULATED_CPU == CPU_80286)) //Real mode, virtual 8086 mode or normal real-mode registers used in 16-bit protected mode?

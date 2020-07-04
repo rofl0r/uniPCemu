@@ -170,9 +170,9 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 			snprintf(errorcodestr,sizeof(errorcodestr),"%08X",(uint_32)errorcode); //The error code itself!
 		}
 		#ifdef LOG_INTS
-		dolog("cpu","Interrupt %02X=%04X:%08X@%04X:%04X(%02X); ERRORCODE: %s; STACK=%04X:%08X",intnr,destCS,destEIP,REG_CS,REG_EIP,CPU[activeCPU].lastopcode,errorcodestr,REG_SS,REG_ESP); //Log the current info of the call!
+		dolog("cpu","Interrupt %02X=%04X:%08X@%04X:%04X(%02X); ERRORCODE: %s; STACK=%04X:%08X",intnr,destCS,destEIP,REG_CS,REG_EIP,CPU[activeCPU].currentopcode,errorcodestr,REG_SS,REG_ESP); //Log the current info of the call!
 		#endif
-		if ((MMU_logging == 1) && advancedlog) dolog("debugger","Interrupt %02X=%04X:%08X@%04X:%04X(%02X); ERRORCODE: %s",intnr,destINTCS,destEIP,REG_CS,REG_EIP,CPU[activeCPU].lastopcode,errorcodestr); //Log the current info of the call!
+		if ((MMU_logging == 1) && advancedlog) dolog("debugger","Interrupt %02X=%04X:%08X@%04X:%04X(%02X); ERRORCODE: %s",intnr,destINTCS,destEIP,REG_CS,REG_EIP,CPU[activeCPU].currentopcode,errorcodestr); //Log the current info of the call!
 		if (segmentWritten(CPU_SEGMENT_CS,destCS,0)) return 1; //Interrupt to position CS:EIP/CS:IP in table.
 		if (CPU_condflushPIQ(-1)) //We're jumping to another address!
 		{

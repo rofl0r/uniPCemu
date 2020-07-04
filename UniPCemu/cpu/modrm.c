@@ -165,7 +165,7 @@ void reset_modrmall()
 
 void modrm_notdecoded(MODRM_PARAMS *params)
 {
-	dolog("modrm", "Not properly loaded and used with opcode: is32:%i 0F: %i OP:%02X R/M:%02X", CPU_Operand_size[activeCPU], CPU[activeCPU].is0Fopcode, CPU[activeCPU].lastopcode, params->modrm); //Log the invalid access!
+	dolog("modrm", "Not properly loaded and used with opcode: is32:%i 0F: %i OP:%02X R/M:%02X", CPU_Operand_size[activeCPU], CPU[activeCPU].is0Fopcode, CPU[activeCPU].currentopcode, params->modrm); //Log the invalid access!
 }
 
 byte modrm_check8(MODRM_PARAMS *params, int whichregister, byte isread)

@@ -924,7 +924,7 @@ void resetCPU(byte isInit) //Initialises the currently selected CPU!
 	//Continue interrupt call (hardware)?
 	CPU[activeCPU].running = 1; //We're running!
 	
-	CPU[activeCPU].lastopcode = CPU[activeCPU].lastopcode0F = CPU[activeCPU].lastmodrm = CPU[activeCPU].previousopcode = CPU[activeCPU].previousopcode0F = CPU[activeCPU].previousmodrm = 0; //Last opcode, default to 0 and unknown?
+	CPU[activeCPU].currentopcode = CPU[activeCPU].currentopcode0F = CPU[activeCPU].currentmodrm = CPU[activeCPU].previousopcode = CPU[activeCPU].previousopcode0F = CPU[activeCPU].previousmodrm = 0; //Last opcode, default to 0 and unknown?
 	generate_opcode_jmptbl(); //Generate the opcode jmptbl for the current CPU!
 	generate_opcode0F_jmptbl(); //Generate the opcode 0F jmptbl for the current CPU!
 	generate_opcodeInformation_tbl(); //Generate the timings tables for all CPU's!
@@ -1344,9 +1344,9 @@ OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 
 skipcurrentOpcodeInformations: //Skip all timings and parameters(invalid instruction)!
 	CPU_resetInstructionSteps(); //Reset the current instruction steps!
-	CPU[activeCPU].lastopcode = *OP; //Last OPcode for reference!
-	CPU[activeCPU].lastopcode0F = CPU[activeCPU].is0Fopcode; //Last OPcode for reference!
-	CPU[activeCPU].lastmodrm = (likely(currentOpcodeInformation)?currentOpcodeInformation->has_modrm:0)?params.modrm:0; //Modr/m if used!
+	CPU[activeCPU].currentopcode = *OP; //Last OPcode for reference!
+	CPU[activeCPU].currentopcode0F = CPU[activeCPU].is0Fopcode; //Last OPcode for reference!
+	CPU[activeCPU].currentmodrm = (likely(currentOpcodeInformation)?currentOpcodeInformation->has_modrm:0)?params.modrm:0; //Modr/m if used!
 	currentOP_handler = CurrentCPU_opcode_jmptbl[((word)*OP << 2) | (CPU[activeCPU].is0Fopcode<<1) | CPU_Operand_size[activeCPU]];
 	CPU_executionphase_newopcode(); //We're starting a new opcode, notify the execution phase handlers!
 	return 0; //We're done fetching the instruction!
@@ -1663,7 +1663,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	static byte OP = 0xCC; //The opcode!
 	if (CPU[activeCPU].repeating) //REPeating instruction?
 	{
-		OP = CPU[activeCPU].lastopcode; //Execute the last opcode again!
+		OP = CPU[activeCPU].currentopcode; //Execute the last opcode again!
 		newREP = 0; //Not a new repeating instruction!
 		if (CPU[activeCPU].instructionfetch.CPU_isFetching && (CPU[activeCPU].instructionfetch.CPU_fetchphase==1)) //New instruction to start?
 		{
@@ -2036,9 +2036,9 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	if (CPU[activeCPU].executed) //Are we finished executing?
 	{
 		CPU_afterexec(); //After executing OPCode stuff!
-		CPU[activeCPU].previousopcode = CPU[activeCPU].lastopcode; //Last executed OPcode for reference purposes!
+		CPU[activeCPU].previousopcode = CPU[activeCPU].currentopcode; //Last executed OPcode for reference purposes!
 		CPU[activeCPU].previousopcode0F = CPU[activeCPU].is0Fopcode; //Last executed OPcode for reference purposes!
-		CPU[activeCPU].previousmodrm = CPU[activeCPU].lastmodrm; //Last executed OPcode for reference purposes!
+		CPU[activeCPU].previousmodrm = CPU[activeCPU].currentmodrm; //Last executed OPcode for reference purposes!
 		CPU[activeCPU].previousCSstart = previousCSstart; //Save the start address of CS for the last instruction!
 	}
 	if ((CPU[activeCPU].cycles|CPU[activeCPU].cycles_stallBUS)==0) //Nothing ticking?
