@@ -99,8 +99,8 @@ void i430fx_PCIConfigurationChangeHandler(uint_32 address, byte device, byte fun
 	case 0x5E: //PAM5
 	case 0x5F: //RAM/PCI switches at 0xC0000-0xF0000? PAM6
 		address -= 0x5A; //What PAM register number(0-based)?
-		i430fx_mapRAMROM((address<<1), 1, (i430fx_configuration[address ] & 0xF)); //Set it up!
-		i430fx_mapRAMROM(((address<<1)|1), 1, (i430fx_configuration[address] >> 4)); //Set it up!
+		i430fx_mapRAMROM((address<<1), 1, (i430fx_configuration[address+0x5A] & 0xF)); //Set it up!
+		i430fx_mapRAMROM(((address<<1)|1), 1, (i430fx_configuration[address+0x5A] >> 4)); //Set it up!
 		break;
 	default: //Not emulated?
 		break; //Ignore!
