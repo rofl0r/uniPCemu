@@ -1,6 +1,7 @@
 #define IS_I430FX
 #include "headers/hardware/i430fx.h" //Our own types!
 #include "headers/hardware/pci.h" //PCI support!
+#include "headers/cpu/cpu.h" //CPU reset support!
 
 byte is_i430fx = 0; //Are we an i430fx motherboard?
 extern byte i430fx_memorymappings_read[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}; //All read memory/PCI! Set=DRAM, clear=PCI!
@@ -107,6 +108,24 @@ void i430fx_PCIConfigurationChangeHandler(uint_32 address, byte device, byte fun
 }
 
 
+extern uint_32 PCI_address; //What address register is currently set?
+void i430fx_writeaddr(byte index, byte value) //Written an address?
+{
+	if (index == 1) //Written bit 2 of register CF9h?
+	{
+		if ((value & 4) && (PCI_address & 0x400)) //Set while not set yet?
+		{
+			//Should reset all PCI devices?
+			if (value & 2) //Hard reset?
+			{
+				i430fx_configuration[0x59] = 0xF; //Reset this!
+				i430fx_PCIConfigurationChangeHandler(0x49, 3, 0, 1); //Updated!
+			}
+			CPU[activeCPU].resetPending = 1; //Start pending reset!
+		}
+	}
+}
+
 void init_i430fx(byte enabled)
 {
 	byte address;
@@ -116,6 +135,8 @@ void init_i430fx(byte enabled)
 	memset(&i430fx_configuration, 0, sizeof(i430fx_configuration)); //Initialize the configuration!
 
 	i430fx_resetPCIConfiguration(); //Initialize/reset the configuration!
+
+	i430fx_configuration[0x59] = 0xF; //Default configuration setting when reset!
 
 	//Initalize all mappings!
 	for (address = 0x59; address < 0x5F; ++address) //Initialize us!

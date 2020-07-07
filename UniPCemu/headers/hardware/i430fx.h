@@ -9,6 +9,7 @@ extern byte i430fx_memorymappings_read[16]; //All read memory/PCI! Set=DRAM, cle
 extern byte i430fx_memorymappings_write[16]; //All write memory/PCI! Set=DRAM, clear=PCI!
 #endif
 
+void i430fx_writeaddr(byte index, byte value); //Written an address?
 void init_i430fx(byte enabled);
 void done_i430fx();
 

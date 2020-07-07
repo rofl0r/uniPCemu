@@ -23,6 +23,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/types.h" //Basic types!
 #include "headers/hardware/ports.h" //I/O port support!
 #include "headers/hardware/pci.h" //PCI configuration space!
+#include "headers/hardware/i430fx.h" //i430fx support!
 
 byte *configurationspaces[0x100]; //All possible configuation spaces!
 byte configurationsizes[0x100]; //The size of the configuration!
@@ -144,6 +145,10 @@ byte outPCI(word port, byte value)
 	case 0xCFA: //Address high word low part?
 	case 0xCFB: //Address high word high part?
 		bitpos = ((port & 3) << 3); //Get the bit position!
+		if (is_i430fx) //i430fx support?
+		{
+			i430fx_writeaddr(port-0xCF8, value); //Handle the address write!
+		}
 		PCI_address &= ~((0xFF)<<bitpos); //Clear the old address bits!
 		PCI_address |= value << bitpos; //Set the new address bits!
 		PCI_read_data(PCI_address,0); //Read the current address and update our status, don't handle the result!
