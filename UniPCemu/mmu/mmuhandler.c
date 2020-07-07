@@ -245,8 +245,8 @@ OPTINLINE byte MMU_IO_writehandler(uint_32 offset, byte value)
 			if ((offset >= 0xC0000) && (offset <= 0x100000)) //Specially mapped memory?
 			{
 				memory_datawrittensize = 1; //Only 1 byte written!
+				return 0; //Finished?
 			}
-			return 0; //Finished?
 		}
 		return 1; //Normal memory access?
 	}
