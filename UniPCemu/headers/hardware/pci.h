@@ -67,6 +67,13 @@ Bit0=0: Memory address:
 */
 
 void initPCI();
+/*
+register_PCI: Regiwsters a PCI device.
+device: An unique device ID to use for it's handlers
+function: The function number for the configuration space.
+size: The size of the space, in dwords
+configurationspacehandler: A handler to be called when a byte in the configuration space is changed.
+*/
 void register_PCI(void *config, byte device, byte function, byte size, PCIConfigurationChangeHandler configurationchangehandler); //Register a new device/function to the PCI configuration space!
 
 #endif

@@ -147,7 +147,7 @@ void init_i430fx(byte enabled)
 	//Register PCI configuration space?
 	if (enabled) //Are we enabled?
 	{
-		register_PCI(&i430fx_configuration, 3, 0, sizeof(i430fx_configuration), &i430fx_PCIConfigurationChangeHandler); //Register ourselves to PCI!
+		register_PCI(&i430fx_configuration, 3, 0, (sizeof(i430fx_configuration)>>2), &i430fx_PCIConfigurationChangeHandler); //Register ourselves to PCI!
 	}
 }
 

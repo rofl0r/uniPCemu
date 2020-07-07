@@ -5862,7 +5862,7 @@ void initATA()
 	EMU_setDiskBusy(ATA_Drives[CDROM_channel][1], 0 | (ATA[CDROM_channel].Drive[1].ATAPI_caddyejected << 1)); //We're not reading anymore!
 	CDROM_DiskChanged = 1; //We're changing when updating!
 	memset(&PCI_IDE, 0, sizeof(PCI_IDE)); //Initialise to 0!
-	register_PCI(&PCI_IDE,1,0, sizeof(PCI_IDE),&ATA_ConfigurationSpaceChanged); //Register the PCI data area!
+	register_PCI(&PCI_IDE,1,0, (sizeof(PCI_IDE)>>2),&ATA_ConfigurationSpaceChanged); //Register the PCI data area!
 	//Initialise our data area!
 	resetPCISpaceIDE();
 	PCI_IDE.BAR[0] = 1; //I/O!
