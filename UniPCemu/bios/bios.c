@@ -1312,7 +1312,7 @@ int BIOS_SaveData() //Save BIOS settings!
 	memset(&machine_comment, 0, sizeof(machine_comment)); //Init!
 	//safestrcat(machine_comment, sizeof(machine_comment), "cpu: 0=8086/8088, 1=NEC V20/V30, 2=80286, 3=80386, 4=80486, 5=Intel Pentium(without FPU)\n");
 	//safestrcat(machine_comment, sizeof(machine_comment), "databussize: 0=Full sized data bus of 16/32-bits, 1=Reduced data bus size\n");
-	safestrcat(machine_comment, sizeof(machine_comment), "architecture: 0=XT, 1=AT, 2=Compaq Deskpro 386, 3=Compaq Deskpro 386 with PS/2 mouse\n");
+	safestrcat(machine_comment, sizeof(machine_comment), "architecture: 0=XT, 1=AT, 2=Compaq Deskpro 386, 3=Compaq Deskpro 386 with PS/2 mouse and i430fx\n");
 	safestrcat(machine_comment, sizeof(machine_comment), "executionmode: 0=Use emulator internal BIOS, 1=Run debug directory files, else TESTROM.DAT at 0000:0000, 2=Run TESTROM.DAT at 0000:0000, 3=Debug video card output, 4=Load BIOS from ROM directory as BIOSROM.u* and OPTROM.*, 5=Run sound test\n");
 	//safestrcat(machine_comment, sizeof(machine_comment), "cpuspeed: 0=default, otherwise, limited to n cycles(>=0)\n");
 	safestrcat(machine_comment, sizeof(machine_comment), "showcpuspeed: 0=Don't show, 1=Show\n");

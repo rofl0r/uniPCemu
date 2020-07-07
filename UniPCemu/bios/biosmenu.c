@@ -5200,7 +5200,7 @@ void BIOS_MusicPlayer() //Music Player!
 	BIOS_Menu = 31; //Return to the Sound menu!
 }
 
-char currentarchtext[4][256] = { "XT","AT","Compaq Deskpro 386","Compaq Deskpro 386 with PS/2 mouse" }; //The text values for the results of getcurrentarch().
+char currentarchtext[4][256] = { "XT","AT","Compaq Deskpro 386","Compaq Deskpro 386 with PS/2 mouse and i430fx" }; //The text values for the results of getcurrentarch().
 
 void BIOS_Architecture()
 {
@@ -5218,7 +5218,7 @@ void BIOS_Architecture()
 	}
 	safestrcpy(itemlist[ARCHITECTURE_XT],sizeof(itemlist[0]), "XT"); //Set filename from options!
 	safestrcpy(itemlist[ARCHITECTURE_AT],sizeof(itemlist[0]), "AT"); //Set filename from options!
-	safestrcpy(itemlist[ARCHITECTURE_PS2],sizeof(itemlist[0]), "Compaq Deskpro 386 with PS/2 mouse"); //Set filename from options!
+	safestrcpy(itemlist[ARCHITECTURE_PS2],sizeof(itemlist[0]), "Compaq Deskpro 386 with PS/2 mouse and i430fx"); //Set filename from options!
 	safestrcpy(itemlist[ARCHITECTURE_COMPAQ],sizeof(itemlist[0]), "Compaq Deskpro 386"); //Set filename from options!
 	int current = 0;
 	switch (BIOS_Settings.architecture) //What setting?
@@ -5692,7 +5692,7 @@ setArchitecture: //For fixing it!
 		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "AT");
 		break;
 	case ARCHITECTURE_PS2:
-		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Compaq Deskpro 386 with PS/2 mouse");
+		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Compaq Deskpro 386 with PS/2 mouse and i430fx");
 		break;
 	case ARCHITECTURE_COMPAQ:
 		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Compaq Deskpro 386");

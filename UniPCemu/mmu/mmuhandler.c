@@ -31,6 +31,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/fopen64.h" //64-bit fopen support!
 #include "headers/bios/biosrom.h" //BIOS/option ROM support!
 #include "headers/hardware/vga/vga.h" //Video memory support!
+#include "headers/hardware/i430fx.h" //i430fx motherboard support!
 
 extern BIOS_Settings_TYPE BIOS_Settings; //Settings!
 extern MMU_type MMU; //MMU for direct access!
@@ -223,10 +224,31 @@ OPTINLINE byte MMU_IO_writehandler(uint_32 offset, byte value)
 	MMU_WHANDLER *list; //Current list item!
 	MMU_WHANDLER current; //Current handler!
 	memory_datawrittensize = 1; //Default to only 1 byte responding!
+	if (is_i430fx) //Emulate special memory/PCI split?
+	{
+		if ((offset >= 0xC0000) && (offset <= 0x100000)) //Specially mapped memory?
+		{
+			if (i430fx_memorymappings_write[((offset - 0xC0000) >> 14) & 0xF]) //Map to DRAM?
+			{
+				return 1; //Normal memory access!
+			}
+			//Otherwise, map to PCI and not DRAM!
+		}
+	}
 	if (unlikely(BIOS_writehandler(offset, value))) return 0; //BIOS responded!
 	if (VGAmemIO_wb(offset, value)) return 0; //Video responded!
 	current = *(list = &MMUHANDLER.writehandlers[0]); //Start of our list!
-	if (likely(current == NULL)) return 1; //Finished?
+	if (likely(current == NULL))
+	{
+		if (is_i430fx) //Emulate special memory/PCI split?
+		{
+			if ((offset >= 0xC0000) && (offset <= 0x100000)) //Specially mapped memory?
+			{
+				memory_datawrittensize = 1; //Only 1 byte written!
+			}
+		}
+		return 0; //Finished?
+	}
 	for (;;) //Search all available handlers!
 	{
 		if (unlikely(current(offset,value))) //Success?
@@ -235,6 +257,14 @@ OPTINLINE byte MMU_IO_writehandler(uint_32 offset, byte value)
 		}
 		current = *(++list); //Next handler!
 		if (likely(current == NULL)) break; //Finished?
+	}
+	if (is_i430fx) //Emulate special memory/PCI split?
+	{
+		if ((offset >= 0xC0000) && (offset <= 0x100000)) //Specially mapped memory?
+		{
+			memory_datawrittensize = 1; //Only 1 byte written!
+			return 0; //Finished?
+		}
 	}
 	return 1; //Normal memory access!
 }
@@ -250,10 +280,36 @@ OPTINLINE byte MMU_IO_readhandler(uint_32 offset, byte index)
 	MMU_RHANDLER current; //Current handler!
 	memory_datasize = 0; //Default to a size of invalid!
 	memory_dataaddr = offset; //What address has been cached!
+
+	if (is_i430fx) //Emulate special memory/PCI split?
+	{
+		if ((offset >= 0xC0000) && (offset <= 0x100000)) //Specially mapped memory?
+		{
+			if (i430fx_memorymappings_read[((offset - 0xC0000) >> 14) & 0xF]) //Map to DRAM?
+			{
+				return 1; //Normal memory access!
+			}
+			//Otherwise, map to PCI and not DRAM!
+		}
+	}
+
 	if (BIOS_readhandler(offset,index)) return 0; //BIOS responded!
 	if (VGAmemIO_rb(offset)) return 0; //Video responded!
 	current = *(list = &MMUHANDLER.readhandlers[0]); //Start of our list!
-	if (likely(current == NULL)) return 1; //Finished?
+	if (likely(current == NULL))
+	{
+		if (is_i430fx) //Emulate special memory/PCI split?
+		{
+			if ((offset >= 0xC0000) && (offset <= 0x100000)) //Specially mapped memory?
+			{
+				//Give the last data read/written by the BUS!
+				memory_dataread = 0xFF; //What is read!
+				memory_dataaddr = offset; //What address!
+				memory_datasize = 1; //1 byte only!
+			}
+		}
+		return 1; //Finished?
+	}
 	for (;;) //Search all available handlers!
 	{
 		if (unlikely(current(offset,&dataread))) //Success reading?
@@ -265,6 +321,16 @@ OPTINLINE byte MMU_IO_readhandler(uint_32 offset, byte index)
 		}
 		current = *(++list); //Next handler!
 		if (likely(current == NULL)) break; //Finished?
+	}
+	if (is_i430fx) //Emulate special memory/PCI split?
+	{
+		if ((offset >= 0xC0000) && (offset <= 0x100000)) //Specially mapped memory?
+		{
+			//Give the last data read/written by the BUS!
+			memory_dataread = 0xFF; //What is read!
+			memory_dataaddr = offset; //What address!
+			memory_datasize = 1; //1 byte only!
+		}
 	}
 	return 1; //Normal memory access!
 }
@@ -296,7 +362,14 @@ uint_32 MMU_calcmaplocpatch(byte memloc)
 	address = 0; //Default: don't substract!
 	if ((MoveLowMemoryHigh&1) && (memloc)) //Move first block lower?
 	{
-		address += (LOW_MEMORYHOLE_END - LOW_MEMORYHOLE_START); //Patch into memory hole!
+		if (is_i430fx) //i430fx has a special case?
+		{
+			address += (LOW_MEMORYHOLE_END - LOW_MEMORYHOLE_START) - 0x40000; //Patch into memory hole! Reserve the memory used for the BIOS remapping!
+		}
+		else //Full block?
+		{
+			address += (LOW_MEMORYHOLE_END - LOW_MEMORYHOLE_START); //Patch into memory hole!
+		}
 	}
 	if ((MoveLowMemoryHigh&2) && (memloc>=2)) //Move second block lower?
 	{
@@ -323,7 +396,14 @@ void MMU_precalcMemoryHoles()
 		{
 			if (unlikely(address < LOW_MEMORYHOLE_END)) //First hole?
 			{
-				memoryhole = 1; //First memory hole!
+				if (is_i430fx && (address>=0xC0000)) //Not a memory hole?
+				{
+					memoryhole = 0; //Not a memory hole!
+				}
+				else //A memory hole?
+				{
+					memoryhole = 1; //First memory hole!
+				}
 			}
 			else //Mid memory?
 			{
@@ -365,6 +445,8 @@ struct
 	byte* cache; //Cached data of the byte address in memory(only valid when not a memory hole)!
 	byte memLocHole; //Prefetched data!
 } memorymapinfo[8]; //Two for reads(code, data), one for writes, double the size for adding DMA mapping support!
+
+void MMU_seti430fx(); //Prototype!
 
 void resetMMU()
 {
@@ -430,6 +512,10 @@ resetmmu:
 	updateBUShandler(); //Set the new bus handler!
 	MMU_calcIndexPrecalcs(); //Calculate the index precalcs!
 	memory_directwb(0x80C00000,0xFF); //Init to all bits set when emulated!
+	if (is_i430fx) //i430fx motberboard? Leave the higher memory block intact!
+	{
+		MMU_seti430fx(); //Enable the i430fx-required mapping!
+	}
 }
 
 void doneMMU()
@@ -664,8 +750,23 @@ void writeCompaqMMUregister(uint_32 originaladdress, byte value)
 	{
 		BIOSROM_LowMemoryBecomesHighMemory = BIOSROM_DisableLowMemory = 1; //Low memory becomes high memory! Compaq RAM replaces ROM!
 	}
+	if (is_i430fx) //i430fx motberboard? Leave the higher memory block intact!
+	{
+		MoveLowMemoryHigh = 6; //Move all memory blocks high when needed? Leave the low memory block in place!
+	}
 	MoveLowMemoryHigh = 7; //Move all memory blocks high when needed?
 	MMU.maxsize = MMU.size - (0x100000 - 0xA0000); //Limit the memory size!
+	MMU_updatemaxsize(); //updated the maximum size!
+	memory_datasize = 0; //Invalidate the read cache!
+	BIU_cachedmemorysize = 0; //Make the BIU properly aware by flushing it's caches!
+}
+
+void MMU_seti430fx()
+{
+	memoryprotect_FE0000 = 0; //Write-protect 128KB RAM at 0xFE0000?
+	BIOSROM_LowMemoryBecomesHighMemory = BIOSROM_DisableLowMemory = 0; //Normal low memory!
+	MoveLowMemoryHigh = 6; //Move all memory blocks high when needed? Leave the low memory block in place!
+	MMU.maxsize = MMU.size; //Don't limit the memory size!
 	MMU_updatemaxsize(); //updated the maximum size!
 	memory_datasize = 0; //Invalidate the read cache!
 	BIU_cachedmemorysize = 0; //Make the BIU properly aware by flushing it's caches!
@@ -843,7 +944,7 @@ OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, word index
 	uint_32 originaladdress = realaddress; //Original address!
 	//Apply the 640K memory hole!
 	byte nonexistant = 0;
-	if (unlikely(emulateCompaqMMURegisters && (realaddress==0x80C00000))) //Compaq special register?
+	if (unlikely(emulateCompaqMMURegisters && (is_i430fx==0) && (realaddress==0x80C00000))) //Compaq special register?
 	{
 		writeCompaqMMUregister(originaladdress, value); //Update the Compaq MMU register!
 		if (unlikely(BIU_cachedmemorysize && (BIU_cachedmemoryaddr <= originaladdress) && ((BIU_cachedmemoryaddr + BIU_cachedmemorysize) > originaladdress))) //Matched an active read cache(allowing self-modifying code)?

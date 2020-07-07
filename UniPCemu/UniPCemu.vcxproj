@@ -164,6 +164,7 @@
     <ClCompile Include="hardware\ems.c" />
     <ClCompile Include="hardware\floppy.c" />
     <ClCompile Include="hardware\gameblaster.c" />
+    <ClCompile Include="hardware\i430fx.c" />
     <ClCompile Include="hardware\ide.c" />
     <ClCompile Include="hardware\inboard.c" />
     <ClCompile Include="hardware\joystick.c" />
@@ -321,6 +322,7 @@
     <ClInclude Include="headers\hardware\ems.h" />
     <ClInclude Include="headers\hardware\floppy.h" />
     <ClInclude Include="headers\hardware\gameblaster.h" />
+    <ClInclude Include="headers\hardware\i430fx.h" />
     <ClInclude Include="headers\hardware\ide.h" />
     <ClInclude Include="headers\hardware\inboard.h" />
     <ClInclude Include="headers\hardware\joystick.h" />

@@ -110,6 +110,9 @@ OBJS += hardware/dram.o
 #Inboard
 OBJS += hardware/inboard.o
 
+#i430fx
+OBJS += hardware/i430fx.o
+
 #BIOS:
 OBJS += bios/bios.o bios/biosmenu.o bios/initmem.o bios/biosrom.o
 #MMU:

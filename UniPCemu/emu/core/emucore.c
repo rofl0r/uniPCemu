@@ -87,6 +87,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/hardware/inboard.h" //Inboard support!
 #include "headers/cpu/biu.h" //For checking if we're able to HLT!
 #include "headers/hardware/modem.h" //Modem support!
+#include "headers/hardware/i430fx.h" //i430fx support!
 
 //Emulator single step address, when enabled.
 byte doEMUsinglestep[5] = { 0,0,0,0,0 }; //CPU mode plus 1
@@ -429,6 +430,8 @@ void initEMU(int full) //Init!
 	debugrow("Initialising audio subsystem...");
 	resetchannels(); //Reset all channels!
 
+	init_i430fx(is_PS2); //Enable the i540fx if PS/2 extensions are enabled!
+
 	debugrow("Initializing 8259...");
 	init8259(); //Initialise the 8259 (PIC)!
 
@@ -697,7 +700,9 @@ void doneEMU()
 		debugrow("doneEMU: finish Mouse chip...");
 		BIOS_doneMouse(); //Done with the mouse!
 		debugrow("doneEMU: finish 8042...");
-		BIOS_done8042(); //Done with PS/2 communications!~
+		BIOS_done8042(); //Done with PS/2 communications!
+		debugrow("doneEMU: finish i430fx...");
+		done_i430fx(); //Done with the i430fx!
 		debugrow("doneEMU: reset audio channels...");
 		resetchannels(); //Release audio!
 		debugrow("doneEMU: Finishing Video...");
