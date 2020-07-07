@@ -246,8 +246,9 @@ OPTINLINE byte MMU_IO_writehandler(uint_32 offset, byte value)
 			{
 				memory_datawrittensize = 1; //Only 1 byte written!
 			}
+			return 0; //Finished?
 		}
-		return 0; //Finished?
+		return 1; //Normal memory access?
 	}
 	for (;;) //Search all available handlers!
 	{
