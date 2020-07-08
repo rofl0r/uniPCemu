@@ -29,8 +29,6 @@ void i430fx_resetPCIConfiguration()
 	i430fx_configuration[0x53] = 0x14; //ROM set is a 430FX?
 	i430fx_configuration[0x56] = 0x52; //ROM set is a 430FX? DRAM control
 	i430fx_configuration[0x57] = 0x01;
-	i430fx_configuration[0x60] = i430fx_configuration[0x61] = i430fx_configuration[0x62] = i430fx_configuration[0x63] = i430fx_configuration[0x64] = 0x02; //
-	i430fx_configuration[0x67] = 0x11; //ROM set is a 430FX?
 	i430fx_configuration[0x69] = 0x03; //ROM set is a 430FX?
 	i430fx_configuration[0x70] = 0x20; //ROM set is a 430FX?
 	i430fx_configuration[0x72] = 0x02;
@@ -102,6 +100,18 @@ void i430fx_PCIConfigurationChangeHandler(uint_32 address, byte device, byte fun
 		i430fx_mapRAMROM((address<<1), 1, (i430fx_configuration[address+0x5A] & 0xF)); //Set it up!
 		i430fx_mapRAMROM(((address<<1)|1), 1, (i430fx_configuration[address+0x5A] >> 4)); //Set it up!
 		break;
+	case 0x60:
+	case 0x61:
+	case 0x62:
+	case 0x63:
+	case 0x64:
+	case 0x65:
+	case 0x66:
+	case 0x67: //DRAM module detection?
+		//TODO
+		i430fx_configuration[0x60] = i430fx_configuration[0x61] = i430fx_configuration[0x62] = i430fx_configuration[0x63] = i430fx_configuration[0x64] = 0x02; //
+		i430fx_configuration[0x67] = 0x11; //ROM set is a 430FX?
+		break;
 	default: //Not emulated?
 		break; //Ignore!
 	}
@@ -135,6 +145,11 @@ void init_i430fx(byte enabled)
 	memset(&i430fx_configuration, 0, sizeof(i430fx_configuration)); //Initialize the configuration!
 
 	i430fx_resetPCIConfiguration(); //Initialize/reset the configuration!
+
+	//Initialize DRAM module detection!
+	i430fx_configuration[0x60] = i430fx_configuration[0x61] = i430fx_configuration[0x62] = i430fx_configuration[0x63] = i430fx_configuration[0x64] = 0x02; //
+	i430fx_configuration[0x67] = 0x11; //ROM set is a 430FX?
+
 
 	i430fx_configuration[0x59] = 0xF; //Default configuration setting when reset!
 
