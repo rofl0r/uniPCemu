@@ -4,8 +4,9 @@
 #include "headers/cpu/cpu.h" //CPU reset support!
 
 byte is_i430fx = 0; //Are we an i430fx motherboard?
-extern byte i430fx_memorymappings_read[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}; //All read memory/PCI! Set=DRAM, clear=PCI!
-extern byte i430fx_memorymappings_write[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}; //All write memory/PCI! Set=DRAM, clear=PCI!
+byte i430fx_memorymappings_read[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}; //All read memory/PCI! Set=DRAM, clear=PCI!
+byte i430fx_memorymappings_write[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}; //All write memory/PCI! Set=DRAM, clear=PCI!
+extern byte MMU_memoryholespec; //memory hole specification? 0=Normal, 1=512K, 2=15M.
 
 byte i430fx_configuration[256]; //Full configuration space!
 
@@ -86,6 +87,23 @@ void i430fx_PCIConfigurationChangeHandler(uint_32 address, byte device, byte fun
 	i430fx_resetPCIConfiguration(); //Reset the ROM values!
 	switch (address) //What configuration is changed?
 	{
+	case 0x57: //DRAMC - DRAM control register
+		switch (((i430fx_configuration[0x57] >> 6) & 3)) //What memory hole to emulate?
+		{
+		case 0: //None?
+			MMU_memoryholespec = 1; //Disabled!
+			break;
+		case 1: //512K-640K?
+			MMU_memoryholespec = 2; //512K memory hole!
+			break;
+		case 2: //15-16MB?
+			MMU_memoryholespec = 3; //15M memory hole!
+			break;
+		case 3: //Reserved?
+			MMU_memoryholespec = 1; //Disabled!
+			break;
+		}
+		break;
 	case 0x59: //BIOS ROM at 0xF0000? PAM0
 		i430fx_mapRAMROM(0xC, 4, (i430fx_configuration[0x59] >> 4)); //Set it up!
 		//bit 4 sets some shadow BIOS setting? It's shadowing the BIOS in that case(Read=RAM setting)!
@@ -150,6 +168,7 @@ void init_i430fx(byte enabled)
 	i430fx_configuration[0x60] = i430fx_configuration[0x61] = i430fx_configuration[0x62] = i430fx_configuration[0x63] = i430fx_configuration[0x64] = 0x02; //
 	i430fx_configuration[0x67] = 0x11; //ROM set is a 430FX?
 
+	MMU_memoryholespec = 0; //Default: normal behaviour!
 
 	i430fx_configuration[0x59] = 0xF; //Default configuration setting when reset!
 
@@ -163,6 +182,7 @@ void init_i430fx(byte enabled)
 	if (enabled) //Are we enabled?
 	{
 		register_PCI(&i430fx_configuration, 3, 0, (sizeof(i430fx_configuration)>>2), &i430fx_PCIConfigurationChangeHandler); //Register ourselves to PCI!
+		MMU_memoryholespec = 0; //Our specific specification!
 	}
 }
 

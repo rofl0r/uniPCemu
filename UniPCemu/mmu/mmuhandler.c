@@ -357,24 +357,22 @@ uint_32 MMU_memorymaplocpatch[0x100]; //Memory to substract for the mapped memor
 #define HIGH_MEMORYHOLE_START 0xC0000000
 #define HIGH_MEMORYHOLE_END 0x100000000ULL
 
+byte MMU_memoryholespec = 0; //memory hole specification? 0=Normal, 1=Disabled, 2=512K, 3=15M.
+
 uint_32 MMU_calcmaplocpatch(byte memloc)
 {
 	uint_32 address;
 	address = 0; //Default: don't substract!
-	if ((MoveLowMemoryHigh&1) && (memloc)) //Move first block lower?
+	if (!is_i430fx) //Not i430fx has a special case? Low and mid memory aren't lowered and stay in place!
 	{
-		if (is_i430fx) //i430fx has a special case?
-		{
-			address += (LOW_MEMORYHOLE_END - LOW_MEMORYHOLE_START) - 0x40000; //Patch into memory hole! Reserve the memory used for the BIOS remapping!
-		}
-		else //Full block?
+		if ((MoveLowMemoryHigh & 1) && (memloc)) //Move first block lower?
 		{
 			address += (LOW_MEMORYHOLE_END - LOW_MEMORYHOLE_START); //Patch into memory hole!
 		}
-	}
-	if ((MoveLowMemoryHigh&2) && (memloc>=2)) //Move second block lower?
-	{
-		address += (MID_MEMORYHOLE_END - MID_MEMORYHOLE_START); //Patch into memory hole!
+		if ((MoveLowMemoryHigh & 2) && (memloc >= 2)) //Move second block lower?
+		{
+			address += (MID_MEMORYHOLE_END - MID_MEMORYHOLE_START); //Patch into memory hole!
+		}
 	}
 	if ((MoveLowMemoryHigh&4) && (memloc>=3)) //Move third block lower?
 	{
@@ -393,6 +391,13 @@ void MMU_precalcMemoryHoles()
 	{
 		memloc = 0; //Default: first memory block: low memory!
 		memoryhole = 0; //Default: memory unavailable!
+		if (unlikely(is_i430fx && (address >= (512 * 1024)) && (address < LOW_MEMORYHOLE_START))) //512K memory hole?
+		{
+			if (MMU_memoryholespec == 2) //Enable 512K memory hole?
+			{
+				memoryhole = 1; //First memory hole!
+			}
+		}
 		if (address >= LOW_MEMORYHOLE_START) //Start of first hole?
 		{
 			if (unlikely(address < LOW_MEMORYHOLE_END)) //First hole?
@@ -413,7 +418,10 @@ void MMU_precalcMemoryHoles()
 				{
 					if (unlikely(address < MID_MEMORYHOLE_END)) //Second hole?
 					{
-						memoryhole = 2; //Second memory hole!
+						if ((!is_i430fx) || (MMU_memoryholespec == 3)) //Enable mid memory hole?
+						{
+							memoryhole = 2; //Second memory hole!
+						}
 					}
 					else //High memory?
 					{
