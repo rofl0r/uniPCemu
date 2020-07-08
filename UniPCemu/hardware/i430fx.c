@@ -130,6 +130,8 @@ void i430fx_PCIConfigurationChangeHandler(uint_32 address, byte device, byte fun
 		i430fx_configuration[0x60] = i430fx_configuration[0x61] = i430fx_configuration[0x62] = i430fx_configuration[0x63] = i430fx_configuration[0x64] = 0x02; //
 		i430fx_configuration[0x67] = 0x11; //ROM set is a 430FX?
 		break;
+	case 0x72: //SMRAM?
+		break;
 	default: //Not emulated?
 		break; //Ignore!
 	}
