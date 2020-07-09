@@ -61,7 +61,7 @@ void i430fx_resetPCIConfiguration()
 	i430fx_configuration[0x57] = 0x01;
 	i430fx_configuration[0x69] = 0x03; //ROM set is a 430FX?
 	i430fx_configuration[0x70] = 0x20; //ROM set is a 430FX?
-	i430fx_configuration[0x72] = 0x02;
+	//i430fx_configuration[0x72] = 0x02;
 	i430fx_configuration[0x74] = 0x0E; //ROM set is a 430FX?
 	i430fx_configuration[0x78] = 0x23; //ROM set is a 430FX?
 }
@@ -202,6 +202,7 @@ void init_i430fx(byte enabled)
 
 	MMU_memoryholespec = 0; //Default: normal behaviour!
 	i430fx_configuration[0x59] = 0xF; //Default configuration setting when reset!
+	i430fx_configuration[0x72] = 0x02; //Default SMRAM setting!
 
 	//Initalize all mappings!
 	for (address = 0x59; address < 0x5F; ++address) //Initialize us!
