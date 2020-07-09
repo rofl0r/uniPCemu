@@ -11,6 +11,7 @@ byte SMRAM_data = 1; //SMRAM responds to data accesses?
 byte SMRAM_locked = 0; //Are we locked?
 byte SMRAM_SMIACT = 0; //SMI activated
 extern byte MMU_memoryholespec; //memory hole specification? 0=Normal, 1=512K, 2=15M.
+byte i430fx_previousDRAM[5]; //Previous DRAM values
 
 byte i430fx_configuration[256]; //Full configuration space!
 
@@ -54,16 +55,6 @@ void i430fx_resetPCIConfiguration()
 	i430fx_configuration[0x09] = 0x00;
 	i430fx_configuration[0x0A] = 0x00;
 	i430fx_configuration[0x0B] = 0x06;
-	i430fx_configuration[0x52] = 0x40; //256kB PLB cache?
-	i430fx_configuration[0x52] = 0x42; //ROM set is a 430FX?
-	i430fx_configuration[0x53] = 0x14; //ROM set is a 430FX?
-	i430fx_configuration[0x56] = 0x52; //ROM set is a 430FX? DRAM control
-	i430fx_configuration[0x57] = 0x01;
-	i430fx_configuration[0x69] = 0x03; //ROM set is a 430FX?
-	i430fx_configuration[0x70] = 0x20; //ROM set is a 430FX?
-	//i430fx_configuration[0x72] = 0x02;
-	i430fx_configuration[0x74] = 0x0E; //ROM set is a 430FX?
-	i430fx_configuration[0x78] = 0x23; //ROM set is a 430FX?
 }
 
 void i430fx_map_read_memoryrange(byte start, byte size, byte maptoRAM)
@@ -113,6 +104,7 @@ void i430fx_mapRAMROM(byte start, byte size, byte setting)
 
 void i430fx_PCIConfigurationChangeHandler(uint_32 address, byte device, byte function, byte size)
 {
+	byte old_DRAMdetect;
 	i430fx_resetPCIConfiguration(); //Reset the ROM values!
 	switch (address) //What configuration is changed?
 	{
@@ -152,12 +144,21 @@ void i430fx_PCIConfigurationChangeHandler(uint_32 address, byte device, byte fun
 	case 0x62:
 	case 0x63:
 	case 0x64:
-	case 0x65:
-	case 0x66:
-	case 0x67: //DRAM module detection?
-		//TODO
-		i430fx_configuration[0x60] = i430fx_configuration[0x61] = i430fx_configuration[0x62] = i430fx_configuration[0x63] = i430fx_configuration[0x64] = 0x02; //
-		i430fx_configuration[0x67] = 0x11; //ROM set is a 430FX?
+	//case 0x65:
+	//case 0x66:
+	//case 0x67:
+		//DRAM module detection?
+		i430fx_configuration[address] &= 0x3F; //Only 6 bits/row!
+		if (((i430fx_configuration[0x60] +
+			((i430fx_configuration[0x61] > i430fx_configuration[0x60])?i430fx_configuration[0x61] - i430fx_configuration[0x60]:0) +
+			((i430fx_configuration[0x62] > i430fx_configuration[0x61])?i430fx_configuration[0x62] - i430fx_configuration[0x61]:0) +
+			((i430fx_configuration[0x63] > i430fx_configuration[0x62])?i430fx_configuration[0x63] - i430fx_configuration[0x62]:0) +
+			((i430fx_configuration[0x64] > i430fx_configuration[0x63])?i430fx_configuration[0x64] - i430fx_configuration[0x63]:0)
+			)<<22) > *getarchmemory()) //Too much detected?
+		{
+			i430fx_configuration[address] = i430fx_previousDRAM[address-0x60]; //Reset back to the default: nothing!
+		}
+		i430fx_previousDRAM[address - 0x60] = i430fx_configuration[address]; //Change detection!
 		break;
 	case 0x72: //SMRAM?
 		i430fx_updateSMRAM();
@@ -197,12 +198,25 @@ void init_i430fx(byte enabled)
 	i430fx_resetPCIConfiguration(); //Initialize/reset the configuration!
 
 	//Initialize DRAM module detection!
-	i430fx_configuration[0x60] = i430fx_configuration[0x61] = i430fx_configuration[0x62] = i430fx_configuration[0x63] = i430fx_configuration[0x64] = 0x02; //
-	i430fx_configuration[0x67] = 0x11; //ROM set is a 430FX?
+	memset(&i430fx_configuration[0x60], 2, 5); //Initialize the DRAM settings!
+	memcpy(&i430fx_previousDRAM, &i430fx_configuration[0x60], 5); //Initialize the change detection!
 
 	MMU_memoryholespec = 0; //Default: normal behaviour!
 	i430fx_configuration[0x59] = 0xF; //Default configuration setting when reset!
+	i430fx_configuration[0x57] = 0x01; //Default memory hole setting!
 	i430fx_configuration[0x72] = 0x02; //Default SMRAM setting!
+
+	//Known and unknown registers:
+	i430fx_configuration[0x52] = 0x40; //256kB PLB cache?
+	i430fx_configuration[0x52] = 0x42; //ROM set is a 430FX?
+	i430fx_configuration[0x53] = 0x14; //ROM set is a 430FX?
+	i430fx_configuration[0x56] = 0x52; //ROM set is a 430FX? DRAM control
+	//i430fx_configuration[0x57] = 0x01;
+	i430fx_configuration[0x69] = 0x03; //ROM set is a 430FX?
+	i430fx_configuration[0x70] = 0x20; //ROM set is a 430FX?
+	//i430fx_configuration[0x72] = 0x02;
+	i430fx_configuration[0x74] = 0x0E; //ROM set is a 430FX?
+	i430fx_configuration[0x78] = 0x23; //ROM set is a 430FX?
 
 	//Initalize all mappings!
 	for (address = 0x59; address < 0x5F; ++address) //Initialize us!
