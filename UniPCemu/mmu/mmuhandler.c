@@ -219,6 +219,7 @@ byte memory_datawritesize = 1; //How much bytes are requested to be written?
 byte memory_datawrittensize = 1; //How many bytes have been written to memory during a write!
 
 extern byte SMRAM_enabled; //SMRAM enabled?
+extern byte SMRAM_data; //SMRAM responds to data accesses?
 
 //Handler for special MMU-based I/O, direct addresses used!
 OPTINLINE byte MMU_IO_writehandler(uint_32 offset, byte value)
@@ -239,7 +240,10 @@ OPTINLINE byte MMU_IO_writehandler(uint_32 offset, byte value)
 			}
 			else if ((offset >= 0xA0000) && SMRAM_enabled) //SMRAM?
 			{
-				return 1; //normal memory access!
+				if (SMRAM_data) //Allowed data?
+				{
+					return 1; //normal memory access!
+				}
 			}
 			//Otherwise, map to PCI and not DRAM!
 		}
@@ -305,7 +309,10 @@ OPTINLINE byte MMU_IO_readhandler(uint_32 offset, byte index)
 			}
 			else if ((offset >= 0xA0000) && SMRAM_enabled) //SMRAM?
 			{
-				return 1; //normal memory access!
+				if (SMRAM_data || (index&0x20)) //Code or allowed data?
+				{
+					return 1; //normal memory access!
+				}
 			}
 		}
 	}
