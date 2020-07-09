@@ -21,6 +21,7 @@ void i430fx_updateSMRAM()
 	{
 		SMRAM_enabled = 0; //Disable for now!
 	}
+	MMU_RAMlayoutupdated(); //Update the RAM layout!
 }
 
 void i430fx_resetPCIConfiguration()

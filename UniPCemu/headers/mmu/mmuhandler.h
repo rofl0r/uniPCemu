@@ -86,4 +86,5 @@ void memory_directwdw(uint_32 realaddress, uint_32 value);
 void MMU_updatemaxsize(); //updated the maximum size!
 void updateBUShandler(); //Update the bus handler!
 void MMU_calcIndexPrecalcs(); //Calculate the index precalcs!
+void MMU_RAMlayoutupdated(); //Layout updated!
 #endif

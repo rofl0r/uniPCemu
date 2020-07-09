@@ -218,6 +218,8 @@ uint_32 memory_datawrite = 0; //Data to be written!
 byte memory_datawritesize = 1; //How much bytes are requested to be written?
 byte memory_datawrittensize = 1; //How many bytes have been written to memory during a write!
 
+extern byte SMRAM_enabled; //SMRAM enabled?
+
 //Handler for special MMU-based I/O, direct addresses used!
 OPTINLINE byte MMU_IO_writehandler(uint_32 offset, byte value)
 {
@@ -395,8 +397,6 @@ uint_32 MMU_calcmaplocpatch(byte memloc)
 	return address; //How much to substract!
 }
 
-extern byte SMRAM_enabled; //SMRAM enabled?
-
 void MMU_precalcMemoryHoles()
 {
 	byte memloc, memoryhole;
@@ -422,7 +422,7 @@ void MMU_precalcMemoryHoles()
 				{
 					memoryhole = 0; //Not a memory hole!
 				}
-				else if (is_i430fx && (addresss >= 0xA0000) && SMRAM_enabled) //SMRAM?
+				else if (is_i430fx && (address >= 0xA0000) && SMRAM_enabled) //SMRAM?
 				{
 					memoryhole = 0; //Not a memory hole!
 				}
@@ -545,6 +545,12 @@ resetmmu:
 	{
 		MMU_seti430fx(); //Enable the i430fx-required mapping!
 	}
+}
+
+void MMU_RAMlayoutupdated()
+{
+	MMU_updatemaxsize(); //updated the maximum size!
+	MMU_precalcMemoryHoles(); //Precalculate the memory hole information!
 }
 
 void doneMMU()
