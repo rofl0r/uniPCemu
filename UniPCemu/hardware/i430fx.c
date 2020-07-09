@@ -11,6 +11,18 @@ extern byte MMU_memoryholespec; //memory hole specification? 0=Normal, 1=512K, 2
 
 byte i430fx_configuration[256]; //Full configuration space!
 
+void i430fx_updateSMRAM()
+{
+	if (i430fx_configuration[0x72] & 0x40) //SMRAM enabled always?
+	{
+		SMRAM_enabled = 1; //Enabled!
+	}
+	else
+	{
+		SMRAM_enabled = 0; //Disable for now!
+	}
+}
+
 void i430fx_resetPCIConfiguration()
 {
 	i430fx_configuration[0x00] = 0x86;
@@ -132,6 +144,7 @@ void i430fx_PCIConfigurationChangeHandler(uint_32 address, byte device, byte fun
 		i430fx_configuration[0x67] = 0x11; //ROM set is a 430FX?
 		break;
 	case 0x72: //SMRAM?
+		i430fx_updateSMRAM();
 		break;
 	default: //Not emulated?
 		break; //Ignore!
@@ -172,7 +185,6 @@ void init_i430fx(byte enabled)
 	i430fx_configuration[0x67] = 0x11; //ROM set is a 430FX?
 
 	MMU_memoryholespec = 0; //Default: normal behaviour!
-
 	i430fx_configuration[0x59] = 0xF; //Default configuration setting when reset!
 
 	//Initalize all mappings!
@@ -180,6 +192,8 @@ void init_i430fx(byte enabled)
 	{
 		i430fx_PCIConfigurationChangeHandler(address, 3, 0, 1); //Initialize all required settings!
 	}
+
+	i430fx_updateSMRAM(); //Update the SMRAM setting!
 
 	//Register PCI configuration space?
 	if (enabled) //Are we enabled?
