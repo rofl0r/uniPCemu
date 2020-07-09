@@ -7,21 +7,36 @@ byte is_i430fx = 0; //Are we an i430fx motherboard?
 byte i430fx_memorymappings_read[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}; //All read memory/PCI! Set=DRAM, clear=PCI!
 byte i430fx_memorymappings_write[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}; //All write memory/PCI! Set=DRAM, clear=PCI!
 byte SMRAM_enabled = 0; //SMRAM enabled?
+byte SMRAM_data = 1; //SMRAM responds to data accesses?
+byte SMRAM_locked = 0; //Are we locked?
+byte SMRAM_SMIACT = 0; //SMI activated
 extern byte MMU_memoryholespec; //memory hole specification? 0=Normal, 1=512K, 2=15M.
 
 byte i430fx_configuration[256]; //Full configuration space!
 
 void i430fx_updateSMRAM()
 {
+	if ((i430fx_configuration[0x72] & 0x10) || SMRAM_locked) //Locked?
+	{
+		SMRAM_locked = 1; //Permanent lock!
+		i430fx_configuration[0x72] &= ~0x40; //Bit is permanently cleared!
+	}
 	if (i430fx_configuration[0x72] & 0x40) //SMRAM enabled always?
 	{
-		SMRAM_enabled = 1; //Enabled!
+		SMRAM_enabled = (i430fx_configuration[0x72] & 0x08); //Enabled!
 	}
 	else
 	{
-		SMRAM_enabled = 0; //Disable for now!
+		SMRAM_enabled = SMRAM_SMIACT && (i430fx_configuration[0x72] & 0x08); //Enabled for SMIACT!
 	}
+	SMRAM_data = (i430fx_configuration[0x72]&0x20)?0:1; //SMRAM responds to data accesses?
 	MMU_RAMlayoutupdated(); //Update the RAM layout!
+}
+
+void i430fx__SMIACT(byte active)
+{
+	SMRAM_SMIACT = active; //SMIACT#?
+	i430fx_updateSMRAM(); //Update the SMRAM mapping!
 }
 
 void i430fx_resetPCIConfiguration()
@@ -194,6 +209,8 @@ void init_i430fx(byte enabled)
 		i430fx_PCIConfigurationChangeHandler(address, 3, 0, 1); //Initialize all required settings!
 	}
 
+	SMRAM_locked = 0; //Unlock SMRAM always!
+	SMRAM_SMIACT = 0; //Default: not active!
 	i430fx_updateSMRAM(); //Update the SMRAM setting!
 
 	//Register PCI configuration space?
