@@ -6,6 +6,7 @@
 byte is_i430fx = 0; //Are we an i430fx motherboard?
 byte i430fx_memorymappings_read[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}; //All read memory/PCI! Set=DRAM, clear=PCI!
 byte i430fx_memorymappings_write[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}; //All write memory/PCI! Set=DRAM, clear=PCI!
+byte SMRAM_enabled = 0; //SMRAM enabled?
 extern byte MMU_memoryholespec; //memory hole specification? 0=Normal, 1=512K, 2=15M.
 
 byte i430fx_configuration[256]; //Full configuration space!

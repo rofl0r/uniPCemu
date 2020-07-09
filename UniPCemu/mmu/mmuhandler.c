@@ -226,11 +226,18 @@ OPTINLINE byte MMU_IO_writehandler(uint_32 offset, byte value)
 	memory_datawrittensize = 1; //Default to only 1 byte responding!
 	if (is_i430fx) //Emulate special memory/PCI split?
 	{
-		if ((offset >= 0xC0000) && (offset <= 0x100000)) //Specially mapped memory?
+		if (offset <= 0x100000) //Specially mapped memory?
 		{
-			if (i430fx_memorymappings_write[((offset - 0xC0000) >> 14) & 0xF]) //Map to DRAM?
+			if (offset >= 0xC0000) //Normal RAM/ROM mapping?
 			{
-				return 1; //Normal memory access!
+				if (i430fx_memorymappings_write[((offset - 0xC0000) >> 14) & 0xF]) //Map to DRAM?
+				{
+					return 1; //Normal memory access!
+				}
+			}
+			else if ((offset >= 0xA0000) && SMRAM_enabled) //SMRAM?
+			{
+				return 1; //normal memory access!
 			}
 			//Otherwise, map to PCI and not DRAM!
 		}
@@ -261,7 +268,7 @@ OPTINLINE byte MMU_IO_writehandler(uint_32 offset, byte value)
 	}
 	if (is_i430fx) //Emulate special memory/PCI split?
 	{
-		if ((offset >= 0xC0000) && (offset <= 0x100000)) //Specially mapped memory?
+		if ((offset >= 0xA0000) && (offset <= 0x100000)) //Specially mapped memory?
 		{
 			memory_datawrittensize = 1; //Only 1 byte written!
 			return 0; //Finished?
@@ -284,13 +291,20 @@ OPTINLINE byte MMU_IO_readhandler(uint_32 offset, byte index)
 
 	if (is_i430fx) //Emulate special memory/PCI split?
 	{
-		if ((offset >= 0xC0000) && (offset <= 0x100000)) //Specially mapped memory?
+		if (offset <= 0x100000) //Specially mapped memory?
 		{
-			if (i430fx_memorymappings_read[((offset - 0xC0000) >> 14) & 0xF]) //Map to DRAM?
+			if (offset >= 0xC0000) //Normal RAM/ROM mapping?
 			{
-				return 1; //Normal memory access!
+				if (i430fx_memorymappings_read[((offset - 0xC0000) >> 14) & 0xF]) //Map to DRAM?
+				{
+					return 1; //Normal memory access!
+				}
+				//Otherwise, map to PCI and not DRAM!
 			}
-			//Otherwise, map to PCI and not DRAM!
+			else if ((offset >= 0xA0000) && SMRAM_enabled) //SMRAM?
+			{
+				return 1; //normal memory access!
+			}
 		}
 	}
 
@@ -325,7 +339,7 @@ OPTINLINE byte MMU_IO_readhandler(uint_32 offset, byte index)
 	}
 	if (is_i430fx) //Emulate special memory/PCI split?
 	{
-		if ((offset >= 0xC0000) && (offset <= 0x100000)) //Specially mapped memory?
+		if ((offset >= 0xA0000) && (offset <= 0x100000)) //Specially mapped memory?
 		{
 			//Give the last data read/written by the BUS!
 			memory_dataread = 0xFF; //What is read!
@@ -381,6 +395,8 @@ uint_32 MMU_calcmaplocpatch(byte memloc)
 	return address; //How much to substract!
 }
 
+extern byte SMRAM_enabled; //SMRAM enabled?
+
 void MMU_precalcMemoryHoles()
 {
 	byte memloc, memoryhole;
@@ -403,6 +419,10 @@ void MMU_precalcMemoryHoles()
 			if (unlikely(address < LOW_MEMORYHOLE_END)) //First hole?
 			{
 				if (is_i430fx && (address>=0xC0000)) //Not a memory hole?
+				{
+					memoryhole = 0; //Not a memory hole!
+				}
+				else if (is_i430fx && (addresss >= 0xA0000) && SMRAM_enabled) //SMRAM?
 				{
 					memoryhole = 0; //Not a memory hole!
 				}
