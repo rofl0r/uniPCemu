@@ -65,6 +65,7 @@ void i430fx_map_read_memoryrange(byte start, byte size, byte maptoRAM)
 	{
 		i430fx_memorymappings_read[c] = maptoRAM; //Set it to the RAM mapping(1) or PCI mapping(0)!
 	}
+	MMU_RAMlayoutupdated(); //Update the RAM layout!
 }
 
 void i430fx_map_write_memoryrange(byte start, byte size, byte maptoRAM)
@@ -75,6 +76,7 @@ void i430fx_map_write_memoryrange(byte start, byte size, byte maptoRAM)
 	{
 		i430fx_memorymappings_write[c] = maptoRAM; //Set it to the RAM mapping(1) or PCI mapping(0)!
 	}
+	MMU_RAMlayoutupdated(); //Update the RAM layout!
 }
 
 void i430fx_mapRAMROM(byte start, byte size, byte setting)

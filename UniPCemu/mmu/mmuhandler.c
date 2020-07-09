@@ -554,10 +554,18 @@ resetmmu:
 	}
 }
 
+extern byte BIU_cachedmemorysize; //For the BIU to flush it's cache!
+
 void MMU_RAMlayoutupdated()
 {
 	MMU_updatemaxsize(); //updated the maximum size!
 	MMU_precalcMemoryHoles(); //Precalculate the memory hole information!
+	//Invalidate CPU caches
+	if (unlikely(BIU_cachedmemorysize)) //Matched an active read cache(allowing self-modifying code)?
+	{
+		memory_datasize = 0; //Invalidate the read cache to re-read memory!
+		BIU_cachedmemorysize = 0; //Invalidate the BIU cache as well!
+	}
 }
 
 void doneMMU()
@@ -767,8 +775,6 @@ byte readCompaqMMURegister() //Read the Compaq MMU register!
 	result = ~result; //Reverse to get the correct output!
 	return result; //Give the result!
 }
-
-extern byte BIU_cachedmemorysize; //For the BIU to flush it's cache!
 
 void writeCompaqMMUregister(uint_32 originaladdress, byte value)
 {
