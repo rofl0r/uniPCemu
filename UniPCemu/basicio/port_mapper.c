@@ -49,6 +49,13 @@ PORTOUTW PORT_OUTW[0x10000]; //For writing to ports!
 uint_32 PORT_OUTW_COUNT = 0;
 PORTOUTD PORT_OUTD[0x10000]; //For writing to ports!
 uint_32 PORT_OUTD_COUNT = 0;
+byte noportremapper(word* port, byte size, byte isread); //Prototype!
+REMAPPORT PORT_remapper = &noportremapper;
+
+byte noportremapper(word* port, byte size, byte isread)
+{
+	return 1; //Passthrough all!
+}
 
 //Reset and register!
 
@@ -70,6 +77,7 @@ void reset_ports()
 	PORT_OUT_COUNT = 0; //Nothing here!
 	PORT_OUTW_COUNT = 0; //Nothing here!
 	PORT_OUTD_COUNT = 0; //Nothing here!
+	PORT_remapper = &noportremapper; //Nothing here!
 }
 
 void register_PORTOUT(PORTOUT handler)
@@ -120,6 +128,11 @@ void register_PORTIND(PORTIND handler)
 	}
 }
 
+void register_PORTremapping(REMAPPORT handler) //Set PORT IN function handler!
+{
+	PORT_remapper = handler; //Link!
+}
+
 
 //Execution CPU functions!
 
@@ -130,6 +143,10 @@ byte EXEC_PORTOUT(word port, byte value)
 	#ifdef __LOG_PORT
 	dolog("emu","PORT OUT: %02X@%04X",value,port);
 	#endif
+	if (PORT_remapper(&port, 1, 0)==0) //What to do with this port?
+	{
+		goto giveresultportoutb;
+	}
 	for (i = 0; i < PORT_OUT_COUNT; i++) //Process all ports!
 	{
 		if (PORT_OUT[i]) //Valid port?
@@ -137,6 +154,7 @@ byte EXEC_PORTOUT(word port, byte value)
 			executed |= PORT_OUT[i](port, value); //PORT OUT on this port!
 		}
 	}
+	giveresultportoutb:
 	return !executed; //Have we failed?
 }
 
@@ -148,6 +166,10 @@ byte EXEC_PORTIN(word port, byte *result)
 #ifdef __LOG_PORT
 	dolog("emu","PORT IN: %04X",port);
 	#endif
+	if (PORT_remapper(&port, 1, 1) == 0) //What to do with this port?
+	{
+		goto giveresultportinb;
+	}
 	for (i = 0; i < PORT_IN_COUNT; i++) //Process all ports!
 	{
 		if (PORT_IN[i]) //Valid port?
@@ -163,6 +185,7 @@ byte EXEC_PORTIN(word port, byte *result)
 			if (temp) actualresult |= tempresult; //Add to the result if we're used!
 		}
 	}
+	giveresultportinb:
 	if (!executed) *result = PORT_UNDEFINED_RESULT; //Not executed gives all bits set!
 	else *result = actualresult; //Give the result!
 	#ifdef __LOG_PORT
@@ -178,6 +201,10 @@ byte EXEC_PORTOUTW(word port, word value)
 #ifdef __LOG_PORT
 	dolog("emu", "PORT OUT: %04X@%04X", value, port);
 #endif
+	if (PORT_remapper(&port, 2, 0) == 0) //What to do with this port?
+	{
+		goto giveresultportoutw;
+	}
 	if (port==IO_CALLBACKPORT) //Special handler port?
 	{
 		CB_handler(value); //Call special handler!
@@ -190,6 +217,7 @@ byte EXEC_PORTOUTW(word port, word value)
 			executed |= PORT_OUTW[i](port, value); //PORT OUT on this port!
 		}
 	}
+	giveresultportoutw:
 	return !executed; //Have we failed?
 }
 
@@ -202,6 +230,10 @@ byte EXEC_PORTINW(word port, word *result)
 #ifdef __LOG_PORT
 	dolog("emu", "PORT IN: %04X", port);
 #endif
+	if (PORT_remapper(&port, 2, 1) == 0) //What to do with this port?
+	{
+		goto giveresultportinw;
+	}
 	for (i = 0; i < PORT_INW_COUNT; i++) //Process all ports!
 	{
 		if (PORT_INW[i]) //Valid port?
@@ -217,6 +249,7 @@ byte EXEC_PORTINW(word port, word *result)
 			if (temp) actualresult |= tempresult; //Add to the result if we're used!
 		}
 	}
+	giveresultportinw:
 	if (!executed) *result = PORT_UNDEFINED_RESULT; //Not executed gives all bits set!
 	else *result = actualresult; //Give the result!
 #ifdef __LOG_PORT
@@ -232,6 +265,10 @@ byte EXEC_PORTOUTD(word port, uint_32 value)
 #ifdef __LOG_PORT
 	dolog("emu", "PORT OUT: %08X@%04X", value, port);
 #endif
+	if (PORT_remapper(&port, 4, 0) == 0) //What to do with this port?
+	{
+		goto giveresultportoutd;
+	}
 	for (i = 0; i < PORT_OUTD_COUNT; i++) //Process all ports!
 	{
 		if (PORT_OUTD[i]) //Valid port?
@@ -239,6 +276,7 @@ byte EXEC_PORTOUTD(word port, uint_32 value)
 			executed |= PORT_OUTD[i](port, value); //PORT OUT on this port!
 		}
 	}
+	giveresultportoutd:
 	return !executed; //Have we failed?
 }
 
@@ -251,6 +289,10 @@ byte EXEC_PORTIND(word port, uint_32 *result)
 #ifdef __LOG_PORT
 	dolog("emu", "PORT IN: %04X", port);
 #endif
+	if (PORT_remapper(&port, 4, 1) == 0) //What to do with this port?
+	{
+		goto giveresultportind;
+	}
 	for (i = 0; i < PORT_IND_COUNT; i++) //Process all ports!
 	{
 		if (PORT_IND[i]) //Valid port?
@@ -266,6 +308,7 @@ byte EXEC_PORTIND(word port, uint_32 *result)
 			if (temp) actualresult |= tempresult; //Add to the result if we're used!
 		}
 	}
+	giveresultportind:
 	if (!executed) *result = PORT_UNDEFINED_RESULT; //Not executed gives all bits set!
 	else *result = actualresult; //Give the result!
 #ifdef __LOG_PORT

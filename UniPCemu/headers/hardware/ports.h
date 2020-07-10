@@ -32,6 +32,7 @@ typedef byte(*PORTINW)(word port, word *result);    /* A pointer to a PORT IN fu
 typedef byte(*PORTOUTW)(word port, word value);    /* A pointer to a PORT OUT function (word sized). Result is 1 on success, 0 on not mapped. */
 typedef byte(*PORTIND)(word port, uint_32 *result);    /* A pointer to a PORT IN function (word sized). Result is 1 on success, 0 on not mapped. */
 typedef byte(*PORTOUTD)(word port, uint_32 value);    /* A pointer to a PORT OUT function (word sized). Result is 1 on success, 0 on not mapped. */
+typedef byte(*REMAPPORT)(word *port, byte size, byte isread);    /* A pointer to a PORT REMAP function. Result is 1 on redirected/passthrough, 0 on not mapped. */
 
 void Ports_Init(); //Initialises the ports!
 
@@ -52,6 +53,7 @@ void register_PORTOUTW(PORTOUTW handler); //Set PORT OUT function handler!
 void register_PORTINW(PORTINW handler); //Set PORT IN function handler!
 void register_PORTOUTD(PORTOUTD handler); //Set PORT OUT function handler!
 void register_PORTIND(PORTIND handler); //Set PORT IN function handler!
+void register_PORTremapping(REMAPPORT handler); //Set PORT IN function handler!
 byte EXEC_PORTOUT(word port, byte value); //PORT OUT Byte!
 byte EXEC_PORTIN(word port, byte *result); //PORT IN Byte!
 byte EXEC_PORTOUTW(word port, word value); //PORT OUT Byte!
