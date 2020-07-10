@@ -546,7 +546,7 @@ void commandwritten_8042() //A command has been written to the 8042 controller?
 		}
 		Controller8042.data[0] |= 0x10; //We disable the keyboard as a result on real hardware!
 		//TODO: Compaq port 1/2 initialization
-		if (is_Compaq==0) //Compaq expects 0x55!
+		if ((is_Compaq==0) || (is_i430fx)) //Compaq expects 0x55!
 		{
 			input_lastwrite_8042(); //Force 0xFA to user!
 			give_8042_output(0xFA); //ACK!
