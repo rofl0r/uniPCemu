@@ -393,6 +393,12 @@ byte writeELCR(word port, byte value)
 	return 1; //Give the value!
 }
 
+byte i430fx_piix_portremapper(word *port, byte size, byte isread)
+{
+	if (size != 1) return 1; //Passthrough with invalid size!
+	return 1; //Passthrough by default!
+}
+
 void init_i430fx(byte enabled)
 {
 	byte address;
@@ -457,6 +463,8 @@ void init_i430fx(byte enabled)
 		//ECLR registers
 		register_PORTIN(&readELCR);
 		register_PORTOUT(&writeELCR);
+		//Port remapping itself!
+		register_PORTremapping(&i430fx_piix_portremapper);
 	}
 }
 
