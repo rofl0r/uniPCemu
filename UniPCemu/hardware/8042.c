@@ -613,6 +613,7 @@ void commandwritten_8042() //A command has been written to the 8042 controller?
 		if (is_i430fx) //Special behaviour?
 		{
 			Controller8042.inputport = (Controller8042.inputport & ~3) | (((Controller8042.inputport + 1) & 3)); //Cycle the low input port bits!
+			Controller8042.inputport |= 4; //Always set?
 		}
 		input_lastwrite_8042(); //Force 0xFA to user!
 		break;
