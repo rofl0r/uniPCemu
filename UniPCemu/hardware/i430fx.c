@@ -22,8 +22,8 @@ extern PCI_GENERALCONFIG* activePCI_IDE; //For hooking the PCI IDE into a i430fx
 byte APMcontrol = 0;
 byte APMstatus = 0;
 
-byte ECLRhigh = 0;
-byte ECLRlow = 0;
+byte ELCRhigh = 0;
+byte ELCRlow = 0;
 
 void i430fx_updateSMRAM()
 {
@@ -363,47 +363,16 @@ byte writeAPM(word port, byte value)
 	return 1; //Give the value!
 }
 
-byte readECLR(word port, byte* value)
-{
-	if (likely((port < 0xB2) || (port > 0xB3))) return 0; //Not us!
-	switch (port)
-	{
-	case 0xB2: //APM Control(APMC)
-		*value = APMcontrol; //Give the control register!
-		break;
-	case 0xB3: //APM Status (APMS)
-		*value = APMstatus; //Give the status!
-		break;
-	}
-	return 1; //Give the value!
-}
-
-byte writeECLR(word port, byte value)
-{
-	if (likely((port < 0xB2) || (port > 0xB3))) return 0; //Not us!
-	switch (port)
-	{
-	case 0xB2: //APM Control(APMC)
-		APMcontrol = value; //Store the value for reading later!
-		//Write: can generate an SMI, depending on bit 7 of SMI Enable register and bit 0 of SMI control register both being set.
-		break;
-	case 0xB3: //APM Status (APMS)
-		APMstatus = value; //Store the value for reading by the handler!
-		break;
-	}
-	return 1; //Give the value!
-}
-
 byte readELCR(word port, byte* value)
 {
 	if (likely((port < 0x4D0) || (port > 0x4D1))) return 0; //Not us!
 	switch (port)
 	{
-	case 0x4D0: //ECLR1
-		*value = ECLRlow; //Low!
+	case 0x4D0: //ELCR1
+		*value = ELCRlow; //Low!
 		break;
-	case 0x4D1: //ECLR2
-		*value = ECLRhigh; //High!
+	case 0x4D1: //ELCR2
+		*value = ELCRhigh; //High!
 		break;
 	}
 	return 1; //Give the value!
@@ -414,11 +383,11 @@ byte writeELCR(word port, byte value)
 	if (likely((port < 0x4D0) || (port > 0x4D1))) return 0; //Not us!
 	switch (port)
 	{
-	case 0x4D0: //ECLR1
-		ECLRlow = value; //Low!
+	case 0x4D0: //ELCR1
+		ELCRlow = value; //Low!
 		break;
-	case 0x4D1: //ECLR2
-		ECLRhigh = value; //High!
+	case 0x4D1: //ELCR2
+		ELCRhigh = value; //High!
 		break;
 	}
 	return 1; //Give the value!
@@ -472,6 +441,7 @@ void init_i430fx(byte enabled)
 	i430fx_updateSMRAM(); //Update the SMRAM setting!
 
 	APMcontrol = APMstatus = 0; //Initialize APM registers!
+	ELCRhigh = ELCRlow = 0; //Initialize the ELCR registers!
 
 	//Register PCI configuration space?
 	if (enabled) //Are we enabled?
@@ -485,8 +455,8 @@ void init_i430fx(byte enabled)
 		register_PORTIN(&readAPM);
 		register_PORTOUT(&writeAPM);
 		//ECLR registers
-		register_PORTIN(&readECLR);
-		register_PORTOUT(&writeECLR);
+		register_PORTIN(&readELCR);
+		register_PORTOUT(&writeELCR);
 	}
 }
 
