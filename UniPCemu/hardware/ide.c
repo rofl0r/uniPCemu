@@ -140,6 +140,7 @@ enum
 /* End of the audio player settings and defines */
 
 PCI_GENERALCONFIG PCI_IDE;
+PCI_GENERALCONFIG *activePCI_IDE = &PCI_IDE; //Active PCI IDE interface!
 
 //Index: 0=HDD, 1=CD-ROM! Swapped in the command! Empty is padded with spaces!
 byte MODEL[2][41] = {"Generic HDD","Generic CD-ROM"}; //Word #27-46.
@@ -1758,10 +1759,10 @@ OPTINLINE uint_32 getPORTaddress(byte channel)
 	switch (channel)
 	{
 	case 0: //First?
-		return (PCI_IDE.BAR[0] > 3) ? (PCI_IDE.BAR[0]&~3) : 0x1F0; //Give the BAR!
+		return (activePCI_IDE->BAR[0] > 3) ? (activePCI_IDE->BAR[0]&~3) : 0x1F0; //Give the BAR!
 		break;
 	case 1: //Second?
-		return (PCI_IDE.BAR[2] > 3) ? (PCI_IDE.BAR[2]&~3) : 0x170; //Give the BAR!
+		return (activePCI_IDE->BAR[2] > 3) ? (activePCI_IDE->BAR[2]&~3) : 0x170; //Give the BAR!
 		break;
 	default:
 		return ~0; //Error!
@@ -1773,10 +1774,10 @@ OPTINLINE uint_32 getControlPORTaddress(byte channel)
 	switch (channel)
 	{
 	case 0: //First?
-		return (PCI_IDE.BAR[1] > 3) ? (PCI_IDE.BAR[1]&~3) : 0x3F4; //Give the BAR!
+		return (activePCI_IDE->BAR[1] > 3) ? (activePCI_IDE->BAR[1]&~3) : 0x3F4; //Give the BAR!
 		break;
 	case 1: //Second?
-		return (PCI_IDE.BAR[3] > 3) ? (PCI_IDE.BAR[3]&~3) : 0x374; //Give the BAR!
+		return (activePCI_IDE->BAR[3] > 3) ? (activePCI_IDE->BAR[3]&~3) : 0x374; //Give the BAR!
 		break;
 	default:
 		return ~0; //Error!
@@ -5494,33 +5495,33 @@ void resetPCISpaceIDE()
 {
 	//Info from: http://wiki.osdev.org/PCI
 	PCI_IDE.DeviceID = 1;
-	PCI_IDE.VendorID = 1; //DEVICEID::VENDORID: We're a ATA device!
-	PCI_IDE.ProgIF = 0x80; //We use our own set interrupts and we're a parallel ATA controller!
-	PCI_IDE.ClassCode = 1; //We...
-	PCI_IDE.Subclass = 1; //Are an IDE controller
-	PCI_IDE.HeaderType = 0x00; //Normal header!
-	PCI_IDE.CacheLineSize = 0x00; //No cache supported!
-	PCI_IDE.InterruptLine = 0xFF; //What IRQ are we using?
+	PCI_IDE.VendorID = 1; //DEVICEID::VENDORID: We're a ATA device! This is only done with non-extended ATA controllers!
+	activePCI_IDE->ProgIF = 0x80; //We use our own set interrupts and we're a parallel ATA controller!
+	activePCI_IDE->ClassCode = 1; //We...
+	activePCI_IDE->Subclass = 1; //Are an IDE controller
+	activePCI_IDE->HeaderType = 0x00; //Normal header!
+	activePCI_IDE->CacheLineSize = 0x00; //No cache supported!
+	activePCI_IDE->InterruptLine = 0xFF; //What IRQ are we using?
 }
 
 void ATA_ConfigurationSpaceChanged(uint_32 address, byte device, byte function, byte size)
 {
 	byte *addr;
 	//Ignore device,function: we only have one!
-	addr = (((byte *)&PCI_IDE)+address); //Actual update location?
-	if ((addr<(byte *)&PCI_IDE.BAR[0]) || (addr>((byte *)&PCI_IDE.BAR[3]+sizeof(PCI_IDE.BAR[3])))) //Unsupported update to unsupported location?
+	addr = (((byte *)activePCI_IDE)+address); //Actual update location?
+	if ((addr<(byte *)&activePCI_IDE->BAR[0]) || (addr>((byte *)&activePCI_IDE->BAR[3]+sizeof(PCI_IDE.BAR[3])))) //Unsupported update to unsupported location?
 	{
 		memset(addr,0,1); //Clear the set data!
 	}
 	else
 	{
 		//Fix BAR reserved bits!
-		PCI_IDE.BAR[0] = (PCI_IDE.BAR[0]&~3)|1; //IO BAR!
-		PCI_IDE.BAR[1] = (PCI_IDE.BAR[1]&~3)|1; //IO BAR!
-		PCI_IDE.BAR[2] = (PCI_IDE.BAR[2]&~3)|1; //IO BAR!
-		PCI_IDE.BAR[3] = (PCI_IDE.BAR[3]&~3)|1; //IO BAR!
-		PCI_IDE.BAR[4] = (PCI_IDE.BAR[4]&~3)|1; //IO BAR!
-		PCI_IDE.BAR[5] = (PCI_IDE.BAR[5]&~3)|1; //IO BAR!
+		activePCI_IDE->BAR[0] = (activePCI_IDE->BAR[0]&~3)|1; //IO BAR!
+		activePCI_IDE->BAR[1] = (activePCI_IDE->BAR[1]&~3)|1; //IO BAR!
+		activePCI_IDE->BAR[2] = (activePCI_IDE->BAR[2]&~3)|1; //IO BAR!
+		activePCI_IDE->BAR[3] = (activePCI_IDE->BAR[3]&~3)|1; //IO BAR!
+		activePCI_IDE->BAR[4] = (activePCI_IDE->BAR[4]&~3)|1; //IO BAR!
+		activePCI_IDE->BAR[5] = (activePCI_IDE->BAR[5]&~3)|1; //IO BAR!
 	}
 	resetPCISpaceIDE(); //For read-only fields!
 }
@@ -5862,15 +5863,19 @@ void initATA()
 	EMU_setDiskBusy(ATA_Drives[CDROM_channel][1], 0 | (ATA[CDROM_channel].Drive[1].ATAPI_caddyejected << 1)); //We're not reading anymore!
 	CDROM_DiskChanged = 1; //We're changing when updating!
 	memset(&PCI_IDE, 0, sizeof(PCI_IDE)); //Initialise to 0!
-	register_PCI(&PCI_IDE,1,0, (sizeof(PCI_IDE)>>2),&ATA_ConfigurationSpaceChanged); //Register the PCI data area!
+	if (activePCI_IDE == NULL) //To allocate?
+	{
+		register_PCI(&PCI_IDE, 1, 0, (sizeof(PCI_IDE) >> 2), &ATA_ConfigurationSpaceChanged); //Register the PCI data area!
+		activePCI_IDE = &PCI_IDE; //Use the IDE handler!
+	}
 	//Initialise our data area!
 	resetPCISpaceIDE();
-	PCI_IDE.BAR[0] = 1; //I/O!
-	PCI_IDE.BAR[1] = 1; //I/O!
-	PCI_IDE.BAR[2] = 1; //I/O!
-	PCI_IDE.BAR[3] = 1; //I/O!
-	PCI_IDE.BAR[4] = 1; //I/O!
-	PCI_IDE.BAR[5] = 1; //I/O!
+	activePCI_IDE->BAR[0] = 1; //I/O!
+	activePCI_IDE->BAR[1] = 1; //I/O!
+	activePCI_IDE->BAR[2] = 1; //I/O!
+	activePCI_IDE->BAR[3] = 1; //I/O!
+	activePCI_IDE->BAR[4] = 1; //I/O!
+	activePCI_IDE->BAR[5] = 1; //I/O!
 	ATA[0].Drive[0].resetTiming = ATA[0].Drive[1].resetTiming = 0.0; //Clear the reset timing!
 	ATA[1].Drive[0].resetTiming = ATA[1].Drive[1].resetTiming = 0.0; //Clear the reset timing!
 	ATA[0].DriveAddressRegister = ATA[1].DriveAddressRegister = 0xFF; //According to Bochs, it's always 1's when unsupported!

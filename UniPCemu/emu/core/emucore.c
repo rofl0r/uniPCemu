@@ -383,6 +383,8 @@ byte is_PS2 = 0; //Are we emulating PS/2 architecture extensions?
 
 extern BIU_type BIU[MAXCPUS]; //The BIU for the BUS activity reset!
 
+extern PCI_GENERALCONFIG* activePCI_IDE; //PCI IDE handler!
+
 void initEMU(int full) //Init!
 {
 	char soundfont[256];
@@ -395,6 +397,8 @@ void initEMU(int full) //Init!
 	allcleared = 0; //Not cleared anymore!
 
 	BIU[activeCPU].BUSactive = 0; //Nobody's controlling the BUS!
+
+	activePCI_IDE = NULL; //Default: let the handlers decide which one to use! Either i430fx or IDE allocates this(whichever comes first).
 
 	MMU_resetHandlers(NULL); //Reset all memory handlers before starting!
 
