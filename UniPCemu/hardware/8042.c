@@ -26,6 +26,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/support/log.h" //Logging support!
 #include "headers/support/locks.h" //Locking support!
 #include "headers/cpu/cpu.h" //CPU reset support!
+#include "headers/hardware/i430fx.h" //i430fx support!
 
 //Are we disabled?
 #define __HW_DISABLED 0
@@ -952,9 +953,13 @@ void BIOS_init8042() //Init 8042&Load all BIOS!
 		default: //(S)VGA?
 			break; //Report CGA!
 		}
-		if (is_Compaq)
+		if (is_Compaq && (is_i430fx==0)) //Compaq and not a i430fx?
 		{
 			Controller8042.inputport = (Controller8042.inputport&0xA0)|0x4C; //Patch Compaq-compatible!
+		}
+		else if (is_i430fx) //i430fx?
+		{
+			Controller8042.inputport &= ~0x4F; //Don't allow bit 6 or 3-0 to be set!
 		}
 	}
 	timing8042 = 0.0; //Nothing yet!
