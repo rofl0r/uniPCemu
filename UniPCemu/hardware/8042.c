@@ -610,6 +610,10 @@ void commandwritten_8042() //A command has been written to the 8042 controller?
 		//Compaq:  Places status of input port in output buffer. Use this command only when the output buffer is empty
 		input_lastwrite_8042(); //Force 0xFA to user!
 		give_8042_output(Controller8042.inputport); //Give it fully!
+		if (is_i430fx) //Special behaviour?
+		{
+			Controller8042.inputport = (Controller8042.inputport & ~3) | (((Controller8042.inputport + 1) & 3)); //Cycle the low input port bits!
+		}
 		input_lastwrite_8042(); //Force 0xFA to user!
 		break;
 	case 0xC1: //Copy bits 0-3 of input port to status bits 4-7. No ACK!
