@@ -319,7 +319,7 @@ void i430fx_writeaddr(byte index, byte value) //Written an address?
 {
 	if (index == 1) //Written bit 2 of register CF9h?
 	{
-		if ((value & 4) && (PCI_address & 0x400)) //Set while not set yet?
+		if ((value & 4) && ((PCI_address & 0x400)==0)) //Set while not set yet?
 		{
 			//Should reset all PCI devices?
 			if (value & 2) //Hard reset?
