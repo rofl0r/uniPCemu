@@ -27,6 +27,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/support/locks.h" //Locking support!
 #include "headers/cpu/cpu.h" //CPU reset support!
 #include "headers/hardware/i430fx.h" //i430fx support!
+#include "headers/mmu/mmuhandler.h" //MMU support!
 
 //Are we disabled?
 #define __HW_DISABLED 0
@@ -609,6 +610,10 @@ void commandwritten_8042() //A command has been written to the 8042 controller?
 	case 0xC0: //Read controller input port?
 		//Compaq:  Places status of input port in output buffer. Use this command only when the output buffer is empty
 		input_lastwrite_8042(); //Force 0xFA to user!
+		if ((is_Compaq == 0) || (is_i430fx)) //non-Compaq?
+		{
+			if (MEMsize() >= 0xA0000) Controller8042.inputport |= 0x10; //640K memory installed instead of 512K!
+		}
 		give_8042_output(Controller8042.inputport); //Give it fully!
 		if (is_i430fx) //Special behaviour?
 		{
@@ -894,6 +899,10 @@ byte read_8042(word port, byte *result)
 			if (Controller8042.status_high) //High status overwritten?
 			{
 				*result &= 0xF; //Only low data given!
+				if ((is_Compaq == 0) || (is_i430fx)) //non-Compaq?
+				{
+					if (MEMsize() >= 0xA0000) Controller8042.inputport |= 0x10; //640K memory installed instead of 512K!
+				}
 				*result |= ((Controller8042.inputport<<(Controller8042.status_high&0xF))&0xF0); //Add the high or low data to the high part of the status!
 				Controller8042.status_high = 0; //Disable high status!
 			}
@@ -956,10 +965,6 @@ void BIOS_init8042() //Init 8042&Load all BIOS!
 			break; //Report MDA!
 		default: //(S)VGA?
 			break; //Report CGA!
-		}
-		if ((is_Compaq == 0) || (is_i430fx))
-		{
-			if (MMU_size() >= 0xA0000) Controller8042.inputport |= 0x10; //640K memory installed instead of 512K!
 		}
 		if (is_Compaq && (is_i430fx==0)) //Compaq and not a i430fx?
 		{
