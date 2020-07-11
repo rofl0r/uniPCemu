@@ -957,6 +957,10 @@ void BIOS_init8042() //Init 8042&Load all BIOS!
 		default: //(S)VGA?
 			break; //Report CGA!
 		}
+		if ((is_Compaq == 0) || (is_i430fx))
+		{
+			if (MMU_size() >= 0xA0000) Controller8042.inputport |= 0x10; //640K memory installed instead of 512K!
+		}
 		if (is_Compaq && (is_i430fx==0)) //Compaq and not a i430fx?
 		{
 			Controller8042.inputport = (Controller8042.inputport&0xA0)|0x4C; //Patch Compaq-compatible!
