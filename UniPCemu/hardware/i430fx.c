@@ -315,21 +315,26 @@ void i430fx_ide_PCIConfigurationChangeHandler(uint_32 address, byte device, byte
 }
 
 extern uint_32 PCI_address; //What address register is currently set?
-void i430fx_writeaddr(byte index, byte value) //Written an address?
+void i430fx_writeaddr(byte index, byte *value) //Written an address?
 {
 	if (index == 1) //Written bit 2 of register CF9h?
 	{
-		if ((value & 4) && ((PCI_address & 0x400)==0)) //Set while not set yet?
+		if ((*value & 4) && ((PCI_address & 0x400)==0)) //Set while not set yet?
 		{
 			//Should reset all PCI devices?
-			if (value & 2) //Hard reset?
+			if (*value & 2) //Hard reset?
 			{
 				i430fx_configuration[0x59] = 0xF; //Reset this!
 				i430fx_PCIConfigurationChangeHandler(0x59, 3, 0, 1); //Updated!
 			}
 			CPU[activeCPU].resetPending = 1; //Start pending reset!
+			*value &= ~4; //Cannot be read as a 1, according to documentation!
 		}
 	}
+}
+
+void i430fx_postwriteaddr(byte index)
+{
 }
 
 byte readAPM(word port, byte* value)

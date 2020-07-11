@@ -147,7 +147,7 @@ byte outPCI(word port, byte value)
 		bitpos = ((port & 3) << 3); //Get the bit position!
 		if (is_i430fx) //i430fx support?
 		{
-			i430fx_writeaddr(port-0xCF8, value); //Handle the address write!
+			i430fx_writeaddr(port-0xCF8, &value); //Handle the address write!
 		}
 		PCI_address &= ~((0xFF)<<bitpos); //Clear the old address bits!
 		PCI_address |= value << bitpos; //Set the new address bits!
