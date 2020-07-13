@@ -450,11 +450,11 @@ byte checkMMUaccess32(sword segdesc, word segment, uint_64 offset, word readflag
 	{
 		return result; //Give the result!
 	}
-	else if ((result = checkMMUaccess(segdesc, segment, offset+1, readflags|0xC0, CPL, is_offset16, subbyte)) != 0) //Lower bound!
+	else if ((result = checkMMUaccess(segdesc, segment, offset+1, readflags|0xC0, CPL, is_offset16, subbyte|1)) != 0) //Lower bound!
 	{
 		return result; //Give the result!
 	}
-	else if ((result = checkMMUaccess(segdesc, segment, offset+2, readflags|0xC0, CPL, is_offset16, subbyte)) != 0) //Lower bound!
+	else if ((result = checkMMUaccess(segdesc, segment, offset+2, readflags|0xC0, CPL, is_offset16, subbyte|2)) != 0) //Lower bound!
 	{
 		return result; //Give the result!
 	}
