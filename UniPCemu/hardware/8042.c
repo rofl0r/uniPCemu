@@ -677,6 +677,12 @@ void commandwritten_8042() //A command has been written to the 8042 controller?
 		{
 			CPU[activeCPU].resetPending = 1; //Start pending reset!
 		}
+		else if (((Controller8042.command & 0xF) == 0xF) && is_i430fx) //i320fx received 0xFF command?
+		{
+			input_lastwrite_8042(); //Force data to user!
+			give_8042_output(0); //Give result!
+			input_lastwrite_8042(); //Force byte 0 to user!
+		}
 		break;
 	case 0xDD: //Enable A20 line?
 	case 0xDF: //Disable A20 line?
