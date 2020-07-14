@@ -678,7 +678,7 @@ void commandwritten_8042() //A command has been written to the 8042 controller?
 	case 0xA1: //Compaq. Unknown speedfunction?
 		if (is_i430fx == 0) break; //Not i430fx? Compaq unsupported speedfunction?
 		input_lastwrite_8042();
-		give_8042_output(0x00); //Something!
+		give_8042_output(0x4E); //Needs to be above 4Dh!
 		input_lastwrite_8042();
 	case 0xA2: //Compaq. Unknown speedfunction?
 	case 0xA3: //Compaq. Enable system speed control?
