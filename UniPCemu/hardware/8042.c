@@ -694,7 +694,7 @@ void commandwritten_8042() //A command has been written to the 8042 controller?
 	case 0xCA: //AMI: read keyboard mode?
 		if (is_i430fx == 0) break; //i430fx only!
 		input_lastwrite_8042();
-		give_8042_output(0x00); //ISA mode! Could give Controller8042.keyboardmode for the last mode set? Still locked to ISA!
+		give_8042_output(Controller8042.keyboardmode); //ISA mode! Could give Controller8042.keyboardmode for the last mode set? Still locked to ISA(value 00h)!
 		input_lastwrite_8042();
 		break;
 	case 0xCB: //AMI: set keyboard mode!
