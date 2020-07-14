@@ -76,12 +76,14 @@ typedef struct
 	//Direct feedback support!
 	byte port60toFirstPS2Output; //Redirect write to port 0x60 to input of first PS/2 device!
 	byte port60toSecondPS2Output; //Redirect write to port 0x60 to input of second PS/2 device!
+	byte port60toKeyboardMode; //Redirect write to port 0x60 to keyboard mode!
 
 	//PS/2 output port support!
 	byte writeoutputport; //PS/2 Controller Output (to the 8042 output port)? On port 60h!
 	byte readoutputport; //PS/2 Controller Input (from the 8042 output port)? On port 60h!
 	byte outputport; //The data output for port 60 when read/writeoutputport.
 	byte inputport; //The input port value, which contains system flags!
+	byte keyboardmode; //Keyboard mode for AMI BIOS!
 
 	//Security password
 	uint_32 securitychecksum; //Some ROM data containing the security string entered by the user!

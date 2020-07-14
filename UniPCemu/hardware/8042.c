@@ -359,6 +359,11 @@ void update8042(DOUBLE timepassed) //Update 8042 input/output timings!
 						}
 						goto finishwrite; //Abort normal process!
 					}
+					else if (Controller8042.WritePending == 6) //To second PS/2 Output?
+					{
+						Controller8042.WritePending = 0; //Not pending anymore!
+						Controller8042.keyboardmode = Controller8042.input_buffer; //AMI: keyboard mode! 0=ISA mode!
+					}
 					else
 					{
 						if (Controller8042.inputtingsecurity) //Inputting security string?
@@ -644,12 +649,14 @@ void commandwritten_8042() //A command has been written to the 8042 controller?
 		Controller8042.port60toFirstPS2Output = 1;
 		Controller8042.inputtingsecurity = 0; //Not anymore!
 		Controller8042.Write_RAM = 0; //Not anymore!
+		Controller8042.port60toKeyboardMode = 0; //Not anymore!
 		break;
 	case 0xD3: //Next byte written to port 0x60 is send to the Second PS/2 port!
 		Controller8042.port60toSecondPS2Output = 1;
 		Controller8042.inputtingsecurity = 0; //Not anymore!
 		Controller8042.Write_RAM = 0; //Not anymore!
 		Controller8042.port60toFirstPS2Output = 0;
+		Controller8042.port60toKeyboardMode = 0; //Not anymore!
 		break;
 	case 0xD4: //Next byte written to port 0x60 is written to the second PS/2 port
 		Controller8042.has_port[1] = 1; //Send to second PS/2 port!
@@ -658,6 +665,7 @@ void commandwritten_8042() //A command has been written to the 8042 controller?
 		Controller8042.Write_RAM = 0; //Not anymore!
 		Controller8042.port60toSecondPS2Output = 0;
 		Controller8042.port60toFirstPS2Output = 0;
+		Controller8042.port60toKeyboardMode = 0; //Not anymore!
 		break;
 	case 0xE0: //Read test inputs?
 		input_lastwrite_8042(); //Force data to user!
@@ -680,6 +688,24 @@ void commandwritten_8042() //A command has been written to the 8042 controller?
 		input_lastwrite_8042();
 		give_8042_output(0x4E); //Needs to be above 4Dh!
 		input_lastwrite_8042();
+		break;
+	case 0xC9: //AMI: Block PS2/PS3?
+		break;
+	case 0xCA: //AMI: read keyboard mode?
+		if (is_i430fx == 0) break; //i430fx only!
+		input_lastwrite_8042();
+		give_8042_output(0x00); //ISA mode! Could give Controller8042.keyboardmode for the last mode set? Still locked to ISA!
+		input_lastwrite_8042();
+		break;
+	case 0xCB: //AMI: set keyboard mode!
+		Controller8042.has_port[1] = 0; //Send to second PS/2 port!
+		Controller8042.has_port[0] = 0; //Send to second PS/2 port!
+		Controller8042.inputtingsecurity = 0; //Not anymore!
+		Controller8042.Write_RAM = 0; //Not anymore!
+		Controller8042.port60toSecondPS2Output = 0;
+		Controller8042.port60toFirstPS2Output = 0;
+		Controller8042.port60toKeyboardMode = 1; //To keyboard mode!
+		break;
 	case 0xA2: //Compaq. Unknown speedfunction?
 	case 0xA3: //Compaq. Enable system speed control?
 		if (is_Compaq) break; //TODO: Compaq speed functionality.
@@ -734,6 +760,14 @@ void datawritten_8042(byte iscommandregister, byte data) //Data has been written
 		Controller8042.port60toSecondPS2Output = 0; //Not anymore!
 		Controller8042.status_buffer |= 2; //We're pending data to write!
 		Controller8042.WritePending = 5; //This port is pending to write!
+		return; //Abort normal process!
+	}
+
+	if (Controller8042.port60toKeyboardMode) //Port 60 to keyboard mode?
+	{
+		Controller8042.port60toKeyboardMode = 0; //Not anymore!
+		Controller8042.status_buffer |= 2; //We're pending data to write!
+		Controller8042.WritePending = 6; //This port is pending to write!
 		return; //Abort normal process!
 	}
 
