@@ -680,7 +680,7 @@ void commandwritten_8042() //A command has been written to the 8042 controller?
 		else if (((Controller8042.command & 0xF) == 0xF) && is_i430fx) //i320fx received 0xFF command?
 		{
 			input_lastwrite_8042(); //Force data to user!
-			give_8042_output(0); //Give result!
+			give_8042_output(0x52); //Give result!
 			input_lastwrite_8042(); //Force byte 0 to user!
 		}
 		break;
