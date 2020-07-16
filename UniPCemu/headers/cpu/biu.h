@@ -60,6 +60,7 @@ typedef struct
 	byte stallingBUS; //Are we stalling the BUS!
 	byte datawritesizeexpected; //What to expect for a data size for a write!
 	byte newtransfer; //First byte of the transfer is this?
+	byte newtransfer_size; //Size of the transfer!
 } BIU_type;
 
 void CPU_initBIU(); //Initialize the BIU!

@@ -1003,10 +1003,16 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates, byte bus_waitstates)
 				case REQUEST_MMUREAD:
 					BIU[activeCPU]._lock = CPU_getprefix(0xF0); //Lock!
 					BIU[activeCPU].newtransfer = 1; //We're a new transfer!
+					BIU[activeCPU].newtransfer_size = 1; //We're a new transfer!
 					BIU[activeCPU].BUSactive = 1; //Start memory or BUS cycles!
 					if ((BIU[activeCPU].currentrequest&REQUEST_16BIT) || (BIU[activeCPU].currentrequest&REQUEST_32BIT)) //16/32-bit?
 					{
+						BIU[activeCPU].newtransfer_size = 2; //We're a new transfer!
 						BIU[activeCPU].currentrequest |= REQUEST_SUB1; //Request 16-bit half next(high byte)!
+						if (BIU[activeCPU].currentrequest & REQUEST_32BIT) //32-bit?
+						{
+							BIU[activeCPU].newtransfer_size = 4; //We're a new transfer!
+						}
 					}
 					physicaladdress = BIU[activeCPU].currentaddress = (BIU[activeCPU].currentpayload[0]&0xFFFFFFFF); //Address to use!
 					if (BIU[activeCPU].currentpayload[1] & 1) //Requires logical to physical address translation?
@@ -1048,10 +1054,16 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates, byte bus_waitstates)
 				case REQUEST_MMUWRITE:
 					BIU[activeCPU]._lock = CPU_getprefix(0xF0); //Lock!
 					BIU[activeCPU].newtransfer = 1; //We're a new transfer!
+					BIU[activeCPU].newtransfer_size = 1; //We're a new transfer!
 					BIU[activeCPU].BUSactive = 1; //Start memory or BUS cycles!
 					if ((BIU[activeCPU].currentrequest&REQUEST_16BIT) || (BIU[activeCPU].currentrequest&REQUEST_32BIT)) //16/32-bit?
 					{
+						BIU[activeCPU].newtransfer_size = 2; //We're a new transfer!
 						BIU[activeCPU].currentrequest |= REQUEST_SUB1; //Request 16-bit half next(high byte)!
+						if (BIU[activeCPU].currentrequest & REQUEST_32BIT) //32-bit?
+						{
+							BIU[activeCPU].newtransfer_size = 4; //We're a new transfer!
+						}
 					}
 					physicaladdress = BIU[activeCPU].currentaddress = (BIU[activeCPU].currentpayload[0]&0xFFFFFFFF); //Address to use!
 					if (BIU[activeCPU].currentpayload[1] & 1) //Requires logical to physical address translation?
@@ -1119,9 +1131,15 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates, byte bus_waitstates)
 				case REQUEST_IOREAD:
 					BIU[activeCPU].BUSactive = 1; //Start memory or BUS cycles!
 					BIU[activeCPU].newtransfer = 1; //We're a new transfer!
+					BIU[activeCPU].newtransfer_size = 1; //We're a new transfer!
 					if ((BIU[activeCPU].currentrequest&REQUEST_16BIT) || (BIU[activeCPU].currentrequest&REQUEST_32BIT)) //16/32-bit?
 					{
+						BIU[activeCPU].newtransfer_size = 2; //We're a new transfer!
 						BIU[activeCPU].currentrequest |= REQUEST_SUB1; //Request 16-bit half next(high byte)!
+						if (BIU[activeCPU].currentrequest & REQUEST_32BIT) //32-bit?
+						{
+							BIU[activeCPU].newtransfer_size = 4; //We're a new transfer!
+						}
 					}
 					BIU[activeCPU].currentaddress = (BIU[activeCPU].currentpayload[0]&0xFFFFFFFF); //Address to use!
 					if (BIU[activeCPU].currentrequest&REQUEST_32BIT) //32-bit?
@@ -1163,9 +1181,15 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates, byte bus_waitstates)
 				case REQUEST_IOWRITE:
 					BIU[activeCPU].BUSactive = 1; //Start memory or BUS cycles!
 					BIU[activeCPU].newtransfer = 1; //We're a new transfer!
+					BIU[activeCPU].newtransfer_size = 1; //We're a new transfer!
 					if ((BIU[activeCPU].currentrequest&REQUEST_16BIT) || (BIU[activeCPU].currentrequest&REQUEST_32BIT)) //16/32-bit?
 					{
+						BIU[activeCPU].newtransfer_size = 2; //We're a new transfer!
 						BIU[activeCPU].currentrequest |= REQUEST_SUB1; //Request 16-bit half next(high byte)!
+						if (BIU[activeCPU].currentrequest & REQUEST_32BIT) //32-bit?
+						{
+							BIU[activeCPU].newtransfer_size = 4; //We're a new transfer!
+						}
 					}
 					BIU[activeCPU].currentaddress = (BIU[activeCPU].currentpayload[0]&0xFFFFFFFF); //Address to use!
 					if (BIU[activeCPU].currentrequest&REQUEST_32BIT) //32-bit?
