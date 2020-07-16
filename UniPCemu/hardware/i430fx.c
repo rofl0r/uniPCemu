@@ -321,7 +321,7 @@ void i430fx_writeaddr(byte index, byte *value) //Written an address?
 {
 	if (index == 1) //Written bit 2 of register CF9h?
 	{
-		if ((*value & 4) && ((PCI_address & 0x400)==0) && (BIU[activeCPU].newtransfer<=1)) //Set while not set yet during a direct access?
+		if ((*value & 4) && ((PCI_address & 0x400)==0) && (BIU[activeCPU].newtransfer<=1) && (BIU[activeCPU].newtransfer_size==1)) //Set while not set yet during a direct access?
 		{
 			//Should reset all PCI devices?
 			if (*value & 2) //Hard reset?
