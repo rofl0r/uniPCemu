@@ -2,6 +2,7 @@
 #include "headers/hardware/i430fx.h" //Our own types!
 #include "headers/hardware/pci.h" //PCI support!
 #include "headers/cpu/cpu.h" //CPU reset support!
+#include "headers/cpu/biu.h" //CPU reset support!
 #include "headers/hardware/ports.h" //Port support!
 
 byte is_i430fx = 0; //Are we an i430fx motherboard?
@@ -315,11 +316,12 @@ void i430fx_ide_PCIConfigurationChangeHandler(uint_32 address, byte device, byte
 }
 
 extern uint_32 PCI_address; //What address register is currently set?
+extern BIU_type BIU[NUMCPUS]; //BIU definition!
 void i430fx_writeaddr(byte index, byte *value) //Written an address?
 {
 	if (index == 1) //Written bit 2 of register CF9h?
 	{
-		if ((*value & 4) && ((PCI_address & 0x400)==0)) //Set while not set yet?
+		if ((*value & 4) && ((PCI_address & 0x400)==0) && (BIU[activeCPU].newtransfer<=1)) //Set while not set yet during a direct access?
 		{
 			//Should reset all PCI devices?
 			if (*value & 2) //Hard reset?

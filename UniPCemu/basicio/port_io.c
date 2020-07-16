@@ -23,6 +23,8 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/types.h"
 #include "headers/hardware/ports.h" //Full PORTIN/OUT compatibility!
 #include "headers/support/log.h" //Logging support!
+#include "headers/cpu/cpu.h" //BIU support!
+#include "headers/cpu/biu.h" //BIU support!
 
 //Log unhandled port IN/OUT?
 //#define LOG_UNHANDLED_PORTS
@@ -66,6 +68,8 @@ void PORT_OUT_B(word port, byte b)
 	}
 }
 
+extern BIU_type BIU[NUMCPUS]; //BIU!
+
 word PORT_IN_W(word port) //IN result,port
 {
 	word w;
@@ -77,7 +81,9 @@ word PORT_IN_W(word port) //IN result,port
 	{
 		bytetransferr:
 		w = PORT_IN_B(port); //Low first
+		++BIU[activeCPU].newtransfer; //We're a next transfer!
 		w |= (PORT_IN_B(port + 1)<<8); //High last!
+		++BIU[activeCPU].newtransfer; //We're a next transfer!
 	}
 	return w; //Give word!
 }
@@ -92,7 +98,9 @@ void PORT_OUT_W(word port, word w) //OUT port,w
 	{
 		bytetransferw:
 		PORT_OUT_B(port, (w&0xFF)); //First low byte!
+		++BIU[activeCPU].newtransfer; //We're a next transfer!
 		PORT_OUT_B(port + 1, ((w>>8)&0xFF)); //Next high byte!
+		++BIU[activeCPU].newtransfer; //We're a next transfer!
 	}
 }
 

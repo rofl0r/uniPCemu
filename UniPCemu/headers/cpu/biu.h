@@ -59,6 +59,7 @@ typedef struct
 	byte TState; //What T-state is the BIU running at?
 	byte stallingBUS; //Are we stalling the BUS!
 	byte datawritesizeexpected; //What to expect for a data size for a write!
+	byte newtransfer; //First byte of the transfer is this?
 } BIU_type;
 
 void CPU_initBIU(); //Initialize the BIU!
