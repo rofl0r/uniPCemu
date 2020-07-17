@@ -36,6 +36,10 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #define dolog(...)
 #endif
 
+#ifdef IS_PSP
+#define SDL_SwapLE16(x) (x)
+#endif
+
 byte EMU_BIOS[0x10000]; //Full custom BIOS from 0xF0000-0xFFFFF for the emulator itself to use!
 byte EMU_VGAROM[0x10000]; //Maximum size custom BIOS VGA ROM!
 

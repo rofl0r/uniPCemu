@@ -4,6 +4,8 @@
 #include "headers/cpu/cpu.h" //CPU reset support!
 #include "headers/cpu/biu.h" //CPU reset support!
 #include "headers/hardware/ports.h" //Port support!
+#include "headers/mmu/mmuhandler.h" //RAM layout updating support!
+#include "headers/hardware/ide.h" //IDE PCI support!
 
 byte is_i430fx = 0; //Are we an i430fx motherboard?
 byte i430fx_memorymappings_read[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}; //All read memory/PCI! Set=DRAM, clear=PCI!
@@ -152,12 +154,49 @@ void i430fx_mapRAMROM(byte start, byte size, byte setting)
 	}
 }
 
+extern byte PCI_transferring;
+
 void i430fx_PCIConfigurationChangeHandler(uint_32 address, byte device, byte function, byte size)
 {
-	byte old_DRAMdetect;
+	PCI_GENERALCONFIG* config = (PCI_GENERALCONFIG*)&i430fx_configuration; //Configuration generic handling!
+	//byte old_DRAMdetect;
 	i430fx_resetPCIConfiguration(); //Reset the ROM values!
 	switch (address) //What configuration is changed?
 	{
+	case 0x10:
+	case 0x11:
+	case 0x12:
+	case 0x13:
+	case 0x14:
+	case 0x15:
+	case 0x16:
+	case 0x17:
+	case 0x18:
+	case 0x19:
+	case 0x1A:
+	case 0x1B:
+	case 0x1C:
+	case 0x1D:
+	case 0x1E:
+	case 0x1F:
+	case 0x20:
+	case 0x21:
+	case 0x22:
+	case 0x23:
+	case 0x24:
+	case 0x25:
+	case 0x26:
+	case 0x27: //BAR?
+		if (PCI_transferring == 0) //Finished transferring data for an entry?
+		{
+			config->BAR[0] = 0xFFFFFFFD; //Unused!
+			config->BAR[1] = 0xFFFFFFFD; //Unused!
+			config->BAR[2] = 0xFFFFFFFD; //Unused!
+			config->BAR[3] = 0xFFFFFFFD; //Unused!
+			config->BAR[4] = 0xFFFFFFFD; //Unused!
+			config->BAR[5] = 0xFFFFFFFD; //Unused!
+		}
+		break;
 	case 0x57: //DRAMC - DRAM control register
 		switch (((i430fx_configuration[0x57] >> 6) & 3)) //What memory hole to emulate?
 		{
@@ -220,10 +259,48 @@ void i430fx_PCIConfigurationChangeHandler(uint_32 address, byte device, byte fun
 
 void i430fx_piix_PCIConfigurationChangeHandler(uint_32 address, byte device, byte function, byte size)
 {
-	//TODO
+	PCI_GENERALCONFIG* config = (PCI_GENERALCONFIG*)&i430fx_piix_configuration; //Configuration generic handling!
 	i430fx_piix_resetPCIConfiguration(); //Reset the ROM fields!
 	switch (address) //What address has been updated?
 	{
+	case 0x10:
+	case 0x11:
+	case 0x12:
+	case 0x13:
+	case 0x14:
+	case 0x15:
+	case 0x16:
+	case 0x17:
+	case 0x18:
+	case 0x19:
+	case 0x1A:
+	case 0x1B:
+	case 0x1C:
+	case 0x1D:
+	case 0x1E:
+	case 0x1F:
+	case 0x20:
+	case 0x21:
+	case 0x22:
+	case 0x23:
+	case 0x24:
+	case 0x25:
+	case 0x26:
+	case 0x27: //BAR?
+		if (PCI_transferring == 0) //Finished transferring data for an entry?
+		{
+			config->BAR[0] = 0xFFFFFFFD; //Unused!
+			config->BAR[1] = 0xFFFFFFFD; //Unused!
+			config->BAR[2] = 0xFFFFFFFD; //Unused!
+			config->BAR[3] = 0xFFFFFFFD; //Unused!
+			config->BAR[4] = 0xFFFFFFFD; //Unused!
+			config->BAR[5] = 0xFFFFFFFD; //Unused!
+
+			/*
+			config->BAR[0] = ((config->BAR[0] & ((~offsetwidth) & 0xFFFFU)) | 1); //IO BAR! This is disabled, so set the mask fully!
+			*/
+		}
+		break;
 	case 0x4C: //ISA Recovery I/O timer register
 		//Bit 7 set: alias ports 80h, 84-86h, 88h, 8c-8eh to 90-9fh.
 		break;
@@ -310,7 +387,6 @@ void i430fx_piix_PCIConfigurationChangeHandler(uint_32 address, byte device, byt
 
 void i430fx_ide_PCIConfigurationChangeHandler(uint_32 address, byte device, byte function, byte size)
 {
-	//TODO
 	ATA_ConfigurationSpaceChanged(address, device, function, size); //Normal ATA/ATAPI handler passthrough!
 	i430fx_ide_resetPCIConfiguration(); //Reset the ROM fields!
 }

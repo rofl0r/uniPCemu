@@ -240,4 +240,5 @@ void initPCI()
 	memset(&configurationdevices,0,sizeof(configurationdevices)); //No handlers!
 	memset(&configurationfunctions,0,sizeof(configurationfunctions)); //No handlers!
 	PCI_decodedevice(PCI_address); //Initialise our status!
+	PCI_transferring = 0; //Initialize!
 }
