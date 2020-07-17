@@ -5516,36 +5516,36 @@ void ATA_ConfigurationSpaceChanged(uint_32 address, byte device, byte function, 
 	else
 	{
 		//Fix BAR reserved bits!
-		if (((activePCI_IDE->BAR[0] & 0xFFFFFFF0) == 0xFFFFFFF0) && ((address & 3) == 3)) //Requested size?
-		{
-			activePCI_IDE->BAR[0] = 0; //Size!
-		}
-		if (((activePCI_IDE->BAR[1] & 0xFFFFFFF0) == 0xFFFFFFF0) && ((address & 3) == 3)) //Requested size?
-		{
-			activePCI_IDE->BAR[1] = 0; //Size!
-		}
-		if (((activePCI_IDE->BAR[2] & 0xFFFFFFF0) == 0xFFFFFFF0) && ((address & 3) == 3)) //Requested size?
-		{
-			activePCI_IDE->BAR[2] = 0; //Size!
-		}
-		if (((activePCI_IDE->BAR[3] & 0xFFFFFFF0) == 0xFFFFFFF0) && ((address & 3) == 3)) //Requested size?
-		{
-			activePCI_IDE->BAR[3] = 0; //Size!
-		}
-		if (((activePCI_IDE->BAR[4] & 0xFFFFFFF0) == 0xFFFFFFF0) && ((address & 3) == 3)) //Requested size?
-		{
-			activePCI_IDE->BAR[4] = 0; //Size!
-		}
-		if (((activePCI_IDE->BAR[5] & 0xFFFFFFF0) == 0xFFFFFFF0) && ((address & 3) == 3)) //Requested size?
-		{
-			activePCI_IDE->BAR[5] = 0; //Size!
-		}
 		activePCI_IDE->BAR[0] = (activePCI_IDE->BAR[0]&~3)|1; //IO BAR!
 		activePCI_IDE->BAR[1] = (activePCI_IDE->BAR[1]&~3)|1; //IO BAR!
 		activePCI_IDE->BAR[2] = (activePCI_IDE->BAR[2]&~3)|1; //IO BAR!
 		activePCI_IDE->BAR[3] = (activePCI_IDE->BAR[3]&~3)|1; //IO BAR!
 		activePCI_IDE->BAR[4] = (activePCI_IDE->BAR[4]&~3)|1; //IO BAR!
 		activePCI_IDE->BAR[5] = (activePCI_IDE->BAR[5]&~3)|1; //IO BAR!
+		if (((activePCI_IDE->BAR[0] & 0xFFFFFFF0) == 0xFFFFFFF0) && ((address & 3) == 3)) //Requested size?
+		{
+			activePCI_IDE->BAR[0] = (~8)+1; //Size!
+		}
+		if (((activePCI_IDE->BAR[1] & 0xFFFFFFF0) == 0xFFFFFFF0) && ((address & 3) == 3)) //Requested size?
+		{
+			activePCI_IDE->BAR[1] = (~8)+1; //Size!
+		}
+		if (((activePCI_IDE->BAR[2] & 0xFFFFFFF0) == 0xFFFFFFF0) && ((address & 3) == 3)) //Requested size?
+		{
+			activePCI_IDE->BAR[2] = (~8)+1; //Size!
+		}
+		if (((activePCI_IDE->BAR[3] & 0xFFFFFFF0) == 0xFFFFFFF0) && ((address & 3) == 3)) //Requested size?
+		{
+			activePCI_IDE->BAR[3] = (~8)+1; //Size!
+		}
+		if (((activePCI_IDE->BAR[4] & 0xFFFFFFF0) == 0xFFFFFFF0) && ((address & 3) == 3)) //Requested size?
+		{
+			activePCI_IDE->BAR[4] = (~0)+1; //Size!
+		}
+		if (((activePCI_IDE->BAR[5] & 0xFFFFFFF0) == 0xFFFFFFF0) && ((address & 3) == 3)) //Requested size?
+		{
+			activePCI_IDE->BAR[5] = (~0)+1; //Size!
+		}
 	}
 	resetPCISpaceIDE(); //For read-only fields!
 }
