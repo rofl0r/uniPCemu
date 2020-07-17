@@ -5522,8 +5522,8 @@ void ATA_ConfigurationSpaceChanged(uint_32 address, byte device, byte function, 
 		activePCI_IDE->BAR[1] = ((activePCI_IDE->BAR[1]&((~7)&0xFFFFU))|1); //IO BAR!
 		activePCI_IDE->BAR[2] = ((activePCI_IDE->BAR[2]&((~7)&0xFFFFU))|1); //IO BAR!
 		activePCI_IDE->BAR[3] = ((activePCI_IDE->BAR[3]&((~7)&0xFFFFU))|1); //IO BAR!
-		activePCI_IDE->BAR[4] = ((activePCI_IDE->BAR[4]&((~0xFFFF)&0xFFFFU))|1); //IO BAR! This is disabled, so set the mask fully!
-		activePCI_IDE->BAR[5] = ((activePCI_IDE->BAR[5]&((~0xFFFF)&0xFFFFU))|1); //IO BAR! This is disabled, so set the mask fully!
+		activePCI_IDE->BAR[4] = 0xFFFFFFFD; //Unused!
+		activePCI_IDE->BAR[5] = 0xFFFFFFFC; //Unused!
 	}
 	resetPCISpaceIDE(); //For read-only fields!
 }
