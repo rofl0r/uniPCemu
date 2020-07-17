@@ -229,7 +229,7 @@ OPTINLINE byte MMU_IO_writehandler(uint_32 offset, byte value)
 	memory_datawrittensize = 1; //Default to only 1 byte responding!
 	if (is_i430fx) //Emulate special memory/PCI split?
 	{
-		if (offset <= 0x100000) //Specially mapped memory?
+		if (offset < 0x100000) //Specially mapped memory?
 		{
 			if (offset >= 0xC0000) //Normal RAM/ROM mapping?
 			{
@@ -255,7 +255,7 @@ OPTINLINE byte MMU_IO_writehandler(uint_32 offset, byte value)
 	{
 		if (is_i430fx) //Emulate special memory/PCI split?
 		{
-			if ((offset >= 0xC0000) && (offset <= 0x100000)) //Specially mapped memory?
+			if ((offset >= 0xC0000) && (offset < 0x100000)) //Specially mapped memory?
 			{
 				memory_datawrittensize = 1; //Only 1 byte written!
 				return 0; //Finished?
@@ -274,7 +274,7 @@ OPTINLINE byte MMU_IO_writehandler(uint_32 offset, byte value)
 	}
 	if (is_i430fx) //Emulate special memory/PCI split?
 	{
-		if ((offset >= 0xA0000) && (offset <= 0x100000)) //Specially mapped memory?
+		if ((offset >= 0xA0000) && (offset < 0x100000)) //Specially mapped memory?
 		{
 			memory_datawrittensize = 1; //Only 1 byte written!
 			return 0; //Finished?
@@ -297,7 +297,7 @@ OPTINLINE byte MMU_IO_readhandler(uint_32 offset, byte index)
 
 	if (is_i430fx) //Emulate special memory/PCI split?
 	{
-		if (offset <= 0x100000) //Specially mapped memory?
+		if (offset < 0x100000) //Specially mapped memory?
 		{
 			if (offset >= 0xC0000) //Normal RAM/ROM mapping?
 			{
@@ -324,7 +324,7 @@ OPTINLINE byte MMU_IO_readhandler(uint_32 offset, byte index)
 	{
 		if (is_i430fx) //Emulate special memory/PCI split?
 		{
-			if ((offset >= 0xC0000) && (offset <= 0x100000)) //Specially mapped memory?
+			if ((offset >= 0xC0000) && (offset < 0x100000)) //Specially mapped memory?
 			{
 				//Give the last data read/written by the BUS!
 				memory_dataread = 0xFF; //What is read!
@@ -348,7 +348,7 @@ OPTINLINE byte MMU_IO_readhandler(uint_32 offset, byte index)
 	}
 	if (is_i430fx) //Emulate special memory/PCI split?
 	{
-		if ((offset >= 0xA0000) && (offset <= 0x100000)) //Specially mapped memory?
+		if ((offset >= 0xA0000) && (offset < 0x100000)) //Specially mapped memory?
 		{
 			//Give the last data read/written by the BUS!
 			memory_dataread = 0xFF; //What is read!
