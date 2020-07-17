@@ -5516,27 +5516,27 @@ void ATA_ConfigurationSpaceChanged(uint_32 address, byte device, byte function, 
 	else
 	{
 		//Fix BAR reserved bits!
-		if ((activePCI_IDE->BAR[0] & 0xFFFFFFF0 == 0xFFFFFFF0) && ((address & 3) == 3)) //Requested size?
+		if (((activePCI_IDE->BAR[0] & 0xFFFFFFF0) == 0xFFFFFFF0) && ((address & 3) == 3)) //Requested size?
 		{
 			activePCI_IDE->BAR[0] = 0; //Size!
 		}
-		if ((activePCI_IDE->BAR[1] & 0xFFFFFFF0 == 0xFFFFFFF0) && ((address & 3) == 3)) //Requested size?
+		if (((activePCI_IDE->BAR[1] & 0xFFFFFFF0) == 0xFFFFFFF0) && ((address & 3) == 3)) //Requested size?
 		{
 			activePCI_IDE->BAR[1] = 0; //Size!
 		}
-		if ((activePCI_IDE->BAR[2] & 0xFFFFFFF0 == 0xFFFFFFF0) && ((address & 3) == 3)) //Requested size?
+		if (((activePCI_IDE->BAR[2] & 0xFFFFFFF0) == 0xFFFFFFF0) && ((address & 3) == 3)) //Requested size?
 		{
 			activePCI_IDE->BAR[2] = 0; //Size!
 		}
-		if ((activePCI_IDE->BAR[3] & 0xFFFFFFF0 == 0xFFFFFFF0) && ((address & 3) == 3)) //Requested size?
+		if (((activePCI_IDE->BAR[3] & 0xFFFFFFF0) == 0xFFFFFFF0) && ((address & 3) == 3)) //Requested size?
 		{
 			activePCI_IDE->BAR[3] = 0; //Size!
 		}
-		if ((activePCI_IDE->BAR[4] & 0xFFFFFFF0 == 0xFFFFFFF0) && ((address & 3) == 3)) //Requested size?
+		if (((activePCI_IDE->BAR[4] & 0xFFFFFFF0) == 0xFFFFFFF0) && ((address & 3) == 3)) //Requested size?
 		{
 			activePCI_IDE->BAR[4] = 0; //Size!
 		}
-		if ((activePCI_IDE->BAR[5] & 0xFFFFFFF0 == 0xFFFFFFF0) && ((address & 3) == 3)) //Requested size?
+		if (((activePCI_IDE->BAR[5] & 0xFFFFFFF0) == 0xFFFFFFF0) && ((address & 3) == 3)) //Requested size?
 		{
 			activePCI_IDE->BAR[5] = 0; //Size!
 		}
