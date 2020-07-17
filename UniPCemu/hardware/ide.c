@@ -5515,42 +5515,15 @@ void ATA_ConfigurationSpaceChanged(uint_32 address, byte device, byte function, 
 	{
 		memset(addr,0,1); //Clear the set data!
 	}
-	else
+	else if (PCI_transferring==0) //Finished transferring data for an entry?
 	{
 		//Fix BAR reserved bits!
-		activePCI_IDE->BAR[0] = (activePCI_IDE->BAR[0]&~3)|1; //IO BAR!
-		activePCI_IDE->BAR[1] = (activePCI_IDE->BAR[1]&~3)|1; //IO BAR!
-		activePCI_IDE->BAR[2] = (activePCI_IDE->BAR[2]&~3)|1; //IO BAR!
-		activePCI_IDE->BAR[3] = (activePCI_IDE->BAR[3]&~3)|1; //IO BAR!
-		activePCI_IDE->BAR[4] = (activePCI_IDE->BAR[4]&~3)|1; //IO BAR!
-		activePCI_IDE->BAR[5] = (activePCI_IDE->BAR[5]&~3)|1; //IO BAR!
-		if (PCI_transferring==0) //Terminated write?
-		{
-			if ((activePCI_IDE->BAR[0] & 0xFFFFFFFC) == 0xFFFFFFFC) //Requested size?
-			{
-				activePCI_IDE->BAR[0] = (~8)+1; //Size!
-			}
-			if ((activePCI_IDE->BAR[1] & 0xFFFFFFFC) == 0xFFFFFFFC) //Requested size?
-			{
-				activePCI_IDE->BAR[1] = (~8)+1; //Size!
-			}
-			if ((activePCI_IDE->BAR[2] & 0xFFFFFFFC) == 0xFFFFFFFC) //Requested size?
-			{
-				activePCI_IDE->BAR[2] = (~8)+1; //Size!
-			}
-			if ((activePCI_IDE->BAR[3] & 0xFFFFFFFC) == 0xFFFFFFFC) //Requested size?
-			{
-				activePCI_IDE->BAR[3] = (~8)+1; //Size!
-			}
-			if ((activePCI_IDE->BAR[4] & 0xFFFFFFFC) == 0xFFFFFFFC) //Requested size?
-			{
-				activePCI_IDE->BAR[4] = (~0)+1; //Size!
-			}
-			if ((activePCI_IDE->BAR[5] & 0xFFFFFFFC) == 0xFFFFFFFC) //Requested size?
-			{
-				activePCI_IDE->BAR[5] = (~0)+1; //Size!
-			}
-		}
+		activePCI_IDE->BAR[0] = ((activePCI_IDE->BAR[0]&((~3)&0xFFFF))|1); //IO BAR!
+		activePCI_IDE->BAR[1] = ((activePCI_IDE->BAR[1]&((~3)&0xFFFF))|1); //IO BAR!
+		activePCI_IDE->BAR[2] = ((activePCI_IDE->BAR[2]&((~3)&0xFFFF))|1); //IO BAR!
+		activePCI_IDE->BAR[3] = ((activePCI_IDE->BAR[3]&((~3)&0xFFFF))|1); //IO BAR!
+		activePCI_IDE->BAR[4] = ((activePCI_IDE->BAR[4]&((~3)&0xFFFF))|1); //IO BAR!
+		activePCI_IDE->BAR[5] = ((activePCI_IDE->BAR[5]&((~3)&0xFFFF))|1); //IO BAR!
 	}
 	resetPCISpaceIDE(); //For read-only fields!
 }
