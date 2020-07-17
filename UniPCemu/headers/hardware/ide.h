@@ -36,4 +36,7 @@ word get_cylinders(int disk, uint_64 disk_size);
 void HDD_classicGeometry(uint_64 disk_size, word *cylinders, word *heads, word *SPT);
 void HDD_detectOptimalGeometry(uint_64 disk_size, word *cylinders, word *heads, word *SPT);
 
+//For motherboard support extensions!
+void ATA_ConfigurationSpaceChanged(uint_32 address, byte device, byte function, byte size);
+
 #endif

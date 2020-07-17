@@ -4,6 +4,8 @@
 #include "headers/cpu/cpu.h" //CPU reset support!
 #include "headers/cpu/biu.h" //CPU reset support!
 #include "headers/hardware/ports.h" //Port support!
+#include "headers/mmu/mmuhandler.h" //RAM layout updating support!
+#include "headers/hardware/ide.h" //IDE PCI support!
 
 byte is_i430fx = 0; //Are we an i430fx motherboard?
 byte i430fx_memorymappings_read[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}; //All read memory/PCI! Set=DRAM, clear=PCI!
@@ -157,7 +159,7 @@ extern byte PCI_transferring;
 void i430fx_PCIConfigurationChangeHandler(uint_32 address, byte device, byte function, byte size)
 {
 	PCI_GENERALCONFIG* config = (PCI_GENERALCONFIG*)&i430fx_configuration; //Configuration generic handling!
-	byte old_DRAMdetect;
+	//byte old_DRAMdetect;
 	i430fx_resetPCIConfiguration(); //Reset the ROM values!
 	switch (address) //What configuration is changed?
 	{
