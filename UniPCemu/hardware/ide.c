@@ -5518,12 +5518,12 @@ void ATA_ConfigurationSpaceChanged(uint_32 address, byte device, byte function, 
 	else if (PCI_transferring==0) //Finished transferring data for an entry?
 	{
 		//Fix BAR reserved bits! The lower unchangable bits are the size of the BAR.
-		activePCI_IDE->BAR[0] = ((activePCI_IDE->BAR[0]&((~7)&0xFFFFU))|1); //IO BAR!
-		activePCI_IDE->BAR[1] = ((activePCI_IDE->BAR[1]&((~7)&0xFFFFU))|1); //IO BAR!
-		activePCI_IDE->BAR[2] = ((activePCI_IDE->BAR[2]&((~7)&0xFFFFU))|1); //IO BAR!
-		activePCI_IDE->BAR[3] = ((activePCI_IDE->BAR[3]&((~7)&0xFFFFU))|1); //IO BAR!
-		activePCI_IDE->BAR[4] = ((activePCI_IDE->BAR[4]&((~7)&0xFFFFU))|1); //IO BAR!
-		activePCI_IDE->BAR[5] = ((activePCI_IDE->BAR[5]&((~7)&0xFFFFU))|1); //IO BAR!
+		activePCI_IDE->BAR[0] = ((activePCI_IDE->BAR[0]&((~7)&0xFFFFU))|1); //IO BAR! 8 bytes of IO space!
+		activePCI_IDE->BAR[1] = ((activePCI_IDE->BAR[1]&((~3)&0xFFFFU))|1); //IO BAR! 4 bytes of IO space!
+		activePCI_IDE->BAR[2] = ((activePCI_IDE->BAR[2]&((~7)&0xFFFFU))|1); //IO BAR! 8 bytes of IO space!
+		activePCI_IDE->BAR[3] = ((activePCI_IDE->BAR[3]&((~3)&0xFFFFU))|1); //IO BAR! 4 bytes of IO space!
+		activePCI_IDE->BAR[4] = ((activePCI_IDE->BAR[4]&((~0xF)&0xFFFFU))|1); //IO BAR! 8 bytes of IO space!
+		activePCI_IDE->BAR[5] = ((activePCI_IDE->BAR[5]&((~3)&0xFFFFU))|1); //IO BAR! Unused!
 	}
 	resetPCISpaceIDE(); //For read-only fields!
 }
