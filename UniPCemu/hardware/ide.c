@@ -5504,12 +5504,14 @@ void resetPCISpaceIDE()
 	activePCI_IDE->InterruptLine = 0xFF; //What IRQ are we using?
 }
 
+extern byte PCI_transferring;
+
 void ATA_ConfigurationSpaceChanged(uint_32 address, byte device, byte function, byte size)
 {
 	byte *addr;
 	//Ignore device,function: we only have one!
 	addr = (((byte *)activePCI_IDE)+address); //Actual update location?
-	if ((addr<(byte *)&activePCI_IDE->BAR[0]) || (addr>((byte *)&activePCI_IDE->BAR[3]+sizeof(PCI_IDE.BAR[3])))) //Unsupported update to unsupported location?
+	if ((addr<(byte *)&activePCI_IDE->BAR[0]) || (addr>=((byte *)&activePCI_IDE->BAR[5]+sizeof(PCI_IDE.BAR[5])))) //Unsupported update to unsupported location?
 	{
 		memset(addr,0,1); //Clear the set data!
 	}
@@ -5522,29 +5524,32 @@ void ATA_ConfigurationSpaceChanged(uint_32 address, byte device, byte function, 
 		activePCI_IDE->BAR[3] = (activePCI_IDE->BAR[3]&~3)|1; //IO BAR!
 		activePCI_IDE->BAR[4] = (activePCI_IDE->BAR[4]&~3)|1; //IO BAR!
 		activePCI_IDE->BAR[5] = (activePCI_IDE->BAR[5]&~3)|1; //IO BAR!
-		if (((activePCI_IDE->BAR[0] & 0xFFFFFFF0) == 0xFFFFFFF0) && ((address & 3) == 3)) //Requested size?
+		if (PCI_transferring==0) //Terminated write?
 		{
-			activePCI_IDE->BAR[0] = (~8)+1; //Size!
-		}
-		if (((activePCI_IDE->BAR[1] & 0xFFFFFFF0) == 0xFFFFFFF0) && ((address & 3) == 3)) //Requested size?
-		{
-			activePCI_IDE->BAR[1] = (~8)+1; //Size!
-		}
-		if (((activePCI_IDE->BAR[2] & 0xFFFFFFF0) == 0xFFFFFFF0) && ((address & 3) == 3)) //Requested size?
-		{
-			activePCI_IDE->BAR[2] = (~8)+1; //Size!
-		}
-		if (((activePCI_IDE->BAR[3] & 0xFFFFFFF0) == 0xFFFFFFF0) && ((address & 3) == 3)) //Requested size?
-		{
-			activePCI_IDE->BAR[3] = (~8)+1; //Size!
-		}
-		if (((activePCI_IDE->BAR[4] & 0xFFFFFFF0) == 0xFFFFFFF0) && ((address & 3) == 3)) //Requested size?
-		{
-			activePCI_IDE->BAR[4] = (~0)+1; //Size!
-		}
-		if (((activePCI_IDE->BAR[5] & 0xFFFFFFF0) == 0xFFFFFFF0) && ((address & 3) == 3)) //Requested size?
-		{
-			activePCI_IDE->BAR[5] = (~0)+1; //Size!
+			if (((activePCI_IDE->BAR[0] & 0xFFFFFFF0) == 0xFFFFFFF0) && ((address & 3) == 3)) //Requested size?
+			{
+				activePCI_IDE->BAR[0] = (~8)+1; //Size!
+			}
+			if (((activePCI_IDE->BAR[1] & 0xFFFFFFF0) == 0xFFFFFFF0) && ((address & 3) == 3)) //Requested size?
+			{
+				activePCI_IDE->BAR[1] = (~8)+1; //Size!
+			}
+			if (((activePCI_IDE->BAR[2] & 0xFFFFFFF0) == 0xFFFFFFF0) && ((address & 3) == 3)) //Requested size?
+			{
+				activePCI_IDE->BAR[2] = (~8)+1; //Size!
+			}
+			if (((activePCI_IDE->BAR[3] & 0xFFFFFFF0) == 0xFFFFFFF0) && ((address & 3) == 3)) //Requested size?
+			{
+				activePCI_IDE->BAR[3] = (~8)+1; //Size!
+			}
+			if (((activePCI_IDE->BAR[4] & 0xFFFFFFF0) == 0xFFFFFFF0) && ((address & 3) == 3)) //Requested size?
+			{
+				activePCI_IDE->BAR[4] = (~0)+1; //Size!
+			}
+			if (((activePCI_IDE->BAR[5] & 0xFFFFFFF0) == 0xFFFFFFF0) && ((address & 3) == 3)) //Requested size?
+			{
+				activePCI_IDE->BAR[5] = (~0)+1; //Size!
+			}
 		}
 	}
 	resetPCISpaceIDE(); //For read-only fields!

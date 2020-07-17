@@ -76,4 +76,6 @@ configurationspacehandler: A handler to be called when a byte in the configurati
 */
 void register_PCI(void *config, byte device, byte function, byte size, PCIConfigurationChangeHandler configurationchangehandler); //Register a new device/function to the PCI configuration space!
 
+void PCI_finishtransfer(); //Finished a BIU transfer?
+
 #endif

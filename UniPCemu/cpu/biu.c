@@ -34,6 +34,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/mmu/mmu_internals.h" //Internal MMU call support!
 #include "headers/mmu/mmuhandler.h" //MMU handling support!
 #include "headers/cpu/easyregs.h" //Easy register support!
+#include "headers/hardware/pci.h" //Bus termination supoort!
 
 //Define the below to throw faults on instructions causing an invalid jump somewhere!
 //#define FAULT_INVALID_JUMPS
@@ -1154,6 +1155,7 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates, byte bus_waitstates)
 					{
 						BIU[activeCPU].currentresult = PORT_IN_B(BIU[activeCPU].currentaddress&0xFFFF); //Read byte!
 					}
+					PCI_finishtransfer(); //Terminate the bus cycle!
 					if ((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)==REQUEST_SUB0) //Finished the request?
 					{
 						if (BIU_response(BIU[activeCPU].currentresult)) //Result given?
@@ -1206,6 +1208,7 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates, byte bus_waitstates)
 					{
 						PORT_OUT_B((word)(BIU[activeCPU].currentpayload[0]&0xFFFF),(byte)((BIU[activeCPU].currentpayload[0]>>32)&0xFFFFFFFF)); //Write to memory now!									
 					}
+					PCI_finishtransfer(); //Terminate the bus cycle!
 					if ((BIU[activeCPU].currentrequest&REQUEST_SUBMASK)==REQUEST_SUB0) //Finished the request?
 					{
 						if (BIU_response(1)) //Result given? We're giving OK!

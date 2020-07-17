@@ -30,12 +30,28 @@ byte configurationsizes[0x100]; //The size of the configuration!
 byte configurationfunctions[0x100]; //The hardware ID of the device configuration(0 when only one device), as used by the hardware(when registering)!
 byte configurationdevices[0x100]; //The function of the configuration(0 when only one device)!
 byte configurationactivedevices[0x100]; //The function of the configuration(0 when only one device)!
+byte PCI_terminated = 0; //Terminated PCI access?
 PCIConfigurationChangeHandler configurationchanges[0x100]; //The change handlers of PCI area data!
 
 byte newPCIdevice;
 uint_32 PCI_address, PCI_data, PCI_status; //Address data and status buffers!
+byte lastwriteindex = 0;
 
 uint_32 PCI_device, PCI_currentaddress; //What registered device and data address is used(valid after a call to PCI_decodedevice)?
+byte PCI_transferring = 0;
+byte PCI_lastindex = 0;
+
+void PCI_finishtransfer()
+{
+	if (unlikely(PCI_transferring)) //Were we tranaferring?
+	{
+		PCI_transferring = 0; //Not anymore!
+		if (configurationchanges[PCI_device]) //Change registered?
+		{
+			configurationchanges[PCI_device](PCI_currentaddress|PCI_lastindex,configurationdevices[PCI_device],configurationfunctions[PCI_device],1); //We've updated 1 byte of configuration data!
+		}
+	}
+}
 
 byte PCI_decodedevice(uint_32 address)
 {
@@ -100,6 +116,8 @@ OPTINLINE void PCI_write_data(uint_32 address, byte index, byte value) //Write d
 		configurationspaces[PCI_device][PCI_currentaddress|index] = value; //Set the data!
 		if (configurationchanges[PCI_device]) //Change registered?
 		{
+			PCI_transferring = 1; //Transferring!
+			PCI_lastindex = index; //Last index written!
 			configurationchanges[PCI_device](PCI_currentaddress|index,configurationdevices[PCI_device],configurationfunctions[PCI_device],1); //We've updated 1 byte of configuration data!
 		}
 	}
