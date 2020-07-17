@@ -57,12 +57,14 @@ typedef struct
 /*
 
 Note on the BAR format:
-bit0=1: I/O port. Bits 2+ are the port.
+bit0=1, bit1=0: I/O port. Bits 2+ are the port.
 Bit0=0: Memory address:
 	Bit1-2: Memory size(0=32-bit, 1=20-bit, 2=64-bit).
 	Bit3: Prefetchable
-	Bits 4-31: The base address. This has a special value when a BAR is written with all ones in it's address bits(value 0xFFFFFFF0):
+	Bits 4-31: The base address.
 		The value of the BAR becomes the negated size of the memory area this takes up((~x)+1). x must be 16-byte multiple due to the low 4 bits being ROM values(see bits 0-3 above)).
+		For I/O areas, this is a 2-bit mask.
+		The size of the lowest set bit is the size of the window the BAR represents, which has a minimum of 16(memory) or 4(IO). (So mask FFFC for a 4-byte aperture, FFF8 for a 8-byte aperture etc.)
 
 */
 
