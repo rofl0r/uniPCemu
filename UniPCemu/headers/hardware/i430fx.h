@@ -13,5 +13,6 @@ void i430fx__SMIACT(byte active); //SMIACT# signal
 void i430fx_writeaddr(byte index, byte *value); //Written an address?
 void init_i430fx(byte enabled);
 void done_i430fx();
+void i430fx_MMUready(); //Memory is ready to use?
 
 #endif

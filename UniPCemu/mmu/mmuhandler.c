@@ -822,6 +822,7 @@ void MMU_seti430fx()
 	MMU_updatemaxsize(); //updated the maximum size!
 	memory_datasize = 0; //Invalidate the read cache!
 	BIU_cachedmemorysize = 0; //Make the BIU properly aware by flushing it's caches!
+	i430fx_MMUready(); //MMU is ready!
 }
 
 BUShandler bushandler = NULL; //Remember the last access?

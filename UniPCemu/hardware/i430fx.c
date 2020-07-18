@@ -16,6 +16,23 @@ byte SMRAM_locked = 0; //Are we locked?
 byte SMRAM_SMIACT = 0; //SMI activated
 extern byte MMU_memoryholespec; //memory hole specification? 0=Normal, 1=512K, 2=15M.
 byte i430fx_previousDRAM[5]; //Previous DRAM values
+byte i430fx_DRAMsettings[5]; //Previous DRAM values
+typedef struct
+{
+	byte DRAMsettings[8]; //All 5 DRAM settings to load!
+	byte maxmemorysize; //Maximum memory size to use, in MB!
+} DRAMInfo;
+DRAMInfo i430fx_DRAMsettingslookup[8] = {
+	{{0x02,0x02,0x02,0x02,0x02,0x00,0x00,0x00},8}, //up to 8MB
+	{{0x02,0x04,0x04,0x04,0x04,0x00,0x00,0x00},16}, //up to 16MB
+	{{0x02,0x04,0x06,0x06,0x06,0x00,0x00,0x00},24}, //up to 24MB
+	{{0x04,0x08,0x08,0x08,0x08,0x00,0x00,0x00},32}, //up to 32MB
+	{{0x04,0x08,0x0C,0x00,0x00,0x00,0x00,0x00},48}, //up to 48MB
+	{{0x08,0x10,0x10,0x10,0x10,0x00,0x00,0x00},64}, //up to 64MB
+	{{0x04,0x08,0x10,0x18,0x18,0x00,0x00,0x00},96}, //up to 96MB
+	{{0x10,0x20,0x20,0x20,0x20,0x00,0x00,0x00},255} //up to 128MB. Since it's capped at 128 MB, take it for larger values as well!
+};
+byte effectiveDRAMsettings = 0; //Effective DRAM settings!
 
 byte i430fx_configuration[256]; //Full configuration space!
 byte i430fx_piix_configuration[256]; //Full configuration space!
@@ -238,6 +255,7 @@ void i430fx_PCIConfigurationChangeHandler(uint_32 address, byte device, byte fun
 	//case 0x67:
 		//DRAM module detection?
 		i430fx_configuration[address] &= 0x3F; //Only 6 bits/row!
+		/*
 		if (((i430fx_configuration[0x60] +
 			((i430fx_configuration[0x61] > i430fx_configuration[0x60])?i430fx_configuration[0x61] - i430fx_configuration[0x60]:0) +
 			((i430fx_configuration[0x62] > i430fx_configuration[0x61])?i430fx_configuration[0x62] - i430fx_configuration[0x61]:0) +
@@ -248,6 +266,9 @@ void i430fx_PCIConfigurationChangeHandler(uint_32 address, byte device, byte fun
 			i430fx_configuration[address] = i430fx_previousDRAM[address-0x60]; //Reset back to the default: nothing!
 		}
 		i430fx_previousDRAM[address - 0x60] = i430fx_configuration[address]; //Change detection!
+		*/
+		//DRAM auto detection!
+		memcpy(&i430fx_configuration[0x60], &i430fx_DRAMsettings, 5); //Set all DRAM setting registers to the to be detected value!
 		break;
 	case 0x72: //SMRAM?
 		i430fx_updateSMRAM();
@@ -391,6 +412,55 @@ void i430fx_ide_PCIConfigurationChangeHandler(uint_32 address, byte device, byte
 	i430fx_ide_resetPCIConfiguration(); //Reset the ROM fields!
 }
 
+void i430fx_hardreset()
+{
+	byte address;
+	memset(&i430fx_memorymappings_read, 0, sizeof(i430fx_memorymappings_read)); //Default to PCI!
+	memset(&i430fx_memorymappings_write, 0, sizeof(i430fx_memorymappings_write)); //Default to PCI!
+	memset(&i430fx_configuration, 0, sizeof(i430fx_configuration)); //Initialize the configuration!
+	memset(&i430fx_piix_configuration, 0, sizeof(i430fx_piix_configuration)); //Initialize the configuration!
+
+	i430fx_resetPCIConfiguration(); //Initialize/reset the configuration!
+	i430fx_piix_resetPCIConfiguration(); //Initialize/reset the configuration!
+	i430fx_ide_resetPCIConfiguration(); //Initialize/reset the configuration!
+
+	//Initialize DRAM module detection!
+	memset(&i430fx_configuration[0x60], 2, 5); //Initialize the DRAM settings!
+
+	MMU_memoryholespec = 1; //Default: disabled!
+	i430fx_configuration[0x59] = 0xF; //Default configuration setting when reset!
+	i430fx_configuration[0x57] = 0x01; //Default memory hole setting!
+	i430fx_configuration[0x72] = 0x02; //Default SMRAM setting!
+
+	//Known and unknown registers:
+	i430fx_configuration[0x52] = 0x40; //256kB PLB cache?
+	i430fx_configuration[0x52] = 0x42; //ROM set is a 430FX?
+	i430fx_configuration[0x53] = 0x14; //ROM set is a 430FX?
+	i430fx_configuration[0x56] = 0x52; //ROM set is a 430FX? DRAM control
+	//i430fx_configuration[0x57] = 0x01;
+	i430fx_configuration[0x69] = 0x03; //ROM set is a 430FX?
+	i430fx_configuration[0x70] = 0x20; //ROM set is a 430FX?
+	//i430fx_configuration[0x72] = 0x02;
+	i430fx_configuration[0x74] = 0x0E; //ROM set is a 430FX?
+	i430fx_configuration[0x78] = 0x23; //ROM set is a 430FX?
+
+	//Initalize all mappings!
+	for (address = 0x59; address < 0x5F; ++address) //Initialize us!
+	{
+		i430fx_PCIConfigurationChangeHandler(address, 3, 0, 1); //Initialize all required settings!
+	}
+
+	i430fx_piix_configuration[0x6A] = 0x04; //Default value: PCI Header type bit enable set!
+	i430fx_piix_PCIConfigurationChangeHandler(0x6A, 3, 0, 1); //Initialize all required settings!
+
+	SMRAM_locked = 0; //Unlock SMRAM always!
+	SMRAM_SMIACT = 0; //Default: not active!
+	i430fx_updateSMRAM(); //Update the SMRAM setting!
+
+	APMcontrol = APMstatus = 0; //Initialize APM registers!
+	ELCRhigh = ELCRlow = 0; //Initialize the ELCR registers!
+}
+
 extern uint_32 PCI_address; //What address register is currently set?
 extern BIU_type BIU[NUMCPUS]; //BIU definition!
 void i430fx_writeaddr(byte index, byte *value) //Written an address?
@@ -402,6 +472,7 @@ void i430fx_writeaddr(byte index, byte *value) //Written an address?
 			//Should reset all PCI devices?
 			if (*value & 2) //Hard reset?
 			{
+				i430fx_hardreset(); //Perform a hard reset of the hardware!
 				i430fx_configuration[0x59] = 0xF; //Reset this!
 				i430fx_PCIConfigurationChangeHandler(0x59, 3, 0, 1); //Updated!
 			}
@@ -482,61 +553,34 @@ byte i430fx_piix_portremapper(word *port, byte size, byte isread)
 	return 1; //Passthrough by default!
 }
 
+void i430fx_MMUready()
+{
+	byte memorydetection;
+	//First, detect the DRAM settings to use!
+	effectiveDRAMsettings = 0; //Default DRAM settings is the first entry!
+	for (memorydetection = 0; memorydetection < NUMITEMS(i430fx_DRAMsettingslookup); ++memorydetection) //Check all possible memory sizes!
+	{
+		if (MEMsize() <= (i430fx_DRAMsettingslookup[memorydetection].maxmemorysize<<20)) //Within the limits of the maximum memory size?
+		{
+			effectiveDRAMsettings = memorydetection; //Use this memory size information!
+		}
+	}
+	//effectiveDRAMsettings now points to the DRAM information to use!
+	memcpy(&i430fx_DRAMsettings, &i430fx_DRAMsettingslookup[effectiveDRAMsettings], sizeof(i430fx_DRAMsettings)); //Setup the DRAM settings to use!
+}
+
 void init_i430fx(byte enabled)
 {
-	byte address;
 	is_i430fx = enabled; //Emulate a i430fx architecture!
-	memset(&i430fx_memorymappings_read, 0, sizeof(i430fx_memorymappings_read)); //Default to PCI!
-	memset(&i430fx_memorymappings_write, 0, sizeof(i430fx_memorymappings_write)); //Default to PCI!
-	memset(&i430fx_configuration, 0, sizeof(i430fx_configuration)); //Initialize the configuration!
-	memset(&i430fx_piix_configuration, 0, sizeof(i430fx_piix_configuration)); //Initialize the configuration!
 
-	i430fx_resetPCIConfiguration(); //Initialize/reset the configuration!
-	i430fx_piix_resetPCIConfiguration(); //Initialize/reset the configuration!
-	i430fx_ide_resetPCIConfiguration(); //Initialize/reset the configuration!
-
-	//Initialize DRAM module detection!
-	memset(&i430fx_configuration[0x60], 2, 5); //Initialize the DRAM settings!
-	memcpy(&i430fx_previousDRAM, &i430fx_configuration[0x60], 5); //Initialize the change detection!
-
-	MMU_memoryholespec = 0; //Default: normal behaviour!
-	i430fx_configuration[0x59] = 0xF; //Default configuration setting when reset!
-	i430fx_configuration[0x57] = 0x01; //Default memory hole setting!
-	i430fx_configuration[0x72] = 0x02; //Default SMRAM setting!
-
-	//Known and unknown registers:
-	i430fx_configuration[0x52] = 0x40; //256kB PLB cache?
-	i430fx_configuration[0x52] = 0x42; //ROM set is a 430FX?
-	i430fx_configuration[0x53] = 0x14; //ROM set is a 430FX?
-	i430fx_configuration[0x56] = 0x52; //ROM set is a 430FX? DRAM control
-	//i430fx_configuration[0x57] = 0x01;
-	i430fx_configuration[0x69] = 0x03; //ROM set is a 430FX?
-	i430fx_configuration[0x70] = 0x20; //ROM set is a 430FX?
-	//i430fx_configuration[0x72] = 0x02;
-	i430fx_configuration[0x74] = 0x0E; //ROM set is a 430FX?
-	i430fx_configuration[0x78] = 0x23; //ROM set is a 430FX?
-
-	//Initalize all mappings!
-	for (address = 0x59; address < 0x5F; ++address) //Initialize us!
-	{
-		i430fx_PCIConfigurationChangeHandler(address, 3, 0, 1); //Initialize all required settings!
-	}
-
-	i430fx_piix_configuration[0x6A] = 0x04; //Default value: PCI Header type bit enable set!
-	i430fx_piix_PCIConfigurationChangeHandler(0x6A, 3, 0, 1); //Initialize all required settings!
-
-	SMRAM_locked = 0; //Unlock SMRAM always!
-	SMRAM_SMIACT = 0; //Default: not active!
-	i430fx_updateSMRAM(); //Update the SMRAM setting!
-
-	APMcontrol = APMstatus = 0; //Initialize APM registers!
-	ELCRhigh = ELCRlow = 0; //Initialize the ELCR registers!
+	i430fx_hardreset(); //Perform a hard reset of the hardware!
+	effectiveDRAMsettings = 0; //Effective DRAM settings to take effect! Start at the first entry, which is the minimum!
 
 	//Register PCI configuration space?
-	if (enabled) //Are we enabled?
+	if (is_i430fx) //Are we enabled?
 	{
 		register_PCI(&i430fx_configuration, 3, 0, (sizeof(i430fx_configuration)>>2), &i430fx_PCIConfigurationChangeHandler); //Register ourselves to PCI!
-		MMU_memoryholespec = 0; //Our specific specification!
+		MMU_memoryholespec = 1; //Our specific specification!
 		register_PCI(&i430fx_piix_configuration, 4, 0, (sizeof(i430fx_piix_configuration) >> 2), &i430fx_piix_PCIConfigurationChangeHandler); //Register ourselves to PCI!
 		register_PCI(&i430fx_ide_configuration, 4, 1, (sizeof(i430fx_ide_configuration) >> 2), &i430fx_ide_PCIConfigurationChangeHandler); //Register ourselves to PCI!
 		activePCI_IDE = (PCI_GENERALCONFIG *)&i430fx_ide_configuration; //Use our custom handler!
