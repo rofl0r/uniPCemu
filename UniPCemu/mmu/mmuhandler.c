@@ -442,14 +442,14 @@ void MMU_precalcMemoryHoles()
 					memoryhole = 1; //First memory hole!
 				}
 			}
-			else //Mid memory?
+			else //Mid or higher memory?
 			{
 				memloc = 1; //Second memory block: mid memory!
 				if (address >= MID_MEMORYHOLE_START) //Start of second hole?
 				{
-					if (unlikely(address < MID_MEMORYHOLE_END)) //Second hole?
+					if (address < MID_MEMORYHOLE_END) //Second hole?
 					{
-						if ((!is_i430fx) || (MMU_memoryholespec == 3)) //Enable mid memory hole?
+						if (unlikely((!is_i430fx) || (MMU_memoryholespec == 3))) //Enable mid memory hole?
 						{
 							memoryhole = 2; //Second memory hole!
 						}
@@ -457,13 +457,16 @@ void MMU_precalcMemoryHoles()
 					else //High memory?
 					{
 						memloc = 2; //Third memory block!
-						if (unlikely((address >= HIGH_MEMORYHOLE_START) && ((uint_64)address < (uint_64)HIGH_MEMORYHOLE_END))) //Start of third hole?
+						if (address >= HIGH_MEMORYHOLE_START) //Start of third hole?
 						{
-							memoryhole = 3; //Third memory hole!
-						}
-						else
-						{
-							memloc = 3; //Fourth memory block!
+							if (unlikely((uint_64)address < (uint_64)HIGH_MEMORYHOLE_END)) //Third hole?
+							{
+								memoryhole = 3; //Third memory hole!
+							}
+							else //64-bit memory block?
+							{
+								memloc = 3; //Fourth memory block!
+							}
 						}
 					}
 				}
