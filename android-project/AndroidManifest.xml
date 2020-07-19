@@ -71,7 +71,7 @@
         <activity android:name="UniPCemuActivity"
                   android:label="@string/app_name"
                   android:alwaysRetainTaskState="true"
-                  android:launchmode="singleInstance"
+                  android:launchMode="singleInstance"
                   android:configChanges="orientation|uiMode|screenLayout|screenSize|smallestScreenSize|keyboard|keyboardHidden|navigation"
                   android:screenOrientation="sensorLandscape"
                   >
