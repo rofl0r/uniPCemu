@@ -89,6 +89,7 @@ void i430fx_resetPCIConfiguration()
 void i430fx_update_piixstatus()
 {
 	i430fx_piix_configuration[0x0E] = (i430fx_piix_configuration[0x0E] & ~0x7F) | ((i430fx_piix_configuration[0x6A] & 0x04) << 5); //Set the bit from the settings!
+	i430fx_ide_configuration[0x0E] = (i430fx_ide_configuration[0x0E] & ~0x7F) | ((i430fx_piix_configuration[0x6A] & 0x04) << 5); //Set the bit from the settings!
 }
 
 void i430fx_piix_resetPCIConfiguration()
@@ -122,6 +123,7 @@ void i430fx_ide_resetPCIConfiguration()
 	i430fx_ide_configuration[0x09] = 0x80&0; //Not capable of IDE-bus master yet, so mask it off!
 	i430fx_ide_configuration[0x0A] = 0x01;
 	i430fx_ide_configuration[0x0B] = 0x01;
+	i430fx_update_piixstatus(); //Update the status register bit!
 }
 
 void i430fx_map_read_memoryrange(byte start, byte size, byte maptoRAM)
@@ -433,14 +435,13 @@ void i430fx_hardreset()
 	i430fx_configuration[0x72] = 0x02; //Default SMRAM setting!
 
 	//Known and unknown registers:
-	i430fx_configuration[0x52] = 0x40; //256kB PLB cache?
-	i430fx_configuration[0x52] = 0x42; //ROM set is a 430FX?
+	i430fx_configuration[0x52] = 0x02; //0x40: 256kB PLB cache(originally 0x42)? 0x00: No cache installed? 0x02: No cache installed and force cache miss?
 	i430fx_configuration[0x53] = 0x14; //ROM set is a 430FX?
 	i430fx_configuration[0x56] = 0x52; //ROM set is a 430FX? DRAM control
-	//i430fx_configuration[0x57] = 0x01;
+	i430fx_configuration[0x57] = 0x01;
 	i430fx_configuration[0x69] = 0x03; //ROM set is a 430FX?
 	i430fx_configuration[0x70] = 0x20; //ROM set is a 430FX?
-	//i430fx_configuration[0x72] = 0x02;
+	i430fx_configuration[0x72] = 0x02;
 	i430fx_configuration[0x74] = 0x0E; //ROM set is a 430FX?
 	i430fx_configuration[0x78] = 0x23; //ROM set is a 430FX?
 
