@@ -120,7 +120,7 @@ void i430fx_ide_resetPCIConfiguration()
 	i430fx_ide_configuration[0x06] = 0x80;
 	i430fx_ide_configuration[0x07] = 0x02; //ROM set is a 430FX?
 	i430fx_ide_configuration[0x08] = 0x02; //A-1 stepping
-	i430fx_ide_configuration[0x09] = 0x80&(i430fx_ide_configuration[0x09]&0xF); //Not capable of IDE-bus master yet, so mask it off! Keep the configuation intact!
+	i430fx_ide_configuration[0x09] = 0x80|(i430fx_ide_configuration[0x09]&0xF); //Not capable of IDE-bus master yet, so mask it off! Keep the configuation intact!
 	i430fx_ide_configuration[0x0A] = 0x01; //Sub-class
 	i430fx_ide_configuration[0x0B] = 0x01; //Base-class
 	i430fx_update_piixstatus(); //Update the status register bit!
