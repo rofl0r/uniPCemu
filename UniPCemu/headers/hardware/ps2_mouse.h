@@ -34,6 +34,8 @@ typedef struct MOUSE_PACKET
 {
 sbyte xmove;
 sbyte ymove;
+sbyte xmovemickey;
+sbyte ymovemickey;
 byte buttons; //1=Left, 2=Right, 4=Middle bitmask.
 sbyte scroll; //scroll up(MAX -8)/down(MAX +7); Used during 4-byte packets only! After setsamplerate 200,200,80 and request ID 4.
 struct MOUSE_PACKET *next; //Next packet!
