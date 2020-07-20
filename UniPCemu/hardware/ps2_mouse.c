@@ -31,6 +31,9 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 //Are we disabled?
 #define __HW_DISABLED 0
 
+//How long does a step in the BAT take?
+#define PS2_MOUSE_BAT_TIMEOUT 100000.0
+
 extern Controller8042_t Controller8042; //The 8042 controller!
 
 struct
@@ -205,7 +208,8 @@ void update_mouseTimer()
 	setMouseRate(Mouse.activesamplerate); //Start using this samplerate!
 }
 
-OPTINLINE void resetPS2Mouse()
+//cause: 0=Disable, 1=Enable port, 3=BAT
+OPTINLINE void resetPS2Mouse(byte cause)
 {
 	if (__HW_DISABLED) return; //Abort!
 	flushPackets(); //Flush all packets!
@@ -230,7 +234,7 @@ void updatePS2Mouse(DOUBLE timepassed)
 					case 1: //First stage?
 						input_lastwrite_mouse(); //Force 0x00(dummy byte) to user!
 						give_mouse_output(0xFA); //Acnowledge!
-						resetPS2Mouse(); //Reset the Keyboard Controller! Don't give a result(this will be done in time)!
+						resetPS2Mouse(3); //Reset the Keyboard Controller! Don't give a result(this will be done in time)!
 						Mouse.timeout = MOUSE_DEFAULTTIMEOUT; //A small delay for the result code to appear!
 						Mouse.command_step = 2; //Step 2!
 						Mouse.command = 0xFF; //Restore the command byte, so that we can continue!
@@ -268,7 +272,8 @@ OPTINLINE void initPS2Mouse()
 	Mouse.resolution = 0x02; //4 pixel/mm resolution!
 	
 	Mouse.command = 0xFF; //Reset!
-	Mouse.timeout = 100000.0; //Start timing for our message!
+	Mouse.command_step = 2; //Result only!
+	Mouse.timeout = PS2_MOUSE_BAT_TIMEOUT; //Start timing for our message!
 }
 
 OPTINLINE void mouse_handleinvalidcall()
@@ -684,12 +689,12 @@ void handle_mouseenabled(byte flags)
 {
 	if (flags & 0x80) //We're disabled?
 	{
-		resetPS2Mouse(); //Reset the mouse!
+		resetPS2Mouse(0); //Reset the mouse!
 		update_mouseTimer(); //Disable the timer if required!
 	}
 	else //We're enabled?
 	{
-		resetPS2Mouse(); //Reset the mouse!
+		resetPS2Mouse(1); //Reset the mouse!
 		loadMouseDefaults(); //Load the default settings into the mouse!
 		update_mouseTimer(); //Enable the timer if required!
 	}

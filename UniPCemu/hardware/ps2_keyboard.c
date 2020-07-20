@@ -60,6 +60,13 @@ OPTINLINE void loadKeyboardDefaults()
 	Keyboard.scancodeset = is_XT?0:1; //Scan code set 2 or 1, depending on the hardware(XT uses XT-style keyboard instead)!
 }
 
+/*
+flags: bit0: XT style enable
+is_ATInit:
+0=Normal style init
+1=AT style port enable
+3=BAT
+*/
 OPTINLINE void resetKeyboard(byte flags, byte is_ATInit) //Reset the keyboard controller!
 {
 	if (__HW_DISABLED) return; //Abort!
@@ -68,28 +75,31 @@ OPTINLINE void resetKeyboard(byte flags, byte is_ATInit) //Reset the keyboard co
 		memset(&Keyboard,0,sizeof(Keyboard)); //Reset the controller!
 	Keyboard.keyboard_enabled = 1; //Enable scanning by default!
 	Keyboard.buffer = oldbuffer; //Restore the buffer!
-	if (!is_ATInit)
+	if (is_ATInit!=3) //Not part of the BAT itself?
 	{
+		//Perform the BAT for software to see!
 		Keyboard.command = 0xFF; //Handler!
 		Keyboard.command_step = 2;
 		Keyboard.has_command = 1;
 		Keyboard.timeout = KEYBOARD_BATTIMEOUT; //Executing BAT!
 	}
-	if ((flags || (is_ATInit!=1))) //Not a enable by the 8042? We're executing the BAT(flags==0 and is_ATInit==1 is used when enabling the 8042 PS/2 port)!
-	{
-		Keyboard.last_send_byte = 0xAA; //Set last send byte!
-		loadKeyboardDefaults(); //Load our defaults!
-		Keyboard.LEDS = 0; //Disable all LEDs, as part of the BAT!
-	}
+
+	Keyboard.last_send_byte = 0xAA; //Set last send byte!
+	loadKeyboardDefaults(); //Load our defaults!
+	Keyboard.LEDS = 0; //Disable all LEDs, as part of the BAT!
 }
 
+//flags: 1: Enable XT, 81h: Disable XT, 2: Enable AT, 82h: Disable AT
 void resetKeyboard_8042(byte flags)
 {
 	if ((flags & 0x80) == 0) //We're only handling enabling the keyboard!
 	{
-		if ((flags & 2) == 0) input_lastwrite_keyboard(); //Force to user!
-		resetKeyboard((flags&~2), ((flags & 2) ? 1 : 0)); //Reset us! Execute an interrupt as well!
-		if ((flags & 2) == 0) input_lastwrite_keyboard(); //Force to user!
+		if ((flags & 1) == 1) //Only for XT-style enable!
+		{
+			input_lastwrite_keyboard(); //Force to user!
+			resetKeyboard((flags & ~2), ((flags & 2) ? 1 : 0)); //Reset us! Execute an interrupt as well!
+			input_lastwrite_keyboard(); //Force to user!
+		}
 	}
 }
 
@@ -279,7 +289,7 @@ void updatePS2Keyboard(DOUBLE timepassed)
 				case 1: //First stage?
 					input_lastwrite_keyboard(); //Force 0x00(dummy byte) to user!
 					give_keyboard_output(0xFA); //Acnowledge!
-					resetKeyboard(1, 1); //Reset the Keyboard Controller! Don't give a result(this will be done in time)!
+					resetKeyboard(1, 3); //Reset the Keyboard Controller! Don't give a result(this will be done in time)!
 					Keyboard.timeout = KEYBOARD_BATTIMEOUT; //A small delay for the result code to appear!
 					Keyboard.command_step = 2; //Step 2!
 					Keyboard.command = 0xFF; //Restore the command byte, so that we can continue!
