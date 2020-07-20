@@ -687,6 +687,7 @@ void EMU_enablemouse(byte enabled) //Enable mouse input (disable during EMU, ena
 
 void handle_mouseenabled(byte flags)
 {
+	return; //Don't do anything when the mouse port is enabled or disabled!
 	if (flags & 0x80) //We're disabled?
 	{
 		resetPS2Mouse(0); //Reset the mouse!
