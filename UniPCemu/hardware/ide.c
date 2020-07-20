@@ -275,6 +275,7 @@ typedef struct
 	DOUBLE driveselectTiming;
 	DOUBLE playerTiming; //The timer for the player samples!
 	DOUBLE playerTick; //The time of one sample!
+	byte use_PCImode; //Enable PCI mode for this controller? Bit0: Set=PCI mode, Clear=Compatiblity. Bit1: Set=Use BAR0 and BAR1 instead for the BAR2 and BAR3.
 } ATA_ChannelContainerType;
 
 ATA_ChannelContainerType ATA[2]; //Two channels of ATA drives!
@@ -1755,15 +1756,24 @@ void updateATA(DOUBLE timepassed) //ATA timing!
 	}
 }
 
+OPTINLINE byte controller_enabled()
+{
+	if (activePCI_IDE->Command & 1) //Is the PCI controller enabled?
+	{
+		return 1; //Enabled!
+	}
+	return 0; //Disabled!
+}
+
 OPTINLINE uint_32 getPORTaddress(byte channel)
 {
 	switch (channel)
 	{
 	case 0: //First?
-		return (is_i430fx?0x1F0:((activePCI_IDE->BAR[0] > 3) ? (activePCI_IDE->BAR[0]&~3) : 0x1F0)); //Give the BAR!
+		return (((ATA[0].use_PCImode&1)==0)?0x1F0:((activePCI_IDE->BAR[0] > 3) ? (activePCI_IDE->BAR[0]&~3) : 0x1F0)); //Give the BAR!
 		break;
 	case 1: //Second?
-		return (is_i430fx?0x170:((activePCI_IDE->BAR[2] > 3) ? (activePCI_IDE->BAR[2]&~3) : 0x170)); //Give the BAR!
+		return (((ATA[1].use_PCImode&1)==0)?0x170:((activePCI_IDE->BAR[2-(ATA[1].use_PCImode&2)] > 3) ? (activePCI_IDE->BAR[2-(ATA[1].use_PCImode&2)]&~3) : 0x170)); //Give the BAR!
 		break;
 	default:
 		return ~0; //Error!
@@ -1775,10 +1785,10 @@ OPTINLINE uint_32 getControlPORTaddress(byte channel)
 	switch (channel)
 	{
 	case 0: //First?
-		return (is_i430fx?0x3F4:((activePCI_IDE->BAR[1] > 3) ? (activePCI_IDE->BAR[1]&~3) : 0x3F4)); //Give the BAR!
+		return (((ATA[0].use_PCImode&1)==0)?0x3F4:((activePCI_IDE->BAR[1] > 3) ? (activePCI_IDE->BAR[1]&~3) : 0x3F4)); //Give the BAR!
 		break;
 	case 1: //Second?
-		return (is_i430fx?0x374:((activePCI_IDE->BAR[3] > 3) ? (activePCI_IDE->BAR[3]&~3) : 0x374)); //Give the BAR!
+		return (((ATA[1].use_PCImode&1)==0)?0x374:((activePCI_IDE->BAR[3-(ATA[1].use_PCImode&2)] > 3) ? (activePCI_IDE->BAR[3-(ATA[1].use_PCImode&2)]&~3) : 0x374)); //Give the BAR!
 		break;
 	default:
 		return ~0; //Error!
@@ -5116,10 +5126,10 @@ OPTINLINE void ATA_writedata(byte channel, byte value)
 byte outATA16(word port, word value)
 {
 	byte channel = 0; //What channel?
-	if (port != getPORTaddress(channel)) //Primary channel?
+	if ((port != getPORTaddress(channel)) || (!controller_enabled())) //Primary channel?
 	{
 		channel = 1; //Try secondary channel!
-		if (port != getPORTaddress(channel)) //Secondary channel?
+		if ((port != getPORTaddress(channel)) || (!controller_enabled())) //Secondary channel?
 		{
 			return 0; //Not our port?
 		}
@@ -5137,10 +5147,10 @@ byte outATA16(word port, word value)
 byte outATA32(word port, uint_32 value)
 {
 	byte channel = 0; //What channel?
-	if (port != getPORTaddress(channel)) //Primary channel?
+	if ((port != getPORTaddress(channel)) || (!controller_enabled())) //Primary channel?
 	{
 		channel = 1; //Try secondary channel!
-		if (port != getPORTaddress(channel)) //Secondary channel?
+		if ((port != getPORTaddress(channel)) || (!controller_enabled())) //Secondary channel?
 		{
 			return 0; //Not our port?
 		}
@@ -5159,13 +5169,13 @@ byte outATA8(word port, byte value)
 {
 	byte pendingreset = 0;
 	ATA_channel = 0; //Init!
-	if ((port<getPORTaddress(ATA_channel)) || (port>(getPORTaddress(ATA_channel) + 0x7))) //Primary channel?
+	if ((port<getPORTaddress(ATA_channel)) || (port>(getPORTaddress(ATA_channel) + 0x7)) || (!controller_enabled())) //Primary channel?
 	{
-		if (port == ((getControlPORTaddress(ATA_channel))+2)) goto port3_write;
+		if ((port == ((getControlPORTaddress(ATA_channel))+2)) && controller_enabled()) goto port3_write;
 		ATA_channel = 1; //Try secondary channel!
-		if ((port<getPORTaddress(ATA_channel)) || (port>(getPORTaddress(ATA_channel) + 0x7))) //Secondary channel?
+		if ((port<getPORTaddress(ATA_channel)) || (port>(getPORTaddress(ATA_channel) + 0x7)) || (!controller_enabled())) //Secondary channel?
 		{
-			if (port == ((getControlPORTaddress(ATA_channel))+2)) goto port3_write;
+			if ((port == ((getControlPORTaddress(ATA_channel))+2)) && (controller_enabled())) goto port3_write;
 			return 0; //Not our port?
 		}
 	}
@@ -5318,10 +5328,10 @@ OPTINLINE void ATA_readdata(byte channel, byte *result)
 byte inATA16(word port, word *result)
 {
 	byte channel = 0; //What channel?
-	if (port!=getPORTaddress(channel)) //Primary channel?
+	if ((port!=getPORTaddress(channel)) || (!controller_enabled())) //Primary channel?
 	{
 		channel = 1; //Try secondary channel!
-		if (port!=getPORTaddress(channel)) //Secondary channel?
+		if ((port!=getPORTaddress(channel)) || (!controller_enabled())) //Secondary channel?
 		{
 			return 0; //Not our port?
 		}
@@ -5343,10 +5353,10 @@ byte inATA16(word port, word *result)
 byte inATA32(word port, uint_32 *result)
 {
 	byte channel = 0; //What channel?
-	if (port!=getPORTaddress(channel)) //Primary channel?
+	if ((port!=getPORTaddress(channel)) || (!controller_enabled())) //Primary channel?
 	{
 		channel = 1; //Try secondary channel!
-		if (port!=getPORTaddress(channel)) //Secondary channel?
+		if ((port!=getPORTaddress(channel)) || (!controller_enabled())) //Secondary channel?
 		{
 			return 0; //Not our port?
 		}
@@ -5369,13 +5379,13 @@ byte inATA32(word port, uint_32 *result)
 byte inATA8(word port, byte *result)
 {
 	ATA_channel = 0; //Init!
-	if ((port<getPORTaddress(ATA_channel)) || (port>(getPORTaddress(ATA_channel) + 0x7))) //Primary channel?
+	if ((port<getPORTaddress(ATA_channel)) || (port>(getPORTaddress(ATA_channel) + 0x7)) || (!controller_enabled())) //Primary channel?
 	{
-		if ((port >= (getControlPORTaddress(ATA_channel)+2)) && (port <= (getControlPORTaddress(ATA_channel)+3))) goto port3_read;
+		if ((port >= (getControlPORTaddress(ATA_channel)+2)) && (port <= (getControlPORTaddress(ATA_channel)+3)) && (controller_enabled())) goto port3_read;
 		ATA_channel = 1; //Try secondary channel!
-		if ((port<getPORTaddress(ATA_channel)) || (port>(getPORTaddress(ATA_channel) + 0x7))) //Secondary channel?
+		if ((port<getPORTaddress(ATA_channel)) || (port>(getPORTaddress(ATA_channel) + 0x7)) || (!controller_enabled())) //Secondary channel?
 		{
-			if ((port >= (getControlPORTaddress(ATA_channel)+2)) && (port <= (getControlPORTaddress(ATA_channel)+3))) goto port3_read;
+			if ((port >= (getControlPORTaddress(ATA_channel)+2)) && (port <= (getControlPORTaddress(ATA_channel)+3)) && controller_enabled()) goto port3_read;
 			return 0; //Not our port?
 		}
 	}
@@ -5497,7 +5507,8 @@ void resetPCISpaceIDE()
 	//Info from: http://wiki.osdev.org/PCI
 	PCI_IDE.DeviceID = 1;
 	PCI_IDE.VendorID = 1; //DEVICEID::VENDORID: We're a ATA device! This is only done with non-extended ATA controllers!
-	activePCI_IDE->ProgIF = 0x80; //We use our own set interrupts and we're a parallel ATA controller!
+	PCI_IDE.ProgIF &= 0x8F; //We use our own set interrupts and we're a parallel ATA controller!
+	PCI_IDE.ProgIF |= 0x8A; //Always set, indicating we're a ATA controller that's programmable!
 	activePCI_IDE->ClassCode = 1; //We...
 	activePCI_IDE->Subclass = 1; //Are an IDE controller
 	activePCI_IDE->HeaderType = 0x00; //Normal header!
@@ -5514,7 +5525,22 @@ void ATA_ConfigurationSpaceChanged(uint_32 address, byte device, byte function, 
 	addr = (((byte *)activePCI_IDE)+address); //Actual update location?
 	if ((addr<(byte *)&activePCI_IDE->BAR[0]) || (addr>=((byte *)&activePCI_IDE->BAR[5]+sizeof(PCI_IDE.BAR[5])))) //Unsupported update to unsupported location?
 	{
-		memset(addr,0,1); //Clear the set data!
+		switch (address) //What setting is changed?
+		{
+		case 0x9: //ProgIF? Programming Interface(ProgIF) byte in the PCI IDE controller specification Revision 1.0
+			activePCI_IDE->ProgIF &= 5; //Bits 0 and 2 are programmable!
+			activePCI_IDE->ProgIF |= 0x8A; //Bits that are always set! Bit 3 and 1 are always set, allowing for the primary and secondary bits(bits 0 and 2) to be programmable.
+			ATA[0].use_PCImode = (activePCI_IDE->ProgIF & 1); //Primary controller in PCI mode?
+			ATA[1].use_PCImode = ((activePCI_IDE->ProgIF & 4) >> 2); //Secondary controller in PCI mode?
+			ATA[1].use_PCImode |= (ATA[1].use_PCImode && (ATA[0].use_PCImode == 0)) ? 2 : 0; //Move secondary controller PCI mode to channel 0's settings when the primary is in compatiblity mode?
+			break;
+		default:
+			if (is_i430fx == 0) //Not i430fx?
+			{
+				memset(addr, 0, 1); //Clear the set data!
+			}
+			break;
+		}
 	}
 	else if (PCI_transferring==0) //Finished transferring data for an entry?
 	{
@@ -5870,9 +5896,12 @@ void initATA()
 	{
 		register_PCI(&PCI_IDE, 1, 0, (sizeof(PCI_IDE) >> 2), &ATA_ConfigurationSpaceChanged); //Register the PCI data area!
 		activePCI_IDE = &PCI_IDE; //Use the IDE handler!
+		ATA_ConfigurationSpaceChanged(0x9, 1, 0, 1); //Make sure that the setting is up-to-date!
 	}
 	//Initialise our data area!
 	resetPCISpaceIDE();
+	PCI_IDE.Command = 0x01; //Enable the device by default for compatibility with older motherboards!
+	activePCI_IDE->ProgIF |= 0xA; //We're always having a programmable ProgIF setting for primary and secondary controller legacy mode!
 	activePCI_IDE->BAR[0] = 1; //I/O!
 	activePCI_IDE->BAR[1] = 1; //I/O!
 	activePCI_IDE->BAR[2] = 1; //I/O!

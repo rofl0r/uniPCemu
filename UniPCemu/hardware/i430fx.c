@@ -115,14 +115,14 @@ void i430fx_ide_resetPCIConfiguration()
 	i430fx_ide_configuration[0x01] = 0x80; //Intel
 	i430fx_ide_configuration[0x02] = 0x30;
 	i430fx_ide_configuration[0x03] = 0x12; //PIIX
-	i430fx_ide_configuration[0x04] &= 0x05&1; //Limited use(bit 2=Bus master function)
+	i430fx_ide_configuration[0x04] = 0x05&1; //Limited use(bit 2=Bus master function, which is masked off to be disabled)
 	i430fx_ide_configuration[0x05] = 0x00;
 	i430fx_ide_configuration[0x06] = 0x80;
 	i430fx_ide_configuration[0x07] = 0x02; //ROM set is a 430FX?
 	i430fx_ide_configuration[0x08] = 0x02; //A-1 stepping
-	i430fx_ide_configuration[0x09] = 0x80&0; //Not capable of IDE-bus master yet, so mask it off!
-	i430fx_ide_configuration[0x0A] = 0x01;
-	i430fx_ide_configuration[0x0B] = 0x01;
+	i430fx_ide_configuration[0x09] = 0x80&(i430fx_ide_configuration[0x09]&0xF); //Not capable of IDE-bus master yet, so mask it off! Keep the configuation intact!
+	i430fx_ide_configuration[0x0A] = 0x01; //Sub-class
+	i430fx_ide_configuration[0x0B] = 0x01; //Base-class
 	i430fx_update_piixstatus(); //Update the status register bit!
 }
 
