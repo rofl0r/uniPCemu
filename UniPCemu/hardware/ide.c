@@ -31,6 +31,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/emu/sound.h" //Sound support!
 #include "headers/support/sounddoublebuffer.h" //Double buffered sound!
 #include "headers/support/signedness.h" //Sign conversion support!
+#include "headers/hardware/i430fx.h" //i430fx PCI IDE controller support!
 
 //#define ATA_LOG
 
@@ -1759,10 +1760,10 @@ OPTINLINE uint_32 getPORTaddress(byte channel)
 	switch (channel)
 	{
 	case 0: //First?
-		return (activePCI_IDE->BAR[0] > 3) ? (activePCI_IDE->BAR[0]&~3) : 0x1F0; //Give the BAR!
+		return (is_i430fx?0x1F0:((activePCI_IDE->BAR[0] > 3) ? (activePCI_IDE->BAR[0]&~3) : 0x1F0)); //Give the BAR!
 		break;
 	case 1: //Second?
-		return (activePCI_IDE->BAR[2] > 3) ? (activePCI_IDE->BAR[2]&~3) : 0x170; //Give the BAR!
+		return (is_i430fx?0x170:((activePCI_IDE->BAR[2] > 3) ? (activePCI_IDE->BAR[2]&~3) : 0x170)); //Give the BAR!
 		break;
 	default:
 		return ~0; //Error!
@@ -1774,10 +1775,10 @@ OPTINLINE uint_32 getControlPORTaddress(byte channel)
 	switch (channel)
 	{
 	case 0: //First?
-		return (activePCI_IDE->BAR[1] > 3) ? (activePCI_IDE->BAR[1]&~3) : 0x3F4; //Give the BAR!
+		return (is_i430fx?0x3F4:((activePCI_IDE->BAR[1] > 3) ? (activePCI_IDE->BAR[1]&~3) : 0x3F4)); //Give the BAR!
 		break;
 	case 1: //Second?
-		return (activePCI_IDE->BAR[3] > 3) ? (activePCI_IDE->BAR[3]&~3) : 0x374; //Give the BAR!
+		return (is_i430fx?0x374:((activePCI_IDE->BAR[3] > 3) ? (activePCI_IDE->BAR[3]&~3) : 0x374)); //Give the BAR!
 		break;
 	default:
 		return ~0; //Error!
