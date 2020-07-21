@@ -70,6 +70,7 @@ byte in8259(word portnum, byte *result)
 		if (i8259.pollingmode[pic]) //Polling mode enabled?
 		{
 			*result = readPollingMode(pic); //Read the polling mode!
+			i8259.pollingmode[pic] = 0; //Not anymore!
 		}
 		else //Normal mode?
 		{
@@ -81,6 +82,7 @@ byte in8259(word portnum, byte *result)
 		if (i8259.pollingmode[pic]) //Polling mode enabled?
 		{
 			*result = readPollingMode(pic); //Read the polling mode!
+			i8259.pollingmode[pic] = 0; //Not anymore!
 		}
 		else //Normal mode?
 		{
