@@ -166,6 +166,7 @@ extern byte reset; //To fully reset emu?
 extern uint_32 romsize; //For checking if we're running a ROM!
 extern byte cpudebugger; //To debug the CPU?
 extern PIC i8259; //PIC processor!
+extern byte motherboard_responds_to_shutdown; //Motherboard responds to shutdown?
 
 DOUBLE MHZ14tick = (1000000000/(DOUBLE)MHZ14); //Time of a 14 MHZ tick!
 DOUBLE MHZ14_ticktiming = 0.0; //Timing of the 14MHz clock!
@@ -399,6 +400,8 @@ void initEMU(int full) //Init!
 	BIU[activeCPU].BUSactive = 0; //Nobody's controlling the BUS!
 
 	activePCI_IDE = NULL; //Default: let the handlers decide which one to use! Either i430fx or IDE allocates this(whichever comes first).
+
+	motherboard_responds_to_shutdown = 1; //Motherboard responds to shutdown?
 
 	MMU_resetHandlers(NULL); //Reset all memory handlers before starting!
 

@@ -959,7 +959,7 @@ void CPU_tickPendingReset()
 {
 	if (unlikely(CPU[activeCPU].resetPending)) //Are we pending?
 	{
-		if (BIU_resetRequested() && (CPU[activeCPU].instructionfetch.CPU_isFetching==1)) //Starting a new instruction or halted with pending Reset?
+		if (BIU_resetRequested() && (CPU[activeCPU].instructionfetch.CPU_isFetching==1) && (CPU[activeCPU].resetPending != 2)) //Starting a new instruction or halted with pending Reset?
 		{
 			unlock(LOCK_CPU);
 			doneCPU(); //Finish the CPU!

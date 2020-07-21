@@ -60,10 +60,11 @@ uint_32 CALLGATE_NUMARGUMENTS = 0; //The amount of arguments of the call gate!
 
 extern byte advancedlog; //Advanced log setting
 extern byte MMU_logging; //Are we logging from the MMU?
+byte motherboard_responds_to_shutdown = 1; //Motherboard responds to shutdown?
 void CPU_triplefault()
 {
 	CPU[activeCPU].faultraised_lasttype = 0xFF; //Full on reset has been raised!
-	CPU[activeCPU].resetPending = 1; //Start pending a reset!
+	CPU[activeCPU].resetPending = (motherboard_responds_to_shutdown?1:2); //Start pending a reset! Respond to the shutdown cycle if allowed by the motherboard!
 	CPU[activeCPU].faultraised = 1; //We're continuing being a fault!
 	CPU[activeCPU].executed = 1; //We're finishing to execute!
 	if ((MMU_logging == 1) && advancedlog) //Are we logging?

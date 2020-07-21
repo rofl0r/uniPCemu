@@ -98,10 +98,8 @@ void i430fx_piix_resetPCIConfiguration()
 	i430fx_piix_configuration[0x01] = 0x80; //Intel
 	i430fx_piix_configuration[0x02] = 0x2E;
 	i430fx_piix_configuration[0x03] = 0x12; //PIIX
-	i430fx_piix_configuration[0x04] = 0x07;
+	i430fx_piix_configuration[0x04] = 0x07|(i430fx_piix_configuration[0x04]&0x08);
 	i430fx_piix_configuration[0x05] = 0x00;
-	i430fx_piix_configuration[0x06] = 0x00;
-	i430fx_piix_configuration[0x07] = 0x02; //ROM set is a 430FX?
 	i430fx_piix_configuration[0x08] = 0x02; //A-1 stepping
 	i430fx_piix_configuration[0x09] = 0x00;
 	i430fx_piix_configuration[0x0A] = 0x01;
@@ -278,12 +276,26 @@ void i430fx_PCIConfigurationChangeHandler(uint_32 address, byte device, byte fun
 	}
 }
 
+extern byte motherboard_responds_to_shutdown; //Motherboard responds to shutdown?
+
 void i430fx_piix_PCIConfigurationChangeHandler(uint_32 address, byte device, byte function, byte size)
 {
 	PCI_GENERALCONFIG* config = (PCI_GENERALCONFIG*)&i430fx_piix_configuration; //Configuration generic handling!
 	i430fx_piix_resetPCIConfiguration(); //Reset the ROM fields!
 	switch (address) //What address has been updated?
 	{
+	case 0x04: //Command?
+		i430fx_ide_configuration[0x04] &= 0x08; //Limited response! All not set bits are cleared but this one! This affects is we're responding to shutdown?
+		i430fx_ide_configuration[0x04] |= 0x07; //Always set!
+		motherboard_responds_to_shutdown = ((i430fx_ide_configuration[0x04] & 8) >> 3); //Do we respond to a shutdown cycle?
+		break;
+	case 0x06: //PCI status?
+		i430fx_ide_configuration[0x06] = 0x00; //Unchangable!
+		break;
+	case 0x07: //PCI status low?
+		i430fx_ide_configuration[0x07] &= ~0xC1; //Always cleared!
+		i430fx_ide_configuration[0x07] &= (~0x38) | ((~i430fx_ide_configuration[0x07]) & 0x38); //Bits 5-3(13-11 of the word register) are cleared by writing a 1 to their respective bits!
+		break;
 	case 0x10:
 	case 0x11:
 	case 0x12:
@@ -414,12 +426,12 @@ void i430fx_ide_PCIConfigurationChangeHandler(uint_32 address, byte device, byte
 		i430fx_ide_configuration[0x04] &= 0x5; //Limited!
 		i430fx_ide_configuration[0x04] |= 2; //Always set!
 		break;
-	case 0x06: //PCI status low?
+	case 0x06: //PCI status?
+		i430fx_ide_configuration[0x06] = 0x80; //Unchangable!
+		break;
+	case 0x07: //PCI status low?
 		i430fx_ide_configuration[0x07] &= ~0xC1; //Always cleared!
 		i430fx_ide_configuration[0x07] &= (~0x38) | ((~i430fx_ide_configuration[0x07]) & 0x38); //Bits 5-3(13-11 of the word register) are cleared by writing a 1 to their respective bits!
-		break;
-	case 0x07: //PCI status?
-		i430fx_ide_configuration[0x08] = 0x80; //Unchangable!
 		break;
 	case 0x0D: //Master Latency timer register?
 		i430fx_ide_configuration[0x0D] &= 0xF0; //Lower half always 0!
@@ -473,6 +485,12 @@ void i430fx_hardreset()
 	{
 		i430fx_PCIConfigurationChangeHandler(address, 3, 0, 1); //Initialize all required settings!
 	}
+
+	i430fx_piix_configuration[0x04] &= ~8; //Default: disable special cycles!
+	i430fx_piix_PCIConfigurationChangeHandler(0x04, 3, 0, 1); //Initialize all required settings!
+
+	i430fx_piix_configuration[0x06] = 0x00;
+	i430fx_piix_configuration[0x07] = 0x02; //ROM set is a 430FX?
 
 	i430fx_piix_configuration[0x6A] = 0x04; //Default value: PCI Header type bit enable set!
 	i430fx_piix_PCIConfigurationChangeHandler(0x6A, 3, 0, 1); //Initialize all required settings!
