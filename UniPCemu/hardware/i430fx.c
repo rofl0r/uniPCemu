@@ -454,6 +454,68 @@ void i430fx_hardreset()
 	i430fx_piix_configuration[0x6A] = 0x04; //Default value: PCI Header type bit enable set!
 	i430fx_piix_PCIConfigurationChangeHandler(0x6A, 3, 0, 1); //Initialize all required settings!
 
+	i430fx_piix_configuration[0x4C] = 0x4D; //Default
+	i430fx_piix_configuration[0x4E] = 0x03; //Default
+
+	//IRQ mappings
+	i430fx_piix_configuration[0x60] = 0x80; //Default value: No IRQ mapped!
+	i430fx_piix_configuration[0x61] = 0x80; //Default value: No IRQ mapped!
+	i430fx_piix_configuration[0x62] = 0x80; //Default value: No IRQ mapped!
+	i430fx_piix_configuration[0x63] = 0x80; //Default value: No IRQ mapped!
+	i430fx_piix_configuration[0x70] = 0x80; //Default value: No IRQ mapped!
+	i430fx_piix_configuration[0x71] = 0x80; //Default value: No IRQ mapped!
+	i430fx_piix_PCIConfigurationChangeHandler(0x60, 3, 0, 1); //Initialize all required settings!
+	i430fx_piix_PCIConfigurationChangeHandler(0x61, 3, 0, 1); //Initialize all required settings!
+	i430fx_piix_PCIConfigurationChangeHandler(0x62, 3, 0, 1); //Initialize all required settings!
+	i430fx_piix_PCIConfigurationChangeHandler(0x63, 3, 0, 1); //Initialize all required settings!
+	i430fx_piix_PCIConfigurationChangeHandler(0x70, 3, 0, 1); //Initialize all required settings!
+	i430fx_piix_PCIConfigurationChangeHandler(0x71, 3, 0, 1); //Initialize all required settings!
+
+	i430fx_piix_configuration[0x76] = 0x0C; //Default value: ISA compatible!
+	i430fx_piix_configuration[0x77] = 0x0C; //Default value: No DMA F used!
+	i430fx_piix_configuration[0x78] = 0x02; //Default value: PCSC mapping: disabled!
+	i430fx_piix_configuration[0x79] = 0x00; //Default value: PCSC mapping: 0!
+
+	i430fx_piix_configuration[0xA0] = 0x08; //Default value: SMI clock disabled!
+	i430fx_piix_configuration[0xA2] = 0x00; //Default value: SMI disabled!
+	i430fx_piix_configuration[0xA3] = 0x00; //Default value: SMI disabled!
+	i430fx_piix_configuration[0xA4] = 0x00; //Default value: SMI disabled!
+	i430fx_piix_configuration[0xA5] = 0x00; //Default value: SMI disabled!
+	i430fx_piix_configuration[0xA6] = 0x00; //Default value: SMI disabled!
+	i430fx_piix_configuration[0xA7] = 0x00; //Default value: SMI disabled!
+	i430fx_piix_configuration[0xA8] = 0x0F; //Default value: Fast Off timer!
+	i430fx_piix_configuration[0xAA] = 0x00; //Default value: SMI request (cause) register!
+	i430fx_piix_configuration[0xAB] = 0x00; //Default value: SMI request (cause) register!
+	i430fx_piix_configuration[0xAC] = 0x00; //Default value: STPCLK low!
+	i430fx_piix_configuration[0xAE] = 0x00; //Default value: STPCLK high!
+	i430fx_piix_PCIConfigurationChangeHandler(0xA0, 3, 0, 1); //Initialize all required settings!
+	i430fx_piix_PCIConfigurationChangeHandler(0xA2, 3, 0, 1); //Initialize all required settings!
+	i430fx_piix_PCIConfigurationChangeHandler(0xA3, 3, 0, 1); //Initialize all required settings!
+	i430fx_piix_PCIConfigurationChangeHandler(0xA4, 3, 0, 1); //Initialize all required settings!
+	i430fx_piix_PCIConfigurationChangeHandler(0xA5, 3, 0, 1); //Initialize all required settings!
+	i430fx_piix_PCIConfigurationChangeHandler(0xA6, 3, 0, 1); //Initialize all required settings!
+	i430fx_piix_PCIConfigurationChangeHandler(0xA7, 3, 0, 1); //Initialize all required settings!
+	i430fx_piix_PCIConfigurationChangeHandler(0xA8, 3, 0, 1); //Initialize all required settings!
+
+	i430fx_piix_configuration[0x69] = 0x02; //Top of memory: 1MB
+
+	//PCI IDE registers reset
+	i430fx_ide_configuration[0x06] = 0x80;
+	i430fx_ide_configuration[0x07] = 0x02; //Status
+	i430fx_ide_configuration[0x0D] = 0x00; //Master Latency Timer register
+	i430fx_ide_configuration[0x0E] &= 0x80; //Header type: cleared
+	i430fx_ide_configuration[0x40] = 0x00; //IDE timing primary
+	i430fx_ide_configuration[0x41] = 0x00; //IDE timing primary
+	i430fx_ide_configuration[0x42] = 0x00; //IDE timing secondary
+	i430fx_ide_configuration[0x43] = 0x00; //IDE timing secondary
+
+	i430fx_update_piixstatus(); //Update the status register bit for the IDE controller!
+	i430fx_ide_PCIConfigurationChangeHandler(0x0D, 3, 1, 1); //Update Layency Timer register!
+	i430fx_ide_PCIConfigurationChangeHandler(0x40, 3, 1, 1); //Update primary timing!
+	i430fx_ide_PCIConfigurationChangeHandler(0x41, 3, 1, 1); //Update primary timing!
+	i430fx_ide_PCIConfigurationChangeHandler(0x42, 3, 1, 1); //Update primary timing!
+	i430fx_ide_PCIConfigurationChangeHandler(0x43, 3, 1, 1); //Update primary timing!
+
 	SMRAM_locked = 0; //Unlock SMRAM always!
 	SMRAM_SMIACT = 0; //Default: not active!
 	i430fx_updateSMRAM(); //Update the SMRAM setting!
