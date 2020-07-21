@@ -44,7 +44,7 @@ byte useSERMouse() //Serial mouse enabled?
 
 void SERmouse_packet_handler(MOUSE_PACKET *packet)
 {
-	if (unlikely(((((packet->xmove) || (packet->ymove)) && SERMouse.movement) || (SERMouse.buttons != packet->buttons)) && SERMouse.powered)) //Something to do and powered on?
+	if (unlikely(((((packet->xmovemickey) || (packet->ymovemickey)) && SERMouse.movement) || (SERMouse.buttons != packet->buttons)) && SERMouse.powered)) //Something to do and powered on?
 	{
 		//Process the packet into the buffer, if possible!
 		if (fifobuffer_freesize(SERMouse.buffer) > 2) //Gotten enough space to process?
@@ -58,8 +58,8 @@ void SERmouse_packet_handler(MOUSE_PACKET *packet)
 			byte highbits;
 			byte xmove, ymove;
 			//Translate our movement to valid values if needed!
-			xmove = signed2unsigned8(MAX(MIN(packet->xmove,0x7F),-0x80)); //Limit!
-			ymove = signed2unsigned8(MAX(MIN(packet->ymove,0x7F),-0x80)); //Limit!
+			xmove = signed2unsigned8(MAX(MIN(packet->xmovemickey,0x7F),-0x80)); //Limit!
+			ymove = signed2unsigned8(MAX(MIN(packet->ymovemickey,0x7F),-0x80)); //Limit!
 
 			if (SERMouse.movement==0) //Not gotten movement masked?
 			{
