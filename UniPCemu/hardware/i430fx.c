@@ -285,16 +285,19 @@ void i430fx_piix_PCIConfigurationChangeHandler(uint_32 address, byte device, byt
 	switch (address) //What address has been updated?
 	{
 	case 0x04: //Command?
-		i430fx_ide_configuration[0x04] &= 0x08; //Limited response! All not set bits are cleared but this one! This affects is we're responding to shutdown?
-		i430fx_ide_configuration[0x04] |= 0x07; //Always set!
-		motherboard_responds_to_shutdown = ((i430fx_ide_configuration[0x04] & 8) >> 3); //Do we respond to a shutdown cycle?
+		i430fx_piix_configuration[0x04] &= 0x08; //Limited response! All not set bits are cleared but this one! This affects is we're responding to shutdown?
+		i430fx_piix_configuration[0x04] |= 0x07; //Always set!
+		motherboard_responds_to_shutdown = ((i430fx_piix_configuration[0x04] & 8) >> 3); //Do we respond to a shutdown cycle?
+		break;
+	case 0x05: //Command
+		i430fx_piix_configuration[0x05] = 0x00; //All read-only!
 		break;
 	case 0x06: //PCI status?
-		i430fx_ide_configuration[0x06] = 0x00; //Unchangable!
+		i430fx_piix_configuration[0x06] = 0x00; //Unchangable!
 		break;
 	case 0x07: //PCI status low?
-		i430fx_ide_configuration[0x07] &= ~0xC1; //Always cleared!
-		i430fx_ide_configuration[0x07] &= (~0x38) | ((~i430fx_ide_configuration[0x07]) & 0x38); //Bits 5-3(13-11 of the word register) are cleared by writing a 1 to their respective bits!
+		i430fx_piix_configuration[0x07] &= ~0xC1; //Always cleared!
+		i430fx_piix_configuration[0x07] &= (~0x38) | ((~i430fx_piix_configuration[0x07]) & 0x38); //Bits 5-3(13-11 of the word register) are cleared by writing a 1 to their respective bits!
 		break;
 	case 0x10:
 	case 0x11:
