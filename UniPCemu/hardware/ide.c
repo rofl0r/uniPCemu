@@ -5485,6 +5485,7 @@ port3_read: //Special port #3?
 		return 1; //OK!
 		break;
 	case 1: //Drive address register?
+		if (activePCI_IDE!=&PCI_IDE) return 0; //Disable on i430fx hardware to prevent port conflicts!
 		if (!(ATA_Drives[ATA_channel][0]|ATA_Drives[ATA_channel][1])) //Invalid controller?
 		{
 			*result = 0; //Give 0: we're not present!
