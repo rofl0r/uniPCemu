@@ -440,6 +440,11 @@ void i430fx_hardreset()
 	memset(&i430fx_configuration, 0, sizeof(i430fx_configuration)); //Initialize the configuration!
 	memset(&i430fx_piix_configuration, 0, sizeof(i430fx_piix_configuration)); //Initialize the configuration!
 
+	if (!is_i430fx) //Not this chipset?
+	{
+		return; //nothing to do!
+	}
+
 	i430fx_resetPCIConfiguration(); //Initialize/reset the configuration!
 	i430fx_piix_resetPCIConfiguration(); //Initialize/reset the configuration!
 	i430fx_ide_resetPCIConfiguration(); //Initialize/reset the configuration!
@@ -654,7 +659,6 @@ void init_i430fx(byte enabled)
 {
 	is_i430fx = enabled; //Emulate a i430fx architecture!
 
-	i430fx_hardreset(); //Perform a hard reset of the hardware!
 	effectiveDRAMsettings = 0; //Effective DRAM settings to take effect! Start at the first entry, which is the minimum!
 
 	//Register PCI configuration space?
@@ -674,6 +678,8 @@ void init_i430fx(byte enabled)
 		//Port remapping itself!
 		register_PORTremapping(&i430fx_piix_portremapper);
 	}
+
+	i430fx_hardreset(); //Perform a hard reset of the hardware!
 }
 
 void done_i430fx()
