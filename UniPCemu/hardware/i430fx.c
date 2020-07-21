@@ -117,8 +117,6 @@ void i430fx_ide_resetPCIConfiguration()
 	i430fx_ide_configuration[0x03] = 0x12; //PIIX
 	i430fx_ide_configuration[0x04] = 0x05&1; //Limited use(bit 2=Bus master function, which is masked off to be disabled)
 	i430fx_ide_configuration[0x05] = 0x00;
-	i430fx_ide_configuration[0x06] = 0x80;
-	i430fx_ide_configuration[0x07] = 0x02; //ROM set is a 430FX?
 	i430fx_ide_configuration[0x08] = 0x02; //A-1 stepping
 	i430fx_ide_configuration[0x09] = 0x80|(i430fx_ide_configuration[0x09]&0xF); //Not capable of IDE-bus master yet, so mask it off! Keep the configuation intact!
 	i430fx_ide_configuration[0x0A] = 0x01; //Sub-class
@@ -410,6 +408,26 @@ void i430fx_piix_PCIConfigurationChangeHandler(uint_32 address, byte device, byt
 
 void i430fx_ide_PCIConfigurationChangeHandler(uint_32 address, byte device, byte function, byte size)
 {
+	switch (address) //Special handling of some layouts specific to us!
+	{
+	case 0x04: //Command?
+		i430fx_ide_configuration[0x04] &= 0x5; //Limited!
+		i430fx_ide_configuration[0x04] |= 2; //Always set!
+		break;
+	case 0x06: //PCI status low?
+		i430fx_ide_configuration[0x07] &= ~0xC1; //Always cleared!
+		i430fx_ide_configuration[0x07] &= (~0x38) | ((~i430fx_ide_configuration[0x07]) & 0x38); //Bits 5-3(13-11 of the word register) are cleared by writing a 1 to their respective bits!
+		break;
+	case 0x07: //PCI status?
+		i430fx_ide_configuration[0x08] = 0x80; //Unchangable!
+		break;
+	case 0x0D: //Master Latency timer register?
+		i430fx_ide_configuration[0x0D] &= 0xF0; //Lower half always 0!
+		break;
+	default: //Unspecified in the documentation?
+		//Let the IDE handler handle this!
+		break;
+	}
 	ATA_ConfigurationSpaceChanged(address, device, function, size); //Normal ATA/ATAPI handler passthrough!
 	i430fx_ide_resetPCIConfiguration(); //Reset the ROM fields!
 }
