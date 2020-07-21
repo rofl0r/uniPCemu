@@ -2824,7 +2824,10 @@ OPTINLINE byte ATA_dataIN(byte channel) //Byte read from data!
 		if (ATA[channel].Drive[ATA_activeDrive(channel)].datapos == ATA[channel].Drive[ATA_activeDrive(channel)].datablock) //Fully read?
 		{
 			ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //Reset command!
-			ATA_IRQ(channel, ATA_activeDrive(channel),ATA[channel].Drive[ATA_activeDrive(channel)].command==0xA1?ATAPI_FINISHREADYTIMING:ATA_FINISHREADYTIMING(1.0),0); //Raise an IRQ: we're needing attention!
+			if (ATA[channel].Drive[ATA_activeDrive(channel).command] == 0xA1) //For CD-ROM drives only, raise another IRQ?
+			{
+				ATA_IRQ(channel, ATA_activeDrive(channel),ATA[channel].Drive[ATA_activeDrive(channel)].command==0xA1?ATAPI_FINISHREADYTIMING:ATA_FINISHREADYTIMING(1.0),0); //Raise an IRQ: we're needing attention!
+			}
 		}
 		return result; //Give the result byte!
 	default: //Unknown?
