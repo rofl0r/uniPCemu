@@ -272,8 +272,7 @@ OPTINLINE void initPS2Mouse()
 	Mouse.resolution = 0x02; //4 pixel/mm resolution!
 	
 	Mouse.command = 0xFF; //Reset!
-	Mouse.command_step = 2; //Result only!
-	Mouse.timeout = PS2_MOUSE_BAT_TIMEOUT; //Start timing for our message!
+	Mouse.timeout = (DOUBLE)0; //Start timing for our message!
 }
 
 OPTINLINE void mouse_handleinvalidcall()
