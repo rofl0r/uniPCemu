@@ -67,10 +67,12 @@ typedef struct
 	uint8_t priority[2]; //which IRQ has highest priority
 	uint8_t autoeoi[2]; //automatic EOI mode
 	uint8_t readmode[2]; //remember what to return on read register from OCW3
+	uint8_t pollingmode[2]; //Polling mode enabled for this channel?
 	uint8_t enabled[2];
 	byte IROrder[16]; //The order we process!
 	IRQHandler acceptirq[0x10][0x10], finishirq[0x10][0x10]; //All IRQ handlers!
 	byte activePIC; //What PIC is currently processing?
+	byte lastinterruptIR[2]; //Last interrupt IR!
 } PIC;
 
 void init8259(); //For initialising the 8259 module!

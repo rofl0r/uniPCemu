@@ -57,6 +57,8 @@ void init8259()
 	irr3_dirty = 0; //Default: not dirty!
 }
 
+byte readPollingMode(byte pic); //Prototype!
+
 byte in8259(word portnum, byte *result)
 {
 	if (__HW_DISABLED) return 0; //Abort!
@@ -65,11 +67,25 @@ byte in8259(word portnum, byte *result)
 	switch (portnum & 1)
 	{
 	case 0:
-		if (i8259.readmode[pic]==0) *result = i8259.irr[pic];
-		else *result = i8259.isr[pic];
+		if (i8259.pollingmode[pic]) //Polling mode enabled?
+		{
+			*result = readPollingMode(pic); //Read the polling mode!
+		}
+		else //Normal mode?
+		{
+			if (i8259.readmode[pic] == 0) *result = i8259.irr[pic];
+			else *result = i8259.isr[pic];
+		}
 		break;
 	case 1: //read mask register
-		*result = i8259.imr[pic];
+		if (i8259.pollingmode[pic]) //Polling mode enabled?
+		{
+			*result = readPollingMode(pic); //Read the polling mode!
+		}
+		else //Normal mode?
+		{
+			*result = i8259.imr[pic];
+		}
 		break;
 	default:
 		break;
@@ -134,6 +150,7 @@ byte out8259(word portnum, byte value)
 		}
 		if ((value & 0x98)==0x08) //it's an OCW3
 		{
+			i8259.pollingmode[pic] = ((value & 4) >> 2); //Enable polling mode?
 			if (value & 2) i8259.readmode[pic] = value & 1; //Read ISR instead of IRR on reads? Only modify this setting when setting this setting(bit 2 is set)!
 			return 1;
 		}
@@ -287,6 +304,44 @@ OPTINLINE byte getint(byte PIC, byte IR) //Get interrupt!
 	return ((i8259.icw[PIC][1]&0xF8)|(realir&0x7)); //Get interrupt!
 }
 
+byte readPollingMode(byte pic)
+{
+	if (PICInterrupt()) //Interrupt requested?
+	{
+		if (__HW_DISABLED) return 0; //Abort!
+		byte i;
+
+		//First, process first PIC!
+		for (i = 0; i < 16; i++) //Process all IRs!
+		{
+			byte IR = i8259.IROrder[i]; //Get the prioritized IR!
+			byte PICnr = ((IR >> 3) & 1); //What pic?
+			byte realIR = (IR & 7); //What IR within the PIC?
+			byte srcIndex;
+			for (srcIndex = 0; srcIndex < 0x10; ++srcIndex) //Check all indexes!
+			{
+				if (IRRequested(PICnr, realIR, srcIndex)) //Requested?
+				{
+					if (PICnr == pic) //PIC that's requested?
+					{
+						ACNIR(PICnr, realIR, srcIndex); //Acnowledge it!
+						lastinterrupt = getint(PICnr, realIR); //Give the interrupt number!
+						i8259.lastinterruptIR[PICnr] = realIR; //Last acnowledged interrupt line!
+						interruptsaved = 1; //Gotten an interrupt saved!
+						return 0x80 | realIR; //Give the raw IRQ number on the PIC!
+					}
+				}
+			}
+		}
+
+		i8259.lastinterruptIR[i8259.activePIC] = 7; //Last acnowledged interrupt line!
+		lastinterrupt = getint(i8259.activePIC, 7); //Unknown, dispatch through IR7 of the used PIC!
+		interruptsaved = 1; //Gotten!
+		return i8259.lastinterruptIR[i8259.activePIC]; //No result: unk interrupt!
+	}
+	return 0x00; //No interrupt available!
+}
+
 byte nextintr()
 {
 	if (__HW_DISABLED) return 0; //Abort!
@@ -306,11 +361,13 @@ byte nextintr()
 				ACNIR(PICnr, realIR,srcIndex); //Acnowledge it!
 				lastinterrupt = getint(PICnr, realIR); //Give the interrupt number!
 				interruptsaved = 1; //Gotten an interrupt saved!
+				i8259.lastinterruptIR[PICnr] = realIR; //Last IR!
 				return lastinterrupt;
 			}
 		}
 	}
 
+	i8259.lastinterruptIR[i8259.activePIC] = 7; //Last IR!
 	lastinterrupt = getint(i8259.activePIC,7); //Unknown, dispatch through IR7 of the used PIC!
 	interruptsaved = 1; //Gotten!
 	return lastinterrupt; //No result: unk interrupt!
