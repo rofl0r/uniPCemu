@@ -204,12 +204,15 @@ void i430fx_PCIConfigurationChangeHandler(uint_32 address, byte device, byte fun
 	case 0x27: //BAR?
 		if (PCI_transferring == 0) //Finished transferring data for an entry?
 		{
+			/*
 			config->BAR[0] = 0xFFFFFFFD; //Unused!
 			config->BAR[1] = 0xFFFFFFFD; //Unused!
 			config->BAR[2] = 0xFFFFFFFD; //Unused!
 			config->BAR[3] = 0xFFFFFFFD; //Unused!
 			config->BAR[4] = 0xFFFFFFFD; //Unused!
 			config->BAR[5] = 0xFFFFFFFD; //Unused!
+			*/
+			memset(&config->BAR, 0, sizeof(config->BAR)); //Clear the BARs always(they're not used)!
 		}
 		break;
 	case 0x57: //DRAMC - DRAM control register
@@ -325,12 +328,15 @@ void i430fx_piix_PCIConfigurationChangeHandler(uint_32 address, byte device, byt
 	case 0x27: //BAR?
 		if (PCI_transferring == 0) //Finished transferring data for an entry?
 		{
+			/*
 			config->BAR[0] = 0xFFFFFFFD; //Unused!
 			config->BAR[1] = 0xFFFFFFFD; //Unused!
 			config->BAR[2] = 0xFFFFFFFD; //Unused!
 			config->BAR[3] = 0xFFFFFFFD; //Unused!
 			config->BAR[4] = 0xFFFFFFFD; //Unused!
 			config->BAR[5] = 0xFFFFFFFD; //Unused!
+			*/
+			memset(&config->BAR, 0, sizeof(config->BAR)); //Clear the BARs always(they're not used)!
 
 			/*
 			config->BAR[0] = ((config->BAR[0] & ((~offsetwidth) & 0xFFFFU)) | 1); //IO BAR! This is disabled, so set the mask fully!
