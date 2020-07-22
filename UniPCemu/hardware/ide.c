@@ -5537,6 +5537,7 @@ void ATA_ConfigurationSpaceChanged(uint_32 address, byte device, byte function, 
 		case 0x9: //ProgIF? Programming Interface(ProgIF) byte in the PCI IDE controller specification Revision 1.0
 			activePCI_IDE->ProgIF &= 5; //Bits 0 and 2 are programmable!
 			activePCI_IDE->ProgIF |= 0x8A; //Bits that are always set! Bit 3 and 1 are always set, allowing for the primary and secondary bits(bits 0 and 2) to be programmable.
+			activePCI_IDE->ProgIF &= ~0x80; //Don't allow IDE Bus Mastering to be set: we're not emulated!
 			ATA[0].use_PCImode = (activePCI_IDE->ProgIF & 1); //Primary controller in PCI mode?
 			ATA[1].use_PCImode = ((activePCI_IDE->ProgIF & 4) >> 2); //Secondary controller in PCI mode?
 			ATA[1].use_PCImode |= (ATA[1].use_PCImode && (ATA[0].use_PCImode == 0)) ? 2 : 0; //Move secondary controller PCI mode to channel 0's settings when the primary is in compatiblity mode?
@@ -5558,8 +5559,6 @@ void ATA_ConfigurationSpaceChanged(uint_32 address, byte device, byte function, 
 		activePCI_IDE->BAR[3] = ((activePCI_IDE->BAR[3]&((~3)&0xFFFFU))|1); //IO BAR! 4 bytes of IO space!
 		activePCI_IDE->BAR[4] = ((activePCI_IDE->BAR[4]&((~0xF)&0xFFFFU))|1); //IO BAR! 8 bytes of IO space!
 		activePCI_IDE->BAR[5] = ((activePCI_IDE->BAR[5]&((~3)&0xFFFFU))|1); //IO BAR! Unused!
-		PCI_unusedBAR(activePCI_IDE, 4); //Unused!
-		PCI_unusedBAR(activePCI_IDE, 5); //Unused!
 	}
 	resetPCISpaceIDE(); //For read-only fields!
 }
@@ -5905,8 +5904,8 @@ void initATA()
 	{
 		register_PCI(&PCI_IDE, 1, 0, (sizeof(PCI_IDE) >> 2), &ATA_ConfigurationSpaceChanged); //Register the PCI data area!
 		activePCI_IDE = &PCI_IDE; //Use the IDE handler!
-		ATA_ConfigurationSpaceChanged(0x9, 1, 0, 1); //Make sure that the setting is up-to-date!
 	}
+	ATA_ConfigurationSpaceChanged(0x9, 1, 0, 1); //Make sure that the setting is up-to-date!
 	//Initialise our data area!
 	resetPCISpaceIDE();
 	PCI_IDE.Command = 0x01; //Enable the device by default for compatibility with older motherboards!
@@ -5917,8 +5916,7 @@ void initATA()
 	activePCI_IDE->BAR[3] = 1; //I/O!
 	activePCI_IDE->BAR[4] = 1; //I/O!
 	activePCI_IDE->BAR[5] = 1; //I/O!
-	PCI_unusedBAR(activePCI_IDE, 4); //Unused!
-	PCI_unusedBAR(activePCI_IDE, 5); //Unused!
+	
 	ATA[0].Drive[0].resetTiming = ATA[0].Drive[1].resetTiming = 0.0; //Clear the reset timing!
 	ATA[1].Drive[0].resetTiming = ATA[1].Drive[1].resetTiming = 0.0; //Clear the reset timing!
 	ATA[0].DriveAddressRegister = ATA[1].DriveAddressRegister = 0xFF; //According to Bochs, it's always 1's when unsupported!

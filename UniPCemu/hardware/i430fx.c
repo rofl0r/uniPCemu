@@ -116,7 +116,7 @@ void i430fx_ide_resetPCIConfiguration()
 	i430fx_ide_configuration[0x04] = 0x05&1; //Limited use(bit 2=Bus master function, which is masked off to be disabled)
 	i430fx_ide_configuration[0x05] = 0x00;
 	i430fx_ide_configuration[0x08] = 0x02; //A-1 stepping
-	i430fx_ide_configuration[0x09] = 0x80|(i430fx_ide_configuration[0x09]&0xF); //Not capable of IDE-bus master yet, so mask it off! Keep the configuation intact!
+	i430fx_ide_configuration[0x09] = (i430fx_ide_configuration[0x09]&0x8F); //Not capable of IDE-bus master yet, so mask it as the IDE sets it! Keep the configuation intact!
 	i430fx_ide_configuration[0x0A] = 0x01; //Sub-class
 	i430fx_ide_configuration[0x0B] = 0x01; //Base-class
 	i430fx_update_piixstatus(); //Update the status register bit!
@@ -565,6 +565,7 @@ void i430fx_hardreset()
 	i430fx_ide_configuration[0x43] = 0x00; //IDE timing secondary
 
 	i430fx_update_piixstatus(); //Update the status register bit for the IDE controller!
+	i430fx_ide_PCIConfigurationChangeHandler(0x09, 3, 1, 1); //Update Programming Interface to be as specified by the emulated controller!
 	i430fx_ide_PCIConfigurationChangeHandler(0x0D, 3, 1, 1); //Update Layency Timer register!
 	i430fx_ide_PCIConfigurationChangeHandler(0x40, 3, 1, 1); //Update primary timing!
 	i430fx_ide_PCIConfigurationChangeHandler(0x41, 3, 1, 1); //Update primary timing!
