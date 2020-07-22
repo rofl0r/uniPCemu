@@ -4882,7 +4882,10 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER = 0; //No errors!
 		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow = 0; //Needs to be 0 to detect!
 		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh = 0; //Needs to be 0 to detect!
-		//ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel,ATA_activeDrive(channel),1); //We have data now!
+		if (ATA_Drives[channel][ATA_activeDrive(channel)] < CDROM0) //ATA harddisk?
+		{
+			ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel,ATA_activeDrive(channel),1); //Set Drive Seek Complete!
+		}
 		//Finish up!
 		ATA[channel].Drive[ATA_activeDrive(channel)].datapos = 0; //Initialise data position for the result!
 		ATA[channel].Drive[ATA_activeDrive(channel)].datablock = sizeof(ATA[channel].Drive[ATA_activeDrive(channel)].driveparams); //512 byte result!
