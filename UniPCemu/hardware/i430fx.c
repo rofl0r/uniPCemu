@@ -212,7 +212,13 @@ void i430fx_PCIConfigurationChangeHandler(uint_32 address, byte device, byte fun
 			config->BAR[4] = 0xFFFFFFFD; //Unused!
 			config->BAR[5] = 0xFFFFFFFD; //Unused!
 			*/
-			memset(&config->BAR, 0, sizeof(config->BAR)); //Clear the BARs always(they're not used)!
+			//memset(&config->BAR, 0, sizeof(config->BAR)); //Clear the BARs always(they're not used)!
+			config->BAR[0] = 0x00000006; //Not mapped!
+			config->BAR[1] = 0x00000006; //Not mapped!
+			config->BAR[2] = 0x00000006; //Not mapped!
+			config->BAR[3] = 0x00000006; //Not mapped!
+			config->BAR[4] = 0x00000006; //Not mapped!
+			config->BAR[5] = 0x00000006; //Not mapped!
 		}
 		break;
 	case 0x57: //DRAMC - DRAM control register
@@ -336,8 +342,13 @@ void i430fx_piix_PCIConfigurationChangeHandler(uint_32 address, byte device, byt
 			config->BAR[4] = 0xFFFFFFFD; //Unused!
 			config->BAR[5] = 0xFFFFFFFD; //Unused!
 			*/
-			memset(&config->BAR, 0, sizeof(config->BAR)); //Clear the BARs always(they're not used)!
-
+			//memset(&config->BAR, 0, sizeof(config->BAR)); //Clear the BARs always(they're not used)!
+			config->BAR[0] = 0x00000006; //Not mapped!
+			config->BAR[1] = 0x00000006; //Not mapped!
+			config->BAR[2] = 0x00000006; //Not mapped!
+			config->BAR[3] = 0x00000006; //Not mapped!
+			config->BAR[4] = 0x00000006; //Not mapped!
+			config->BAR[5] = 0x00000006; //Not mapped!
 			/*
 			config->BAR[0] = ((config->BAR[0] & ((~offsetwidth) & 0xFFFFU)) | 1); //IO BAR! This is disabled, so set the mask fully!
 			*/
