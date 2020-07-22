@@ -374,12 +374,17 @@ int BIOS_load_ROM(byte nr)
 	char filename[100];
 	memset(&filename,0,sizeof(filename)); //Clear/init!
 retryext:
-	if ((tryext&7)==0) //Extension ROM available?
+	if ((tryext&7)<=3) //32-bit ROM available?
 	{
 		if (EMULATED_CPU<CPU_80386) //Unusable CPU for 32-bit code?
 		{
 			++tryext; //Next try!
 			goto retryext; //Skip 32-bit ROMs!
+		}
+		if ((!tryext) && (EMULATED_CPU < CPU_PENTIUM)) //Unusable CPU for this architecture?
+		{
+			++tryext; //Next try!
+			goto retryext; //Skip Pentium-only ROMs!
 		}
 	}
 	switch (tryext&7)
@@ -415,7 +420,7 @@ retryext:
 		}
 		break;
 	case 2: //32-bit?
-		if ((is_Compaq==0) && (is_PS2==0)) //Not a 32-bit compatible architecture?
+		if (!(is_Compaq || is_i430fx || is_PS2)) //Not a 32-bit compatible architecture?
 		{
 			++tryext; //Next try!
 			goto retryext; //Skip 32-bit ROMs!
@@ -454,7 +459,7 @@ retryext:
 		}
 		if (BIOS_Settings.BIOSROMmode == BIOSROMMODE_DIAGNOSTICS) //Diagnostics mode?
 		{
-				snprintf(filename, sizeof(filename), "%s/BIOSROM.AT.U%u.DIAGNOSTICS.BIN", ROMpath, nr); //Create the filename for the ROM!
+			snprintf(filename, sizeof(filename), "%s/BIOSROM.AT.U%u.DIAGNOSTICS.BIN", ROMpath, nr); //Create the filename for the ROM!
 		}
 		else
 		{
@@ -464,7 +469,7 @@ retryext:
 	case 5: //XT?
 		if (BIOS_Settings.BIOSROMmode == BIOSROMMODE_DIAGNOSTICS) //Diagnostics mode?
 		{
-				snprintf(filename, sizeof(filename), "%s/BIOSROM.XT.U%u.DIAGNOSTICS.BIN", ROMpath, nr); //Create the filename for the ROM!
+			snprintf(filename, sizeof(filename), "%s/BIOSROM.XT.U%u.DIAGNOSTICS.BIN", ROMpath, nr); //Create the filename for the ROM!
 		}
 		else
 		{
@@ -475,7 +480,7 @@ retryext:
 	case 6: //Universal ROM?
 		if (BIOS_Settings.BIOSROMmode == BIOSROMMODE_DIAGNOSTICS) //Diagnostics mode?
 		{
-				snprintf(filename, sizeof(filename), "%s/BIOSROM.U%u.DIAGNOSTICS.BIN", ROMpath, nr); //Create the filename for the ROM!
+			snprintf(filename, sizeof(filename), "%s/BIOSROM.U%u.DIAGNOSTICS.BIN", ROMpath, nr); //Create the filename for the ROM!
 		}
 		else
 		{
@@ -487,7 +492,7 @@ retryext:
 	if (!f)
 	{
 		++tryext; //Try second time and onwards!
-		if (tryext<=5) //Extension try valid to be tried?
+		if (tryext<=6) //Extension try valid to be tried?
 		{
 			goto retryext;
 		}
@@ -512,7 +517,7 @@ retryext:
 		}
 		emufclose64(f); //Close the file!
 
-		BIOS_ROMS_ext[nr] = ((BIOS_Settings.BIOSROMmode==BIOSROMMODE_DIAGNOSTICS)?4:0)|(tryext&3); //Extension enabled?
+		BIOS_ROMS_ext[nr] = ((BIOS_Settings.BIOSROMmode==BIOSROMMODE_DIAGNOSTICS)?8:0)|(tryext&7); //Extension enabled?
 
 		switch (nr) //What ROM has been loaded?
 		{
@@ -632,7 +637,7 @@ retryext:
 		
 		//Recalculate based on ROM size!
 		BIOSROM_BASE_AT = 0xFFFFFFU-(MIN(ROM_size,0x100000U)-1U); //AT ROM size! Limit to 1MB!
-		BIOSROM_BASE_XT = 0xFFFFFU-(MIN(ROM_size,(is_XT?0x10000U:((is_Compaq || is_PS2 || is_i430fx)?0x40000U:0x20000U)))-1U); //XT ROM size! Limit to 256KB(Compaq), 128KB(AT) or 64KB(XT)!
+		BIOSROM_BASE_XT = 0xFFFFFU-(MIN(ROM_size,(is_XT?0x10000U:(is_Compaq?0x40000U:0x20000U)))-1U); //XT ROM size! Limit to 256KB(Compaq, but not i430fx(which acts like the AT)), 128KB(AT) or 64KB(XT)!
 		BIOSROM_BASE_Modern = 0xFFFFFFFFU-(ROM_size-1U); //Modern ROM size!
 		return 1; //Loaded!
 	}
@@ -698,7 +703,7 @@ int BIOS_load_custom(char *path, char *rom)
 
 		//Also limit the ROM base addresses accordingly(only last block).
 		BIOSROM_BASE_AT = 0xFFFFFF-(MIN(BIOS_custom_ROM_size<<ROM_doubling,0x100000)-1); //AT ROM size!
-		BIOSROM_BASE_XT = 0xFFFFF-(MIN(BIOS_custom_ROM_size<<ROM_doubling,(is_XT?0x10000U:((is_Compaq || is_PS2 || is_i430fx)?0x40000U:0x20000U)))-1U); //XT ROM size! XT has a 64K limit(0xF0000 min) because of the EMS mapped at 0xE0000(64K), while AT and up has 128K limit(0xE0000) because the memory is unused(no expansion board present, allowing all addresses to be used up to the end of the expansion ROM area(0xE0000). Compaq and up limits to 256KB instead(addresses from 0xC0000 and up)).
+		BIOSROM_BASE_XT = 0xFFFFF-(MIN(BIOS_custom_ROM_size<<ROM_doubling,(is_XT?0x10000U:(is_Compaq?0x40000U:0x20000U)))-1U); //XT ROM size! XT has a 64K limit(0xF0000 min) because of the EMS mapped at 0xE0000(64K), while AT and up has 128K limit(0xE0000) because the memory is unused(no expansion board present, allowing all addresses to be used up to the end of the expansion ROM area(0xE0000). Compaq limits to 256KB instead(addresses from 0xC0000 and up)), while newer motherboards act like the AT(only 128KB).
 		BIOSROM_BASE_Modern = 0xFFFFFFFF-(MIN(BIOS_custom_ROM_size<<ROM_doubling,0x10000000)-1); //Modern ROM size!
 		return 1; //Loaded!
 	}
