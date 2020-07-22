@@ -921,7 +921,7 @@ void BIOS_LoadDefaults(int tosave) //Load BIOS defaults, but not memory size!
 		printmsg(0xF,"\r\nSettings Checksum Error. "); //Checksum error.
 	}
 
-	uint_32 memorytypes[4];
+	uint_32 memorytypes[5];
 	//Backup memory settings first!
 	memorytypes[0] = BIOS_Settings.XTCMOS.memory;
 	memorytypes[1] = BIOS_Settings.ATCMOS.memory;
