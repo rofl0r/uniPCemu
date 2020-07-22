@@ -5556,13 +5556,11 @@ void ATA_ConfigurationSpaceChanged(uint_32 address, byte device, byte function, 
 		activePCI_IDE->BAR[1] = ((activePCI_IDE->BAR[1]&((~3)&0xFFFFU))|1); //IO BAR! 4 bytes of IO space!
 		activePCI_IDE->BAR[2] = ((activePCI_IDE->BAR[2]&((~7)&0xFFFFU))|1); //IO BAR! 8 bytes of IO space!
 		activePCI_IDE->BAR[3] = ((activePCI_IDE->BAR[3]&((~3)&0xFFFFU))|1); //IO BAR! 4 bytes of IO space!
-		/*
 		activePCI_IDE->BAR[4] = ((activePCI_IDE->BAR[4]&((~0xF)&0xFFFFU))|1); //IO BAR! 8 bytes of IO space!
 		activePCI_IDE->BAR[5] = ((activePCI_IDE->BAR[5]&((~3)&0xFFFFU))|1); //IO BAR! Unused!
-		*/
-		memset(&activePCI_IDE->BAR[4],0,sizeof(activePCI_IDE->BAR[4])); //Cleared always!
-		memset(&activePCI_IDE->BAR[5],0,sizeof(activePCI_IDE->BAR[5])); //Cleared always!
-		}
+		PCI_unusedBAR(activePCI_IDE, 4); //Unused!
+		PCI_unusedBAR(activePCI_IDE, 5); //Unused!
+	}
 	resetPCISpaceIDE(); //For read-only fields!
 }
 
@@ -5919,6 +5917,8 @@ void initATA()
 	activePCI_IDE->BAR[3] = 1; //I/O!
 	activePCI_IDE->BAR[4] = 1; //I/O!
 	activePCI_IDE->BAR[5] = 1; //I/O!
+	PCI_unusedBAR(activePCI_IDE, 4); //Unused!
+	PCI_unusedBAR(activePCI_IDE, 5); //Unused!
 	ATA[0].Drive[0].resetTiming = ATA[0].Drive[1].resetTiming = 0.0; //Clear the reset timing!
 	ATA[1].Drive[0].resetTiming = ATA[1].Drive[1].resetTiming = 0.0; //Clear the reset timing!
 	ATA[0].DriveAddressRegister = ATA[1].DriveAddressRegister = 0xFF; //According to Bochs, it's always 1's when unsupported!

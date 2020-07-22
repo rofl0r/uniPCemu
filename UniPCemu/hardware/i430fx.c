@@ -204,21 +204,12 @@ void i430fx_PCIConfigurationChangeHandler(uint_32 address, byte device, byte fun
 	case 0x27: //BAR?
 		if (PCI_transferring == 0) //Finished transferring data for an entry?
 		{
-			/*
-			config->BAR[0] = 0xFFFFFFFD; //Unused!
-			config->BAR[1] = 0xFFFFFFFD; //Unused!
-			config->BAR[2] = 0xFFFFFFFD; //Unused!
-			config->BAR[3] = 0xFFFFFFFD; //Unused!
-			config->BAR[4] = 0xFFFFFFFD; //Unused!
-			config->BAR[5] = 0xFFFFFFFD; //Unused!
-			*/
-			//memset(&config->BAR, 0, sizeof(config->BAR)); //Clear the BARs always(they're not used)!
-			config->BAR[0] = 0x00000006; //Not mapped!
-			config->BAR[1] = 0x00000006; //Not mapped!
-			config->BAR[2] = 0x00000006; //Not mapped!
-			config->BAR[3] = 0x00000006; //Not mapped!
-			config->BAR[4] = 0x00000006; //Not mapped!
-			config->BAR[5] = 0x00000006; //Not mapped!
+			PCI_unusedBAR(config, 0); //Unused
+			PCI_unusedBAR(config, 1); //Unused
+			PCI_unusedBAR(config, 2); //Unused
+			PCI_unusedBAR(config, 3); //Unused
+			PCI_unusedBAR(config, 4); //Unused
+			PCI_unusedBAR(config, 5); //Unused
 		}
 		break;
 	case 0x57: //DRAMC - DRAM control register
@@ -334,24 +325,12 @@ void i430fx_piix_PCIConfigurationChangeHandler(uint_32 address, byte device, byt
 	case 0x27: //BAR?
 		if (PCI_transferring == 0) //Finished transferring data for an entry?
 		{
-			/*
-			config->BAR[0] = 0xFFFFFFFD; //Unused!
-			config->BAR[1] = 0xFFFFFFFD; //Unused!
-			config->BAR[2] = 0xFFFFFFFD; //Unused!
-			config->BAR[3] = 0xFFFFFFFD; //Unused!
-			config->BAR[4] = 0xFFFFFFFD; //Unused!
-			config->BAR[5] = 0xFFFFFFFD; //Unused!
-			*/
-			//memset(&config->BAR, 0, sizeof(config->BAR)); //Clear the BARs always(they're not used)!
-			config->BAR[0] = 0x00000006; //Not mapped!
-			config->BAR[1] = 0x00000006; //Not mapped!
-			config->BAR[2] = 0x00000006; //Not mapped!
-			config->BAR[3] = 0x00000006; //Not mapped!
-			config->BAR[4] = 0x00000006; //Not mapped!
-			config->BAR[5] = 0x00000006; //Not mapped!
-			/*
-			config->BAR[0] = ((config->BAR[0] & ((~offsetwidth) & 0xFFFFU)) | 1); //IO BAR! This is disabled, so set the mask fully!
-			*/
+			PCI_unusedBAR(config, 0); //Unused
+			PCI_unusedBAR(config, 1); //Unused
+			PCI_unusedBAR(config, 2); //Unused
+			PCI_unusedBAR(config, 3); //Unused
+			PCI_unusedBAR(config, 4); //Unused
+			PCI_unusedBAR(config, 5); //Unused
 		}
 		break;
 	case 0x4C: //ISA Recovery I/O timer register
@@ -499,6 +478,21 @@ void i430fx_hardreset()
 	i430fx_configuration[0x72] = 0x02;
 	i430fx_configuration[0x74] = 0x0E; //ROM set is a 430FX?
 	i430fx_configuration[0x78] = 0x23; //ROM set is a 430FX?
+
+	PCI_GENERALCONFIG* config = (PCI_GENERALCONFIG*)&i430fx_configuration; //Configuration generic handling!
+	PCI_GENERALCONFIG* config_piix = (PCI_GENERALCONFIG*)&i430fx_piix_configuration; //Configuration generic handling!
+	PCI_unusedBAR(config, 0); //Unused!
+	PCI_unusedBAR(config, 1); //Unused!
+	PCI_unusedBAR(config, 2); //Unused!
+	PCI_unusedBAR(config, 3); //Unused!
+	PCI_unusedBAR(config, 4); //Unused!
+	PCI_unusedBAR(config, 5); //Unused!
+	PCI_unusedBAR(config_piix, 0); //Unused!
+	PCI_unusedBAR(config_piix, 1); //Unused!
+	PCI_unusedBAR(config_piix, 2); //Unused!
+	PCI_unusedBAR(config_piix, 3); //Unused!
+	PCI_unusedBAR(config_piix, 4); //Unused!
+	PCI_unusedBAR(config_piix, 5); //Unused!
 
 	//Initalize all mappings!
 	for (address = 0x59; address < 0x5F; ++address) //Initialize us!
