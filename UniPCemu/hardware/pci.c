@@ -242,3 +242,9 @@ void initPCI()
 	PCI_decodedevice(PCI_address); //Initialise our status!
 	PCI_transferring = 0; //Initialize!
 }
+
+void PCI_unusedBAR(PCI_GENERALCONFIG* config, byte BAR)
+{
+	if (BAR > 5) return; //Invalid BAR!
+	config->BAR[BAR] = 0; //Unused BAR!
+}

@@ -80,4 +80,6 @@ void register_PCI(void *config, byte device, byte function, byte size, PCIConfig
 
 void PCI_finishtransfer(); //Finished a BIU transfer?
 
+void PCI_unusedBAR(PCI_GENERALCONFIG* config, byte BAR); //Handle updating an unused BAR!
+
 #endif
