@@ -63,6 +63,7 @@ extern BIOS_Settings_TYPE BIOS_Settings; //The BIOS settings loaded!
 extern byte is_Compaq; //Are we emulating a Compaq device?
 extern byte is_XT; //Are we emulating a XT device?
 extern byte is_PS2; //Are we emulating PS2 extensions?
+extern byte is_i430fx; //Are we a i430fx architecture?
 
 #define FLOPPY_NONE 0
 #define FLOPPY_360 1
@@ -626,14 +627,18 @@ OPTINLINE void CMOS_onWrite(byte oldSRB) //When written to CMOS!
 
 void loadCMOS()
 {
-	if (!(((BIOS_Settings.got_ATCMOS) && (((is_Compaq|is_XT|is_PS2)==0))) || (BIOS_Settings.got_CompaqCMOS && (is_Compaq && (is_PS2==0)))  || (BIOS_Settings.got_XTCMOS && is_XT) || (BIOS_Settings.got_PS2CMOS && is_PS2))) //XT/AT/Compaq/PS/2 CMOS?
+	if (!(((BIOS_Settings.got_ATCMOS) && (((is_Compaq|is_XT|is_PS2|is_i430fx)==0))) || (BIOS_Settings.got_CompaqCMOS && (is_Compaq && (is_PS2==0)))  || (BIOS_Settings.got_XTCMOS && is_XT) || (BIOS_Settings.got_PS2CMOS && is_PS2 && (is_i430fx==0)) || (BIOS_Settings.got_i430fxCMOS && is_i430fx))) //XT/AT/Compaq/PS/2 CMOS?
 	{
 		loadCMOSDefaults(); //Load our default requirements!
 		return;
 	}
 	else //Load BIOS CMOS!
 	{
-		if (is_PS2) //PS/2 CMOS?
+		if (is_i430fx) //i430fx CMOS?
+		{
+			memcpy(&CMOS.DATA, &BIOS_Settings.i430fxCMOS, sizeof(CMOS.DATA)); //Copy to our memory!
+		}
+		else if (is_PS2) //PS/2 CMOS?
 		{
 			memcpy(&CMOS.DATA, &BIOS_Settings.PS2CMOS, sizeof(CMOS.DATA)); //Copy to our memory!
 		}
@@ -691,7 +696,27 @@ void saveCMOS()
 	byte clockingmodebackup; //Are we using the IPS clock instead of cycle-accurate clock?
 	byte DataBusSizebackup; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
 	if (CMOS.Loaded==0) return; //Don't save when not loaded/initialised!
-	if (is_PS2) //PS/2 CMOS?
+	if (is_i430fx) //i430fx CMOS?
+	{
+		memorybackup = BIOS_Settings.i430fxCMOS.memory; //Backup the memory field!
+		emulated_CPUbackup = BIOS_Settings.i430fxCMOS.emulated_CPU; //Emulated CPU?
+		CPUspeedbackup = BIOS_Settings.i430fxCMOS.CPUspeed; //CPU speed
+		TurboCPUspeedbackup = BIOS_Settings.i430fxCMOS.TurboCPUspeed; //Turbo CPU speed
+		useTurboCPUSpeedbackup = BIOS_Settings.i430fxCMOS.useTurboCPUSpeed; //Are we to use Turbo CPU speed?
+		clockingmodebackup = BIOS_Settings.i430fxCMOS.clockingmode; //Are we using the IPS clock instead of cycle-accurate clock?
+		DataBusSizebackup = BIOS_Settings.i430fxCMOS.DataBusSize; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+		memcpy(&BIOS_Settings.i430fxCMOS, &CMOS.DATA, sizeof(CMOS.DATA)); //Copy the CMOS to BIOS!
+		CMOS_cleartimedata(&BIOS_Settings.i430fxCMOS);
+		BIOS_Settings.i430fxCMOS.memory = memorybackup; //Backup restored!
+		BIOS_Settings.i430fxCMOS.emulated_CPU = emulated_CPUbackup; //Emulated CPU?
+		BIOS_Settings.i430fxCMOS.CPUspeed = CPUspeedbackup; //CPU speed
+		BIOS_Settings.i430fxCMOS.TurboCPUspeed = TurboCPUspeedbackup; //Turbo CPU speed
+		BIOS_Settings.i430fxCMOS.useTurboCPUSpeed = useTurboCPUSpeedbackup; //Are we to use Turbo CPU speed?
+		BIOS_Settings.i430fxCMOS.clockingmode = clockingmodebackup; //Are we using the IPS clock instead of cycle-accurate clock?
+		BIOS_Settings.i430fxCMOS.DataBusSize = DataBusSizebackup; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+		BIOS_Settings.got_i430fxCMOS = 1; //We've saved an CMOS!
+	}
+	else if (is_PS2) //PS/2 CMOS?
 	{
 		memorybackup = BIOS_Settings.PS2CMOS.memory; //Backup the memory field!
 		emulated_CPUbackup = BIOS_Settings.PS2CMOS.emulated_CPU; //Emulated CPU?
@@ -711,7 +736,7 @@ void saveCMOS()
 		BIOS_Settings.PS2CMOS.DataBusSize = DataBusSizebackup; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
 		BIOS_Settings.got_PS2CMOS = 1; //We've saved an CMOS!
 	}
-	if (is_Compaq) //Compaq?
+	else if (is_Compaq) //Compaq?
 	{
 		memorybackup = BIOS_Settings.CompaqCMOS.memory; //Backup the memory field!
 		emulated_CPUbackup = BIOS_Settings.CompaqCMOS.emulated_CPU; //Emulated CPU?

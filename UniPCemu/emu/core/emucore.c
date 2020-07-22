@@ -381,6 +381,7 @@ byte is_XT = 0; //Are we emulating an XT architecture?
 byte is_Compaq = 0; //Are we emulating an Compaq architecture?
 byte non_Compaq = 1; //Are we emulating an Compaq architecture?
 byte is_PS2 = 0; //Are we emulating PS/2 architecture extensions?
+byte is_i430fx = 0; //Are we an i430fx motherboard?
 
 extern BIU_type BIU[MAXCPUS]; //The BIU for the BUS activity reset!
 
@@ -437,7 +438,7 @@ void initEMU(int full) //Init!
 	debugrow("Initialising audio subsystem...");
 	resetchannels(); //Reset all channels!
 
-	init_i430fx(is_PS2); //Enable the i540fx if PS/2 extensions are enabled!
+	init_i430fx(); //Enable the i430fx if i430fx extensions are enabled!
 
 	debugrow("Initializing 8259...");
 	init8259(); //Initialise the 8259 (PIC)!
@@ -933,7 +934,7 @@ void updateSpeedLimit()
 						CPU_speed_cycle = 1000000000.0 / CPU80286_CLOCK; //80286 8MHz for DMA speed check compatibility(Type 3 motherboard)!
 						#endif
 					}
-					if (((EMULATED_CPU==CPU_80386) || (EMULATED_CPU>=CPU_80486)) || (is_Compaq==1)) //80386/80486 or Compaq?
+					if (((EMULATED_CPU==CPU_80386) || (EMULATED_CPU>=CPU_80486)) || (is_Compaq==1) || (is_i430fx)) //80386/80486 or Compaq?
 					{
 						if (!(is_Compaq) && ((EMULATED_CPU==CPU_80386)||(EMULATED_CPU>=CPU_80486))) //XT/AT 386? 16MHz clock!
 						{
@@ -954,14 +955,14 @@ void updateSpeedLimit()
 								#endif
 							}
 						}
-						else if (is_Compaq==1) //Compaq Deskpro 386+?
+						else if ((is_Compaq==1) || (is_i430fx)) //Compaq Deskpro 386+?
 						{
 							#ifdef IS_LONGDOUBLE
 							CPU_speed_cycle = 1000000000.0L / CPU80386_COMPAQ_CLOCK; //80386 15MHz for DMA speed check compatibility(Type 3 motherboard)!
 							#else
 							CPU_speed_cycle = 1000000000.0 / CPU80386_COMPAQ_CLOCK; //80386 15MHz for DMA speed check compatibility(Type 3 motherboard)!
 							#endif
-							if (EMULATED_CPU==CPU_80486) //80486 default clock instead?
+							if (EMULATED_CPU>=CPU_80486) //80486 default clock instead (Pentium too)?
 							{
 								#ifdef IS_LONGDOUBLE
 								CPU_speed_cycle = 1000000000.0L / CPU80486_COMPAQ_CLOCK; //80486 33MHz!
@@ -1474,7 +1475,7 @@ void EMU_onCPUReset(byte isInit)
 	if (isInit) //Initializing?
 	{
 		SystemControlPortA &= ~2; //Clear A20 here!
-		if ((is_XT == 0) || (EMULATED_CPU >= CPU_80286) || (is_Compaq == 1)) //AT-class CPU?
+		if ((is_XT == 0) || (EMULATED_CPU >= CPU_80286) || (is_Compaq == 1) || (is_i430fx)) //AT-class CPU?
 		{
 			Controller8042.outputport |= 2; //Set A20 here!
 		}

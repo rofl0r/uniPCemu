@@ -126,6 +126,8 @@ typedef struct
 	//CMOS for PS/2 systems!
 	CMOSDATA PS2CMOS; //The full saved CMOS!
 	byte got_PS2CMOS; //Gotten an CMOS?
+	CMOSDATA i430fxCMOS; //The full saved CMOS!
+	byte got_i430fxCMOS; //Gotten an CMOS?
 #ifdef PACKETSERVER_ENABLED
 	ETHERNETSERVER_SETTINGS_TYPE ethernetserver_settings;
 #endif
@@ -220,7 +222,8 @@ enum Architectures {
 	ARCHITECTURE_XT = 0,
 	ARCHITECTURE_AT = 1,
 	ARCHITECTURE_COMPAQ = 2,
-	ARCHITECTURE_PS2 = 3
+	ARCHITECTURE_PS2 = 3,
+	ARCHITECTURE_i430fx = 4
 }; //All possible architectures!
 
 enum BIOSROMMode {

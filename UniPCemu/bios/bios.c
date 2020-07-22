@@ -37,6 +37,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/support/iniparser.h" //INI file parsing for our settings storage!
 #include "headers/fopen64.h" //64-bit fopen support!
 #include "headers/hardware/floppy.h" //Floppy disk support!
+#include "headers/hardware/i430fx.h" //i430fx support!
 
 //Are we disabled?
 #define __HW_DISABLED 0
@@ -78,12 +79,16 @@ extern byte is_Compaq; //Are we emulating a Compaq architecture?
 extern byte non_Compaq; //Are we not emulating a Compaq architecture?
 extern byte is_PS2; //Are we emulating PS/2 architecture extensions?
 
-extern char currentarchtext[4][256]; //The current architecture texts!
+extern char currentarchtext[5][256]; //The current architecture texts!
 
 char* getcurrentarchtext() //Get the current architecture!
 {
 	//First, determine the current CMOS!
-	if (is_PS2) //PS/2?
+	if (is_i430fx) //i430fx?
+	{
+		return &currentarchtext[4][0]; //We've used!
+	}
+	else if (is_PS2) //PS/2?
 	{
 		return &currentarchtext[3][0]; //We've used!
 	}
@@ -107,7 +112,11 @@ uint_32 *getarchmemory() //Get the memory field for the current architecture!
 {
 	//First, determine the current CMOS!
 	CMOSDATA* currentCMOS;
-	if (is_PS2) //PS/2?
+	if (is_i430fx) //i430fx?
+	{
+		currentCMOS = &BIOS_Settings.i430fxCMOS; //We've used!
+	}
+	else if (is_PS2) //PS/2?
 	{
 		currentCMOS = &BIOS_Settings.PS2CMOS; //We've used!
 	}
@@ -131,7 +140,11 @@ byte* getarchemulated_CPU() //Get the memory field for the current architecture!
 {
 	//First, determine the current CMOS!
 	CMOSDATA* currentCMOS;
-	if (is_PS2) //PS/2?
+	if (is_i430fx) //i430fx?
+	{
+		currentCMOS = &BIOS_Settings.i430fxCMOS; //We've used!
+	}
+	else if (is_PS2) //PS/2?
 	{
 		currentCMOS = &BIOS_Settings.PS2CMOS; //We've used!
 	}
@@ -154,7 +167,11 @@ byte* getarchDataBusSize() //Get the memory field for the current architecture!
 {
 	//First, determine the current CMOS!
 	CMOSDATA* currentCMOS;
-	if (is_PS2) //PS/2?
+	if (is_i430fx) //i430fx?
+	{
+		currentCMOS = &BIOS_Settings.i430fxCMOS; //We've used!
+	}
+	else if (is_PS2) //PS/2?
 	{
 		currentCMOS = &BIOS_Settings.PS2CMOS; //We've used!
 	}
@@ -177,7 +194,11 @@ uint_32* getarchCPUSpeed() //Get the memory field for the current architecture!
 {
 	//First, determine the current CMOS!
 	CMOSDATA* currentCMOS;
-	if (is_PS2) //PS/2?
+	if (is_i430fx) //i430fx?
+	{
+		currentCMOS = &BIOS_Settings.i430fxCMOS; //We've used!
+	}
+	else if (is_PS2) //PS/2?
 	{
 		currentCMOS = &BIOS_Settings.PS2CMOS; //We've used!
 	}
@@ -200,7 +221,11 @@ uint_32* getarchTurboCPUSpeed() //Get the memory field for the current architect
 {
 	//First, determine the current CMOS!
 	CMOSDATA* currentCMOS;
-	if (is_PS2) //PS/2?
+	if (is_i430fx) //i430fx?
+	{
+		currentCMOS = &BIOS_Settings.i430fxCMOS; //We've used!
+	}
+	else if (is_PS2) //PS/2?
 	{
 		currentCMOS = &BIOS_Settings.PS2CMOS; //We've used!
 	}
@@ -223,7 +248,11 @@ byte* getarchuseTurboCPUSpeed() //Get the memory field for the current architect
 {
 	//First, determine the current CMOS!
 	CMOSDATA* currentCMOS;
-	if (is_PS2) //PS/2?
+	if (is_i430fx) //i430fx?
+	{
+		currentCMOS = &BIOS_Settings.i430fxCMOS; //We've used!
+	}
+	else if (is_PS2) //PS/2?
 	{
 		currentCMOS = &BIOS_Settings.PS2CMOS; //We've used!
 	}
@@ -246,7 +275,11 @@ byte* getarchclockingmode() //Get the memory field for the current architecture!
 {
 	//First, determine the current CMOS!
 	CMOSDATA* currentCMOS;
-	if (is_PS2) //PS/2?
+	if (is_i430fx) //i430fx?
+	{
+		currentCMOS = &BIOS_Settings.i430fxCMOS; //We've used!
+	}
+	else if (is_PS2) //PS/2?
 	{
 		currentCMOS = &BIOS_Settings.PS2CMOS; //We've used!
 	}
@@ -665,6 +698,7 @@ void autoDetectArchitecture()
 	is_XT = (BIOS_Settings.architecture==ARCHITECTURE_XT); //XT architecture?
 	is_Compaq = 0; //Default to not being Compaq!
 	is_PS2 = 0; //Default to not being PS/2!
+	is_i430fx = 0; //Default to not using the i430fx!
 
 	if (BIOS_Settings.architecture==ARCHITECTURE_COMPAQ) //Compaq architecture?
 	{
@@ -676,6 +710,13 @@ void autoDetectArchitecture()
 		is_PS2 = 1; //PS/2 extensions enabled!
 		is_XT = 0; //AT compatible!
 		is_Compaq = 1; //Compaq compatible!
+	}
+	if (BIOS_Settings.architecture == ARCHITECTURE_i430fx) //i430fx architecture?
+	{
+		is_i430fx = 1; //i430fx architecture!
+		is_PS2 = 1; //PS/2 extensions enabled!
+		is_XT = 0; //AT compatible!
+		is_Compaq = 0; //Compaq compatible!
 	}
 	non_Compaq = !is_Compaq; //Are we not using a Compaq architecture?
 }
@@ -886,6 +927,7 @@ void BIOS_LoadDefaults(int tosave) //Load BIOS defaults, but not memory size!
 	memorytypes[1] = BIOS_Settings.ATCMOS.memory;
 	memorytypes[2] = BIOS_Settings.CompaqCMOS.memory;
 	memorytypes[3] = BIOS_Settings.PS2CMOS.memory;
+	memorytypes[4] = BIOS_Settings.i430fxCMOS.memory;
 
 	//Zero out!
 	memset(&BIOS_Settings,0,sizeof(BIOS_Settings)); //Reset to empty!
@@ -895,7 +937,8 @@ void BIOS_LoadDefaults(int tosave) //Load BIOS defaults, but not memory size!
 	BIOS_Settings.ATCMOS.memory = memorytypes[1];
 	BIOS_Settings.CompaqCMOS.memory = memorytypes[2];
 	BIOS_Settings.PS2CMOS.memory = memorytypes[3];
-	
+	BIOS_Settings.i430fxCMOS.memory = memorytypes[4];
+
 	if (!file_exists(BIOS_Settings_file)) //New file?
 	{
 		BIOS_Settings.firstrun = 1; //We're the first run!
@@ -1212,6 +1255,10 @@ void BIOS_LoadData() //Load BIOS settings!
 	//PS2CMOS
 	BIOS_Settings.got_PS2CMOS = (byte)get_private_profile_uint64("PS2CMOS","gotCMOS",0,BIOS_Settings_file); //Gotten an CMOS?
 	loadBIOSCMOS(&BIOS_Settings.PS2CMOS,"PS2CMOS"); //Load the CMOS from the file!
+
+	//i430fxCMOS
+	BIOS_Settings.got_i430fxCMOS = (byte)get_private_profile_uint64("i430fxCMOS", "gotCMOS", 0, BIOS_Settings_file); //Gotten an CMOS?
+	loadBIOSCMOS(&BIOS_Settings.i430fxCMOS, "i430fxCMOS"); //Load the CMOS from the file!
 
 	//BIOS settings have been loaded.
 
@@ -1619,6 +1666,10 @@ int BIOS_SaveData() //Save BIOS settings!
 	//PS2CMOS
 	if (!write_private_profile_uint64("PS2CMOS",cmos_commentused,"gotCMOS",BIOS_Settings.got_PS2CMOS,BIOS_Settings_file)) return 0; //Gotten an CMOS?
 	if (!saveBIOSCMOS(&BIOS_Settings.PS2CMOS,"PS2CMOS",cmos_commentused)) return 0; //The full saved CMOS!
+
+	//i430fxCMOS
+	if (!write_private_profile_uint64("i430fxCMOS", cmos_commentused, "gotCMOS", BIOS_Settings.got_i430fxCMOS, BIOS_Settings_file)) return 0; //Gotten an CMOS?
+	if (!saveBIOSCMOS(&BIOS_Settings.i430fxCMOS, "i430fxCMOS", cmos_commentused)) return 0; //The full saved CMOS!
 
 	memcpy(&loadedsettings,&BIOS_Settings,sizeof(BIOS_Settings)); //Reload from buffer!
 	loadedsettings_loaded = 1; //Buffered in memory!

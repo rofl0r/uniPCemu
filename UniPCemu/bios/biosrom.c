@@ -80,20 +80,25 @@ uint_32 BIOSROM_BASE_XT = 0xF0000; //XT BIOS ROM base!
 
 extern byte is_Compaq; //Are we emulating a Compaq device?
 extern byte is_PS2; //Are we emulating a Compaq with PS/2 mouse(modern) device?
+extern byte is_i430fx; //Are we emulating a i430fx architecture?
 
 void scanROM(char *device, char *filename, uint_32 size)
 {
 	//Special case: 32-bit uses Compaq ROMs!
-	snprintf(filename, size, "%s/%s.%s.BIN", ROMpath, device, (is_PS2?"PS2":(is_Compaq ? "32" : (is_XT ? "XT" : "AT")))); //Create the filename for the ROM for the architecture!
+	snprintf(filename, size, "%s/%s.%s.BIN", ROMpath, device,  ((is_i430fx) ? "i430fx" : (is_PS2 ? "PS2" : (is_Compaq ? "32" : (is_XT ? "XT" : "AT"))))); //Create the filename for the ROM for the architecture!
 	if (!file_exists(filename)) //This version doesn't exist? Then try the other version!
 	{
-		snprintf(filename, size, "%s/%s.%s.BIN", ROMpath, device, (is_Compaq ? "32" : (is_XT ? "XT" : "AT"))); //Create the filename for the ROM for the architecture!
+		snprintf(filename, size, "%s/%s.%s.BIN", ROMpath, device, (is_PS2 ? "PS2" : (is_Compaq ? "32" : (is_XT ? "XT" : "AT")))); //Create the filename for the ROM for the architecture!
 		if (!file_exists(filename)) //This version doesn't exist? Then try the other version!
 		{
-			snprintf(filename, size, "%s/%s.%s.BIN", ROMpath, device, is_XT ? "XT" : "AT"); //Create the filename for the ROM for the architecture!
+			snprintf(filename, size, "%s/%s.%s.BIN", ROMpath, device, (is_Compaq ? "32" : (is_XT ? "XT" : "AT"))); //Create the filename for the ROM for the architecture!
 			if (!file_exists(filename)) //This version doesn't exist? Then try the other version!
 			{
-				snprintf(filename, size, "%s/%s.BIN", ROMpath, device); //CGA ROM!
+				snprintf(filename, size, "%s/%s.%s.BIN", ROMpath, device, is_XT ? "XT" : "AT"); //Create the filename for the ROM for the architecture!
+				if (!file_exists(filename)) //This version doesn't exist? Then try the other version!
+				{
+					snprintf(filename, size, "%s/%s.BIN", ROMpath, device); //CGA ROM!
+				}
 			}
 		}
 	}
@@ -122,22 +127,26 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 		if (i) //Not Graphics Adapter ROM?
 		{
 			//Default!
-			snprintf(filename, sizeof(filename), "%s/OPTROM.%s.%u.BIN", ROMpath, (is_PS2 ? "PS2" : (is_Compaq ? "32" : (is_XT ? "XT" : "AT"))), i); //Create the filename for the ROM for the architecture!
+			snprintf(filename, sizeof(filename), "%s/OPTROM.%s.%u.BIN", ROMpath, (is_i430fx ? "i430fx" : (is_PS2 ? "PS2" : (is_Compaq ? "32" : (is_XT ? "XT" : "AT")))), i); //Create the filename for the ROM for the architecture!
 			if (!file_exists(filename)) //This version doesn't exist? Then try the other version!
 			{
-				snprintf(filename, sizeof(filename), "%s/OPTROM.%s.%u.BIN", ROMpath, (is_PS2 ? "32" : (is_Compaq ? "32" : (is_XT ? "XT" : "AT"))), i); //Create the filename for the ROM for the architecture!
+				snprintf(filename, sizeof(filename), "%s/OPTROM.%s.%u.BIN", ROMpath, (is_PS2 ? "PS2" : (is_Compaq ? "32" : (is_XT ? "XT" : "AT"))), i); //Create the filename for the ROM for the architecture!
 				if (!file_exists(filename)) //This version doesn't exist? Then try the other version!
 				{
-					snprintf(filename, sizeof(filename), "%s/OPTROM.%s.%u.BIN", ROMpath, ((is_Compaq ? "32" : (is_XT ? "XT" : "AT"))), i); //Create the filename for the ROM for the architecture!
+					snprintf(filename, sizeof(filename), "%s/OPTROM.%s.%u.BIN", ROMpath, (is_PS2 ? "32" : (is_Compaq ? "32" : (is_XT ? "XT" : "AT"))), i); //Create the filename for the ROM for the architecture!
 					if (!file_exists(filename)) //This version doesn't exist? Then try the other version!
 					{
-						snprintf(filename, sizeof(filename), "%s/OPTROM.%s.%u.BIN", ROMpath, is_XT ? "XT" : "AT", i); //Create the filename for the ROM for the architecture!
+						snprintf(filename, sizeof(filename), "%s/OPTROM.%s.%u.BIN", ROMpath, ((is_Compaq ? "32" : (is_XT ? "XT" : "AT"))), i); //Create the filename for the ROM for the architecture!
 						if (!file_exists(filename)) //This version doesn't exist? Then try the other version!
 						{
-							snprintf(filename, sizeof(filename), "%s/OPTROM.%s.%u.BIN", ROMpath, "XT", i); //Create the filename for the ROM for the architecture!
+							snprintf(filename, sizeof(filename), "%s/OPTROM.%s.%u.BIN", ROMpath, is_XT ? "XT" : "AT", i); //Create the filename for the ROM for the architecture!
 							if (!file_exists(filename)) //This version doesn't exist? Then try the other version!
 							{
-								snprintf(filename, sizeof(filename), "%s/OPTROM.%u.BIN", ROMpath, i); //Create the filename for the ROM!
+								snprintf(filename, sizeof(filename), "%s/OPTROM.%s.%u.BIN", ROMpath, "XT", i); //Create the filename for the ROM for the architecture!
+								if (!file_exists(filename)) //This version doesn't exist? Then try the other version!
+								{
+									snprintf(filename, sizeof(filename), "%s/OPTROM.%u.BIN", ROMpath, i); //Create the filename for the ROM!
+								}
 							}
 						}
 					}
@@ -375,7 +384,22 @@ retryext:
 	}
 	switch (tryext&7)
 	{
-	case 0: //PS/2?
+	case 0: //i430fx?
+		if (is_i430fx == 0) //Not a i430fx compatible architecture?
+		{
+			++tryext; //Next try!
+			goto retryext; //Skip PS/2 ROMs!
+		}
+		if (BIOS_Settings.BIOSROMmode == BIOSROMMODE_DIAGNOSTICS) //Diagnostics mode?
+		{
+			snprintf(filename, sizeof(filename), "%s/BIOSROM.i430fx.U%u.DIAGNOSTICS.BIN", ROMpath, nr); //Create the filename for the ROM!		
+		}
+		else //Normal mode?
+		{
+			snprintf(filename, sizeof(filename), "%s/BIOSROM.i430fx.U%u.BIN", ROMpath, nr); //Create the filename for the ROM!		
+		}
+		break;
+	case 1: //PS/2?
 		if (is_PS2 == 0) //Not a PS/2 compatible architecture?
 		{
 			++tryext; //Next try!
@@ -390,7 +414,7 @@ retryext:
 			snprintf(filename, sizeof(filename), "%s/BIOSROM.PS2.U%u.BIN", ROMpath, nr); //Create the filename for the ROM!		
 		}
 		break;
-	case 1: //32-bit?
+	case 2: //32-bit?
 		if ((is_Compaq==0) && (is_PS2==0)) //Not a 32-bit compatible architecture?
 		{
 			++tryext; //Next try!
@@ -406,7 +430,7 @@ retryext:
 			snprintf(filename, sizeof(filename), "%s/BIOSROM.32.U%u.BIN", ROMpath, nr); //Create the filename for the ROM!		
 		}
 		break;
-	case 2: //Compaq?
+	case 3: //Compaq?
 		if (is_Compaq==0) //Not a Compaq compatible architecture?
 		{
 			++tryext; //Next try!
@@ -422,7 +446,7 @@ retryext:
 			snprintf(filename, sizeof(filename), "%s/BIOSROM.COMPAQ.U%u.BIN", ROMpath, nr); //Create the filename for the ROM!		
 		}
 		break;
-	case 3: //AT?
+	case 4: //AT?
 		if (is_XT) //Not a AT compatible architecture?
 		{
 			++tryext; //Next try!
@@ -437,7 +461,7 @@ retryext:
 			snprintf(filename, sizeof(filename), "%s/BIOSROM.AT.U%u.BIN", ROMpath, nr); //Create the filename for the ROM!
 		}
 		break;
-	case 4: //XT?
+	case 5: //XT?
 		if (BIOS_Settings.BIOSROMmode == BIOSROMMODE_DIAGNOSTICS) //Diagnostics mode?
 		{
 				snprintf(filename, sizeof(filename), "%s/BIOSROM.XT.U%u.DIAGNOSTICS.BIN", ROMpath, nr); //Create the filename for the ROM!
@@ -448,7 +472,7 @@ retryext:
 		}
 		break;
 	default:
-	case 5: //Universal ROM?
+	case 6: //Universal ROM?
 		if (BIOS_Settings.BIOSROMmode == BIOSROMMODE_DIAGNOSTICS) //Diagnostics mode?
 		{
 				snprintf(filename, sizeof(filename), "%s/BIOSROM.U%u.DIAGNOSTICS.BIN", ROMpath, nr); //Create the filename for the ROM!
@@ -608,7 +632,7 @@ retryext:
 		
 		//Recalculate based on ROM size!
 		BIOSROM_BASE_AT = 0xFFFFFFU-(MIN(ROM_size,0x100000U)-1U); //AT ROM size! Limit to 1MB!
-		BIOSROM_BASE_XT = 0xFFFFFU-(MIN(ROM_size,(is_XT?0x10000U:(is_Compaq?0x40000U:0x20000U)))-1U); //XT ROM size! Limit to 256KB(Compaq), 128KB(AT) or 64KB(XT)!
+		BIOSROM_BASE_XT = 0xFFFFFU-(MIN(ROM_size,(is_XT?0x10000U:((is_Compaq || is_PS2 || is_i430fx)?0x40000U:0x20000U)))-1U); //XT ROM size! Limit to 256KB(Compaq), 128KB(AT) or 64KB(XT)!
 		BIOSROM_BASE_Modern = 0xFFFFFFFFU-(ROM_size-1U); //Modern ROM size!
 		return 1; //Loaded!
 	}
@@ -674,7 +698,7 @@ int BIOS_load_custom(char *path, char *rom)
 
 		//Also limit the ROM base addresses accordingly(only last block).
 		BIOSROM_BASE_AT = 0xFFFFFF-(MIN(BIOS_custom_ROM_size<<ROM_doubling,0x100000)-1); //AT ROM size!
-		BIOSROM_BASE_XT = 0xFFFFF-(MIN(BIOS_custom_ROM_size<<ROM_doubling,(is_XT?0x10000U:(is_Compaq?0x40000U:0x20000U)))-1U); //XT ROM size! XT has a 64K limit(0xF0000 min) because of the EMS mapped at 0xE0000(64K), while AT and up has 128K limit(0xE0000) because the memory is unused(no expansion board present, allowing all addresses to be used up to the end of the expansion ROM area(0xE0000). Compaq and up limits to 256KB instead(addresses from 0xC0000 and up)).
+		BIOSROM_BASE_XT = 0xFFFFF-(MIN(BIOS_custom_ROM_size<<ROM_doubling,(is_XT?0x10000U:((is_Compaq || is_PS2 || is_i430fx)?0x40000U:0x20000U)))-1U); //XT ROM size! XT has a 64K limit(0xF0000 min) because of the EMS mapped at 0xE0000(64K), while AT and up has 128K limit(0xE0000) because the memory is unused(no expansion board present, allowing all addresses to be used up to the end of the expansion ROM area(0xE0000). Compaq and up limits to 256KB instead(addresses from 0xC0000 and up)).
 		BIOSROM_BASE_Modern = 0xFFFFFFFF-(MIN(BIOS_custom_ROM_size<<ROM_doubling,0x10000000)-1); //Modern ROM size!
 		return 1; //Loaded!
 	}
@@ -1714,7 +1738,7 @@ void BIOSROM_dumpBIOS()
 			baseloc = BIOSROM_BASE_XT;
 			endloc = 0x100000;
 		}
-		else if (is_Compaq==1) //32-bit?
+		else if ((is_Compaq==1) || (is_i430fx) || (is_PS2)) //32-bit?
 		{	
 			baseloc = BIOSROM_BASE_Modern;
 			endloc = 0x100000000LL;
@@ -1727,8 +1751,8 @@ void BIOSROM_dumpBIOS()
 		BIGFILE *f;
 		char filename[2][100];
 		memset(&filename,0,sizeof(filename)); //Clear/init!
-		snprintf(filename[0],sizeof(filename[0]), "%s/ROMDMP.%s.BIN", ROMpath,(is_Compaq?"32":(is_XT?"XT":"AT"))); //Create the filename for the ROM for the architecture!
-		snprintf(filename[1],sizeof(filename[1]), "ROMDMP.%s.BIN",(is_Compaq?"32":(is_XT?"XT":"AT"))); //Create the filename for the ROM for the architecture!
+		snprintf(filename[0],sizeof(filename[0]), "%s/ROMDMP.%s.BIN", ROMpath,(is_i430fx?"i430fx":(is_PS2?"PS2":(is_Compaq?"32":(is_XT?"XT":"AT"))))); //Create the filename for the ROM for the architecture!
+		snprintf(filename[1],sizeof(filename[1]), "ROMDMP.%s.BIN",(is_i430fx?"i430fx":(is_PS2?"PS2":(is_Compaq?"32":(is_XT?"XT":"AT"))))); //Create the filename for the ROM for the architecture!
 
 		f = emufopen64(filename[0],"wb");
 		if (!f) return;

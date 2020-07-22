@@ -216,6 +216,7 @@ void POST_memorydefaults() //Memory defaults for the CPU without custom BIOS!
 extern byte is_XT; //XT Architecture?
 extern byte is_Compaq; //Compaq Architecture?
 extern byte is_PS2; //Are we emulating a Compaq with PS/2 mouse(modern) device?
+extern byte is_i430fx; //Are we emulating a i430fx architecture?
 extern byte dumpBIOS; //dump BIOS?
 
 //Result: 0=Continue;1=Reset!
@@ -343,8 +344,22 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 			}
 			else //5170 AT+ PC?
 			{
-				if ((EMULATED_CPU>=CPU_80386) && is_Compaq) //386+ CPU and Compaq architecture(32-bit hardware)? We're using a 32-bit BIOS instead!
+				if ((EMULATED_CPU>=CPU_80386) && (is_Compaq || is_i430fx)) //386+ CPU and Compaq architecture(32-bit hardware)? We're using a 32-bit BIOS instead!
 				{
+					if (is_i430fx) //Try PS/2 architecture first?
+					{
+						if (BIOS_Settings.BIOSROMmode == BIOSROMMODE_DIAGNOSTICS) //Diagnostics mode?
+						{
+							verified = BIOS_load_custom(NULL, "BIOSROM.i430fx.DIAGNOSTICS.BIN"); //Try to load a custom 32-bit BIOS ROM!
+							if (verified) goto loadOPTROMS; //Loaded the BIOS?							
+						}
+
+						if (BIOS_Settings.BIOSROMmode != BIOSROMMODE_UROMS)
+						{
+							verified = BIOS_load_custom(NULL, "BIOSROM.i430fx.BIN"); //Try to load a custom 32-bit BIOS ROM!
+							if (verified) goto loadOPTROMS; //Loaded the BIOS?
+						}
+					}
 					if (is_PS2) //Try PS/2 architecture first?
 					{
 						if (BIOS_Settings.BIOSROMmode == BIOSROMMODE_DIAGNOSTICS) //Diagnostics mode?

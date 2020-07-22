@@ -34,6 +34,7 @@ extern byte MoveLowMemoryHigh; //Move HMA physical memory high?
 byte inboard386_speed = 0; //What speed to use? Level 0-3!
 const byte effective_waitstates[2][4] = {{94,47,24,0},{30,16,8,0}}; //The Wait States! First AT(compatibility case), then XT! It seems to be roughly a x0.5 multiplier except the final one. XT contains known values, AT contains measured values using the BIOS ROM DMA test validation.
 extern byte is_Compaq; //Are we emulating an Compaq architecture?
+extern byte is_i430fx; //Are we emulating a i430fx architecture?
 
 byte Inboard_readIO(word port, byte *result)
 {
@@ -116,7 +117,7 @@ void initInboard(byte initFullspeed) //Initialize the Inboard chipset, if needed
 	}
 	CPU386_WAITSTATE_DELAY = 0; //No Wait States!
 	//Add any Inboard support!
-	if (((EMULATED_CPU==CPU_80386)||(EMULATED_CPU>=CPU_80486)) && (is_Compaq==0)) //XT/AT 386/486? We're an Inboard 386!
+	if (((EMULATED_CPU==CPU_80386)||(EMULATED_CPU>=CPU_80486)) && (is_Compaq==0) && (!is_i430fx)) //XT/AT 386/486? We're an Inboard 386!
 	{
 		MoveLowMemoryHigh = 0; //Default: disable the HMA memory and enable the memory hole and BIOS ROM!
 		if (MMU.size>=0x100000) //1MB+ detected?

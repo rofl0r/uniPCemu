@@ -11,7 +11,7 @@ extern byte i430fx_memorymappings_write[16]; //All write memory/PCI! Set=DRAM, c
 
 void i430fx__SMIACT(byte active); //SMIACT# signal
 void i430fx_writeaddr(byte index, byte *value); //Written an address?
-void init_i430fx(byte enabled);
+void init_i430fx();
 void done_i430fx();
 void i430fx_MMUready(); //Memory is ready to use?
 

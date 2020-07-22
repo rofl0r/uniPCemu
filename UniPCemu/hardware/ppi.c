@@ -42,6 +42,7 @@ extern byte NMI; //NMI control on XT support!
 
 extern byte is_XT; //Are we using XT architecture?
 extern byte is_Compaq; //Are we emulating an Compaq architecture?
+extern byte is_i430fx; //Are we emulating a i430fx architecture?
 
 byte readPPI62()
 {
@@ -207,7 +208,11 @@ byte PPI_writeIO(word port, byte value)
 			platform[0] = 'A';
 			platform[1] = 'T'; //Default: AT!
 			platform[2] = 0;
-			if (is_XT) //XT?
+			if (is_i430fx) //i430fx?
+			{
+				safe_strcpy(&platform[0],sizeof(platform),"i430fx"); //i430fx!
+			}
+			else if (is_XT) //XT?
 			{
 				platform[0] = 'X'; //XT instead!
 			}

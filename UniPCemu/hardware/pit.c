@@ -38,6 +38,7 @@ src:http://wiki.osdev.org/Programmable_Interval_Timer#Channel_2
 #include "headers/support/log.h" //Logging support!
 #include "headers/support/filters.h" //Filter support!
 #include "headers/hardware/ppi.h" //Failsafe timer support!
+#include "headers/hardware/i430fx.h" //i430fx support!
 
 //Are we disabled?
 #define __HW_DISABLED 0
@@ -985,7 +986,7 @@ void init8253() {
 	#endif
 	registerIRQ(0,&PIT0Acnowledge,NULL); //Register our acnowledge IRQ!
 	PCSpeakerPort = 0; //Init PC speaker port!
-	if (is_Compaq==1) //Emulating Compaq architecture?
+	if ((is_Compaq==1) || (is_i430fx)) //Emulating Compaq architecture?
 	{
 		numPITchannels = 6; //We're emulating all 6 channels instead!
 	}

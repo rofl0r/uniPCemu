@@ -7,7 +7,7 @@
 #include "headers/mmu/mmuhandler.h" //RAM layout updating support!
 #include "headers/hardware/ide.h" //IDE PCI support!
 
-byte is_i430fx = 0; //Are we an i430fx motherboard?
+extern byte is_i430fx; //Are we an i430fx motherboard?
 byte i430fx_memorymappings_read[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}; //All read memory/PCI! Set=DRAM, clear=PCI!
 byte i430fx_memorymappings_write[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}; //All write memory/PCI! Set=DRAM, clear=PCI!
 byte SMRAM_enabled = 0; //SMRAM enabled?
@@ -676,10 +676,8 @@ void i430fx_MMUready()
 	memcpy(&i430fx_DRAMsettings, &i430fx_DRAMsettingslookup[effectiveDRAMsettings], sizeof(i430fx_DRAMsettings)); //Setup the DRAM settings to use!
 }
 
-void init_i430fx(byte enabled)
+void init_i430fx()
 {
-	is_i430fx = enabled; //Emulate a i430fx architecture!
-
 	effectiveDRAMsettings = 0; //Effective DRAM settings to take effect! Start at the first entry, which is the minimum!
 
 	//Register PCI configuration space?
@@ -705,5 +703,5 @@ void init_i430fx(byte enabled)
 
 void done_i430fx()
 {
-	is_i430fx = 0; //Not a i430fx anymore!
+	//Nothing to be done!
 }

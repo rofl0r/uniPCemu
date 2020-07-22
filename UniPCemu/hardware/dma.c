@@ -30,6 +30,7 @@ DMA Controller (8237A)
 #include "headers/hardware/8237A.h" //Our own header!
 #include "headers/cpu/cpu.h" //CPU support for the active CPU!
 #include "headers/cpu/biu.h" //CPU support for BUS sharing and the lock signal!
+#include "headers/hardware/i430fx.h" //i430fx support!
 
 //Are we disabled?
 #define __HW_DISABLED 0
@@ -831,7 +832,7 @@ void initDMA()
 	DMAController[1].CommandRegister |= 0x4; //Disable controller!
 
 	DMA_timing = 0; //Initialise DMA timing!
-	DMA_halfCPUclock = ((is_XT==0) && !(is_Compaq|is_PS2))?1:0; //Use half the CPU clock rate instead of base 4.77MHz clock on AT architecture?
+	DMA_halfCPUclock = ((is_XT==0) && !(is_Compaq|is_PS2|is_i430fx))?1:0; //Use half the CPU clock rate instead of base 4.77MHz clock on AT architecture?
 }
 
 void doneDMA()
