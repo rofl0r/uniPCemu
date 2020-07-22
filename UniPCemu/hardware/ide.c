@@ -5556,9 +5556,13 @@ void ATA_ConfigurationSpaceChanged(uint_32 address, byte device, byte function, 
 		activePCI_IDE->BAR[1] = ((activePCI_IDE->BAR[1]&((~3)&0xFFFFU))|1); //IO BAR! 4 bytes of IO space!
 		activePCI_IDE->BAR[2] = ((activePCI_IDE->BAR[2]&((~7)&0xFFFFU))|1); //IO BAR! 8 bytes of IO space!
 		activePCI_IDE->BAR[3] = ((activePCI_IDE->BAR[3]&((~3)&0xFFFFU))|1); //IO BAR! 4 bytes of IO space!
+		/*
 		activePCI_IDE->BAR[4] = ((activePCI_IDE->BAR[4]&((~0xF)&0xFFFFU))|1); //IO BAR! 8 bytes of IO space!
 		activePCI_IDE->BAR[5] = ((activePCI_IDE->BAR[5]&((~3)&0xFFFFU))|1); //IO BAR! Unused!
-	}
+		*/
+		memset(&activePCI_IDE->BAR[4],0,sizeof(activePCI_IDE->BAR[4])); //Cleared always!
+		memset(&activePCI_IDE->BAR[5],0,sizeof(activePCI_IDE->BAR[5])); //Cleared always!
+		}
 	resetPCISpaceIDE(); //For read-only fields!
 }
 
