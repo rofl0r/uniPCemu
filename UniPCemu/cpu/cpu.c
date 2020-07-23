@@ -1561,6 +1561,11 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		CPU[activeCPU].executed = 0; //Not executing anymore!
 		goto BIUWaiting; //Are we ready to step the Execution Unit?
 	}
+	if (CPU[activeCPU].resetPending == 2) //Hanging reset pending?
+	{
+		CPU[activeCPU].executed = 1; //Executed with nothing to do!
+		goto BIUWaiting;
+	}
 	if (CPU[activeCPU].preinstructiontimingnotready&1) //Timing not ready yet?
 	{
 		goto CPUtimingready; //We might be ready for execution now?
