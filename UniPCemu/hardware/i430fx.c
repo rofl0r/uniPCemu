@@ -500,7 +500,7 @@ void i430fx_hardreset()
 		i430fx_PCIConfigurationChangeHandler(address, 3, 0, 1); //Initialize all required settings!
 	}
 
-	i430fx_piix_configuration[0x04] &= ~8; //Default: disable special cycles!
+	i430fx_piix_configuration[0x04] |= 8; //Default: enable special cycles!
 	i430fx_piix_PCIConfigurationChangeHandler(0x04, 3, 0, 1); //Initialize all required settings!
 
 	i430fx_piix_configuration[0x06] = 0x00;
