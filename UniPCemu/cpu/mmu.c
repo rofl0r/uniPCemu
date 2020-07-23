@@ -109,8 +109,6 @@ void *MMU_ptr(sword segdesc, word segment, uint_32 offset, byte forreading, uint
 	return MMU_directptr(realaddr, size); //Direct pointer!
 }
 
-extern byte is_Compaq; //Are we emulating a Compaq architecture?
-
 uint_32 addresswrapping[12] = { //-NEC V20/V30 wraps offset arround 64kB? NEC V20/V30 allows 1 byte more in word operations! index: Bit0=Address 0x10000, Bit1+=Emulated CPU
 							0xFFFF, //8086
 							0xFFFF, //8086 0x10000
