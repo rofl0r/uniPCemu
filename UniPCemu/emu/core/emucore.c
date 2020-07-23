@@ -936,7 +936,7 @@ void updateSpeedLimit()
 					}
 					if (((EMULATED_CPU==CPU_80386) || (EMULATED_CPU>=CPU_80486)) || (is_Compaq==1) || (is_i430fx)) //80386/80486 or Compaq?
 					{
-						if (!(is_Compaq) && ((EMULATED_CPU==CPU_80386)||(EMULATED_CPU>=CPU_80486))) //XT/AT 386? 16MHz clock!
+						if (!(is_Compaq||is_i430fx) && ((EMULATED_CPU==CPU_80386)||(EMULATED_CPU>=CPU_80486))) //XT/AT 386? 16MHz clock!
 						{
 							if (is_XT) //Inboard 386/486 XT?
 							{
