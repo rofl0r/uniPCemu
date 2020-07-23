@@ -892,6 +892,7 @@ byte MMU_INTERNAL_directrb_nodebugger(uint_32 realaddress, word index, uint_32 *
 	}
 	if ((memorymapinfo[precalcval].byteaddr & MMU_BLOCKALIGNMENT) == 0) //Cachable?
 	{
+		#ifdef USE_MEMORY_CACHING
 		if (likely((index & 3) == 0))
 		{
 			temp = realaddress; //Backup address!
@@ -923,6 +924,7 @@ byte MMU_INTERNAL_directrb_nodebugger(uint_32 realaddress, word index, uint_32 *
 			}
 		}
 		else //Single, unaligned read?
+		#endif
 		{
 			*result = memorymapinfo[precalcval].cache[realaddress & MMU_BLOCKALIGNMENT]; //Get data from memory!
 			memory_dataaddr = originaladdress; //What is the cached data address!
@@ -1134,7 +1136,11 @@ word MMU_INTERNAL_directrw(uint_32 realaddress, word index) //Direct read from r
 	}
 	result |= (temp << 8); //Higher byte!
 	memory_dataread = result;
+	#ifdef USE_MEMORY_CACHING
 	memory_datasize = 2; //How much is read!
+	#else
+	memory_datasize = 1; //How much is read!
+	#endif
 	return result; //Give the result!
 }
 

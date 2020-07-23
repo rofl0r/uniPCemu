@@ -918,6 +918,7 @@ byte OPTROM_readhandler(uint_32 offset, byte index)    /* A pointer to a handler
 				{
 					srcROM = &OPT_ROMS_shadow[i][0]; //Use the reversed option ROM!
 				}
+				#ifdef USE_MEMORY_CACHING
 				if (likely((index & 3) == 0))
 				{
 					temp = temppos; //Backup address!
@@ -949,6 +950,7 @@ byte OPTROM_readhandler(uint_32 offset, byte index)    /* A pointer to a handler
 					}
 				}
 				else //Enough to read a byte only?
+				#endif
 				{
 					memory_dataread = OPT_ROMS[i][temppos]; //Read the data from the ROM, reversed!
 					memory_datasize = 1; //Only 1 byte!
@@ -963,6 +965,7 @@ byte OPTROM_readhandler(uint_32 offset, byte index)    /* A pointer to a handler
 	{
 		if (likely(basepos < BIOS_custom_VGAROM_size)) //OK?
 		{
+			#ifdef USE_MEMORY_CACHING
 			if (likely((index & 3) == 0))
 			{
 				temp = basepos; //Backup address!
@@ -994,6 +997,7 @@ byte OPTROM_readhandler(uint_32 offset, byte index)    /* A pointer to a handler
 				}
 			}
 			else //Enough to read a byte only?
+			#endif
 			{
 				memory_dataread = BIOS_custom_VGAROM[basepos]; //Read the data from the ROM, reversed!
 				memory_datasize = 1; //Only 1 byte!
@@ -1422,6 +1426,7 @@ byte BIOS_readhandler(uint_32 offset, byte index) /* A pointer to a handler func
 			if (likely(tempoffset<0x10000)) //Within range?
 			{
 				tempoffset &= 0xFFFF; //16-bit ROM!
+				#ifdef USE_MEMORY_CACHING
 				if (likely((index & 3) == 0)) //First byte?
 				{
 					temp = tempoffset; //Backup address!
@@ -1453,6 +1458,7 @@ byte BIOS_readhandler(uint_32 offset, byte index) /* A pointer to a handler func
 					}
 				}
 				else //Enough to read a byte only?
+				#endif
 				{
 					memory_dataread = BIOS_custom_ROM[tempoffset]; //Read the data from the ROM, reversed!
 					memory_datasize = 1; //Only 1 byte!
@@ -1470,6 +1476,7 @@ byte BIOS_readhandler(uint_32 offset, byte index) /* A pointer to a handler func
 		tempoffset = (uint_32)(BIOS_custom_ROM_size-(endpos-(tempoffset+baseposbackup))); //Patch to the end block of the ROM instead of the start.
 		if (likely(tempoffset<BIOS_custom_ROM_size)) //Within range?
 		{
+			#ifdef USE_MEMORY_CACHING
 			if (likely((index & 3) == 0))
 			{
 				temp = tempoffset; //Backup address!
@@ -1501,6 +1508,7 @@ byte BIOS_readhandler(uint_32 offset, byte index) /* A pointer to a handler func
 				}
 			}
 			else //Enough to read a byte only?
+			#endif
 			{
 				memory_dataread = BIOS_custom_ROM[tempoffset]; //Read the data from the ROM, reversed!
 				memory_datasize = 1; //Only 1 byte!
@@ -1526,6 +1534,7 @@ byte BIOS_readhandler(uint_32 offset, byte index) /* A pointer to a handler func
 			segment += 18; //The ROM number!
 			if (likely(BIOS_ROM_size[segment]>tempoffset)) //Within range?
 			{
+				#ifdef USE_MEMORY_CACHING
 				if (likely((index & 3) == 0))
 				{
 					temp = tempoffset; //Backup address!
@@ -1557,6 +1566,7 @@ byte BIOS_readhandler(uint_32 offset, byte index) /* A pointer to a handler func
 					}
 				}
 				else //Enough to read a byte only?
+				#endif
 				{
 					memory_dataread = BIOS_ROMS[segment][tempoffset]; //Read the data from the ROM, reversed!
 					memory_datasize = 1; //Only 1 byte!
@@ -1590,6 +1600,7 @@ byte BIOS_readhandler(uint_32 offset, byte index) /* A pointer to a handler func
 
 			if (likely(BIOS_combinedROM_size > tempoffset)) //Within range?
 			{
+				#ifdef USE_MEMORY_CACHING
 				if ((index & 3) == 0)
 				{
 					temp = tempoffset; //Backup address!
@@ -1621,6 +1632,7 @@ byte BIOS_readhandler(uint_32 offset, byte index) /* A pointer to a handler func
 					}
 				}
 				else //Enough to read a byte only?
+				#endif
 				{
 					memory_dataread = BIOS_combinedROM[tempoffset]; //Read the data from the ROM, reversed!
 					memory_datasize = 1; //Only 1 byte!
@@ -1644,6 +1656,7 @@ byte BIOS_readhandler(uint_32 offset, byte index) /* A pointer to a handler func
 			/*
 			if (likely(BIOS_combinedROM_size > tempoffset)) //Within range?
 			{
+				#ifdef USE_MEMORY_CACHING
 				if ((index & 3) == 0)
 				{
 					if (((tempoffset & 3) == 0) && ((tempoffset | 3) < BIOS_combinedROM_size)) //Enough to read a dword?
@@ -1666,6 +1679,7 @@ byte BIOS_readhandler(uint_32 offset, byte index) /* A pointer to a handler func
 					}
 				}
 				else //Enough to read a byte only?
+				#endif
 				{
 					memory_dataread = BIOS_combinedROM[tempoffset]; //Read the data from the ROM, reversed!
 					memory_datasize = 1; //Only 1 byte!
@@ -1690,6 +1704,7 @@ byte BIOS_readhandler(uint_32 offset, byte index) /* A pointer to a handler func
 			/*
 			if (likely(BIOS_combinedROM_size > tempoffset)) //Within range?
 			{
+				#ifdef USE_MEMORY_CACHING
 				if ((index & 3) == 0)
 				{
 					if (((tempoffset & 3) == 0) && ((tempoffset | 3) < BIOS_combinedROM_size)) //Enough to read a dword?
@@ -1712,6 +1727,7 @@ byte BIOS_readhandler(uint_32 offset, byte index) /* A pointer to a handler func
 					}
 				}
 				else //Enough to read a byte only?
+				#endif
 				{
 					memory_dataread = BIOS_combinedROM[tempoffset]; //Read the data from the ROM, reversed!
 					memory_datasize = 1; //Only 1 byte!
