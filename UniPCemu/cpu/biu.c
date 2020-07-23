@@ -1112,6 +1112,11 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates, byte bus_waitstates)
 							memory_datawrite = ((BIU[activeCPU].currentpayload[0] >> 32)&0xFFFF); //What to write!
 							BIU[activeCPU].datawritesizeexpected = 2; //We expect 2 to be set!
 						}
+						if (unlikely((physicaladdress & 0xFFF) > ((physicaladdress + memory_datawritesize)&0xFFF))) //Ending address in a different page? We can't write more!
+						{
+							memory_datawritesize = 1; //1 byte only!
+							BIU[activeCPU].datawritesizeexpected = 1; //1 byte only!
+						}
 						BIU_directwb(physicaladdress, value, 0x100); //Write directly to memory now!
 						if (unlikely(memory_datawrittensize != BIU[activeCPU].datawritesizeexpected)) //Wrong size than expected?
 						{
