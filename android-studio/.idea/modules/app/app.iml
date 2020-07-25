@@ -203,10 +203,10 @@
       <sourceFolder url="file://$MODULE_DIR$/../../../../android-project/jni/SDL2_net" isTestSource="false" />
     </content>
     <content url="file://$MODULE_DIR$/../../../app">
-      <sourceFolder url="file://$MODULE_DIR$/../../../app/build/generated/ap_generated_sources/productRelease/out" isTestSource="false" generated="true" />
       <sourceFolder url="file://$MODULE_DIR$/../../../app/build/generated/aidl_source_output_dir/productRelease/out" isTestSource="false" generated="true" />
-      <sourceFolder url="file://$MODULE_DIR$/../../../app/build/generated/source/buildConfig/product/release" isTestSource="false" generated="true" />
+      <sourceFolder url="file://$MODULE_DIR$/../../../app/build/generated/ap_generated_sources/productRelease/out" isTestSource="false" generated="true" />
       <sourceFolder url="file://$MODULE_DIR$/../../../app/build/generated/renderscript_source_output_dir/productRelease/out" isTestSource="false" generated="true" />
+      <sourceFolder url="file://$MODULE_DIR$/../../../app/build/generated/source/buildConfig/product/release" isTestSource="false" generated="true" />
       <sourceFolder url="file://$MODULE_DIR$/../../../app/build/generated/res/rs/product/release" type="java-resource" generated="true" />
       <sourceFolder url="file://$MODULE_DIR$/../../../app/src/productRelease/res" type="java-resource" />
       <sourceFolder url="file://$MODULE_DIR$/../../../app/src/productRelease/resources" type="java-resource" />
