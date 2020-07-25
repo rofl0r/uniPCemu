@@ -1,4 +1,5 @@
 # APK build directories
-/dev/
-/product/
-/.cxx/
+/.cxx
+/dev
+/product
+/build
