@@ -205,7 +205,7 @@ byte startSlaveMode(byte PIC, byte IR) //For master only! Set slave mode masterI
 
 byte respondMasterSlave(byte PIC, byte masterIR) //Process this PIC as a slave for a set slave IR?
 {
-	return (((i8259.icw[PIC][2]&3)==masterIR) && ((isSlave(PIC))==0)) || ((masterIR==0xFF) && (!isSlave(PIC)) && (!PIC)); //Process this masterIR as a slave or Master in Master mode connected to INTRQ?
+	return (((i8259.icw[PIC][2]&3)==masterIR) && (isSlave(PIC))) || ((masterIR==0xFF) && (!isSlave(PIC)) && (!PIC)); //Process this masterIR as a slave or Master in Master mode connected to INTRQ?
 }
 
 OPTINLINE byte getunprocessedinterrupt(byte PIC)
