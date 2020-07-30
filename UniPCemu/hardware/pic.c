@@ -193,19 +193,23 @@ byte out8259(word portnum, byte value)
 byte interruptsaved = 0; //Have we gotten a primary interrupt (first PIC)?
 byte lastinterrupt = 0; //Last interrupt requested!
 
+byte isSlave(byte PIC)
+{
+	return PIC; //The first PIC is not a slave, all others are!
+}
+
 byte startSlaveMode(byte PIC, byte IR) //For master only! Set slave mode masterIR processing on INTA?
 {
-	return (i8259.icw[pic][2]&(1<<IR)) && (i8259.icw[pic][3]&4); //Process slaves and set IR on the slave UD instead of 0?
+	return (i8259.icw[PIC][2]&(1<<IR)) && (!isSlave(PIC)); //Process slaves and set IR on the slave UD instead of 0?
 }
 
 byte respondMasterSlave(byte PIC, byte masterIR) //Process this PIC as a slave for a set slave IR?
 {
-	return (((i8259.icw[pic][2]&3)==masterIR) && ((i8259.icw[pic][3]&4)==0)) || ((masterIR==0xFF) && (i8259.icw[pic][3]&4) && (!PIC)); //Process this masterIR as a slave or Master in Master mode connected to INTRQ?
+	return (((i8259.icw[PIC][2]&3)==masterIR) && ((isSlave(PIC))==0)) || ((masterIR==0xFF) && (!isSlave(PIC)) && (!PIC)); //Process this masterIR as a slave or Master in Master mode connected to INTRQ?
 }
 
 OPTINLINE byte getunprocessedinterrupt(byte PIC)
 {
-	if (!enablePIC(PIC)) return 0; //PIC disabled?
 	byte result;
 	result = i8259.irr[PIC];
 	result &= ~i8259.imr[PIC];
@@ -221,7 +225,7 @@ void acnowledgeirrs()
 	performRecheck:
 	if (getunprocessedinterrupt(1) && (recheck==0)) //Slave connected to master?
 	{
-		raiseirq(0x402); //Slave raises INTRQ!
+		raiseirq(0x802); //Slave raises INTRQ!
 	}
 
 	if (likely(irr3_dirty == 0)) return; //Nothing to do?
@@ -252,7 +256,7 @@ void acnowledgeirrs()
 		}
 	if (getunprocessedinterrupt(1) && (recheck==0)) //Slave connected to master?
 	{
-		raiseirq(0x402); //Slave raises INTRQ!
+		raiseirq(0x802); //Slave raises INTRQ!
 		recheck = 1; //Check again!
 		goto performRecheck; //Check again!
 	}
@@ -297,7 +301,7 @@ OPTINLINE void ACNIR(byte PIC, byte IR, byte source) //Acnowledge request!
 	}
 	if (PIC) //Slave connected to Master?
 	{
-		lowerirq(0x402); //INTA lowers INTRQ!
+		lowerirq(0x802); //INTA lowers INTRQ!
 	}
 }
 
@@ -310,6 +314,7 @@ OPTINLINE byte getint(byte PIC, byte IR) //Get interrupt!
 
 byte readPollingMode(byte pic)
 {
+	byte IR;
 	if (getunprocessedinterrupt(pic)) //Interrupt requested?
 	{
 		if (__HW_DISABLED) return 0; //Abort!
@@ -322,11 +327,11 @@ byte readPollingMode(byte pic)
 			{
 				if (IRRequested(pic, realIR, srcIndex)) //Requested?
 				{
-					ACNIR(PICnr, realIR, srcIndex); //Acnowledge it!
-					lastinterrupt = getint(PICnr, realIR); //Give the interrupt number!
-					i8259.lastinterruptIR[PICnr] = realIR; //Last acnowledged interrupt line!
+					ACNIR(pic, realIR, srcIndex); //Acnowledge it!
+					lastinterrupt = getint(pic, realIR); //Give the interrupt number!
+					i8259.lastinterruptIR[pic] = realIR; //Last acnowledged interrupt line!
 					interruptsaved = 1; //Gotten an interrupt saved!
-					//Don't perform layering to any slave!
+					//Don't perform layering to any slave, this is done at ACNIR!
 					return 0x80 | realIR; //Give the raw IRQ number on the PIC!
 				}
 			}
@@ -343,14 +348,15 @@ byte readPollingMode(byte pic)
 byte nextintr()
 {
 	if (__HW_DISABLED) return 0; //Abort!
-	byte i;
+	byte loopdet=1;
+	byte IR;
 	byte PICnr;
 	byte masterIR;
 	PICnr = 0; //First PIC is connected to CPU INTA!
 	masterIR = 0xFF; //Default: Unknown(=master device only) IR!
 	checkSlave:
 	//First, process first PIC!
-	for (IR=0; IR<8; i++) //Process all IRs for this chip!
+	for (IR=0; IR<8; IR++) //Process all IRs for this chip!
 	{
 		byte realIR = (IR&7); //What IR within the PIC?
 		byte srcIndex;
@@ -363,9 +369,17 @@ byte nextintr()
 					ACNIR(PICnr, realIR,srcIndex); //Acnowledge it!
 					if (startSlaveMode(PICnr,realIR)) //Start slave processing for this? Let the slave give the IRQ!
 					{
-						masterIR = IR; //Slave starts handling this IRQ!
-						PICnr ^= 1; //What other PIC to check on the PIC bus?
-						goto checkSlave; //Check the slave instead!
+						if (loopdet) //Loop detection?
+						{
+							masterIR = IR; //Slave starts handling this IRQ!
+							PICnr ^= 1; //What other PIC to check on the PIC bus?
+							loopdet = 0; //Prevent us from looping on more PICs!
+							goto checkSlave; //Check the slave instead!
+						}
+						else //Infinite loop detected!
+						{
+							goto unknownSlaveIR; //Unknown IR due to loop!
+						}
 					}
 
 					lastinterrupt = getint(PICnr, realIR); //Give the interrupt number!
@@ -377,16 +391,17 @@ byte nextintr()
 		}
 	}
 
-	i8259.lastinterruptIR[i8259.activePIC] = 7; //Last IR!
-	lastinterrupt = getint(i8259.activePIC,7); //Unknown, dispatch through IR7 of the used PIC!
+	unknownSlaveIR: //Slave has exited out to prevent looping!
+	i8259.lastinterruptIR[PICnr] = 7; //Last IR!
+	lastinterrupt = getint(PICnr,7); //Unknown, dispatch through IR7 of the used PIC!
 	interruptsaved = 1; //Gotten!
 	return lastinterrupt; //No result: unk interrupt!
 }
 
-void raiseirq(byte irqnum)
+void raiseirq(word irqnum)
 {
 	if (__HW_DISABLED) return; //Abort!
-	byte requestingindex=irqnum; //Save our index that's requesting!
+	byte requestingindex=(irqnum&0xFF); //Save our index that's requesting!
 	irqnum &= 0xF; //Only 16 IRQs!
 	requestingindex >>= 4; //What index is requesting?
 	byte PIC = (irqnum>>3); //IRQ8+ is high PIC!
@@ -424,10 +439,10 @@ void raiseirq(byte irqnum)
 	}
 }
 
-void lowerirq(byte irqnum)
+void lowerirq(word irqnum)
 {
 	if (__HW_DISABLED) return; //Abort!
-	byte requestingindex = irqnum; //Save our index that's requesting!
+	byte requestingindex = (irqnum&0xFF); //Save our index that's requesting!
 	irqnum &= 0xF; //Only 16 IRQs!
 	requestingindex >>= 4; //What index is requesting?
 	byte PIC = (irqnum>>3); //IRQ8+ is high PIC!

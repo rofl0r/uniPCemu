@@ -83,8 +83,9 @@ void acnowledgeirrs(); //Acnowledge IRR!
 
 void registerIRQ(byte IRQ, IRQHandler acceptIRQ, IRQHandler finishIRQ); //Register IRQ handler!
 
-void raiseirq(byte irqnum); //Raise IRQ from hardware request!
-void lowerirq(byte irqnum); //Lower IRQ from hardware request!
+//IRQnum: bits 0-3=IR number, bits 4-7=Shared line number. bit 8-10=PCI lane IR when set, bit 11=Slave PIC IR!
+void raiseirq(word irqnum); //Raise IRQ from hardware request!
+void lowerirq(word irqnum); //Lower IRQ from hardware request!
 
 void acnowledgeIRQrequest(byte irqnum); //Acnowledge an IRQ request!
 #endif
