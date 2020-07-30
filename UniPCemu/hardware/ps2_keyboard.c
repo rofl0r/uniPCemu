@@ -309,6 +309,7 @@ void updatePS2Keyboard(DOUBLE timepassed)
 				give_keyboard_output(Keyboard.last_send_byte); //Resend last non-0xFE byte!
 				input_lastwrite_keyboard(); //Force 0xFA to user!
 				Keyboard.has_command = 0; //No command anymore!
+				Keyboard.timeout = (DOUBLE)0; //No delay, stop automatic response!
 				break;
 			case 0xFA: //Plain ACK and finish!
 			case 0xF9: //Plain ACK and finish!
@@ -317,6 +318,7 @@ void updatePS2Keyboard(DOUBLE timepassed)
 				give_keyboard_output(0xFA); //ACK!
 				input_lastwrite_keyboard(); //Force 0xFA to user!
 				Keyboard.has_command = 0; //No command anymore!
+				Keyboard.timeout = (DOUBLE)0; //No delay, stop automatic response!
 				break;
 			case 0xF2: //Read ID
 				give_keyboard_output(0xFA); //ACK!
@@ -324,6 +326,15 @@ void updatePS2Keyboard(DOUBLE timepassed)
 				give_keyboard_output(0xAB); //First byte!
 				give_keyboard_output(0x83); //Second byte given!
 				Keyboard.has_command = 0; //No command anymore!
+				Keyboard.timeout = (DOUBLE)0; //No delay, stop automatic response!
+				break;
+			case 0xF4: //Enable scanning?
+				Keyboard.keyboard_enabled = 1; //Enable keyboard!
+				give_keyboard_output(0xFA); //FA: Valid value!
+				input_lastwrite_keyboard(); //Force 0xFA to user!
+				Keyboard.command_step = 0; //No command anymore!
+				Keyboard.has_command = 0; //Finish!
+				Keyboard.timeout = (DOUBLE)0; //No delay, stop automatic response!
 				break;
 			case 0xF0: //ACK and next phase!
 			case 0xED: //ACK and next phase!
@@ -378,6 +389,7 @@ void updatePS2Keyboard(DOUBLE timepassed)
 				give_keyboard_output(0xEE); //Respond with "Echo"!
 				input_lastwrite_keyboard(); //Force 0xFA to user!
 				Keyboard.has_command = 0; //No command anymore!
+				Keyboard.timeout = (DOUBLE)0; //No delay, stop automatic response!
 				break;
 			default: //Unknown command?
 			case 0xFD:
@@ -387,6 +399,16 @@ void updatePS2Keyboard(DOUBLE timepassed)
 				input_lastwrite_keyboard(); //Force 0xFA to user!
 				Keyboard.has_command = 0; //No command anymore!
 				Keyboard.timeout = (DOUBLE)0; //Finished!
+				break;
+			case 0xF5: //Same as 0xF6, but with scanning stop!
+			case 0xF6: //Load default!
+				loadKeyboardDefaults(); //Load our defaults before finishing up!
+				Keyboard.has_command = 0; //No command anymore!
+				give_keyboard_output(0xFA); //FA: Valid value!
+				input_lastwrite_keyboard(); //Force 0xFA to user!
+				Keyboard.command_step = 0; //No command anymore!
+				Keyboard.has_command = 0; //Finish!
+				Keyboard.timeout = (DOUBLE)0; //No delay, stop automatic response!
 				break;
 			}
 		}
@@ -446,12 +468,10 @@ OPTINLINE void commandwritten_keyboard() //Command has been written?
 		{
 			Keyboard.keyboard_enabled = 0; //Disable keyboard!
 		}
-		loadKeyboardDefaults(); //Load our defaults!
-		Keyboard.has_command = 0; //No command anymore!
+		Keyboard.timeout = KEYBOARD_DEFAULTTIMEOUT; //A small delay for the result code to appear(needed by the AT BIOS)!
 		break;
 	case 0xF4: //Enable scanning?
-		Keyboard.keyboard_enabled = 1; //Enable keyboard!
-		Keyboard.has_command = 0; //No command anymore!
+		Keyboard.timeout = KEYBOARD_DEFAULTTIMEOUT; //A small delay for the result code to appear(needed by the AT BIOS)!
 		break;
 	case 0xF3: //Set typematic rate/delay?
 		//We handle after the parameters have been set!
