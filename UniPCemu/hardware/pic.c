@@ -222,10 +222,19 @@ void acnowledgeirrs()
 	byte nonedirty; //None are dirtied?
 	byte recheck;
 	recheck = 0;
-	performRecheck:
-	if (getunprocessedinterrupt(1) && (recheck==0)) //Slave connected to master?
+performRecheck:
+	if (recheck == 0) //Check?
 	{
-		raiseirq(0x802); //Slave raises INTRQ!
+		if (getunprocessedinterrupt(1)) //Slave connected to master?
+		{
+			raiseirq(0x802); //Slave raises INTRQ!
+			i8259.intreqtracking[1] = 1; //Tracking INTREQ!
+		}
+		else if ((recheck == 0) && i8259.intreqtracking[1]) //Slave has been lowered and needs processing?
+		{
+			lowerirq(0x802); //Slave lowers INTRQ before being acnowledged!
+			i8259.intreqtracking[1] = 0; //Not tracking INTREQ!
+		}
 	}
 
 	if (likely(irr3_dirty == 0)) return; //Nothing to do?
@@ -257,6 +266,7 @@ void acnowledgeirrs()
 	if (getunprocessedinterrupt(1) && (recheck==0)) //Slave connected to master?
 	{
 		raiseirq(0x802); //Slave raises INTRQ!
+		i8259.intreqtracking[1] = 1; //Tracking INTREQ!
 		recheck = 1; //Check again!
 		goto performRecheck; //Check again!
 	}

@@ -72,6 +72,7 @@ typedef struct
 	IRQHandler acceptirq[0x10][0x10], finishirq[0x10][0x10]; //All IRQ handlers!
 	byte activePIC; //What PIC is currently processing?
 	byte lastinterruptIR[2]; //Last interrupt IR!
+	byte intreqtracking[2]; //INTRQ tracked!
 } PIC;
 
 void init8259(); //For initialising the 8259 module!
