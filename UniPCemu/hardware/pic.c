@@ -35,17 +35,10 @@ byte irr3_dirty = 0; //IRR3/IRR3_a is changed?
 //i8259.irr2 is the live status of each of the parallel interrupt lines!
 //i8259.irr3 is the identifier for request subchannels that are pending to be acnowledged(cleared when acnowledge and the interrupt is fired).
 
-byte defaultIROrder[16] = { 0,1,2,8,9,10,11,12,13,14,15,3,4,5,6,7 }; //The order of IRQs!
-
 void init8259()
 {
 	if (__HW_DISABLED) return; //Abort!
 	memset(&i8259, 0, sizeof(i8259));
-	byte c;
-	for (c=0;c<16;c++)
-	{
-		i8259.IROrder[c] = defaultIROrder[c]; //Set default IR order!
-	}
 	//Now the port handling!
 	//PIC0!
 	register_PORTOUT(&out8259);
@@ -200,13 +193,14 @@ byte out8259(word portnum, byte value)
 byte interruptsaved = 0; //Have we gotten a primary interrupt (first PIC)?
 byte lastinterrupt = 0; //Last interrupt requested!
 
-OPTINLINE byte enablePIC(byte PIC)
+byte startSlaveMode(byte PIC, byte IR) //For master only! Set slave mode masterIR processing on INTA?
 {
-	if (!PIC) return 1; //PIC0 always enabled!
-	return ((!((i8259.icw[0][0] & 2) || //Only one PIC?
-		(i8259.icw[0][2] != 4) || //Wrong IR to connect?
-		(i8259.icw[1][2] != 2))) //Wrong IR to connect?
-		&& ((i8259.isr[0]&4)==0)); //ISR on PIC0 is keeping the second PIC functioning sending status!
+	return (i8259.icw[pic][2]&(1<<IR)) && (i8259.icw[pic][3]&4); //Process slaves and set IR on the slave UD instead of 0?
+}
+
+byte respondMasterSlave(byte PIC, byte masterIR) //Process this PIC as a slave for a set slave IR?
+{
+	return (((i8259.icw[pic][2]&3)==masterIR) && ((i8259.icw[pic][3]&4)==0)) || ((masterIR==0xFF) && (i8259.icw[pic][3]&4) && (!PIC)); //Process this masterIR as a slave or Master in Master mode connected to INTRQ?
 }
 
 OPTINLINE byte getunprocessedinterrupt(byte PIC)
@@ -222,6 +216,14 @@ OPTINLINE byte getunprocessedinterrupt(byte PIC)
 void acnowledgeirrs()
 {
 	byte nonedirty; //None are dirtied?
+	byte recheck;
+	recheck = 0;
+	performRecheck:
+	if (getunprocessedinterrupt(1) && (recheck==0)) //Slave connected to master?
+	{
+		raiseirq(0x402); //Slave raises INTRQ!
+	}
+
 	if (likely(irr3_dirty == 0)) return; //Nothing to do?
 	nonedirty = 1; //None are dirty!
 	//Move IRR3 to IRR and acnowledge!
@@ -248,27 +250,27 @@ void acnowledgeirrs()
 				}
 			}
 		}
+	if (getunprocessedinterrupt(1) && (recheck==0)) //Slave connected to master?
+	{
+		raiseirq(0x402); //Slave raises INTRQ!
+		recheck = 1; //Check again!
+		goto performRecheck; //Check again!
+	}
+
 	if (nonedirty) //None are dirty anymore?
 	{
 		irr3_dirty = 0; //Not dirty anymore!
 	}
 }
 
-byte PICInterrupt() //We have an interrupt ready to process?
+byte PICInterrupt() //We have an interrupt ready to process? This is the primary PIC's INTA!
 {
 	if (__HW_DISABLED) return 0; //Abort!
 	if (getunprocessedinterrupt(0)) //Primary PIC interrupt?
 	{
-		i8259.activePIC = 0; //From PIC0!
 		return 1;
 	}
-
-	if (getunprocessedinterrupt(1)) //Secondary PIC interrupt?
-	{
-		i8259.activePIC = 1; //From PIC1!
-		return 1;
-	}
-
+	//Slave PICs are handled when encountered from the Master PIC!
 	return 0; //No interrupt to process!
 }
 
@@ -293,9 +295,9 @@ OPTINLINE void ACNIR(byte PIC, byte IR, byte source) //Acnowledge request!
 	{
 		EOI(PIC,source); //Send an EOI!
 	}
-	if (PIC) //Second PIC?
+	if (PIC) //Slave connected to Master?
 	{
-		ACNIR(0,2,source); //Acnowledging request on first PIC too! This keeps us from firing until acnowledged properly!
+		lowerirq(0x402); //INTA lowers INTRQ!
 	}
 }
 
@@ -308,30 +310,24 @@ OPTINLINE byte getint(byte PIC, byte IR) //Get interrupt!
 
 byte readPollingMode(byte pic)
 {
-	if (PICInterrupt()) //Interrupt requested?
+	if (getunprocessedinterrupt(pic)) //Interrupt requested?
 	{
 		if (__HW_DISABLED) return 0; //Abort!
-		byte i;
-
-		//First, process first PIC!
-		for (i = 0; i < 16; i++) //Process all IRs!
+		//First, process the PIC!
+		for (IR=0;IR<8;++IR)
 		{
-			byte IR = i8259.IROrder[i]; //Get the prioritized IR!
-			byte PICnr = ((IR >> 3) & 1); //What pic?
 			byte realIR = (IR & 7); //What IR within the PIC?
 			byte srcIndex;
 			for (srcIndex = 0; srcIndex < 0x10; ++srcIndex) //Check all indexes!
 			{
-				if (IRRequested(PICnr, realIR, srcIndex)) //Requested?
+				if (IRRequested(pic, realIR, srcIndex)) //Requested?
 				{
-					if (PICnr == pic) //PIC that's requested?
-					{
-						ACNIR(PICnr, realIR, srcIndex); //Acnowledge it!
-						lastinterrupt = getint(PICnr, realIR); //Give the interrupt number!
-						i8259.lastinterruptIR[PICnr] = realIR; //Last acnowledged interrupt line!
-						interruptsaved = 1; //Gotten an interrupt saved!
-						return 0x80 | realIR; //Give the raw IRQ number on the PIC!
-					}
+					ACNIR(PICnr, realIR, srcIndex); //Acnowledge it!
+					lastinterrupt = getint(PICnr, realIR); //Give the interrupt number!
+					i8259.lastinterruptIR[PICnr] = realIR; //Last acnowledged interrupt line!
+					interruptsaved = 1; //Gotten an interrupt saved!
+					//Don't perform layering to any slave!
+					return 0x80 | realIR; //Give the raw IRQ number on the PIC!
 				}
 			}
 		}
@@ -348,23 +344,35 @@ byte nextintr()
 {
 	if (__HW_DISABLED) return 0; //Abort!
 	byte i;
-
+	byte PICnr;
+	byte masterIR;
+	PICnr = 0; //First PIC is connected to CPU INTA!
+	masterIR = 0xFF; //Default: Unknown(=master device only) IR!
+	checkSlave:
 	//First, process first PIC!
-	for (i=0; i<16; i++) //Process all IRs!
+	for (IR=0; IR<8; i++) //Process all IRs for this chip!
 	{
-		byte IR = i8259.IROrder[i]; //Get the prioritized IR!
-		byte PICnr = ((IR>>3)&1); //What pic?
 		byte realIR = (IR&7); //What IR within the PIC?
 		byte srcIndex;
 		for (srcIndex=0;srcIndex<0x10;++srcIndex) //Check all indexes!
 		{
 			if (IRRequested(PICnr,realIR,srcIndex)) //Requested?
 			{
-				ACNIR(PICnr, realIR,srcIndex); //Acnowledge it!
-				lastinterrupt = getint(PICnr, realIR); //Give the interrupt number!
-				interruptsaved = 1; //Gotten an interrupt saved!
-				i8259.lastinterruptIR[PICnr] = realIR; //Last IR!
-				return lastinterrupt;
+				if (respondMasterSlave(PICnr,masterIR)) //PIC responds as a master or slave?
+				{
+					ACNIR(PICnr, realIR,srcIndex); //Acnowledge it!
+					if (startSlaveMode(PICnr,realIR)) //Start slave processing for this? Let the slave give the IRQ!
+					{
+						masterIR = IR; //Slave starts handling this IRQ!
+						PICnr ^= 1; //What other PIC to check on the PIC bus?
+						goto checkSlave; //Check the slave instead!
+					}
+
+					lastinterrupt = getint(PICnr, realIR); //Give the interrupt number!
+					interruptsaved = 1; //Gotten an interrupt saved!
+					i8259.lastinterruptIR[PICnr] = realIR; //Last IR!
+					return lastinterrupt;
+				}
 			}
 		}
 	}
