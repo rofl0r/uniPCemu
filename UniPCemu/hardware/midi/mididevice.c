@@ -914,7 +914,7 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 	{
 		voice->chorusdepth[chorusreverbdepth] = (panningtemp*(float)chorusreverbdepth); //Apply the volume!
 	}
-	voice->chorusdepth[0] = 0.0; //Always none at the original level!
+	voice->chorusdepth[0] = 0.0f; //Always none at the original level!
 
 	//Reverb percentage
 	panningtemp = 0.0f; //Default to none!
