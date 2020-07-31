@@ -110,6 +110,7 @@ void tickParallel(DOUBLE timepassed)
 		{
 			do
 			{
+				port = 0; //Init port!
 				do //Only process the ports we have!
 				{
 					updateParallelStatus(port); //Update the status!
