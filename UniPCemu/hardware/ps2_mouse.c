@@ -573,6 +573,7 @@ OPTINLINE int apply_scaling(int movement) //Apply scaling on a mouse packet x/ym
 {
 	if (__HW_DISABLED) return 0; //Abort!
 	if (!Mouse.scaling21) return movement; //Unchanged!
+	if (Mouse.pollRemote) return movement; //Don't affect polling mode!
 	switch (movement)
 	{
 		case 0:	return 0; //No movement!
