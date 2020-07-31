@@ -908,9 +908,11 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 		panningtemp = 0; //No chorus effect to apply!
 	}
 
+	panningtemp *= (1.0f/127.0f); //Linear depth!
+
 	for (chorusreverbdepth=1;chorusreverbdepth<0x100;chorusreverbdepth++) //Process all possible chorus depths!
 	{
-		voice->chorusdepth[chorusreverbdepth] = powf(panningtemp,(float)chorusreverbdepth); //Apply the volume!
+		voice->chorusdepth[chorusreverbdepth] = (panningtemp*(float)chorusreverbdepth); //Apply the volume!
 	}
 	voice->chorusdepth[0] = 0.0; //Always none at the original level!
 
@@ -931,6 +933,8 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 		panningtemp = 0; //No reverb effect to apply!
 	}
 
+	panningtemp *= (1.0f/127.0f); //Linear depth!
+
 	for (chorusreverbdepth=0;chorusreverbdepth<0x100;chorusreverbdepth++) //Process all possible chorus depths!
 	{
 		for (chorusreverbchannel=0;chorusreverbchannel<2;chorusreverbchannel++) //Process all channels!
@@ -941,7 +945,7 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 			}
 			else //Valid depth?
 			{
-				voice->reverbdepth[chorusreverbdepth][chorusreverbchannel] = (float)dB2factor(pow(panningtemp, chorusreverbdepth),1.0f); //Apply the volume!
+				voice->reverbdepth[chorusreverbdepth][chorusreverbchannel] = (float)dB2factor((panningtemp * chorusreverbdepth),1.0f); //Apply the volume!
 			}
 		}
 	}
