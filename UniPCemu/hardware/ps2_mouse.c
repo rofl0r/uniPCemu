@@ -316,7 +316,7 @@ OPTINLINE void loadMouseDefaults() //Load the Mouse Defaults!
 	Mouse.data_reporting = 0;
 	Mouse.samplerate = 100; //100 packets/second!
 	update_mouseTimer(); //Update the timer!
-	Mouse.resolution = 4; //4 Pixels/mm!
+	Mouse.resolution = 2; //4 Pixels/mm!
 	Mouse.scaling21 = 0; //Set the default scaling to 1:1 scaling!
 }
 
@@ -406,6 +406,7 @@ OPTINLINE void commandwritten_mouse() //Command has been written to the mouse?
 			if (Mouse.packets) //Do we have a packet?
 			{
 				give_mouse_output(0xFA); //OK!
+				input_lastwrite_mouse(); //Give byte to the user!
 				Mouse.pollRemote = 1; //Poll a packet!
 				Mouse.packetindex = 0; //Restart the packet, if we're currently processing it(restart polling)!
 				Mouse.last_was_error = 0; //Last is OK!
@@ -413,6 +414,7 @@ OPTINLINE void commandwritten_mouse() //Command has been written to the mouse?
 			else
 			{
 				give_mouse_output(0xFE); //OK!
+				input_lastwrite_mouse(); //Give byte to the user!
 				Mouse.last_was_error = 1; //Last is error!
 			}
 			break;
@@ -506,11 +508,15 @@ OPTINLINE void datawritten_mouse(byte data) //Data has been written to the mouse
 			update_mouseTimer(); //Update the timer!
 			give_mouse_output(0xFA); //Acnowledge!
 			input_lastwrite_mouse(); //Give byte to the user!
+			Mouse.has_command = 0; //We don't have a command anymore!
+			Mouse.last_was_error = 0; //Last is OK!
 			break;
 		case 0xE8: //Set resolution?
-			Mouse.resolution = data; //Set the resolution!
+			Mouse.resolution = (data&0x03); //Set the resolution!
 			give_mouse_output(0xFA); //Acnowledge!
 			input_lastwrite_mouse(); //Give byte to the user!			
+			Mouse.has_command = 0; //We don't have a command anymore!
+			Mouse.last_was_error = 0; //Last is OK!
 			break;
 		default: //Invalid command?
 			mouse_handleinvalidcall(); //Give an error!
