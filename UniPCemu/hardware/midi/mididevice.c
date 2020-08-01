@@ -837,8 +837,6 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 		attenuation += tempattenuation; //Additive!
 	}
 
-	attenuation = MIDIvolume(attenuation, 1440.0, 96.0); //96dB range volume using a 1440dB attenuation!
-
 	//Apply all settable volume settings!
 	//Note on velocity
 	attenuationcontrol = calcNegativeUnipolarSource(note->noteon_velocity,0x7F); //The source of the attenuation!
@@ -867,7 +865,7 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 	tempattenuation = addattenuation * attenuationcontrol; //How much do we want to attenuate?
 	if (tempattenuation > 960.0f) tempattenuation = 960.0f; //Limit!
 	if (tempattenuation < 0.0f) tempattenuation = 0.0f; //Limit!
-	attenuation *= MIDIvolume(tempattenuation, 960.0, 96.0); //Range is 960cB, so convert and apply(add to the initial attenuation generator) using 96dB attenuation range!
+	attenuation += tempattenuation; //Add!
 
 	//CC7
 	addattenuation = 960.0f; //How much to use as a factor (default)!
@@ -896,7 +894,7 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 	tempattenuation = addattenuation * attenuationcontrol; //How much do we want to attenuate?
 	if (tempattenuation > 960.0f) tempattenuation = 960.0f; //Limit!
 	if (tempattenuation < 0.0f) tempattenuation = 0.0f; //Limit!
-	attenuation *= MIDIvolume(tempattenuation, 960.0, 96.0); //Range is 960cB, so convert and apply(add to the initial attenuation generator) using 96dB attenuation range!
+	attenuation += tempattenuation; //Add!
 
 	//CC11
 	addattenuation = 960.0f; //How much to use as a factor (default)!
@@ -925,7 +923,9 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 	tempattenuation = addattenuation * attenuationcontrol; //How much do we want to attenuate?
 	if (tempattenuation > 960.0f) tempattenuation = 960.0f; //Limit!
 	if (tempattenuation < 0.0f) tempattenuation = 0.0f; //Limit!
-	attenuation *= MIDIvolume(tempattenuation, 960.0, 96.0); //Range is 960cB, so convert and apply(add to the initial attenuation generator) using 96dB attenuation range!
+	attenuation += tempattenuation; //Add!
+	
+	attenuation = MIDIvolume(attenuation, 1440.0+(960.0f*3.0f), 96.0); //96dB range volume using a 1440dB attenuation!
 
 	//Clip final attenuation and set the attenuation to use!
 	if (attenuation>1.0f) attenuation = 1.0f; //Limit to max!
