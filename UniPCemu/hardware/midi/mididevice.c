@@ -816,7 +816,7 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 	tonecents *= -rootMIDITone; //Difference in tones we use is applied to the ammount of cents!
 
 	cents += tonecents; //Apply the MIDI tone cents for the MIDI tone!
-	cents *= cents2samplesfactorf(voice->sample.chPitchCorrection); //Apply pitch correction as well!
+	cents += voice->sample.chPitchCorrection; //Apply pitch correction as well!
 
 	//Now the cents variable contains the diviation in cents.
 	voice->initsamplespeedup = cents; //Load the default speedup we need for our tone!
