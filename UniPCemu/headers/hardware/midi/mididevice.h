@@ -159,4 +159,6 @@ void done_MIDIDEVICE(); //Finish our midi device!
 
 byte directMIDISupported(); //Direct MIDI supported on the compiled platform?
 
+float MIDIattenuate(float value, float maxvalue, float scale); //Attenuation support for MIDI device and ADSR!
+
 #endif

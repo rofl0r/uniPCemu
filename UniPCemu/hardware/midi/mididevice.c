@@ -539,7 +539,7 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 }
 
 //MIDIvolume: converts a value of the range of maxvalue to a linear volume factor using maxdB dB.
-OPTINLINE float MIDIattenuate(float value, float maxvalue, float scale)
+float MIDIattenuate(float value, float maxvalue, float scale)
 {
 	return (float)powf(10,(0.0f-((((value/maxvalue)*scale))*96.0f)/20.0f)); //Generate default attenuation!
 }

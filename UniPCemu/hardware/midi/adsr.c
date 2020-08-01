@@ -23,6 +23,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/support/sf2.h" //Soundfont support!
 #include "headers/emu/sound.h" //dB support!
 #include "headers/support/signedness.h" //Sign conversion support!
+#include "headers/hardware/midi/mididevice.h" //MIDI attenuation support!
 
 //16/32 bit quantities from the SoundFont loaded in memory!
 #ifndef IS_PSP
@@ -357,11 +358,7 @@ void ADSR_init(float sampleRate, byte velocity, ADSR *adsr, RIFFHEADER *soundfon
 	}
 	decaylength = (uint_32)(decay*cents2samplesfactord((DOUBLE)(decayenvfactor*relKeynum))); //Apply key number!
 
-	#ifdef IS_LONGDOUBLE
-	sustainfactor = (float)dB2factor(((1000.0L-sustain)/10.0L),100.0L); //We're on a rate of 1000 cb!
-	#else
-	sustainfactor = (float)dB2factor(((1000.0-sustain)/10.0),100.0); //We're on a rate of 1000 cb!
-	#endif
+	sustainfactor = MIDIattenuate(sustain,1000.0f,1.0f); //We're on a rate of 1000 cb!
 	if (sustainfactor > 1.0f) sustainfactor = 1.0f; //Limit of 100%!
 
 	if (cents2samplesfactord((DOUBLE)release) < 0.0002f) //0.0001 sec?
