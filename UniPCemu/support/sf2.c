@@ -1246,7 +1246,9 @@ byte lookupPresetByInstrument(RIFFHEADER *sf, word preset, word bank, uint_32 *r
 {
 	uint_32 currentpreset;
 	sfPresetHeader activepreset; //Current preset data!
-	trypreset0:
+	byte foundpreset; //Found a preset?
+trypreset0:
+	foundpreset = 0; //Didn't find any preset!
 	memset(&activepreset,0,sizeof(activepreset)); //init to something at least!
 	for (currentpreset=0;currentpreset<0xFFFFFFFF;) //Check for the correct preset!
 	{
@@ -1258,6 +1260,7 @@ byte lookupPresetByInstrument(RIFFHEADER *sf, word preset, word bank, uint_32 *r
 				{
 					if (LE16(activepreset.wPreset)==preset) //Program/preset found?
 					{
+						foundpreset = 1; //Found a preset!
 						break; //Stop searching!
 					}
 				}
@@ -1270,7 +1273,7 @@ byte lookupPresetByInstrument(RIFFHEADER *sf, word preset, word bank, uint_32 *r
 		++currentpreset; //Do next preset!
 	}
 	
-	if (!isValidPreset(&activepreset)) //Not found?
+	if ((!isValidPreset(&activepreset)) || (foundpreset==0)) //Not found or invalid?
 	{
 		if (preset) //Gotten a preset? Default to preset 0 as by GM specification!
 		{
