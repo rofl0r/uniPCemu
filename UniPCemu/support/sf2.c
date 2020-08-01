@@ -1319,7 +1319,7 @@ byte lookupPBagByMIDIKey(RIFFHEADER *sf, uint_32 preset, byte MIDIKey, byte MIDI
 					}
 					//No valid velocity/key!
 				}
-				else //Not found and not global(choosable)? By default it's the complete range!
+				else //Not found and not global(choosable)? By default it's the complete range and velocity!
 				{
 					if (lookupSFPresetGen(sf,preset,PBag,instrument,&pgen)) //Gotten an instrument to play?
 					{
@@ -1358,14 +1358,6 @@ byte lookupIBagByMIDIKey(RIFFHEADER *sf, word instrument, byte MIDIKey, byte MID
 				{
 					exists = ((MIDIKey>=igen.genAmount.ranges.byLo) && (MIDIKey<=igen.genAmount.ranges.byHi));
 				}
-				if (!exists) //Invalid? Look further!
-				{
-					exists = lookupSFInstrumentGen(sf,instrument,IBag,keynum,&igen); //Key number lookup!
-					if (exists) //Valid?
-					{
-						exists = (LE16(igen.genAmount.wAmount)==MIDIKey); //Does it exist?
-					}
-				}
 				if (exists)
 				{
 					exists = !RequireInstrument; //Default: invalid when instrument is required!
@@ -1375,16 +1367,20 @@ byte lookupIBagByMIDIKey(RIFFHEADER *sf, word instrument, byte MIDIKey, byte MID
 					}
 					if (exists) //Valid IGEN?
 					{
-						gotigen = lookupSFInstrumentGen(sf,instrument,IBag,velocity,&igen2); //Velocity lookup!
+						gotigen = lookupSFInstrumentGen(sf,instrument,IBag,velRange,&igen2); //Velocity lookup!
 						if (!gotigen) //No velocity filter? Take just the key filter!
 						{
 							*result = IBag; //It's this PBag!
 							return 1; //Found!
 						}
-						else if (LE16(igen2.genAmount.wAmount)==MIDIVelocity) //Gotten a velocity filter?
+						else //Gotten a velocity filter?
 						{
-							*result = IBag; //It's this PBag!
-							return 1; //Found!
+							exists = ((MIDIKey >= igen.genAmount.ranges.byLo) && (MIDIKey <= igen.genAmount.ranges.byHi));
+							if (exists) //Valid velocity range?
+							{
+								*result = IBag; //It's this PBag!
+								return 1; //Found!
+							}
 						}
 					}
 					//No valid velocity/key/sampleid!

@@ -323,6 +323,19 @@ enum sfGenerator
 	endOper = 60
 };
 
+enum sfModulator
+{
+	noteOnVelocityToInitialAttenuation = 0x0502,
+	noteOnVelocityToFilterCutoff = 0x0102,
+	channelPressureToVibratoLFOPitchDepth = 0x000D,
+	continuousController7ToInitialAttenuation = 0x0582,
+	continuousController10ToPanPosition = 0x028A,
+	continuousController11ToInitialAttenuation = 0x058B,
+	continuousController91ToReverbEffectsSend = 0x00DB,
+	continuousController93ToChorusEffectsSend = 0x00DD,
+	pitchWheeltoInitialPitchControlledByPitchWheelSensitivity = 0x020E
+};
+
 //Our own defines!
 
 /*
