@@ -172,130 +172,162 @@ void ADSR_init(float sampleRate, byte velocity, ADSR *adsr, RIFFHEADER *soundfon
 	sfInstGenList applyigen;
 
 //Volume envelope information!
-	int_32 delay, attack, hold, decay, sustain, release; //All lengths!
+	int_32 delaysetting, attack, hold, decay, sustain, release; //All lengths!
 	uint_32 delaylength, attacklength, holdlength, decaylength, releaselength; //All lengths!
 	float attackfactor, decayfactor, sustainfactor, holdenvfactor, decayenvfactor;
 	
 //Delay
+	delaysetting = -12000; //Default!
 	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptrAmount, ibag, delayLookup, &applyigen))
 	{
-		delay = LE16S(applyigen.genAmount.shAmount); //Apply!
+		delaysetting = LE16S(applyigen.genAmount.shAmount); //Apply!
+		if (lookupSFPresetGenGlobal(soundfont, preset, pbag, delayLookup, &applypgen)) //Preset set?
+		{
+			delaysetting += LE16S(applypgen.genAmount.shAmount); //Apply!
+		}
 	}
 	else
 	{
-		delay = -12000; //Default!
-	}
-	if (lookupSFPresetGenGlobal(soundfont, preset, pbag, delayLookup, &applypgen)) //Preset set?
-	{
-		delay += LE16S(applypgen.genAmount.shAmount); //Apply!
+		if (lookupSFPresetGenGlobal(soundfont, preset, pbag, delayLookup, &applypgen)) //Preset set?
+		{
+			delaysetting = LE16S(applypgen.genAmount.shAmount); //Apply!
+		}
 	}
 
 	//Attack
+	attack = -12000; //Default!
 	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptrAmount, ibag, attackLookup, &applyigen))
 	{
 		attack = LE16S(applyigen.genAmount.shAmount); //Apply!
+		if (lookupSFPresetGenGlobal(soundfont, preset, pbag, attackLookup, &applypgen)) //Preset set?
+		{
+			attack += LE16S(applypgen.genAmount.shAmount); //Apply!
+		}
 	}
 	else
 	{
-		attack = -12000; //Default!
-	}
-	if (lookupSFPresetGenGlobal(soundfont, preset, pbag, attackLookup, &applypgen)) //Preset set?
-	{
-		attack = LE16S(applypgen.genAmount.shAmount); //Apply!
+		if (lookupSFPresetGenGlobal(soundfont, preset, pbag, attackLookup, &applypgen)) //Preset set?
+		{
+			attack = LE16S(applypgen.genAmount.shAmount); //Apply!
+		}
 	}
 
 	//Hold
+	hold = -12000; //Default!
 	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptrAmount, ibag, holdLookup, &applyigen))
 	{
 		hold = LE16S(applyigen.genAmount.shAmount); //Apply!
+		if (lookupSFPresetGenGlobal(soundfont, preset, pbag, holdLookup, &applypgen)) //Preset set?
+		{
+			hold += LE16S(applypgen.genAmount.shAmount); //Apply!
+		}
 	}
 	else
 	{
-		hold = -12000; //Default!
-	}
-	if (lookupSFPresetGenGlobal(soundfont, preset, pbag, holdLookup, &applypgen)) //Preset set?
-	{
-		hold += LE16S(applypgen.genAmount.shAmount); //Apply!
+		if (lookupSFPresetGenGlobal(soundfont, preset, pbag, holdLookup, &applypgen)) //Preset set?
+		{
+			hold = LE16S(applypgen.genAmount.shAmount); //Apply!
+		}
 	}
 
 	//Hold factor
+	holdenvfactor = 0; //Default!
 	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptrAmount, ibag, keynumToEnvHoldLookup, &applyigen))
 	{
 		holdenvfactor = LE16S(applyigen.genAmount.shAmount); //Apply!
+		if (lookupSFPresetGenGlobal(soundfont, preset, pbag, keynumToEnvHoldLookup, &applypgen)) //Preset set?
+		{
+			holdenvfactor += LE16S(applypgen.genAmount.shAmount); //Apply!
+		}
 	}
 	else
 	{
-		holdenvfactor = 0; //Default!
-	}
-	if (lookupSFPresetGenGlobal(soundfont, preset, pbag, keynumToEnvHoldLookup, &applypgen)) //Preset set?
-	{
-		holdenvfactor += LE16S(applypgen.genAmount.shAmount); //Apply!
+		if (lookupSFPresetGenGlobal(soundfont, preset, pbag, keynumToEnvHoldLookup, &applypgen)) //Preset set?
+		{
+			holdenvfactor = LE16S(applypgen.genAmount.shAmount); //Apply!
+		}
 	}
 
 	//Decay
+	decay = -12000; //Default!
 	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptrAmount, ibag, decayLookup, &applyigen))
 	{
 		decay = LE16S(applyigen.genAmount.shAmount); //Apply!
+		if (lookupSFPresetGenGlobal(soundfont, preset, pbag, decayLookup, &applypgen)) //Preset set?
+		{
+			decay += LE16S(applypgen.genAmount.shAmount); //Apply!
+		}
 	}
 	else
 	{
-		decay = -12000; //Default!
-	}
-	if (lookupSFPresetGenGlobal(soundfont, preset, pbag, decayLookup, &applypgen)) //Preset set?
-	{
-		decay += LE16S(applypgen.genAmount.shAmount); //Apply!
+		if (lookupSFPresetGenGlobal(soundfont, preset, pbag, decayLookup, &applypgen)) //Preset set?
+		{
+			decay = LE16S(applypgen.genAmount.shAmount); //Apply!
+		}
 	}
 
 	//Decay factor
+	decayenvfactor = 0; //Default!
 	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptrAmount, ibag, keynumToEnvDecayLookup, &applyigen))
 	{
 		decayenvfactor = LE16S(applyigen.genAmount.shAmount); //Apply!
+		if (lookupSFPresetGenGlobal(soundfont, preset, pbag, keynumToEnvDecayLookup, &applypgen)) //Preset set?
+		{
+			decayenvfactor += LE16S(applypgen.genAmount.shAmount); //Apply!
+		}
 	}
 	else
 	{
-		decayenvfactor = 0; //Default!
-	}
-	if (lookupSFPresetGenGlobal(soundfont, preset, pbag, keynumToEnvDecayLookup, &applypgen)) //Preset set?
-	{
-		decayenvfactor += LE16S(applypgen.genAmount.shAmount); //Apply!
+		if (lookupSFPresetGenGlobal(soundfont, preset, pbag, keynumToEnvDecayLookup, &applypgen)) //Preset set?
+		{
+			decayenvfactor = LE16S(applypgen.genAmount.shAmount); //Apply!
+		}
 	}
 
 	//Sustain (dB)
+	sustain = 0; //Default!
 	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptrAmount, ibag, sustainLookup, &applyigen))
 	{
 		sustain = LE16S(applyigen.genAmount.shAmount); //Apply!
+		if (lookupSFPresetGenGlobal(soundfont, preset, pbag, sustainLookup, &applypgen)) //Preset set?
+		{
+			sustain += LE16S(applypgen.genAmount.shAmount); //Apply!
+		}
 	}
 	else
 	{
-		sustain = 0; //Default!
-	}
-	if (lookupSFPresetGenGlobal(soundfont, preset, pbag, sustainLookup, &applypgen)) //Preset set?
-	{
-		sustain += LE16S(applypgen.genAmount.shAmount); //Apply!
+		if (lookupSFPresetGenGlobal(soundfont, preset, pbag, sustainLookup, &applypgen)) //Preset set?
+		{
+			sustain = LE16S(applypgen.genAmount.shAmount); //Apply!
+		}
 	}
 
-	//Release (disabled!)
+	//Release
+	release = -12000; //Default!
 	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptrAmount, ibag, releaseLookup, &applyigen))
 	{
 		release = LE16S(applyigen.genAmount.shAmount); //Apply!
+		if (lookupSFPresetGenGlobal(soundfont, preset, pbag, releaseLookup, &applypgen)) //Preset set?
+		{
+			release += LE16S(applypgen.genAmount.shAmount); //Apply!
+		}
 	}
 	else
 	{
-		release = -12000; //Default!
-	}
-	if (lookupSFPresetGenGlobal(soundfont, preset, pbag, releaseLookup, &applypgen)) //Preset set?
-	{
-		release += LE16S(applypgen.genAmount.shAmount); //Apply!
+		if (lookupSFPresetGenGlobal(soundfont, preset, pbag, releaseLookup, &applypgen)) //Preset set?
+		{
+			release = LE16S(applypgen.genAmount.shAmount); //Apply!
+		}
 	}
 
 	//Now, calculate the length of each interval, in samples.
-	if (cents2samplesfactord((DOUBLE)delay) < 0.0002f) //0.0001 sec?
+	if (cents2samplesfactord((DOUBLE)delaysetting) < 0.0002f) //0.0001 sec?
 	{
 		delaylength = 0; //No delay!
 	}
 	else
 	{
-		delaylength = (uint_32)(sampleRate*cents2samplesfactord((DOUBLE)delay)); //Calculate the ammount of samples!
+		delaylength = (uint_32)(sampleRate*cents2samplesfactord((DOUBLE)delaysetting)); //Calculate the ammount of samples!
 	}
 	if (cents2samplesfactord((DOUBLE)attack) < 0.0002f) //0.0001 sec?
 	{
