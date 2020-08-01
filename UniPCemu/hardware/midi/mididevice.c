@@ -877,7 +877,7 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 		applymod.modAmount = LE16(applymod.modAmount); //Patch!
 		if (applymod.modAmount > 960) applymod.modAmount = 960; //Limit to max value if needed!
 		else if (applymod.modAmount < 0) applymod.modAmount = 0; //Limit to min value if needed!
-		addattenuation += (float)(applymod.modAmount); //Range is 960cB, so convert and apply(add to the initial attenuation generator)!
+		addattenuation = (float)(applymod.modAmount); //Range is 960cB, so convert and apply(add to the initial attenuation generator)!
 		if (lookupSFPresetModGlobal(soundfont, preset, pbag, 0x0582, &applymod)) //Gotten MIDI Continuous Controller 7 to Initial Attenuation?
 		{
 			applymod.modAmount = LE16(applymod.modAmount); //Patch!
