@@ -36,7 +36,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #define MIDI_VOLUME 100.0f
 
 //Effective volume vs samples!
-#define VOLUME 0.3f
+#define VOLUME 0.7f
 
 #ifdef IS_WINDOWS
 #include <mmsystem.h>  /* multimedia functions (such as MIDI) for Windows */
@@ -547,9 +547,9 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 }
 
 //MIDIvolume: converts a value of the range of maxvalue to a linear volume factor using maxdB dB.
-OPTINLINE float MIDIvolume(float value, float maxvalue, float maxdB)
+OPTINLINE float MIDIattenuate(float value, float maxvalue, float scale)
 {
-	return (float)dB2factor((((maxvalue - (DOUBLE)value) * (maxdB / (maxvalue/10.0f))) / 10.0), maxdB); //Generate default attenuation!
+	return (float)powf(10,(0.0f-((((value/maxvalue)*scale))*96.0f)/20.0f)); //Generate default attenuation!
 }
 
 //calcNegativeUnipolarSource: Calculates the result of a unipolar source, normalized between 0.x and less than 1.0!
@@ -925,7 +925,7 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 	if (tempattenuation < 0.0f) tempattenuation = 0.0f; //Limit!
 	attenuation += tempattenuation; //Add!
 	
-	attenuation = MIDIvolume(attenuation, 1440.0+(960.0f*3.0f), 96.0); //96dB range volume using a 1440dB attenuation!
+	attenuation = MIDIattenuate(attenuation,9600.0f, 1.0f); //96dB range volume using a 1440dB attenuation!
 
 	//Clip final attenuation and set the attenuation to use!
 	if (attenuation>1.0f) attenuation = 1.0f; //Limit to max!
