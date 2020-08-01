@@ -226,7 +226,7 @@ Voice support
 #define SINUSTABLE_PERCISION_FLT 3600.0f
 #define SINUSTABLE_PERCISION_REVERSE (1.0f/SINUSTABLE_PERCISION_FLT)
 
-sword chorussinustable[SINUSTABLE_PERCISION][2][2]; //10x percision steps of sinus! With 1.0 added always!
+int_32 chorussinustable[SINUSTABLE_PERCISION][2][2]; //10x percision steps of sinus! With 1.0 added always!
 float sinustable_percision_reverse = 1.0f; //Reverse lookup!
 
 void MIDIDEVICE_generateSinusTable()
@@ -237,8 +237,8 @@ void MIDIDEVICE_generateSinusTable()
 	{
 		for (choruschannel=0;choruschannel<2;++choruschannel) //All channels!
 		{
-			chorussinustable[x][choruschannel][0] = (sword)((sinf((float)((x/SINUSTABLE_PERCISION_FLT))*360.0f)+1.0f)*choruscents[choruschannel]); //Generate sinus lookup table, negative!
-			chorussinustable[x][choruschannel][1] = (sword)(chorussinustable[x][choruschannel][0]+1200.0f); //Generate sinus lookup table, with cents base added, negative!
+			chorussinustable[x][choruschannel][0] = (int_32)((sinf((float)((x/SINUSTABLE_PERCISION_FLT))*360.0f)+1.0f)*choruscents[choruschannel]); //Generate sinus lookup table, negative!
+			chorussinustable[x][choruschannel][1] = (int_32)(chorussinustable[x][choruschannel][0]+1200.0f); //Generate sinus lookup table, with cents base added, negative!
 		}
 	}
 	sinustable_percision_reverse = SINUSTABLE_PERCISION_REVERSE; //Our percise value, reverse lookup!
@@ -247,7 +247,7 @@ void MIDIDEVICE_generateSinusTable()
 //Absolute to get the amount of degrees, converted to a -1.0 to 1.0 scale!
 #define MIDIDEVICE_chorussinf(value, choruschannel, add1200centsbase) chorussinustable[(uint_32)(value*SINUSTABLE_PERCISION_FLT)][choruschannel][add1200centsbase]
 
-OPTINLINE void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float samplerate, sword samplespeedup, MIDIDEVICE_VOICE *voice, float Volume, float Modulation, byte chorus, float chorusvol, byte filterindex, int_32 *lchannelres, int_32 *rchannelres) //Get a sample from an MIDI note!
+OPTINLINE void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float samplerate, int_32 samplespeedup, MIDIDEVICE_VOICE *voice, float Volume, float Modulation, byte chorus, float chorusvol, byte filterindex, int_32 *lchannelres, int_32 *rchannelres) //Get a sample from an MIDI note!
 {
 	//Our current rendering routine:
 	INLINEREGISTER uint_32 temp;
@@ -255,19 +255,19 @@ OPTINLINE void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, flo
 	float lchannel, rchannel; //Both channels to use!
 	byte loopflags; //Flags used during looping!
 	static sword readsample = 0; //The sample retrieved!
-	sword modulationratiocents;
-	word speedupbuffer;
+	int_32 modulationratiocents;
+	uint_32 speedupbuffer;
 
 	if (filterindex==0) //Main channel? Log the current sample speedup!
 	{
-		writefifobuffer16(voice->effect_backtrace_samplespeedup,signed2unsigned16(samplespeedup)); //Log a history of this!
+		writefifobuffer32(voice->effect_backtrace_samplespeedup,signed2unsigned32(samplespeedup)); //Log a history of this!
 	}
 
 	if ((play_counter>=0) && filterindex) //Are we a running channel that needs reading back?
 	{
-		if (readfifobuffer16_backtrace(voice->effect_backtrace_samplespeedup,&speedupbuffer,totaldelay,voice->isfinalchannel_chorus[filterindex])) //Try to read from history! Only apply the value when not the originating channel!
+		if (readfifobuffer32_backtrace(voice->effect_backtrace_samplespeedup,&speedupbuffer,totaldelay,voice->isfinalchannel_chorus[filterindex])) //Try to read from history! Only apply the value when not the originating channel!
 		{
-			samplespeedup = unsigned2signed16(speedupbuffer); //Apply the sample speedup from that point in time! Not for the originating channel!
+			samplespeedup = unsigned2signed32(speedupbuffer); //Apply the sample speedup from that point in time! Not for the originating channel!
 		}
 	}
 
@@ -445,7 +445,7 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	//Now apply to the default speedup!
 	currentsamplespeedup = voice->initsamplespeedup; //Load the default sample speedup for our tone!
 	currentsamplespeedup += pitchcents; //Apply pitch bend!
-	voice->effectivesamplespeedup = (sword)currentsamplespeedup; //Load the speedup of the samples we need!
+	voice->effectivesamplespeedup = (int_32)currentsamplespeedup; //Load the speedup of the samples we need!
 
 	//Determine panning!
 	lvolume = rvolume = 0.5f; //Default to 50% each (center)!
@@ -554,10 +554,11 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 {
 	const float MIDI_CHORUS_SINUS_BASE = 2.0f*(float)PI*CHORUS_LFO_FREQUENCY; //MIDI Sinus Base for chorus effects!
 	word pbag, ibag, chorusreverbdepth, chorusreverbchannel;
-	sword rootMIDITone, cents, tonecents; //Relative root MIDI tone, different cents calculations!
+	sword rootMIDITone;
+	int_32 cents, tonecents; //Relative root MIDI tone, different cents calculations!
 	uint_32 preset, startaddressoffset, endaddressoffset, startloopaddressoffset, endloopaddressoffset, loopsize;
 	float panningtemp, pitchwheeltemp,attenuation,tempattenuation,attenuationcontrol;
-	sword addattenuation;
+	int_32 addattenuation;
 
 	MIDIDEVICE_CHANNEL *channel;
 	MIDIDEVICE_NOTE *note;
@@ -1803,7 +1804,7 @@ byte init_MIDIDEVICE(char *filename, byte use_direct_MIDI) //Initialise MIDI dev
 		for (i=0;i<__MIDI_NUMVOICES;i++) //Assign all voices available!
 		{
 			activevoices[i].purpose = (((__MIDI_NUMVOICES-i)-1) < MIDI_DRUMVOICES) ? 1 : 0; //Drum or melodic voice? Put the drum voices at the far end!
-			activevoices[i].effect_backtrace_samplespeedup = allocfifobuffer(((uint_32)((chorus_delay[CHORUSSIZE])*MAX_SAMPLERATE)+1)<<1,0); //Not locked FIFO buffer containing the entire history!
+			activevoices[i].effect_backtrace_samplespeedup = allocfifobuffer(((uint_32)((chorus_delay[CHORUSSIZE])*MAX_SAMPLERATE)+1)<<2,0); //Not locked FIFO buffer containing the entire history!
 			for (j=0;j<CHORUSSIZE;++j) //All chorus backtrace channels!
 			{
 				activevoices[i].effect_backtrace_chorus[j] = allocfifobuffer(((uint_32)((reverb_delay[CHORUSSIZE])*MAX_SAMPLERATE)+1)<<3,0); //Not locked FIFO buffer containing the entire history!				
