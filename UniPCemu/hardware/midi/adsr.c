@@ -84,7 +84,7 @@ OPTINLINE float ADSR_sustain(ADSR *adsr, int_64 play_counter, byte sustaining, b
 OPTINLINE float ADSR_decay(ADSR *adsr, int_64 play_counter, byte sustaining, byte release_velocity)
 {
 	float result;
-	if (!sustaining && (!(adsr->releasestarted && (adsr->releasestart<play_counter)))) //Finished playing?
+	if ((!sustaining) && (!(adsr->releasestarted && (adsr->releasestart<play_counter)))) //Finished playing?
 	{
 		return enterRelease(adsr, play_counter, release_velocity, 1.0f - (adsr->decayfactor*(play_counter - adsr->decaystart))); //Enter the release phase!
 	}
