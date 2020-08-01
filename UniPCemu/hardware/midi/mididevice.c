@@ -379,8 +379,8 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	if (!stereo) return 0; //Can't handle non-stereo output!
 	//Initialisation info
 	float pitchcents, currentsamplespeedup, lvolume, rvolume, panningtemp;
-	INLINEREGISTER float VolumeEnvelope=0; //Current volume envelope data!
-	INLINEREGISTER float ModulationEnvelope=0; //Current modulation envelope data!
+	float VolumeEnvelope=0; //Current volume envelope data!
+	float ModulationEnvelope=0; //Current modulation envelope data!
 	//Initialised values!
 	MIDIDEVICE_VOICE *voice = (MIDIDEVICE_VOICE *)userdata;
 	sample_stereo_t* ubuf = (sample_stereo_t *)buf; //Our sample buffer!
