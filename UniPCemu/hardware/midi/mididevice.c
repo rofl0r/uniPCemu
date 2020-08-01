@@ -271,31 +271,23 @@ OPTINLINE void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, flo
 		}
 	}
 
-	if (voice->modenv_pitchfactor && (chorus==0)) //Gotten a modulation envelope to process to the pitch?
-	{
-		modulationratiocents = voice->modenv_pitchfactor; //Apply the pitch bend to the sample to retrieve!
-	}
-	else if (voice->modenv_pitchfactor && chorus) //Both?
+	modulationratiocents = 0; //Default: none!
+	if (chorus) //Chorus extension channel?
 	{
 		modulationratiocents = MIDIDEVICE_chorussinf(voice->chorussinpos[filterindex],chorus,0); //Pitch bend default!
 		voice->chorussinpos[filterindex] += voice->chorussinposstep; //Step by one sample rendered!
 		if (voice->chorussinpos[filterindex]>=SINUSTABLE_PERCISION_FLT) voice->chorussinpos[filterindex] -= SINUSTABLE_PERCISION_FLT; //Wrap around when needed(once per second)!
-		modulationratiocents += voice->modenv_pitchfactor; //Apply pitch bend as well! This also adds the base of 1200 cents required to work!
 	}
 	else if (chorus) //Chorus only has modulation of the pitch as well?
 	{
-		modulationratiocents = MIDIDEVICE_chorussinf(voice->chorussinpos[filterindex],chorus,1); //Current modulation ratio!
+		modulationratiocents = MIDIDEVICE_chorussinf(voice->chorussinpos[filterindex],chorus,0); //Current modulation ratio!
 		voice->chorussinpos[filterindex] += voice->chorussinposstep; //Step by one sample rendered!
 		if (voice->chorussinpos[filterindex]>=SINUSTABLE_PERCISION_FLT) voice->chorussinpos[filterindex] -= SINUSTABLE_PERCISION_FLT; //Wrap around when needed(once per second)!
 	}
-	else
-	{
-		modulationratiocents = 1200; //No modulation by default!
-	}
 
+	modulationratiocents += voice->modenv_pitchfactor; //Apply pitch bend as well!
 	//Apply pitch bend to the current factor too!
 	modulationratiocents += samplespeedup; //Speedup according to pitch bend!
-	modulationratiocents -= 1200; //Make us correct!
 
 	//Apply the new modulation ratio, if needed!
 	if (modulationratiocents!=voice->modulationratiocents[filterindex]) //Different ratio?
@@ -448,11 +440,11 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	pitchcents = (float)(channel->pitch&0x3FFF); //Load active pitch bend (unsigned), Only low 14 bits are used!
 	pitchcents -= (float)0x2000; //Convert to a signed value!
 	pitchcents /= 128.0f; //Create a value between -1 and 1!
-	pitchcents *= cents2samplesfactorf(voice->pitchwheelmod*pitchcents); //Influence by pitch wheel!
+	pitchcents *= voice->pitchwheelmod; //Influence by pitch wheel!
 
 	//Now apply to the default speedup!
 	currentsamplespeedup = voice->initsamplespeedup; //Load the default sample speedup for our tone!
-	currentsamplespeedup *= cents2samplesfactorf(pitchcents); //Apply pitch bend!
+	currentsamplespeedup += pitchcents; //Apply pitch bend!
 	voice->effectivesamplespeedup = (sword)currentsamplespeedup; //Load the speedup of the samples we need!
 
 	//Determine panning!
@@ -769,6 +761,7 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 	//Ammount of MIDI notes too high is in rootMIDITone.
 
 	cents = 0; //Default: none!
+	cents += voice->sample.chPitchCorrection; //Apply pitch correction for the used sample!
 
 	//Coarse tune...
 	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, coarseTune, &applyigen))
@@ -816,7 +809,6 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 	tonecents *= -rootMIDITone; //Difference in tones we use is applied to the ammount of cents!
 
 	cents += tonecents; //Apply the MIDI tone cents for the MIDI tone!
-	cents += voice->sample.chPitchCorrection; //Apply pitch correction as well!
 
 	//Now the cents variable contains the diviation in cents.
 	voice->initsamplespeedup = cents; //Load the default speedup we need for our tone!
@@ -942,8 +934,8 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, pan, &applyigen)) //Gotten panning?
 	{
 		panningtemp = (float)LE16(applyigen.genAmount.shAmount); //Get the panning specified!
-		panningtemp *= 0.001f; //Make into a percentage, it's in 0.1% units!
 	}
+	panningtemp *= 0.001f; //Make into a percentage, it's in 0.1% units!
 	voice->initpanning = panningtemp; //Set the initial panning, as a factor!
 
 	panningtemp = 1000.0f; //Default to none!
@@ -959,13 +951,17 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 	if (lookupSFInstrumentModGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, 0x00DD, &applymod)) //Gotten panning modulator?
 	{
 		panningtemp = (float)LE16(applymod.modAmount); //Get the amount specified!
+		if (lookupSFPresetModGlobal(soundfont, preset, pbag, chorusEffectsSend, &applymod)) //Chorus effects send specified?
+		{
+			panningtemp += (float)LE16(applymod.modAmount); //Chorus effects send, in 0.1% units!
+		}
+	}
+	else if (lookupSFPresetModGlobal(soundfont, preset, pbag, chorusEffectsSend, &applymod)) //Chorus effects send specified?
+	{
+		panningtemp = ((float)LE16(applymod.modAmount)); //Chorus effects send, in 0.1% units!
 	}
 	panningtemp *= 0.001f; //Make into a percentage, it's in 0.1% units!
 
-	if (lookupSFPresetModGlobal(soundfont,preset, pbag, chorusEffectsSend,&applymod)) //Chorus effects send specified?
-	{
-		panningtemp *= (((float)LE16(applymod.modAmount))*0.001f); //Chorus effects send, in 0.1% units!
-	}
 
 	panningtemp *= (1.0f/127.0f); //Linear depth!
 
@@ -980,13 +976,17 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 	if (lookupSFInstrumentModGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, 0x00DB, &applymod)) //Gotten panning modulator?
 	{
 		panningtemp = (float)LE16(applymod.modAmount); //Get the amount specified!
+		if (lookupSFPresetModGlobal(soundfont, preset, pbag, reverbEffectsSend, &applymod)) //Reverb effects send specified?
+		{
+			panningtemp += (float)LE16(applymod.modAmount); //Reverb effects send, in 0.1% units!
+		}
+	}
+	else if (lookupSFPresetModGlobal(soundfont, preset, pbag, reverbEffectsSend, &applymod)) //Reverb effects send specified?
+	{
+		panningtemp = (float)LE16(applymod.modAmount); //Reverb effects send, in 0.1% units!
 	}
 	panningtemp *= 0.001f; //Make into a percentage, it's in 0.1% units!
 
-	if (lookupSFPresetModGlobal(soundfont,preset, pbag, reverbEffectsSend,&applymod)) //Reverb effects send specified?
-	{
-		panningtemp += (((float)LE16(applymod.modAmount))*0.001f); //Reverb effects send, in 0.1% units!
-	}
 
 	panningtemp *= (1.0f/127.0f); //Linear depth!
 
