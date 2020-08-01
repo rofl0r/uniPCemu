@@ -758,7 +758,7 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 		rootMIDITone = voice->sample.byOriginalPitch; //Original MIDI tone!
 	}
 
-	rootMIDITone -= (sword)note->note; //>=positive difference, <=negative difference.
+	rootMIDITone = (((sword)note->note)-rootMIDITone); //>positive difference, <negative difference.
 	//Ammount of MIDI notes too high is in rootMIDITone.
 
 	cents = 0; //Default: none!
@@ -807,7 +807,7 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 		tonecents = LE16(applygen.genAmount.shAmount); //Apply semitone factor in percent for each tone!
 	}
 
-	tonecents *= -rootMIDITone; //Difference in tones we use is applied to the ammount of cents!
+	tonecents *= rootMIDITone; //Difference in tones we use is applied to the ammount of cents!
 
 	cents += tonecents; //Apply the MIDI tone cents for the MIDI tone!
 
