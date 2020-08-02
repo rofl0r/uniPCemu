@@ -543,7 +543,7 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 //MIDIvolume: converts a value of the range of maxvalue to a linear volume factor using maxdB dB.
 float MIDIattenuate(float value, float maxvalue, float scale)
 {
-	return (float)powf(10,(0.0f-((((value/maxvalue)*scale))*96.0f)/20.0f)); //Generate default attenuation!
+	return (float)powf(10,(0.0f-(((value/maxvalue)*scale)*96.0f))/20.0f); //Generate default attenuation!
 }
 
 //calcNegativeUnipolarSource: Calculates the result of a unipolar source, normalized between 0.x and less than 1.0!
