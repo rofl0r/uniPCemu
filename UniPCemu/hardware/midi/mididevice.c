@@ -159,7 +159,7 @@ OPTINLINE void reset_MIDIDEVICE() //Reset the MIDI device for usage!
 		MIDI_channels[channel].pressure = 0x40; //Centered pressure!
 		MIDI_channels[channel].program = 0; //First program!
 		MIDI_channels[channel].sustain = 0; //Disable sustain!
-		MIDI_channels[channel].volume = 0x2000; //Centered volume as the default volume, no expression!
+		MIDI_channels[channel].volume = (0x7F)|(100<<7)|(0x7F<<14); //Default volume as the default volume(high=100, low=127?), max expression(127)!
 		MIDI_channels[channel].panposition = 0x2000; //Centered pan position as the default pan!
 		MIDI_channels[channel].lvolume = MIDI_channels[channel].rvolume = 0.5; //Accompanying the pan position: centered volume!
 		MIDI_channels[channel++].mode = MIDIDEVICE_DEFAULTMODE; //Use the default mode!
@@ -829,6 +829,7 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 		if (tempattenuation < 0.0f) tempattenuation = 0.0f; //Limit to min!
 		attenuation += tempattenuation; //Additive!
 	}
+	attenuation = MIDIattenuate(attenuation,1440.0f, 1.0f); //96dB range volume using a 1440dB attenuation!
 
 	//Apply all settable volume settings!
 	//Note on velocity
@@ -858,7 +859,7 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 	tempattenuation = addattenuation * attenuationcontrol; //How much do we want to attenuate?
 	if (tempattenuation > 960.0f) tempattenuation = 960.0f; //Limit!
 	if (tempattenuation < 0.0f) tempattenuation = 0.0f; //Limit!
-	attenuation += tempattenuation; //Add!
+	attenuation *= MIDIattenuate(tempattenuation,960.0f, 1.0f); //96dB range volume using a 960cB attenuation!
 
 	//CC7
 	addattenuation = 960.0f; //How much to use as a factor (default)!
@@ -887,7 +888,7 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 	tempattenuation = addattenuation * attenuationcontrol; //How much do we want to attenuate?
 	if (tempattenuation > 960.0f) tempattenuation = 960.0f; //Limit!
 	if (tempattenuation < 0.0f) tempattenuation = 0.0f; //Limit!
-	attenuation += tempattenuation; //Add!
+	attenuation *= MIDIattenuate(tempattenuation,960.0f, 1.0f); //96dB range volume using a 960cB attenuation!
 
 	//CC11
 	addattenuation = 960.0f; //How much to use as a factor (default)!
@@ -916,10 +917,8 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 	tempattenuation = addattenuation * attenuationcontrol; //How much do we want to attenuate?
 	if (tempattenuation > 960.0f) tempattenuation = 960.0f; //Limit!
 	if (tempattenuation < 0.0f) tempattenuation = 0.0f; //Limit!
-	attenuation += tempattenuation; //Add!
+	attenuation *= MIDIattenuate(tempattenuation,960.0f, 1.0f); //96dB range volume using a 960cB attenuation!
 	
-	attenuation = MIDIattenuate(attenuation,9600.0f, 1.0f); //96dB range volume using a 1440dB attenuation!
-
 	//Clip final attenuation and set the attenuation to use!
 	if (attenuation>1.0f) attenuation = 1.0f; //Limit to max!
 	if (attenuation<0.0f) attenuation = 0.0f; //Limit to min!
