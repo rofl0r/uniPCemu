@@ -159,7 +159,9 @@ OPTINLINE void reset_MIDIDEVICE() //Reset the MIDI device for usage!
 		MIDI_channels[channel].pressure = 0x40; //Centered pressure!
 		MIDI_channels[channel].program = 0; //First program!
 		MIDI_channels[channel].sustain = 0; //Disable sustain!
-		MIDI_channels[channel].volume = (0x7F)|(100U<<7)|(0x7F<<14); //Default volume as the default volume(high=100, low=127?), max expression(127)!
+		MIDI_channels[channel].volumeMSB = 0x64; //Default volume as the default volume(100)!
+		MIDI_channels[channel].volumeLSB = 0x7F; //Default volume as the default volume(127?)!
+		MIDI_channels[channel].expression = 0x7F; //Default volume as the default max expression(127)!
 		MIDI_channels[channel].panposition = 0x2000; //Centered pan position as the default pan!
 		MIDI_channels[channel].lvolume = MIDI_channels[channel].rvolume = 0.5; //Accompanying the pan position: centered volume!
 		MIDI_channels[channel++].mode = MIDIDEVICE_DEFAULTMODE; //Use the default mode!
@@ -863,7 +865,7 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 
 	//CC7
 	addattenuation = 960.0f; //How much to use as a factor (default)!
-	attenuationcontrol = calcNegativeUnipolarSource(((channel->volume >> 7) & 0x7F),0x7F); //The source of the attenuation!
+	attenuationcontrol = calcNegativeUnipolarSource((channel->volumeMSB & 0x7F),0x7F); //The source of the attenuation!
 	if (lookupSFInstrumentModGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, continuousController7ToInitialAttenuation, &applymod)) //Gotten MIDI Continuous Controller 7 to Initial Attenuation?
 	{
 		applymod.modAmount = LE16(applymod.modAmount); //Patch!
@@ -892,7 +894,7 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 
 	//CC11
 	addattenuation = 960.0f; //How much to use as a factor (default)!
-	attenuationcontrol = calcNegativeUnipolarSource(((channel->volume >> 14) & 0x7F),0x7F); //The source of the attenuation!
+	attenuationcontrol = calcNegativeUnipolarSource((channel->expression & 0x7F),0x7F); //The source of the attenuation!
 	if (lookupSFInstrumentModGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, continuousController11ToInitialAttenuation, &applymod)) //Gotten MIDI Continuous Controller 11 to Initial Attenuation?
 	{
 		applymod.modAmount = LE16(applymod.modAmount); //Patch!
@@ -1436,8 +1438,7 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 						dolog("MPU", "MIDIDEVICE: Volume MSB on channel %u: %02X",currentchannel, current->buffer[1]); //Log it!
 					#endif
 					lockMPURenderer(); //Lock the audio!
-					MIDI_channels[currentchannel].volume &= ~(0x7F<<7); //Only keep LSB&Expression!
-					MIDI_channels[currentchannel].volume |= (current->buffer[1]<<7); //Set MSB!
+					MIDI_channels[currentchannel].volumeMSB = current->buffer[1]; //Set MSB!
 					unlockMPURenderer(); //Unlock the audio!
 					break;
 				case 0x0B: //Expression (MSB) CC 11
@@ -1445,8 +1446,7 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 						dolog("MPU", "MIDIDEVICE: Volume MSB on channel %u: %02X",currentchannel, current->buffer[1]); //Log it!
 					#endif
 					lockMPURenderer(); //Lock the audio!
-					MIDI_channels[currentchannel].volume &= (~(0x7F<<14)); //Only keep MSB&LSB!
-					MIDI_channels[currentchannel].volume |= (current->buffer[1]<<14); //Set Expression!
+					MIDI_channels[currentchannel].expression = current->buffer[1]; //Set Expression!
 					unlockMPURenderer(); //Unlock the audio!
 					break;
 				case 0x27: //Volume (LSB) CC 39
@@ -1454,8 +1454,7 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 					dolog("MPU", "MIDIDEVICE: Volume LSB on channel %u: %02X", currentchannel, current->buffer[1]); //Log it!
 #endif
 					lockMPURenderer(); //Lock the audio!
-					MIDI_channels[currentchannel].volume &= ~0x7F; //Only keep MSB&Expression!
-					MIDI_channels[currentchannel].volume |= current->buffer[1]; //Set LSB!
+					MIDI_channels[currentchannel].volumeLSB = current->buffer[1]; //Set LSB!
 					unlockMPURenderer(); //Unlock the audio!
 					break;
 

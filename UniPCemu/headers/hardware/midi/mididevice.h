@@ -63,7 +63,9 @@ typedef struct
 	byte control; //Control/current instrument!
 	byte program; //Program/instrument!
 	byte pressure; //Channel pressure/volume!
-	word volume; //Continuous controller volume!
+	byte volumeLSB; //Continuous controller volume LSB(CC39)!
+	byte volumeMSB; //Continuous controller volume MSB(CC7)!
+	byte expression; //Continuous controller expression(CC11)!
 	word panposition; //Continuous controller pan position!
 	float lvolume; //Left volume for panning!
 	float rvolume; //Right volume for panning!
