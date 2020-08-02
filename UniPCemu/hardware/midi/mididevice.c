@@ -36,7 +36,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #define MIDI_VOLUME 100.0f
 
 //Effective volume vs samples!
-#define VOLUME 0.7f
+#define VOLUME 1.0f
 
 #ifdef IS_WINDOWS
 #include <mmsystem.h>  /* multimedia functions (such as MIDI) for Windows */
