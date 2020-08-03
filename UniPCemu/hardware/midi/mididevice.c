@@ -920,7 +920,7 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 	if (tempattenuation < 0.0f) tempattenuation = 0.0f; //Limit!
 	attenuation += tempattenuation; //96dB range volume using a 960cB attenuation!
 
-	attenuation = MIDIattenuate(attenuation,9600.0f, 1.0f); //96dB range volume using attenuation!
+	attenuation = MIDIattenuate(attenuation,960.0f, 1.0f); //96dB(960cB) range volume using attenuation!
 	
 	//Clip final attenuation and set the attenuation to use!
 	if (attenuation>1.0f) attenuation = 1.0f; //Limit to max!
