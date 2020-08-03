@@ -816,7 +816,7 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 	//Now the cents variable contains the diviation in cents.
 	voice->initsamplespeedup = cents; //Load the default speedup we need for our tone!
 	
-	//Determine the default attenuation to use!
+	//Determine the attenuation generator to use!
 	attenuation = 0; //Default attenuation!
 	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, initialAttenuation, &applyigen))
 	{
@@ -831,7 +831,6 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 		if (tempattenuation < 0.0f) tempattenuation = 0.0f; //Limit to min!
 		attenuation += tempattenuation; //Additive!
 	}
-	attenuation = MIDIattenuate(attenuation,1440.0f, 1.0f); //96dB range volume using a 1440dB attenuation!
 
 	//Apply all settable volume settings!
 	//Note on velocity
@@ -848,7 +847,7 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 			applymod.modAmount = LE16(applymod.modAmount); //Patch!
 			if (applymod.modAmount > 960) applymod.modAmount = 960; //Limit to max value if needed!
 			else if (applymod.modAmount < 0) applymod.modAmount = 0; //Limit to min value if needed!
-			addattenuation *= ((float)applymod.modAmount/960.0f); //Range is 960cB, so convert and apply(add to the initial attenuation generator)!
+			addattenuation += (float)applymod.modAmount; //Range is 960cB, so convert and apply(add to the initial attenuation generator)!
 		}
 	}
 	else if (lookupSFPresetModGlobal(soundfont, preset, pbag, noteOnVelocityToInitialAttenuation, &applymod)) //Gotten Note On velocity to Initial Attenuation?
@@ -861,7 +860,7 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 	tempattenuation = addattenuation * attenuationcontrol; //How much do we want to attenuate?
 	if (tempattenuation > 960.0f) tempattenuation = 960.0f; //Limit!
 	if (tempattenuation < 0.0f) tempattenuation = 0.0f; //Limit!
-	attenuation *= MIDIattenuate(tempattenuation,960.0f, 1.0f); //96dB range volume using a 960cB attenuation!
+	attenuation += tempattenuation; //96dB range volume using a 960cB attenuation!
 
 	//CC7
 	addattenuation = 960.0f; //How much to use as a factor (default)!
@@ -877,7 +876,7 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 			applymod.modAmount = LE16(applymod.modAmount); //Patch!
 			if (applymod.modAmount > 960) applymod.modAmount = 960; //Limit to max value if needed!
 			else if (applymod.modAmount < 0) applymod.modAmount = 0; //Limit to min value if needed!
-			addattenuation *= (applymod.modAmount / 960.0f); //Range is 960cB, so convert and apply(add to the initial attenuation generator)!
+			addattenuation += (float)applymod.modAmount; //Range is 960cB, so convert and apply(add to the initial attenuation generator)!
 		}
 	}
 	else if (lookupSFPresetModGlobal(soundfont, preset,pbag, continuousController7ToInitialAttenuation,&applymod)) //Gotten MIDI Continuous Controller 7 to Initial Attenuation?
@@ -890,7 +889,7 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 	tempattenuation = addattenuation * attenuationcontrol; //How much do we want to attenuate?
 	if (tempattenuation > 960.0f) tempattenuation = 960.0f; //Limit!
 	if (tempattenuation < 0.0f) tempattenuation = 0.0f; //Limit!
-	attenuation *= MIDIattenuate(tempattenuation,960.0f, 1.0f); //96dB range volume using a 960cB attenuation!
+	attenuation += tempattenuation; //96dB range volume using a 960cB attenuation!
 
 	//CC11
 	addattenuation = 960.0f; //How much to use as a factor (default)!
@@ -906,7 +905,7 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 			applymod.modAmount = LE16(applymod.modAmount); //Patch!
 			if (applymod.modAmount > 960) applymod.modAmount = 960; //Limit to max value if needed!
 			else if (applymod.modAmount < 0) applymod.modAmount = 0; //Limit to min value if needed!
-			addattenuation *= (float)(applymod.modAmount / 960.0f); //Range is 960cB, so convert and apply(add to the initial attenuation generator)!
+			addattenuation += (float)applymod.modAmount; //Range is 960cB, so convert and apply(add to the initial attenuation generator)!
 		}
 	}
 	else if (lookupSFPresetModGlobal(soundfont, preset, pbag, continuousController11ToInitialAttenuation, &applymod)) //Gotten MIDI Continuous Controller 11 to Initial Attenuation?
@@ -919,7 +918,9 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 	tempattenuation = addattenuation * attenuationcontrol; //How much do we want to attenuate?
 	if (tempattenuation > 960.0f) tempattenuation = 960.0f; //Limit!
 	if (tempattenuation < 0.0f) tempattenuation = 0.0f; //Limit!
-	attenuation *= MIDIattenuate(tempattenuation,960.0f, 1.0f); //96dB range volume using a 960cB attenuation!
+	attenuation += tempattenuation; //96dB range volume using a 960cB attenuation!
+
+	attenuation = MIDIattenuate(attenuation,9600.0f, 1.0f); //96dB range volume using attenuation!
 	
 	//Clip final attenuation and set the attenuation to use!
 	if (attenuation>1.0f) attenuation = 1.0f; //Limit to max!
