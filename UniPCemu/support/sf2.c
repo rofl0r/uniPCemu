@@ -1176,6 +1176,8 @@ byte lookupSFInstrumentGen(RIFFHEADER *sf, word instrument, word IBag, SFGenerat
 	uint_32 firstgen, keyrange, temp; //Other generators and temporary calculation!
 	byte found;
 	byte dontignoregenerators;
+	byte valid;
+	valid = 1; //Default: still valid!
 	found = 0;
 	if (getSFInstrument(sf,instrument,&currentinstrument)) //Valid instrument?
 	{
@@ -1193,8 +1195,6 @@ byte lookupSFInstrumentGen(RIFFHEADER *sf, word instrument, word IBag, SFGenerat
 					{
 						if (getSFInstrumentGen(sf,CurrentGen,&gen)) //Valid?
 						{
-							byte valid;
-							valid = 1; //Default: still valid!
 							if (LE16(gen.sfGenOper)==keyRange) //KEY RANGE?
 							{
 								if (firstgen!=CurrentGen) //Not the first?
@@ -1203,7 +1203,7 @@ byte lookupSFInstrumentGen(RIFFHEADER *sf, word instrument, word IBag, SFGenerat
 								}
 								if (valid) //Valid?
 								{
-									keyrange = CurrentGen; //Save the position of the last key range generator!
+									keyrange = (CurrentGen&0xFFFF); //Save the position of the last key range generator!
 									keyrange |= 0x10000; //Set flag: we're used!
 								}
 							}
@@ -1221,7 +1221,7 @@ byte lookupSFInstrumentGen(RIFFHEADER *sf, word instrument, word IBag, SFGenerat
 							if (valid) //Still valid?
 							{
 								if (LE16(gen.sfGenOper)==endOper) break; //Stop when finding the last entry!
-								if (LE16(gen.sfGenOper)==sfGenOper && (dontignoregenerators || LE16(gen.sfGenOper)==sampleID)) //Found and not ignoring (or sampleid generator)?
+								if (LE16(gen.sfGenOper)==sfGenOper && (found==0) && (dontignoregenerators || LE16(gen.sfGenOper)==sampleID)) //Found and not ignoring (or sampleid generator)?
 								{
 									//Log the retrieval!
 									found = 1; //Found!
@@ -1239,7 +1239,7 @@ byte lookupSFInstrumentGen(RIFFHEADER *sf, word instrument, word IBag, SFGenerat
 			}
 		}
 	}
-	return found; //Not found or last found!
+	return (found&&valid); //Not found or last found!
 }
 
 byte lookupPresetByInstrument(RIFFHEADER *sf, word preset, word bank, uint_32 *result)
