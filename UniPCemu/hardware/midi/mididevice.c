@@ -280,12 +280,6 @@ OPTINLINE void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, flo
 		voice->chorussinpos[filterindex] += voice->chorussinposstep; //Step by one sample rendered!
 		if (voice->chorussinpos[filterindex]>=SINUSTABLE_PERCISION_FLT) voice->chorussinpos[filterindex] -= SINUSTABLE_PERCISION_FLT; //Wrap around when needed(once per second)!
 	}
-	else if (chorus) //Chorus only has modulation of the pitch as well?
-	{
-		modulationratiocents = MIDIDEVICE_chorussinf(voice->chorussinpos[filterindex],chorus,0); //Current modulation ratio!
-		voice->chorussinpos[filterindex] += voice->chorussinposstep; //Step by one sample rendered!
-		if (voice->chorussinpos[filterindex]>=SINUSTABLE_PERCISION_FLT) voice->chorussinpos[filterindex] -= SINUSTABLE_PERCISION_FLT; //Wrap around when needed(once per second)!
-	}
 
 	modulationratiocents += voice->modenv_pitchfactor; //Apply pitch bend as well!
 	//Apply pitch bend to the current factor too!
