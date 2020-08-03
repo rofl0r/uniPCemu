@@ -743,15 +743,15 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 	//Calculate MIDI difference in notes!
 	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, overridingRootKey, &applyigen))
 	{
-		rootMIDITone = LE16(applyigen.genAmount.wAmount); //The MIDI tone to apply is different!
+		rootMIDITone = (sword)LE16(applyigen.genAmount.wAmount); //The MIDI tone to apply is different!
 		if ((rootMIDITone<0) || (rootMIDITone>127)) //Invalid?
 		{
-			rootMIDITone = voice->sample.byOriginalPitch; //Original MIDI tone!
+			rootMIDITone = (sword)voice->sample.byOriginalPitch; //Original MIDI tone!
 		}
 	}
 	else
 	{
-		rootMIDITone = voice->sample.byOriginalPitch; //Original MIDI tone!
+		rootMIDITone = (sword)voice->sample.byOriginalPitch; //Original MIDI tone!
 	}
 
 	rootMIDITone = (((sword)note->note)-rootMIDITone); //>positive difference, <negative difference.
