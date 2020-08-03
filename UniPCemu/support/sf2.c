@@ -1090,11 +1090,12 @@ byte lookupSFPresetMod(RIFFHEADER *sf, uint_32 preset, word PBag, SFModulator sf
 byte lookupSFPresetGen(RIFFHEADER *sf, uint_32 preset, word PBag, SFGenerator sfGenOper, sfGenList *result)
 {
 	sfPresetHeader currentpreset;
-	word CurrentGen;
+	uint_32 CurrentGen;
 	sfPresetBag pbag;
 	sfGenList gen;
 	byte found;
 	found = 0; //Default: not found!
+	uint_32 firstgen, keyrange, temp; //Other generators and temporary calculation!
 	if (getSFPreset(sf,preset,&currentpreset)) //Retrieve the header!
 	{
 		if (isValidPreset(&currentpreset)) //Valid preset?
@@ -1106,15 +1107,44 @@ byte lookupSFPresetGen(RIFFHEADER *sf, uint_32 preset, word PBag, SFGenerator sf
 					if (isValidPresetZone(sf,preset,PBag)) //Valid?
 					{
 						CurrentGen = LE16(pbag.wGenNdx); //Load the first PGen!
+						firstgen = CurrentGen; //First generator!
 						for (;isPresetGenNdx(sf,preset,PBag,CurrentGen);) //Process all PGens for our bag!
 						{
 							if (getSFPresetGen(sf,CurrentGen,&gen)) //Valid?
 							{
 								if (LE16(gen.sfGenOper)==endOper) break; //Stop when finding the last entry!
-								if (LE16(gen.sfGenOper)==sfGenOper) //Found?
+								byte valid;
+								valid = 1; //Default: still valid!
+								if (LE16(gen.sfGenOper) == keyRange) //KEY RANGE?
 								{
-									found = 1; //Found!
-									memcpy(result,&gen,sizeof(*result)); //Set to last found!
+									if (firstgen != CurrentGen) //Not the first?
+									{
+										valid = 0; //Ignore this generator!
+									}
+									if (valid) //Valid?
+									{
+										keyrange = (CurrentGen&0xFFFF); //Save the position of the last key range generator!
+										keyrange |= 0x10000; //Set flag: we're used!
+									}
+								}
+								else if (LE16(gen.sfGenOper) == velRange) //VELOCITY RANGE?
+								{
+									temp = CurrentGen; //Load!
+									--temp; //Decrease!
+									temp &= 0xFFFF; //16-bit range!
+									temp |= 0x10000; //Set bit for lookup!
+									if ((keyrange != temp) || (keyrange == 0)) //Last wasn't a key range or we're not the first otherwise?
+									{
+										valid = 0; //Ignore this generator!
+									}
+								}
+								if (valid) //Still valid?
+								{
+									if (LE16(gen.sfGenOper) == sfGenOper) //Found?
+									{
+										found = 1; //Found!
+										memcpy(result, &gen, sizeof(*result)); //Set to last found!
+									}
 								}
 							}
 							++CurrentGen;
@@ -1170,7 +1200,7 @@ byte lookupSFInstrumentMod(RIFFHEADER *sf, word instrument, word IBag, SFModulat
 byte lookupSFInstrumentGen(RIFFHEADER *sf, word instrument, word IBag, SFGenerator sfGenOper, sfInstGenList *result)
 {
 	sfInst currentinstrument;
-	word CurrentGen;
+	uint_32 CurrentGen;
 	sfInstBag ibag;
 	sfInstGenList gen;
 	uint_32 firstgen, keyrange, temp; //Other generators and temporary calculation!
@@ -1213,12 +1243,12 @@ byte lookupSFInstrumentGen(RIFFHEADER *sf, word instrument, word IBag, SFGenerat
 								--temp; //Decrease!
 								temp &= 0xFFFF; //16-bit range!
 								temp |= 0x10000; //Set bit for lookup!
-								if (keyrange!=temp) //Last wasn't a key range?
+								if ((keyrange!=temp) || (keyrange==0)) //Last wasn't a key range or we're not the first otherwise?
 								{
 									valid = 0; //Ignore this generator!
 								}
 							}
-							if (valid) //Still valid?
+							if (valid && dontignoregenerators) //Still valid?
 							{
 								if (LE16(gen.sfGenOper)==endOper) break; //Stop when finding the last entry!
 								if (LE16(gen.sfGenOper)==sfGenOper && (found==0) && (dontignoregenerators || LE16(gen.sfGenOper)==sampleID)) //Found and not ignoring (or sampleid generator)?
@@ -1307,11 +1337,11 @@ byte lookupPBagByMIDIKey(RIFFHEADER *sf, uint_32 preset, byte MIDIKey, byte MIDI
 			if (!isGlobalPresetZone(sf,preset,PBag)) //Not a global zone?
 			{
 				gotpgen = lookupSFPresetGen(sf,preset,PBag,velRange,&pgen2); //Velocity lookup!
-				if (lookupSFPresetGen(sf,preset,PBag,keyRange,&pgen)) //Key range lookup! //Found?
+				if (lookupSFPresetGen(sf,preset,PBag,keyRange,&pgen)) //Key range lookup! Found?
 				{
-					if ((MIDIKey>=pgen.genAmount.ranges.byLo) && (MIDIKey<=pgen.genAmount.ranges.byHi)) //Within range?
+					if ((MIDIKey>=pgen.genAmount.ranges.byLo) && (MIDIKey<=pgen.genAmount.ranges.byHi)) //Key within range?
 					{
-						if (!gotpgen || (gotpgen && (MIDIVelocity>=pgen2.genAmount.ranges.byLo) && (MIDIVelocity<=pgen2.genAmount.ranges.byHi))) //Velocity match or no velocity?
+						if ((!gotpgen) || (gotpgen && (MIDIVelocity>=pgen2.genAmount.ranges.byLo) && (MIDIVelocity<=pgen2.genAmount.ranges.byHi))) //Velocity match or no velocity filter?
 						{
 							if (lookupSFPresetGen(sf,preset,PBag,instrument,&pgen)) //Gotten an instrument to play?
 							{
@@ -1322,12 +1352,15 @@ byte lookupPBagByMIDIKey(RIFFHEADER *sf, uint_32 preset, byte MIDIKey, byte MIDI
 					}
 					//No valid velocity/key!
 				}
-				else //Not found and not global(choosable)? By default it's the complete range and velocity!
+				else //Not found and not global(choosable)? By default it's the complete range of keys!
 				{
-					if (lookupSFPresetGen(sf,preset,PBag,instrument,&pgen)) //Gotten an instrument to play?
+					if ((!gotpgen) || (gotpgen && (MIDIVelocity >= pgen2.genAmount.ranges.byLo) && (MIDIVelocity <= pgen2.genAmount.ranges.byHi))) //Velocity match or no velocity filter?
 					{
-						*result = PBag; //It's this PBag!
-						return 1; //Found!
+						if (lookupSFPresetGen(sf, preset, PBag, instrument, &pgen)) //Gotten an instrument to play?
+						{
+							*result = PBag; //It's this PBag!
+							return 1; //Found!
+						}
 					}
 				}
 			}
@@ -1360,6 +1393,10 @@ byte lookupIBagByMIDIKey(RIFFHEADER *sf, word instrument, byte MIDIKey, byte MID
 				if (exists) //Key range found?
 				{
 					exists = ((MIDIKey>=igen.genAmount.ranges.byLo) && (MIDIKey<=igen.genAmount.ranges.byHi));
+				}
+				else //No key range filter in there! Always valid key!
+				{
+					exists = 1; //Valid key!
 				}
 				if (exists)
 				{
