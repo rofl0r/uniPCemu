@@ -763,44 +763,44 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 	//Coarse tune...
 	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, coarseTune, &applyigen))
 	{
-		cents = LE16(applyigen.genAmount.shAmount)*100; //How many semitones! Apply to the cents: 1 semitone = 100 cents!
+		cents = (int_32)LE16(applyigen.genAmount.shAmount)*100; //How many semitones! Apply to the cents: 1 semitone = 100 cents!
 		if (lookupSFPresetGenGlobal(soundfont, preset, pbag, coarseTune, &applygen))
 		{
-			cents += LE16(applygen.genAmount.shAmount) * 100; //How many semitones! Apply to the cents: 1 semitone = 100 cents!
+			cents += (int_32)LE16(applygen.genAmount.shAmount) * 100; //How many semitones! Apply to the cents: 1 semitone = 100 cents!
 		}
 	}
 	else if (lookupSFPresetGenGlobal(soundfont, preset, pbag, coarseTune, &applygen))
 	{
-		cents = LE16(applygen.genAmount.shAmount)*100; //How many semitones! Apply to the cents: 1 semitone = 100 cents!
+		cents = (int_32)LE16(applygen.genAmount.shAmount)*100; //How many semitones! Apply to the cents: 1 semitone = 100 cents!
 	}
 
 	//Fine tune...
 	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, fineTune, &applyigen))
 	{
-		cents += LE16(applyigen.genAmount.shAmount); //Add the ammount of cents!
+		cents += (int_32)LE16(applyigen.genAmount.shAmount); //Add the ammount of cents!
 		if (lookupSFPresetGenGlobal(soundfont, preset, pbag, fineTune, &applygen))
 		{
-			cents += LE16(applygen.genAmount.shAmount); //Add the ammount of cents!
+			cents += (int_32)LE16(applygen.genAmount.shAmount); //Add the ammount of cents!
 		}
 	}
 	else if (lookupSFPresetGenGlobal(soundfont, preset, pbag, fineTune, &applygen))
 	{
-		cents += LE16(applygen.genAmount.shAmount); //Add the ammount of cents!
+		cents += (int_32)LE16(applygen.genAmount.shAmount); //Add the ammount of cents!
 	}
 
 	//Scale tuning: how the MIDI number affects semitone (percentage of semitones)
 	tonecents = 100; //Default: 100 cents(%) scale tuning!
 	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, scaleTuning, &applyigen))
 	{
-		tonecents = LE16(applyigen.genAmount.shAmount); //Apply semitone factor in percent for each tone!
+		tonecents = (int_32)LE16(applyigen.genAmount.shAmount); //Apply semitone factor in percent for each tone!
 		if (lookupSFPresetGenGlobal(soundfont, preset, pbag, scaleTuning, &applygen))
 		{
-			tonecents += LE16(applygen.genAmount.shAmount); //Apply semitone factor in percent for each tone!
+			tonecents += (int_32)LE16(applygen.genAmount.shAmount); //Apply semitone factor in percent for each tone!
 		}
 	}
 	else if (lookupSFPresetGenGlobal(soundfont, preset, pbag, scaleTuning, &applygen))
 	{
-		tonecents = LE16(applygen.genAmount.shAmount); //Apply semitone factor in percent for each tone!
+		tonecents = (int_32)LE16(applygen.genAmount.shAmount); //Apply semitone factor in percent for each tone!
 	}
 
 	tonecents *= rootMIDITone; //Difference in tones we use is applied to the ammount of cents!
