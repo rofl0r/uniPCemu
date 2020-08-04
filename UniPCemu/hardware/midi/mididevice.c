@@ -36,7 +36,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #define MIDI_VOLUME 100.0f
 
 //Effective volume vs samples!
-#define VOLUME 0.3f
+#define VOLUME 1.0f
 
 #ifdef IS_WINDOWS
 #include <mmsystem.h>  /* multimedia functions (such as MIDI) for Windows */
@@ -252,6 +252,7 @@ void MIDIDEVICE_generateSinusTable()
 //MIDIvolume: converts a value of the range of maxvalue to a linear volume factor using maxdB dB.
 OPTINLINE float MIDIattenuate(float value)
 {
+	value *= (1440.0f / (1440.0f + 1000.0f)); //Reduce to be within range!
 	if (value > 1440.0f) value = 1440.0f; //Limit to max!
 	if (value < 0.0f) value = 0.0f; //Limit to min!
 	return (float)powf(10.0f, value / -200.0f); //Generate default attenuation!
@@ -914,6 +915,9 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 	//if (tempattenuation > 960.0f) tempattenuation = 960.0f; //Limit!
 	//if (tempattenuation < 0.0f) tempattenuation = 0.0f; //Limit!
 	attenuation += tempattenuation; //96dB range volume using a 960cB attenuation!
+
+	if (attenuation > 1440.0f) attenuation = 1440.0f; //Limit!
+	if (attenuation < 0.0f) attenuation = 0.0f; //Limit!
 
 	#ifdef IS_LONGDOUBLE
 	voice->initialAttenuation = attenuation; //We're converted to a rate of 960 cb!
