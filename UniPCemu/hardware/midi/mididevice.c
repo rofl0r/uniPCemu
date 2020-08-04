@@ -273,7 +273,7 @@ OPTINLINE float combineAttenuation(float scale, float input1, float input1scale,
 	if (input1 < 0.0f) input1 = 0.0f; //Limit to min!
 	if (input2 > input2scale) input2 = input2scale; //Limit to max!
 	if (input2 < 0.0f) input2 = 0.0f; //Limit to min!
-	//Now, combine!
+	//Now, combine! Normalize, convert to gain(in relative Bels), combine, convert to attenuation and apply the new scale for the attenuate function.
 	return MIDIattenuate(scale * (1.0f-( ((input1scale - input1) / input1scale) * ((input2scale - input2) / input2scale) )),scale); //Combine the values of attenuation!
 }
 
