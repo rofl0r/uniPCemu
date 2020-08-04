@@ -36,7 +36,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #define MIDI_VOLUME 100.0f
 
 //Effective volume vs samples!
-#define VOLUME 1.0f
+#define VOLUME 0.3f
 
 #ifdef IS_WINDOWS
 #include <mmsystem.h>  /* multimedia functions (such as MIDI) for Windows */
@@ -249,6 +249,14 @@ void MIDIDEVICE_generateSinusTable()
 //Absolute to get the amount of degrees, converted to a -1.0 to 1.0 scale!
 #define MIDIDEVICE_chorussinf(value, choruschannel, add1200centsbase) chorussinustable[(uint_32)(value*SINUSTABLE_PERCISION_FLT)][choruschannel][add1200centsbase]
 
+//MIDIvolume: converts a value of the range of maxvalue to a linear volume factor using maxdB dB.
+OPTINLINE float MIDIattenuate(float value)
+{
+	if (value > 1440.0f) value = 1440.0f; //Limit to max!
+	if (value < 0.0f) value = 0.0f; //Limit to min!
+	return (float)powf(10.0f, value / -200.0f); //Generate default attenuation!
+}
+
 OPTINLINE void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float samplerate, int_32 samplespeedup, MIDIDEVICE_VOICE *voice, float Volume, float Modulation, byte chorus, float chorusvol, byte filterindex, int_32 *lchannelres, int_32 *rchannelres) //Get a sample from an MIDI note!
 {
 	//Our current rendering routine:
@@ -343,9 +351,8 @@ OPTINLINE void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, flo
 		lchannel = (float)readsample; //Convert to floating point for our calculations!
 
 		//First, apply filters and current envelope!
-		applyMIDILowpassFilter(voice, &lchannel, Modulation, filterindex); //Low pass filter!
-		lchannel *= Volume; //Apply ADSR Volume envelope!
-		lchannel *= voice->initialAttenuation; //The volume of the samples!
+		applyMIDILowpassFilter(voice, &lchannel, (1000.0f-Modulation)*0.001f, filterindex); //Low pass filter!
+		lchannel *= MIDIattenuate(voice->initialAttenuation+Volume); //The volume of the samples including ADSR!
 		lchannel *= chorusvol; //Apply chorus&reverb volume for this stream!
 		lchannel *= VOLUME; //Apply general volume!
 		//Now the sample is ready for output into the actual final volume!
@@ -485,8 +492,8 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 			chorusreverbsamplepos = voice->play_counter; //Load the current play counter!
 			totaldelay = voice->chorusdelay[currentchorusreverb]; //Load the total delay!
 			chorusreverbsamplepos -= (int_64)totaldelay; //Apply specified chorus&reverb delay!
-			VolumeEnvelope = ADSR_tick(VolumeADSR,chorusreverbsamplepos,((voice->currentloopflags & 0xC0) != 0x80),voice->note->noteon_velocity, voice->note->noteoff_velocity); //Apply Volume Envelope!
-			ModulationEnvelope = ADSR_tick(ModulationADSR,chorusreverbsamplepos,((voice->currentloopflags & 0xC0) != 0x80),voice->note->noteon_velocity, voice->note->noteoff_velocity); //Apply Modulation Envelope!
+			VolumeEnvelope = 1000.0f-(ADSR_tick(VolumeADSR,chorusreverbsamplepos,((voice->currentloopflags & 0xC0) != 0x80),voice->note->noteon_velocity, voice->note->noteoff_velocity)); //Apply Volume Envelope, converted to attenuation!
+			ModulationEnvelope = 1000.0f-(ADSR_tick(ModulationADSR,chorusreverbsamplepos,((voice->currentloopflags & 0xC0) != 0x80),voice->note->noteon_velocity, voice->note->noteoff_velocity)); //Apply Modulation Envelope, converted to attenuation!
 			MIDIDEVICE_getsample(chorusreverbsamplepos, totaldelay, samplerate, voice->effectivesamplespeedup, voice, VolumeEnvelope, ModulationEnvelope, currentchorusreverb, voice->chorusvol[currentchorusreverb], currentchorusreverb, &lchannel, &rchannel); //Get the sample from the MIDI device, with only the chorus effect!
 		} while (++currentchorusreverb<CHORUSSIZE); //Chorus loop.
 
@@ -532,12 +539,6 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	unlock(voice->locknumber); //Lock us!
 	#endif
 	return SOUNDHANDLER_RESULT_FILLED; //We're filled!
-}
-
-//MIDIvolume: converts a value of the range of maxvalue to a linear volume factor using maxdB dB.
-float MIDIattenuate(float value)
-{
-	return (float)powf(10.0f,value/-200.0f); //Generate default attenuation!
 }
 
 //calcNegativeUnipolarSource: Calculates the result of a unipolar source, normalized between 0.x and less than 1.0!
@@ -852,8 +853,8 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 		addattenuation = (float)applymod.modAmount; //Range is 960cB, so convert and apply(add to the initial attenuation generator)!
 	}
 	tempattenuation = addattenuation * attenuationcontrol; //How much do we want to attenuate?
-	if (tempattenuation > 960.0f) tempattenuation = 960.0f; //Limit!
-	if (tempattenuation < 0.0f) tempattenuation = 0.0f; //Limit!
+	//if (tempattenuation > 960.0f) tempattenuation = 960.0f; //Limit!
+	//if (tempattenuation < 0.0f) tempattenuation = 0.0f; //Limit!
 	attenuation += tempattenuation; //96dB range volume using a 960cB attenuation!
 
 	//CC7
@@ -881,8 +882,8 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 		addattenuation = applymod.modAmount; //Range is 960cB, so convert and apply(add to the initial attenuation generator)!
 	}
 	tempattenuation = addattenuation * attenuationcontrol; //How much do we want to attenuate?
-	if (tempattenuation > 960.0f) tempattenuation = 960.0f; //Limit!
-	if (tempattenuation < 0.0f) tempattenuation = 0.0f; //Limit!
+	//if (tempattenuation > 960.0f) tempattenuation = 960.0f; //Limit!
+	//if (tempattenuation < 0.0f) tempattenuation = 0.0f; //Limit!
 	attenuation += tempattenuation; //96dB range volume using a 960cB attenuation!
 
 	//CC11
@@ -910,18 +911,9 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 		addattenuation = applymod.modAmount; //Range is 960cB, so convert and apply(add to the initial attenuation generator)!
 	}
 	tempattenuation = addattenuation * attenuationcontrol; //How much do we want to attenuate?
-	if (tempattenuation > 960.0f) tempattenuation = 960.0f; //Limit!
-	if (tempattenuation < 0.0f) tempattenuation = 0.0f; //Limit!
+	//if (tempattenuation > 960.0f) tempattenuation = 960.0f; //Limit!
+	//if (tempattenuation < 0.0f) tempattenuation = 0.0f; //Limit!
 	attenuation += tempattenuation; //96dB range volume using a 960cB attenuation!
-
-	if (attenuation>1440.0f) attenuation = 1440.0f; //Limit to max!
-	if (attenuation<0.0f) attenuation = 0.0f; //Limit to min!
-
-	attenuation = MIDIattenuate(attenuation); //144dB(1440cB) range volume using attenuation!
-	
-	//Clip final attenuation and set the attenuation to use!
-	if (attenuation>1.0f) attenuation = 1.0f; //Limit to max!
-	if (attenuation<0.0f) attenuation = 0.0f; //Limit to min!
 
 	#ifdef IS_LONGDOUBLE
 	voice->initialAttenuation = attenuation; //We're converted to a rate of 960 cb!

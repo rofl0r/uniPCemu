@@ -87,13 +87,13 @@ OPTINLINE float ADSR_decay(ADSR *adsr, int_64 play_counter, byte sustaining, byt
 	float result;
 	if ((!sustaining) && (!(adsr->releasestarted && (adsr->releasestart<play_counter)))) //Finished playing?
 	{
-		return enterRelease(adsr, play_counter, release_velocity, 1.0f - (adsr->decayfactor*(play_counter - adsr->decaystart))); //Enter the release phase!
+		return enterRelease(adsr, play_counter, release_velocity, 1000.0f - (adsr->decayfactor*(play_counter - adsr->decaystart))); //Enter the release phase!
 	}
 	if (adsr->decay) //Gotten decay?
 	{
 		if (adsr->decayend > play_counter) //Decay busy?
 		{
-			result = 1.0f - (adsr->decayfactor*(play_counter - adsr->decaystart)); //Apply factor!
+			result = 1000.0f - (adsr->decayfactor*(play_counter - adsr->decaystart)); //Apply factor!
 			if (result>adsr->sustainfactor) return result; //Decay busy!
 		}
 	}
@@ -111,11 +111,11 @@ OPTINLINE float ADSR_hold(ADSR *adsr, int_64 play_counter, byte sustaining, byte
 {
 	if (!sustaining && (!(adsr->releasestarted && (adsr->releasestart<play_counter)))) //Finished playing?
 	{
-		return enterRelease(adsr,play_counter, release_velocity,1.0f); //Enter the release phase!
+		return enterRelease(adsr,play_counter, release_velocity,1000.0f); //Enter the release phase!
 	}
 	if (adsr->hold) //Gotten hold?
 	{
-		if (adsr->holdend > play_counter) return 1.0f; //Hold busy?
+		if (adsr->holdend > play_counter) return 1000.0f; //Hold busy?
 	}
 	//Hold expired?
 	if (!adsr->decaystarted)
@@ -139,7 +139,7 @@ OPTINLINE float ADSR_attack(ADSR *adsr, int_64 play_counter, byte sustaining, by
 		if (adsr->attackend > play_counter) //Attack busy?
 		{
 			result = (adsr->attackfactor*(play_counter-adsr->attackstart)); //Apply factor!
-			if (result < 1.0f) return result; //Not full yet?
+			if (result < 1000.0f) return result; //Not full yet?
 		}
 	}
 	//Attack expired?
@@ -358,9 +358,8 @@ void ADSR_init(float sampleRate, byte velocity, ADSR *adsr, RIFFHEADER *soundfon
 	}
 	decaylength = (uint_32)(decay*cents2samplesfactord((DOUBLE)(decayenvfactor*relKeynum))); //Apply key number!
 
-	if (sustain > 1000.0f) sustain = 1000.0f; //Limit of 100%!
-	sustainfactor = MIDIattenuate(sustain); //We're on a rate of 1000 cb!
-	if (sustainfactor > 1.0f) sustainfactor = 1.0f; //Limit of 100%!
+	if (sustain > 1000) sustain = 1000; //Limit of 1000cB!
+	sustainfactor = ((float)(1000-sustain)); //We're on a rate of 1000cB attenuation, normalized!
 
 	if (cents2samplesfactord((DOUBLE)release) < 0.0002f) //0.0001 sec?
 	{
@@ -376,7 +375,7 @@ void ADSR_init(float sampleRate, byte velocity, ADSR *adsr, RIFFHEADER *soundfon
 	//Attack!
 	if (attacklength) //Gotten attack?
 	{
-		attackfactor = 1.0f;
+		attackfactor = 1000.0f;
 		attackfactor /= attacklength; //Equal steps from 0 to 1.0f!
 		if (!attackfactor)
 		{
@@ -391,7 +390,7 @@ void ADSR_init(float sampleRate, byte velocity, ADSR *adsr, RIFFHEADER *soundfon
 	//Decay
 	if (decaylength) //Gotten decay?
 	{
-		decayfactor = 1.0f; //From full!
+		decayfactor = 1000.0f; //From full!
 		decayfactor /= decaylength; //Equal steps from 1.0f to 0.0f!
 		if (!decayfactor) //No decay?
 		{
@@ -400,7 +399,7 @@ void ADSR_init(float sampleRate, byte velocity, ADSR *adsr, RIFFHEADER *soundfon
 		else
 		{
 			float temp;
-			temp = 1; //Full volume!
+			temp = 1000.0f; //Full volume!
 			temp -= sustainfactor; //Change to sustain factor difference!
 			temp /= decayfactor; //Calculate the new decay time needed to change to the sustain factor!
 			decaylength = (uint_32)temp; //Load the calculated decay time!
@@ -464,6 +463,5 @@ float ADSR_tick(ADSR *adsr, int_64 samplecounter, byte sustaining, float noteon_
 	{
 		result = ADSR_delay(adsr, samplecounter, sustaining, release_velocity); //Delay phase!
 	}
-	result = dB2factorf(result, 1); //Give the current envelope, convert the linear factor to decibels!
 	return result; 
 }
