@@ -578,6 +578,8 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 	float panningtemp, pitchwheeltemp,attenuation,tempattenuation,attenuationcontrol;
 	int_32 addattenuation;
 	byte effectivenote; //Effective note we're playing!
+	byte effectivevelocity; //Effective velocity we're playing!
+	byte effectivenotevelocitytemp;
 
 	MIDIDEVICE_CHANNEL *channel;
 	MIDIDEVICE_NOTE *note;
@@ -705,6 +707,27 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 		return 0; //No samples!
 	}
 
+	effectivevelocity = note->noteon_velocity; //What velocity to use?
+	effectivenote = note->note; //What is the effective note we're playing?
+
+	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, startAddrsOffset, &applyigen))
+	{
+		effectivenotevelocitytemp = LE16(applyigen.genAmount.shAmount); //Apply!
+		if ((effectivenotevelocitytemp>=0) && (effectivenotevelocitytemp<=0x7F)) //In range?
+		{
+			effectivenote = effectivenotevelocitytemp; //Override!
+		}
+	}
+
+	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, startAddrsOffset, &applyigen))
+	{
+		effectivenotevelocitytemp = LE16(applyigen.genAmount.shAmount); //Apply!
+		if ((effectivenotevelocitytemp>=0) && (effectivenotevelocitytemp<=0x7F)) //In range?
+		{
+			effectivevelocity = effectivenotevelocitytemp; //Override!
+		}
+	}
+
 	//Determine the adjusting offsets!
 
 	//Fist, init to defaults!
@@ -777,9 +800,8 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 		rootMIDITone = (sword)voice->sample.byOriginalPitch; //Original MIDI tone!
 	}
 
-	rootMIDITone = (((sword)note->note)-rootMIDITone); //>positive difference, <negative difference.
+	rootMIDITone = (((sword)effectivenote)-rootMIDITone); //>positive difference, <negative difference.
 	//Ammount of MIDI notes too high is in rootMIDITone.
-	effectivenote = note->note; //What is the effective note we're playing?
 
 	cents = 0; //Default: none!
 	cents += voice->sample.chPitchCorrection; //Apply pitch correction for the used sample!
@@ -852,7 +874,7 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 
 	//Apply all settable volume settings!
 	//Note on velocity
-	attenuationcontrol = calcNegativeUnipolarSource(note->noteon_velocity,0x7F); //The source of the attenuation!
+	attenuationcontrol = calcNegativeUnipolarSource(effectivevelocity,0x7F); //The source of the attenuation!
 	addattenuation = 960.0f; //How much to use as a factor (default)!
 	if (lookupSFInstrumentModGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, noteOnVelocityToInitialAttenuation, &applymod)) //Gotten Note On velocity to Initial Attenuation?
 	{
@@ -1156,8 +1178,8 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 	voice->bank = channel->activebank;
 
 	//Final adjustments and set active!
-	ADSR_init((float)voice->sample.dwSampleRate, note->noteon_velocity, &voice->VolumeEnvelope, soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, preset, pbag, delayVolEnv, attackVolEnv, holdVolEnv, decayVolEnv, sustainVolEnv, releaseVolEnv, effectivenote, keynumToVolEnvHold, keynumToVolEnvDecay); //Initialise our Volume Envelope for use!
-	ADSR_init((float)voice->sample.dwSampleRate, note->noteon_velocity, &voice->ModulationEnvelope, soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, preset, pbag, delayModEnv, attackModEnv, holdModEnv, decayModEnv, sustainModEnv, releaseModEnv, effectivenote, keynumToModEnvHold, keynumToModEnvDecay); //Initialise our Modulation Envelope for use!
+	ADSR_init((float)voice->sample.dwSampleRate, effectivevelocity, &voice->VolumeEnvelope, soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, preset, pbag, delayVolEnv, attackVolEnv, holdVolEnv, decayVolEnv, sustainVolEnv, releaseVolEnv, effectivenote, keynumToVolEnvHold, keynumToVolEnvDecay); //Initialise our Volume Envelope for use!
+	ADSR_init((float)voice->sample.dwSampleRate, effectivevelocity, &voice->ModulationEnvelope, soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, preset, pbag, delayModEnv, attackModEnv, holdModEnv, decayModEnv, sustainModEnv, releaseModEnv, effectivenote, keynumToModEnvHold, keynumToModEnvDecay); //Initialise our Modulation Envelope for use!
 	#ifdef MIDI_LOCKSTART
 	unlock(voice->locknumber); //Unlock us!
 	#endif
