@@ -356,7 +356,7 @@ void ADSR_init(float sampleRate, byte velocity, ADSR *adsr, RIFFHEADER *soundfon
 	{
 		decaylength = (uint_32)(sampleRate*cents2samplesfactord((DOUBLE)decay)); //Calculate the ammount of samples!
 	}
-	decaylength = (uint_32)(decay*cents2samplesfactord((DOUBLE)(decayenvfactor*relKeynum))); //Apply key number!
+	decaylength = (uint_32)(decaylength*cents2samplesfactord((DOUBLE)(decayenvfactor*relKeynum))); //Apply key number!
 
 	if (sustain > 1000) sustain = 1000; //Limit of 1000cB!
 	sustainfactor = ((float)(1000-sustain)); //We're on a rate of 1000cB attenuation, normalized!
