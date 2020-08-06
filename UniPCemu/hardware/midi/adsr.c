@@ -167,7 +167,7 @@ OPTINLINE float ADSR_delay(ADSR *adsr, int_64 play_counter, byte sustaining, byt
 	return ADSR_attack(adsr,play_counter,sustaining,release_velocity); //Passthrough!
 }
 
-void ADSR_init(float sampleRate, byte velocity, ADSR *adsr, RIFFHEADER *soundfont, word instrumentptrAmount, word ibag, uint_32 preset, word pbag, word delayLookup, word attackLookup, word holdLookup, word decayLookup, word sustainLookup, word releaseLookup, sword relKeynum, word keynumToEnvHoldLookup, word keynumToEnvDecayLookup) //Initialise an ADSR!
+void ADSR_init(float sampleRate, byte velocity, ADSR *adsr, RIFFHEADER *soundfont, word instrumentptrAmount, word ibag, uint_32 preset, word pbag, word delayLookup, word attackLookup, word holdLookup, word decayLookup, word sustainLookup, word releaseLookup, byte keynum, word keynumToEnvHoldLookup, word keynumToEnvDecayLookup) //Initialise an ADSR!
 {
 	sfGenList applypgen;
 	sfInstGenList applyigen;
@@ -176,6 +176,9 @@ void ADSR_init(float sampleRate, byte velocity, ADSR *adsr, RIFFHEADER *soundfon
 	int_32 delaysetting, attack, hold, decay, sustain, release; //All lengths!
 	uint_32 delaylength, attacklength, holdlength, decaylength, releaselength; //All lengths!
 	float attackfactor, decayfactor, sustainfactor, holdenvfactor, decayenvfactor;
+
+	sword relKeynum;
+	relKeynum = 60-(sword)keynum; //How far are we below 60?
 	
 //Delay
 	delaysetting = -12000; //Default!
