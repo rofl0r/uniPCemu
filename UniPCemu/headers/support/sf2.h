@@ -118,7 +118,7 @@ RIFF
 typedef struct  PACKED { 
  FOURCC ckID; // A chunk ID identifies the type of data within the chunk. 
  DWORD ckSize; // The size of the chunk data in bytes, excluding any pad byte. 
- // DATA THAT FOLLOWS = The actual data plus a pad byte if req’d to word align. 
+ // DATA THAT FOLLOWS = The actual data plus a pad byte if reqï¿½d to word align. 
 } RIFF_DATAENTRY;
 #include "headers/endpacked.h" //We're packed!
 
@@ -309,8 +309,8 @@ enum sfGenerator
 	keyRange = 43,
 	velRange = 44,
 	startloopAddrsCoarseOffset = 45,	// instrument only
-	keynum = 46,				// instrument only
-	velocity = 47,				// instrument only
+	overridingKeynum = 46,				// instrument only
+	overridingVelocity = 47,				// instrument only
 	initialAttenuation = 48,
 	endloopAddrsCoarseOffset = 50,		// instrument only
 	coarseTune = 51,

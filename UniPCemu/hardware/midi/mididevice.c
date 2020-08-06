@@ -710,7 +710,7 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 	effectivevelocity = note->noteon_velocity; //What velocity to use?
 	effectivenote = note->note; //What is the effective note we're playing?
 
-	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, startAddrsOffset, &applyigen))
+	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, overridingKeynum, &applyigen))
 	{
 		effectivenotevelocitytemp = LE16(applyigen.genAmount.shAmount); //Apply!
 		if ((effectivenotevelocitytemp>=0) && (effectivenotevelocitytemp<=0x7F)) //In range?
@@ -719,7 +719,7 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 		}
 	}
 
-	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, startAddrsOffset, &applyigen))
+	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, overridingVelocity, &applyigen))
 	{
 		effectivenotevelocitytemp = LE16(applyigen.genAmount.shAmount); //Apply!
 		if ((effectivenotevelocitytemp>=0) && (effectivenotevelocitytemp<=0x7F)) //In range?
