@@ -250,11 +250,9 @@ void MIDIDEVICE_generateSinusTable()
 #define MIDIDEVICE_chorussinf(value, choruschannel, add1200centsbase) chorussinustable[(uint_32)(value*SINUSTABLE_PERCISION_FLT)][choruschannel][add1200centsbase]
 
 //MIDIvolume: converts a value of the range of maxvalue to a linear volume factor using maxdB dB.
-OPTINLINE float MIDIattenuate(float value, float scale, float numchannels)
+OPTINLINE float MIDIattenuate(float value)
 {
-	if (value > scale) value = scale; //Limit to max!
-	if (value < 0.0f) value = 0.0f; //Limit to min!
-	return (float)powf(10.0f, value / (-200.0f*numchannels)); //Generate default attenuation!
+	return (float)powf(10.0f, value / -200.0f); //Generate default attenuation!
 }
 
 /*
@@ -262,20 +260,17 @@ OPTINLINE float MIDIattenuate(float value, float scale, float numchannels)
 combineAttenuation:
 
 Combine attenuation values with each other to a new single scale.
-parameters:
-	scale: The scale to use for the output
 	
 */
-OPTINLINE float combineAttenuation(float scale, float input1, float input1scale, float input2, float input2scale)
+OPTINLINE float combineAttenuation(float initialAttenuation, float volumeEnvelope)
 {
 	//First, clip!
-	if (input1 > input1scale) input1 = input1scale; //Limit to max!
-	if (input1 < 0.0f) input1 = 0.0f; //Limit to min!
-	if (input2 > input2scale) input2 = input2scale; //Limit to max!
-	if (input2 < 0.0f) input2 = 0.0f; //Limit to min!
+	if (initialAttenuation > 1440.0f) initialAttenuation = 1440.0f; //Limit to max!
+	if (initialAttenuation < 0.0f) initialAttenuation = 0.0f; //Limit to min!
+	if (volumeEnvelope > 1000.0f) volumeEnvelope = 1000.0f; //Limit to max!
+	if (volumeEnvelope < 0.0f) volumeEnvelope = 0.0f; //Limit to min!
 	//Now, combine! Normalize, convert to gain(in relative Bels), combine, convert to attenuation and apply the new scale for the attenuate function.
-	return MIDIattenuate((input1 / input1scale)*scale, input1scale, 2.0f) * MIDIattenuate((input2 / input2scale) * scale, input2scale, 2.0f);
-	return MIDIattenuate(scale * (1.0f-( ((input1scale - input1) / input1scale) * ((input2scale - input2) / input2scale) )),scale,1.0f); //Combine the values of attenuation!
+	return MIDIattenuate(initialAttenuation + (volumeEnvelope*0.96)); //Volume needs to be converted to a 960cB range!
 }
 
 OPTINLINE void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float samplerate, int_32 samplespeedup, MIDIDEVICE_VOICE *voice, float Volume, float Modulation, byte chorus, float chorusvol, byte filterindex, int_32 *lchannelres, int_32 *rchannelres) //Get a sample from an MIDI note!
@@ -373,7 +368,7 @@ OPTINLINE void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, flo
 
 		//First, apply filters and current envelope!
 		applyMIDILowpassFilter(voice, &lchannel, (1000.0f-Modulation)*0.001f, filterindex); //Low pass filter!
-		lchannel *= combineAttenuation(1440.0f,voice->initialAttenuation,1440.0f,Volume,1000.0f); //The volume of the samples including ADSR!
+		lchannel *= combineAttenuation(voice->initialAttenuation,Volume); //The volume of the samples including ADSR!
 		lchannel *= chorusvol; //Apply chorus&reverb volume for this stream!
 		lchannel *= VOLUME; //Apply general volume!
 		//Now the sample is ready for output into the actual final volume!
