@@ -682,6 +682,11 @@ byte playMIDIFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to s
 
 		freeMID(&MID_tracks[0], &MID_data[0], numMIDchannels); //Free all channels!
 
+		if (shuttingdown()) //Shutdown requested?
+		{
+			unlock(LOCK_CPU); //We're finished with the CPU!
+			return MID_TERM?0:1; //Played without termination?
+		}
 		//Clean up the MIDI device for any leftover sound!
 		byte channel;
 		for (channel = 0; channel < 0x10; channel++) //Process all channels!
