@@ -801,7 +801,6 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 	//Ammount of MIDI notes too high is in rootMIDITone.
 
 	cents = 0; //Default: none!
-	cents += voice->sample.chPitchCorrection; //Apply pitch correction for the used sample!
 
 	//Coarse tune...
 	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, coarseTune, &applyigen))
@@ -845,6 +844,10 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 	{
 		tonecents = (int_32)LE16(applygen.genAmount.shAmount); //Apply semitone factor in percent for each tone!
 	}
+
+	cents += voice->sample.chPitchCorrection; //Apply pitch correction for the used sample!
+
+	cents *= (tonecents * 0.01f); //Apply scale tuning to the coarse/fine tuning as well!
 
 	tonecents *= rootMIDITone; //Difference in tones we use is applied to the ammount of cents!
 
