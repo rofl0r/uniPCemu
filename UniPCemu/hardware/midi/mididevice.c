@@ -557,10 +557,12 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	return SOUNDHANDLER_RESULT_FILLED; //We're filled!
 }
 
-//calcNegativeUnipolarSource: Calculates the result of a unipolar source, normalized between 0.x and less than 1.0!
-float calcNegativeUnipolarSource(byte attenuationsetting, byte maxvalmask)
+float unipolarconcavesources[0x80]; //All possible unipolar concave sources!
+
+//calcNegativeUnipolarConcaveSourceMIDI: Calculates the result of a unipolar source, normalized between 0.x and less than 1.0!
+float calcNegativeUnipolarConcaveSourceMIDI(byte attenuationsetting)
 {
-	return (((float)(maxvalmask - (attenuationsetting&maxvalmask)))/(float)(maxvalmask)); //0=Max(127), 127=0(becoming 1) and everything else is in between, linearly!
+	return unipolarconcavesources[attenuationsetting&0x7F]; //Give the result!
 }
 
 OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel, byte request_note)
@@ -869,7 +871,7 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 
 	//Apply all settable volume settings!
 	//Note on velocity
-	attenuationcontrol = calcNegativeUnipolarSource(effectivevelocity,0x7F); //The source of the attenuation!
+	attenuationcontrol = calcNegativeUnipolarConcaveSourceMIDI(effectivevelocity); //The source of the attenuation!
 	addattenuation = 960.0f; //How much to use as a factor (default)!
 	if (lookupSFInstrumentModGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, noteOnVelocityToInitialAttenuation, &applymod)) //Gotten Note On velocity to Initial Attenuation?
 	{
@@ -899,7 +901,7 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 
 	//CC7
 	addattenuation = 960.0f; //How much to use as a factor (default)!
-	attenuationcontrol = calcNegativeUnipolarSource((channel->volumeMSB & 0x7F),0x7F); //The source of the attenuation!
+	attenuationcontrol = calcNegativeUnipolarConcaveSourceMIDI((channel->volumeMSB & 0x7F)); //The source of the attenuation!
 	if (lookupSFInstrumentModGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, continuousController7ToInitialAttenuation, &applymod)) //Gotten MIDI Continuous Controller 7 to Initial Attenuation?
 	{
 		applymod.modAmount = LE16(applymod.modAmount); //Patch!
@@ -928,7 +930,7 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 
 	//CC11
 	addattenuation = 960.0f; //How much to use as a factor (default)!
-	attenuationcontrol = calcNegativeUnipolarSource((channel->expression & 0x7F),0x7F); //The source of the attenuation!
+	attenuationcontrol = calcNegativeUnipolarConcaveSourceMIDI((channel->expression & 0x7F)); //The source of the attenuation!
 	if (lookupSFInstrumentModGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, continuousController11ToInitialAttenuation, &applymod)) //Gotten MIDI Continuous Controller 11 to Initial Attenuation?
 	{
 		applymod.modAmount = LE16(applymod.modAmount); //Patch!
@@ -1769,9 +1771,11 @@ void done_MIDIDEVICE() //Finish our midi device!
 
 byte init_MIDIDEVICE(char *filename, byte use_direct_MIDI) //Initialise MIDI device for usage!
 {
+	word sourceprecalcindex;
 	float MIDI_CHORUS_SINUS_CENTS;
 	MIDI_CHORUS_SINUS_CENTS = (0.5f*CHORUS_LFO_CENTS); //Cents modulation for the outgoing sinus!
 	byte result;
+	float precalcval;
 	#ifdef __HW_DISABLED
 		return 0; //We're disabled!
 	#endif
@@ -1816,6 +1820,17 @@ byte init_MIDIDEVICE(char *filename, byte use_direct_MIDI) //Initialise MIDI dev
 	{
 		choruscents[i] = (MIDI_CHORUS_SINUS_CENTS*(float)i); //Cents used for this chorus!
 	}
+
+	unipolarconcavesources[0] = 1.0f; //0=Full attenuation value!
+	for (sourceprecalcindex = 1; sourceprecalcindex < 0x80; ++sourceprecalcindex) //Precalc all!
+	{
+		//Make a concave trend on non-zero values!
+		precalcval = ((float)sourceprecalcindex / 127.0f); //Linear!
+		precalcval = (precalcval * precalcval); //Squared!
+		precalcval = (-20.0f / 96.0f) * log10f(precalcval); //Convert to the 0.0-0.9 range!
+		unipolarconcavesources[sourceprecalcindex] = precalcval; //Save the precalcs!
+	}
+	unipolarconcavesources[0x7F] = 0.0f; //Special positive output(no attenuation)!
 
 	MIDIDEVICE_generateSinusTable(); //Make sure we can generate sinuses required!
 
