@@ -586,6 +586,7 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 	sfInstGenList sampleptr, applyigen;
 	sfModList applymod;
 	FIFOBUFFER *temp, *chorus_backtrace[CHORUSSIZE];
+	int_32 previousPBag, previousIBag;
 	static uint_64 starttime = 0; //Increasing start time counter (1 each note on)!
 
 	if (memprotect(soundfont,sizeof(*soundfont),"RIFF_FILE")!=soundfont) return 0; //We're unable to render anything!
@@ -650,40 +651,69 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 		return 0;
 	}
 
-	if (!lookupPBagByMIDIKey(soundfont, preset, note->note, note->noteon_velocity, &pbag)) //Preset bag not found?
+	previousPBag = -1; //Default to the first zone to check!
+	previousIBag = -1; //Default to the first zone to check!
+	handleNextPBag:
+	if (!lookupPBagByMIDIKey(soundfont, preset, note->note, note->noteon_velocity, &pbag, previousPBag)) //Preset bag not found?
 	{
-		#ifdef MIDI_LOCKSTART
-		unlock(voice->locknumber); //Lock us!
-		#endif
-		unlockMPURenderer(); //We're finished!
-		return 0; //No samples!
+		if (previousPBag == -1) //Invalid preset zone to play?
+		{
+			#ifdef MIDI_LOCKSTART
+			unlock(voice->locknumber); //Lock us!
+			#endif
+			unlockMPURenderer(); //We're finished!
+			return 0; //No samples!
+		}
+		else //Final zone processed?
+		{
+			goto finishUpZones; //Finish up the zones!
+		}
 	}
 
 	if (!lookupSFPresetGen(soundfont, preset, pbag, instrument, &instrumentptr))
 	{
-		#ifdef MIDI_LOCKSTART
-		unlock(voice->locknumber); //Lock us!
-		#endif
-		unlockMPURenderer(); //We're finished!
-		return 0; //No samples!
+		if (previousPBag == -1) //Invalid note to play?
+		{
+			#ifdef MIDI_LOCKSTART
+			unlock(voice->locknumber); //Lock us!
+			#endif
+			unlockMPURenderer(); //We're finished!
+			return 0; //No samples!
+	}
 	}
 
 	if (!getSFInstrument(soundfont, LE16(instrumentptr.genAmount.wAmount), &currentinstrument))
 	{
-		#ifdef MIDI_LOCKSTART
-		unlock(voice->locknumber); //Lock us!
-		#endif
-		unlockMPURenderer(); //We're finished!
-		return 0;
+		if (previousPBag == -1) //Invalid note to play?
+		{
+			#ifdef MIDI_LOCKSTART
+			unlock(voice->locknumber); //Lock us!
+			#endif
+			unlockMPURenderer(); //We're finished!
+			return 0;
+		}
 	}
 
-	if (!lookupIBagByMIDIKey(soundfont, LE16(instrumentptr.genAmount.wAmount), note->note, note->noteon_velocity, &ibag, 1))
+	handleNextIBag:
+	if (!lookupIBagByMIDIKey(soundfont, LE16(instrumentptr.genAmount.wAmount), note->note, note->noteon_velocity, &ibag, 1, previousIBag))
 	{
-		#ifdef MIDI_LOCKSTART
-		unlock(voice->locknumber); //Lock us!
-		#endif
-		unlockMPURenderer(); //We're finished!
-		return 0; //No samples!
+		if ((previousPBag == -1) && (previousIBag == -1)) //Finished?
+		{
+			#ifdef MIDI_LOCKSTART
+			unlock(voice->locknumber); //Lock us!
+			#endif
+			unlockMPURenderer(); //We're finished!
+			return 0; //No samples!
+		}
+		else //Find the next IBag set?
+		{
+			previousPBag = (int_32)pbag; //Search for the next PBag!
+			previousIBag = -1; //Start looking for the next IBags to apply!
+		}
+	}
+	else //A valid zone has been found! Register it to be used for the next check!
+	{
+		previousIBag = (int_32)ibag; //Check from this IBag onwards!
 	}
 
 	if (!lookupSFInstrumentGen(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, sampleID, &sampleptr))
@@ -1185,6 +1215,8 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 	#endif
 	unlockMPURenderer(); //We're finished!
 	setSampleRate(&MIDIDEVICE_renderer, voice, (float)LE16(voice->sample.dwSampleRate)); //Use this new samplerate!
+	goto handleNextIBag; //Process the next IBag to use!
+	finishUpZones:
 	voice->starttime = starttime++; //Take a new start time!
 	return 0; //Run: we're active!
 }
