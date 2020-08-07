@@ -531,7 +531,10 @@ extern byte coreshutdown; //Core is shutting down?
 void finishMIDplayer()
 {
 	lock(LOCK_INPUT);
-	MID_TERM = 2; //Finish up!
+	if (MID_RUNNING) //Are we playing anything?
+	{
+		MID_TERM = 2; //Finish up!
+	}
 	unlock(LOCK_INPUT);
 }
 
