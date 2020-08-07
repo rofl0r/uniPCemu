@@ -679,12 +679,12 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 			#endif
 			unlockMPURenderer(); //We're finished!
 			return 0; //No samples!
-	}
+		}
 	}
 
 	if (!getSFInstrument(soundfont, LE16(instrumentptr.genAmount.wAmount), &currentinstrument))
 	{
-		if (previousPBag == -1) //Invalid note to play?
+		if (previousPBag == -1) //Finished?
 		{
 			#ifdef MIDI_LOCKSTART
 			unlock(voice->locknumber); //Lock us!
@@ -1210,13 +1210,13 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 	//Final adjustments and set active!
 	ADSR_init((float)voice->sample.dwSampleRate, effectivevelocity, &voice->VolumeEnvelope, soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, preset, pbag, delayVolEnv, attackVolEnv, holdVolEnv, decayVolEnv, sustainVolEnv, releaseVolEnv, effectivenote, keynumToVolEnvHold, keynumToVolEnvDecay); //Initialise our Volume Envelope for use!
 	ADSR_init((float)voice->sample.dwSampleRate, effectivevelocity, &voice->ModulationEnvelope, soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, preset, pbag, delayModEnv, attackModEnv, holdModEnv, decayModEnv, sustainModEnv, releaseModEnv, effectivenote, keynumToModEnvHold, keynumToModEnvDecay); //Initialise our Modulation Envelope for use!
+	goto handleNextIBag; //Process the next IBag to use!
+	finishUpZones:
 	#ifdef MIDI_LOCKSTART
 	unlock(voice->locknumber); //Unlock us!
 	#endif
 	unlockMPURenderer(); //We're finished!
 	setSampleRate(&MIDIDEVICE_renderer, voice, (float)LE16(voice->sample.dwSampleRate)); //Use this new samplerate!
-	goto handleNextIBag; //Process the next IBag to use!
-	finishUpZones:
 	voice->starttime = starttime++; //Take a new start time!
 	return 0; //Run: we're active!
 }
