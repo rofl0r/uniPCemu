@@ -226,7 +226,7 @@ Voice support
 //How many steps to keep!
 #define SINUSTABLE_PERCISION 3600
 #define SINUSTABLE_PERCISION_FLT 3600.0f
-#define SINUSTABLE_PERCISION_REVERSE (1.0f/SINUSTABLE_PERCISION_FLT)
+#define SINUSTABLE_PERCISION_REVERSE ((1.0f/(2.0f*PI))*(1.0f/(SINUSTABLE_PERCISION_FLT)))
 
 int_32 chorussinustable[SINUSTABLE_PERCISION][2][2]; //10x percision steps of sinus! With 1.0 added always!
 float sinustable_percision_reverse = 1.0f; //Reverse lookup!
@@ -239,7 +239,7 @@ void MIDIDEVICE_generateSinusTable()
 	{
 		for (choruschannel=0;choruschannel<2;++choruschannel) //All channels!
 		{
-			chorussinustable[x][choruschannel][0] = (int_32)((sinf((float)((x/SINUSTABLE_PERCISION_FLT))*360.0f)+1.0f)*choruscents[choruschannel]); //Generate sinus lookup table, negative!
+			chorussinustable[x][choruschannel][0] = (int_32)((sinf((float)(((float)x/SINUSTABLE_PERCISION_FLT))*2.0f*PI)+1.0f)*choruscents[choruschannel]); //Generate sinus lookup table, negative!
 			chorussinustable[x][choruschannel][1] = (int_32)(chorussinustable[x][choruschannel][0]+1200.0f); //Generate sinus lookup table, with cents base added, negative!
 		}
 	}
@@ -247,7 +247,7 @@ void MIDIDEVICE_generateSinusTable()
 }
 
 //Absolute to get the amount of degrees, converted to a -1.0 to 1.0 scale!
-#define MIDIDEVICE_chorussinf(value, choruschannel, add1200centsbase) chorussinustable[(uint_32)(value*SINUSTABLE_PERCISION_FLT)][choruschannel][add1200centsbase]
+#define MIDIDEVICE_chorussinf(value, choruschannel, add1200centsbase) chorussinustable[(uint_32)(value)][choruschannel][add1200centsbase]
 
 //MIDIvolume: converts a value of the range of maxvalue to a linear volume factor using maxdB dB.
 OPTINLINE float MIDIattenuate(float value)
@@ -1099,7 +1099,7 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 		voice->lowpass_modulationratio[chorusreverbdepth] = 1200.0f; //Default ratio: no modulation!
 		voice->lowpass_modulationratiosamples[chorusreverbdepth] = voice->lowpassfilter_freq; //Default ratio: no modulation!
 		voice->chorusdelay[chorusreverbdepth] = (uint_32)((chorus_delay[chorusreverbdepth])*(float)LE16(voice->sample.dwSampleRate)); //Total delay to apply for this channel!
-		voice->chorussinpos[chorusreverbdepth] = fmodf((float)voice->chorusdelay[chorusreverbdepth],360.0f)*sinustable_percision_reverse; //Initialize the starting chorus sin position for the first sample!
+		voice->chorussinpos[chorusreverbdepth] = fmodf((float)voice->chorusdelay[chorusreverbdepth]*MIDI_CHORUS_SINUS_BASE,(2*(float)PI))*sinustable_percision_reverse; //Initialize the starting chorus sin position for the first sample!
 		voice->chorussinposstep = MIDI_CHORUS_SINUS_BASE*(1.0f/(float)LE32(voice->sample.dwSampleRate))*sinustable_percision_reverse; //How much time to add to the chorus sinus after each sample
 		voice->isfinalchannel_chorus[chorusreverbdepth] = (chorusreverbdepth==(CHORUSSIZE-1)); //Are we the final channel?
 		voice->lowpass_dirty[chorusreverbdepth] = 0; //We're not dirty anymore by default: we're loaded!
