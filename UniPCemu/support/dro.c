@@ -347,6 +347,16 @@ void clearTime()
 float speedup = 1.0f; //How much speed to apply? 1.0=100% speed!
 DROPLAYER *droplayer = NULL; //No DRO file playing!
 
+void finishDROPlayer()
+{
+	if (droplayer) //Registered?
+	{
+		freez((void**)&droplayer->stream, droplayer->datasize, "DROFILE");
+		clearTime(); //Clear our time displayed!
+		droplayer = NULL; //Destroy the player: we're finished!
+	}
+}
+
 void stepDROPlayer(DOUBLE timepassed)
 {
 	if (droplayer) //Are we playing anything?
@@ -445,9 +455,7 @@ void stepDROPlayer(DOUBLE timepassed)
 				OPLXsetreg(droplayer->droversion, droplayer->newheader.iHardwareType,0,(droplayer->w&0x7F),&droplayer->CodemapTable[0], droplayer->newheader.iCodemapLength,0); //Clear all registers, as per the DR0 specification!
 				OPLXsetreg(droplayer->droversion, droplayer->newheader.iHardwareType,1,(droplayer->w&0x7F),&droplayer->CodemapTable[0], droplayer->newheader.iCodemapLength,0); //Clear all registers, as per the DR0 specification!
 			}
-			freez((void **)&droplayer->stream,droplayer->datasize,"DROFILE");
-			clearTime(); //Clear our time displayed!
-			droplayer = NULL; //Destroy the player: we're finished!
+			finishDROPlayer(); //Finish our player!
 		}
 	}
 	continueplayer: return; //Continue playing!

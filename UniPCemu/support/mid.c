@@ -528,6 +528,13 @@ OPTINLINE byte updateMIDIStream(word channel, byte *midi_stream, HEADER_CHNK *he
 
 extern byte coreshutdown; //Core is shutting down?
 
+void finishMIDplayer()
+{
+	lock(LOCK_INPUT);
+	MID_TERM = 2; //Finish up!
+	unlock(LOCK_INPUT);
+}
+
 DOUBLE MID_timing = 0.0; //Timing of a playing MID file!
 void updateMIDIPlayer(DOUBLE timepassed)
 {
@@ -636,7 +643,7 @@ byte playMIDIFile(char *filename, byte showinfo) //Play a MIDI file, CIRCLE to s
 			unlock(LOCK_CPU); //Unlock us!
 			delay(1000000); //Wait little intervals to update status display!
 			lock(LOCK_CPU); //Lock us!
-			if (MID_RUNNING==0)
+			if (MID_RUNNING==0) //Stopped playing or shutting down?
 			{
 				running = 0; //Not running anymore!
 			}

@@ -24,4 +24,5 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 byte playDROFile(char *filename, byte showinfo); //Play a MIDI file, CIRCLE to stop playback!
 
 void stepDROPlayer(DOUBLE timepassed); //CPU handler for playing DRO files!
+void finishDROPlayer();
 #endif

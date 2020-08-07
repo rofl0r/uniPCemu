@@ -27,5 +27,6 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 
 byte playMIDIFile(char *filename, byte showinfo); //Play a MIDI file, CIRCLE to stop playback! Cancelled/error loading returns 0, 1 on success playing.
 void updateMIDIPlayer(DOUBLE timepassed); //Update the running MIDI player!
+void finishMIDplayer();
 
 #endif

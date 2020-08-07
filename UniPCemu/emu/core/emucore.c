@@ -663,6 +663,10 @@ void doneEMU()
 {
 	if (emu_started) //Started?
 	{
+		debugrow("doneEMU: Finishing MID player...");
+		finishMIDplayer(); //Finish the MID player!
+		debugrow("doneEMU: Finishing DRO player...");
+		finishDROPlayer(); //Finish the DRO player!
 		debugrow("doneEMU: resetTimers");
 		resetTimers(); //Stop the timers!
 		debugrow("doneEMU: Finishing joystick...");
