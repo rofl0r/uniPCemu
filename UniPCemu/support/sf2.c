@@ -1322,7 +1322,7 @@ trypreset0:
 	return 1; //We've found our preset!
 }
 
-byte lookupPBagByMIDIKey(RIFFHEADER *sf, uint_32 preset, byte MIDIKey, byte MIDIVelocity, word *result)
+byte lookupPBagByMIDIKey(RIFFHEADER *sf, uint_32 preset, byte MIDIKey, byte MIDIVelocity, word *result, int_32 previousPBag)
 {
 	word PBag; //Preset(instrument) bag!
 	sfGenList pgen, pgen2;
@@ -1334,6 +1334,10 @@ byte lookupPBagByMIDIKey(RIFFHEADER *sf, uint_32 preset, byte MIDIKey, byte MIDI
 		PBag = LE16(currentpreset.wPresetBagNdx); //Load the first preset bag!
 		for (;isValidPresetZone(sf,preset,PBag);) //Valid zone?
 		{
+			if ((previousPBag >= 0) && (PBag <= previousPBag)) //To skip?
+			{
+				goto skipPBag; //Skip this PBag for the lookup!
+			}
 			if (!isGlobalPresetZone(sf,preset,PBag)) //Not a global zone?
 			{
 				gotpgen = lookupSFPresetGen(sf,preset,PBag,velRange,&pgen2); //Velocity lookup!
@@ -1364,13 +1368,14 @@ byte lookupPBagByMIDIKey(RIFFHEADER *sf, uint_32 preset, byte MIDIKey, byte MIDI
 					}
 				}
 			}
+			skipPBag:
 			++PBag; //Next zone!
 		}
 	}
 	return 0; //Not found!
 }
 
-byte lookupIBagByMIDIKey(RIFFHEADER *sf, word instrument, byte MIDIKey, byte MIDIVelocity, word *result, byte RequireInstrument)
+byte lookupIBagByMIDIKey(RIFFHEADER *sf, word instrument, byte MIDIKey, byte MIDIVelocity, word *result, byte RequireInstrument, int_32 previousIBag)
 {
 	word IBag; //Instrument(note) bag!
 	sfInstGenList igen, igen2;
@@ -1383,6 +1388,10 @@ byte lookupIBagByMIDIKey(RIFFHEADER *sf, word instrument, byte MIDIKey, byte MID
 		IBag = LE16(currentinstrument.wInstBagNdx); //Load the first preset bag!
 		for (;isValidInstrumentZone(sf,instrument,IBag);) //Valid zone?
 		{
+			if ((previousIBag >= 0) && (IBag <= previousIBag)) //To skip?
+			{
+				goto skipIBag; //Skip this PBag for the lookup!
+			}
 			if (!isGlobalInstrumentZone(sf,instrument,IBag))
 			{
 				//Sample lookup/verification!
@@ -1426,6 +1435,7 @@ byte lookupIBagByMIDIKey(RIFFHEADER *sf, word instrument, byte MIDIKey, byte MID
 					//No valid velocity/key/sampleid!
 				}
 			}
+			skipIBag:
 			++IBag; //Next zone!
 		}
 	}

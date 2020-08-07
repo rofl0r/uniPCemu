@@ -478,8 +478,8 @@ byte lookupSFInstrumentMod(RIFFHEADER *sf, word instrument, word IBag, SFModulat
 byte lookupSFInstrumentGen(RIFFHEADER *sf, word instrument, word IBag, SFGenerator sfGenOper, sfInstGenList *result);
 
 byte lookupPresetByInstrument(RIFFHEADER *sf, word preset, word bank, uint_32 *result);
-byte lookupPBagByMIDIKey(RIFFHEADER *sf, uint_32 preset, byte MIDIKey, byte MIDIVelocity, word *result);
-byte lookupIBagByMIDIKey(RIFFHEADER *sf, word instrument, byte MIDIKey, byte MIDIVelocity, word *result, byte RequireInstrument);
+byte lookupPBagByMIDIKey(RIFFHEADER *sf, uint_32 preset, byte MIDIKey, byte MIDIVelocity, word *result, int_32 previousPBag);
+byte lookupIBagByMIDIKey(RIFFHEADER *sf, word instrument, byte MIDIKey, byte MIDIVelocity, word *result, byte RequireInstrument, int_32 previousIBag);
 
 /* Global and normal lookup of data (global variations of the normal support) */
 byte lookupSFPresetModGlobal(RIFFHEADER *sf, uint_32 preset, word PBag, SFModulator sfModSrcOper, sfModList *result);
