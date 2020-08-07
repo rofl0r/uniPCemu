@@ -534,6 +534,7 @@ void finishMIDplayer()
 	if (MID_RUNNING) //Are we playing anything?
 	{
 		MID_TERM = 2; //Finish up!
+		MID_RUNNING = 0; //Not running anymore!
 	}
 	unlock(LOCK_INPUT);
 }
