@@ -565,7 +565,7 @@ float calcNegativeUnipolarConcaveSourceMIDI(byte attenuationsetting)
 	return unipolarconcavesources[attenuationsetting&0x7F]; //Give the result!
 }
 
-OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel, byte request_note)
+OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel, byte request_note, byte voicenumber)
 {
 	const float MIDI_CHORUS_SINUS_BASE = 2.0f*(float)PI*CHORUS_LFO_FREQUENCY; //MIDI Sinus Base for chorus effects!
 	word pbag, ibag, chorusreverbdepth, chorusreverbchannel;
@@ -577,6 +577,7 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 	byte effectivenote; //Effective note we're playing!
 	byte effectivevelocity; //Effective velocity we're playing!
 	byte effectivenotevelocitytemp;
+	word voicecounter;
 
 	MIDIDEVICE_CHANNEL *channel;
 	MIDIDEVICE_NOTE *note;
@@ -585,6 +586,7 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 	sfInst currentinstrument;
 	sfInstGenList sampleptr, applyigen;
 	sfModList applymod;
+	sfSample sampleInfo;
 	FIFOBUFFER *temp, *chorus_backtrace[CHORUSSIZE];
 	int_32 previousPBag, previousIBag;
 	static uint_64 starttime = 0; //Increasing start time counter (1 each note on)!
@@ -595,41 +597,10 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 	#ifdef MIDI_LOCKSTART
 	lock(voice->locknumber); //Lock us!
 	#endif
-	if (voice->VolumeEnvelope.active)
-	{
-		#ifdef MIDI_LOCKSTART
-		unlock(voice->locknumber); //Lock us!
-		#endif
-		unlockMPURenderer(); //We're finished!
-		return 1; //Active voices can't be allocated!
-	}
-
-	//Check for requested voices!
-	//First, all our variables!
-	temp = voice->effect_backtrace_samplespeedup; //Back-up the effect backtrace!
-	for (chorusreverbdepth=0;chorusreverbdepth<CHORUSSIZE;++chorusreverbdepth)
-	{
-		chorus_backtrace[chorusreverbdepth] = voice->effect_backtrace_chorus[chorusreverbdepth]; //Back-up!
-	}
-	memset(voice,0,sizeof(*voice)); //Clear the entire channel!
-	voice->effect_backtrace_samplespeedup = temp; //Restore our buffer!
-	for (chorusreverbdepth=0;chorusreverbdepth<CHORUSSIZE;++chorusreverbdepth)
-	{
-		voice->effect_backtrace_chorus[chorusreverbdepth] = chorus_backtrace[chorusreverbdepth]; //Restore!
-	}
-	fifobuffer_clear(voice->effect_backtrace_samplespeedup); //Clear our history buffer!
-	for (chorusreverbdepth=0;chorusreverbdepth<CHORUSSIZE;++chorusreverbdepth) //Initialize all chorus histories!
-	{
-		fifobuffer_clear(voice->effect_backtrace_chorus[chorusreverbdepth]); //Clear our history buffer!
-	}
-	
-	//Now, determine the actual note to be turned on!
-	voice->channel = channel = &MIDI_channels[request_channel]; //What channel!
-	voice->note = note = &voice->channel->notes[request_note]; //What note!
-
-	voice->play_counter = 0; //Reset play counter!
 
 	//First, our precalcs!
+	channel = &MIDI_channels[request_channel]; //What channel!
+	note = &channel->notes[request_note]; //What note!
 
 	//Now retrieve our note by specification!
 
@@ -653,6 +624,8 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 
 	previousPBag = -1; //Default to the first zone to check!
 	previousIBag = -1; //Default to the first zone to check!
+
+	voicecounter = 0; //Find the first or next voice to allocate, if any!
 	handleNextPBag:
 	if (!lookupPBagByMIDIKey(soundfont, preset, note->note, note->noteon_velocity, &pbag, previousPBag)) //Preset bag not found?
 	{
@@ -666,7 +639,11 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 		}
 		else //Final zone processed?
 		{
-			goto finishUpZones; //Finish up the zones!
+			#ifdef MIDI_LOCKSTART
+			unlock(voice->locknumber); //Lock us!
+			#endif
+			unlockMPURenderer(); //We're finished!
+			return 0; //Active voices can't be allocated!
 		}
 	}
 
@@ -705,10 +682,11 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 			unlockMPURenderer(); //We're finished!
 			return 0; //No samples!
 		}
-		else //Find the next IBag set?
+		else //Find the next IBag set on the preset?
 		{
 			previousPBag = (int_32)pbag; //Search for the next PBag!
 			previousIBag = -1; //Start looking for the next IBags to apply!
+			goto handleNextPBag; //Handle the next PBag, if any!
 		}
 	}
 	else //A valid zone has been found! Register it to be used for the next check!
@@ -725,7 +703,7 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 		return 0; //No samples!
 	}
 
-	if (!getSFSampleInformation(soundfont, LE16(sampleptr.genAmount.wAmount), &voice->sample))
+	if (!getSFSampleInformation(soundfont, LE16(sampleptr.genAmount.wAmount), &sampleInfo)) //Load the used sample information!
 	{
 		#ifdef MIDI_LOCKSTART
 		unlock(voice->locknumber); //Lock us!
@@ -733,6 +711,52 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 		unlockMPURenderer(); //We're finished!
 		return 0; //No samples!
 	}
+
+	if (voicecounter++ != voicenumber) //Not the voice number we're searching?
+	{
+		//Find the next voice instead!
+		goto handleNextIBag; //Find the next IBag to use!
+	}
+
+	//A requested voice counter has been found!
+
+	//If we reach here, the voice is valid and needs to be properly allocated!
+
+	if (voice->VolumeEnvelope.active) //Already active? Needs voice stealing to work!
+	{
+		#ifdef MIDI_LOCKSTART
+		unlock(voice->locknumber); //Lock us!
+		#endif
+		unlockMPURenderer(); //We're finished!
+		return -1; //Active voices can't be allocated! Request voice stealing or an available channel!
+	}
+
+	//Initialize the requested voice!
+	//First, all our voice-specific variables and precalcs!
+	temp = voice->effect_backtrace_samplespeedup; //Back-up the effect backtrace!
+	for (chorusreverbdepth = 0; chorusreverbdepth < CHORUSSIZE; ++chorusreverbdepth)
+	{
+		chorus_backtrace[chorusreverbdepth] = voice->effect_backtrace_chorus[chorusreverbdepth]; //Back-up!
+	}
+	memset(voice, 0, sizeof(*voice)); //Clear the entire channel!
+	voice->effect_backtrace_samplespeedup = temp; //Restore our buffer!
+	for (chorusreverbdepth = 0; chorusreverbdepth < CHORUSSIZE; ++chorusreverbdepth)
+	{
+		voice->effect_backtrace_chorus[chorusreverbdepth] = chorus_backtrace[chorusreverbdepth]; //Restore!
+	}
+	fifobuffer_clear(voice->effect_backtrace_samplespeedup); //Clear our history buffer!
+	for (chorusreverbdepth = 0; chorusreverbdepth < CHORUSSIZE; ++chorusreverbdepth) //Initialize all chorus histories!
+	{
+		fifobuffer_clear(voice->effect_backtrace_chorus[chorusreverbdepth]); //Clear our history buffer!
+	}
+
+	memcpy(&voice->sample, &sampleInfo, sizeof(sampleInfo)); //Load the active sample info to become active for the allocated voice!
+
+	//Now, determine the actual note to be turned on!
+	voice->channel = channel; //What channel!
+	voice->note = note; //What note!
+
+	voice->play_counter = 0; //Reset play counter!
 
 	effectivevelocity = note->noteon_velocity; //What velocity to use?
 	effectivenote = note->note; //What is the effective note we're playing?
@@ -1210,15 +1234,14 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 	//Final adjustments and set active!
 	ADSR_init((float)voice->sample.dwSampleRate, effectivevelocity, &voice->VolumeEnvelope, soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, preset, pbag, delayVolEnv, attackVolEnv, holdVolEnv, decayVolEnv, sustainVolEnv, releaseVolEnv, effectivenote, keynumToVolEnvHold, keynumToVolEnvDecay); //Initialise our Volume Envelope for use!
 	ADSR_init((float)voice->sample.dwSampleRate, effectivevelocity, &voice->ModulationEnvelope, soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, preset, pbag, delayModEnv, attackModEnv, holdModEnv, decayModEnv, sustainModEnv, releaseModEnv, effectivenote, keynumToModEnvHold, keynumToModEnvDecay); //Initialise our Modulation Envelope for use!
-	goto handleNextIBag; //Process the next IBag to use!
-	finishUpZones:
+
 	#ifdef MIDI_LOCKSTART
 	unlock(voice->locknumber); //Unlock us!
 	#endif
 	unlockMPURenderer(); //We're finished!
 	setSampleRate(&MIDIDEVICE_renderer, voice, (float)LE16(voice->sample.dwSampleRate)); //Use this new samplerate!
 	voice->starttime = starttime++; //Take a new start time!
-	return 0; //Run: we're active!
+	return 1; //Run: we're active!
 }
 
 /* Execution flow support */
@@ -1339,6 +1362,10 @@ void MIDIDEVICE_ActiveSenseInit()
 OPTINLINE void MIDIDEVICE_noteOn(byte selectedchannel, byte channel, byte note, byte velocity)
 {
 	byte purpose;
+	word requestedvoice;
+	byte newvoiceresult;
+	word voicelimit;
+	voicelimit = __MIDI_NUMVOICES; //Amount of voices that can be allocated!
 
 	if (MIDIDEVICE_FilterChannelVoice(selectedchannel,channel)) //To be applied?
 	{
@@ -1347,6 +1374,8 @@ OPTINLINE void MIDIDEVICE_noteOn(byte selectedchannel, byte channel, byte note, 
 			MIDIDEVICE_AllNotesOff(selectedchannel,channel); //Turn all notes off first!
 		}
 		MIDI_channels[channel].notes[note].noteon_velocity = velocity; //Add velocity to our lookup!
+		requestedvoice = 0; //Try to allocate the first voice, if any!
+		nextRequestedVoice: //Perform the next requested voice!
 		purpose = (channel==MIDI_DRUMCHANNEL)?1:0; //Are we a drum channel?
 		int voice, foundvoice = -1, voicetosteal = -1;
 		int_32 stolenvoiceranking = 0, currentranking; //Stolen voice ranking starts lowest always!
@@ -1354,8 +1383,12 @@ OPTINLINE void MIDIDEVICE_noteOn(byte selectedchannel, byte channel, byte note, 
 		{
 			if (activevoices[voice].purpose==purpose) //Our type of channel (drums vs melodic channels)?
 			{
-				if (MIDIDEVICE_newvoice(&activevoices[voice], channel, note)) //Failed to allocate?
+				if ((newvoiceresult = MIDIDEVICE_newvoice(&activevoices[voice], channel, note, requestedvoice))!=0) //Needs voice stealing or made active?
 				{
+					if (newvoiceresult == 1) //Allocated and made active? We don't need to steal any voices!
+					{
+						goto nextallocation; //Perform the next allocation!
+					}
 					#ifdef MIDI_LOCKSTART
 					lock(activevoices[voice].locknumber); //Lock us!
 					#endif
@@ -1403,10 +1436,9 @@ OPTINLINE void MIDIDEVICE_noteOn(byte selectedchannel, byte channel, byte note, 
 					unlock(activevoices[voice].locknumber); //unlock us!
 					#endif
 				}
-				else //Allocated?
+				else //Not allocated?
 				{
-					foundvoice = voice; //Found this voice!
-					break; //Stop searching!
+					return; //Nothing to allocate! We're finished adding all available voices!
 				}
 			}
 		}
@@ -1424,10 +1456,17 @@ OPTINLINE void MIDIDEVICE_noteOn(byte selectedchannel, byte channel, byte note, 
 				unlock(activevoices[voicetosteal].locknumber); //unlock us!
 				#endif
 				unlockMPURenderer();
-				MIDIDEVICE_newvoice(&activevoices[voicetosteal], channel,note); //Steal the selected voice!
+				newvoiceresult = MIDIDEVICE_newvoice(&activevoices[voicetosteal], channel,note,requestedvoice); //Steal the selected voice!
 			}
 		}
+		nextallocation: //Check for any next voice to allocate!
 		//Else: allocated!
+		++requestedvoice; //The next voice to check!
+		if (requestedvoice >= voicelimit) //More than the maximum amount of voices allocated?
+		{
+			return; //Finish up!
+		}
+		goto nextRequestedVoice; //Handle the next requested voice!
 	}
 }
 
