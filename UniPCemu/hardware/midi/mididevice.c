@@ -565,7 +565,7 @@ float calcNegativeUnipolarConcaveSourceMIDI(byte attenuationsetting)
 	return unipolarconcavesources[attenuationsetting&0x7F]; //Give the result!
 }
 
-OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel, byte request_note, byte voicenumber)
+OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel, byte request_note, byte voicenumber)
 {
 	const float MIDI_CHORUS_SINUS_BASE = 2.0f*(float)PI*CHORUS_LFO_FREQUENCY; //MIDI Sinus Base for chorus effects!
 	word pbag, ibag, chorusreverbdepth, chorusreverbchannel;
@@ -1363,7 +1363,7 @@ OPTINLINE void MIDIDEVICE_noteOn(byte selectedchannel, byte channel, byte note, 
 {
 	byte purpose;
 	word requestedvoice;
-	byte newvoiceresult;
+	sbyte newvoiceresult;
 	word voicelimit;
 	voicelimit = __MIDI_NUMVOICES; //Amount of voices that can be allocated!
 
