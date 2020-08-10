@@ -351,7 +351,7 @@ void finishDROPlayer()
 {
 	if (droplayer) //Registered?
 	{
-		freez((void**)&droplayer->stream, droplayer->datasize, "DROFILE");
+		freez((void**)&droplayer->data, droplayer->datasize, "DROFILE");
 		clearTime(); //Clear our time displayed!
 		droplayer = NULL; //Destroy the player: we're finished!
 	}
