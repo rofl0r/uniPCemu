@@ -583,6 +583,7 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 	byte effectivenotevelocitytemp;
 	word voicecounter;
 	byte purposebackup;
+	byte activeloopflags;
 
 	MIDIDEVICE_CHANNEL *channel;
 	MIDIDEVICE_NOTE *note;
@@ -743,6 +744,26 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, endloopAddrsCoarseOffset, &applyigen))
 	{
 		endloopaddressoffset += (LE16(applyigen.genAmount.shAmount) << 15); //Apply!
+	}
+
+	//Apply loop flags!
+	activeloopflags = 0; //Default: no looping!
+	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, sampleModes, &applyigen)) //Gotten looping?
+	{
+		switch (LE16(applyigen.genAmount.wAmount)) //What loop?
+		{
+		case GEN_SAMPLEMODES_LOOP: //Always loop?
+			activeloopflags = 1; //Always loop!
+			break;
+		case GEN_SAMPLEMODES_LOOPUNTILDEPRESSDONE: //Loop until depressed!
+			activeloopflags = 3; //Loop until depressed!
+			break;
+		case GEN_SAMPLEMODES_NOLOOP: //No loop?
+		case GEN_SAMPLEMODES_NOLOOP2: //No loop?
+		default:
+			//Do nothing!
+			break;
+		}
 	}
 
 	//Check the offsets against the available samples first, before starting to allocate a voice?
@@ -1195,24 +1216,7 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 	voice->CurrentModulationEnvelope = 0.0f; //Default: nothing tet, so no modulation!
 
 	//Apply loop flags!
-	voice->currentloopflags = 0; //Default: no looping!
-	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, sampleModes, &applyigen)) //Gotten looping?
-	{
-		switch (LE16(applyigen.genAmount.wAmount)) //What loop?
-		{
-		case GEN_SAMPLEMODES_LOOP: //Always loop?
-			voice->currentloopflags = 1; //Always loop!
-			break;
-		case GEN_SAMPLEMODES_LOOPUNTILDEPRESSDONE: //Loop until depressed!
-			voice->currentloopflags = 3; //Loop until depressed!
-			break;
-		case GEN_SAMPLEMODES_NOLOOP: //No loop?
-		case GEN_SAMPLEMODES_NOLOOP2: //No loop?
-		default:
-			//Do nothing!
-			break;
-		}
-	}
+	voice->currentloopflags = activeloopflags; //Looping setting!
 
 	//Save our instrument we're playing!
 	voice->instrument = channel->program;
