@@ -703,19 +703,19 @@ OPTINLINE byte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel
 		return 0; //No samples!
 	}
 
-	if (!getSFSampleInformation(soundfont, LE16(sampleptr.genAmount.wAmount), &sampleInfo)) //Load the used sample information!
-	{
-		#ifdef MIDI_LOCKSTART
-		unlock(voice->locknumber); //Lock us!
-		#endif
-		unlockMPURenderer(); //We're finished!
-		return 0; //No samples!
-	}
-
 	if (voicecounter++ != voicenumber) //Not the voice number we're searching?
 	{
 		//Find the next voice instead!
 		goto handleNextIBag; //Find the next IBag to use!
+	}
+
+	if (!getSFSampleInformation(soundfont, LE16(sampleptr.genAmount.wAmount), &sampleInfo)) //Load the used sample information!
+	{
+#ifdef MIDI_LOCKSTART
+		unlock(voice->locknumber); //Lock us!
+#endif
+		unlockMPURenderer(); //We're finished!
+		return -2; //No sample for this split! We can't render!
 	}
 
 	//A requested voice counter has been found!
@@ -1385,7 +1385,7 @@ OPTINLINE void MIDIDEVICE_noteOn(byte selectedchannel, byte channel, byte note, 
 			{
 				if ((newvoiceresult = MIDIDEVICE_newvoice(&activevoices[voice], channel, note, requestedvoice))!=0) //Needs voice stealing or made active?
 				{
-					if (newvoiceresult == 1) //Allocated and made active? We don't need to steal any voices!
+					if ((newvoiceresult == 1) || (newvoiceresult==-2)) //Allocated and made active(1)? Or can't render(-2)? We don't need to steal any voices!
 					{
 						goto nextallocation; //Perform the next allocation!
 					}
