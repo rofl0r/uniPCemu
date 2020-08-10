@@ -704,10 +704,10 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 	//Determine the adjusting offsets!
 
 	//Fist, init to defaults!
-	startaddressoffset = LE32(voice->sample.dwStart);
-	endaddressoffset = LE32(voice->sample.dwEnd);
-	startloopaddressoffset = LE32(voice->sample.dwStartloop);
-	endloopaddressoffset = LE32(voice->sample.dwEndloop);
+	startaddressoffset = LE32(sampleInfo.dwStart);
+	endaddressoffset = LE32(sampleInfo.dwEnd);
+	startloopaddressoffset = LE32(sampleInfo.dwStartloop);
+	endloopaddressoffset = LE32(sampleInfo.dwEndloop);
 
 	//Next, apply generators!
 	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, startAddrsOffset, &applyigen))
@@ -768,6 +768,19 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 
 	//Check the offsets against the available samples first, before starting to allocate a voice?
 	//Return -2 if so(can't render voice)!
+
+	loopsize = endloopaddressoffset; //End of the loop!
+	loopsize -= startloopaddressoffset; //Size of the loop!
+	voice->loopsize = loopsize; //Save the loop size!
+
+	if ((loopsize==0) && activeloopflags) //Invalid loop to render?
+	{
+#ifdef MIDI_LOCKSTART
+		unlock(voice->locknumber); //Lock us!
+#endif
+		unlockMPURenderer(); //We're finished!
+		return -2; //No samples for this split! We can't render!
+	}
 
 	//A requested voice counter has been found!
 
@@ -839,8 +852,6 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 	voice->endloopaddressoffset = endloopaddressoffset;
 
 	//Determine the loop size!
-	loopsize = endloopaddressoffset; //End of the loop!
-	loopsize -= startloopaddressoffset; //Size of the loop!
 	voice->loopsize = loopsize; //Save the loop size!
 
 	//Now, calculate the speedup according to the note applied!
