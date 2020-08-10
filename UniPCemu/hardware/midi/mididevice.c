@@ -568,6 +568,7 @@ float calcNegativeUnipolarConcaveSourceMIDI(byte attenuationsetting)
 	return unipolarconcavesources[attenuationsetting&0x7F]; //Give the result!
 }
 
+//result: 0=Finished not renderable, -1=Requires empty channel(voice stealing?), 1=Allocated, -2=Can't render, request next voice.
 OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel, byte request_note, byte voicenumber)
 {
 	const float MIDI_CHORUS_SINUS_BASE = 2.0f*(float)PI*CHORUS_LFO_FREQUENCY; //MIDI Sinus Base for chorus effects!
@@ -614,7 +615,7 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 		unlock(voice->locknumber); //Lock us!
 		#endif
 		unlockMPURenderer(); //We're finished!
-		return 0; //No samples!
+		return 0; //Not renderable!
 	}
 
 	if (!getSFPreset(soundfont, preset, &currentpreset))
@@ -623,7 +624,7 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 		unlock(voice->locknumber); //Lock us!
 		#endif
 		unlockMPURenderer(); //We're finished!
-		return 0;
+		return 0; //Not renderable!
 	}
 
 	previousPBag = -1; //Default to the first zone to check!
@@ -639,7 +640,7 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 			unlock(voice->locknumber); //Lock us!
 			#endif
 			unlockMPURenderer(); //We're finished!
-			return 0; //No samples!
+			return 0; //Not renderable!
 		}
 		else //Final zone processed?
 		{
@@ -647,64 +648,32 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 			unlock(voice->locknumber); //Lock us!
 			#endif
 			unlockMPURenderer(); //We're finished!
-			return 0; //Active voices can't be allocated!
+			return 0; //Not renderable!
 		}
 	}
 
 	if (!lookupSFPresetGen(soundfont, preset, pbag, instrument, &instrumentptr))
 	{
-		if (previousPBag == -1) //Invalid note to play?
-		{
-			#ifdef MIDI_LOCKSTART
-			unlock(voice->locknumber); //Lock us!
-			#endif
-			unlockMPURenderer(); //We're finished!
-			return 0; //No samples!
-		}
+		previousPBag = (int_32)pbag; //Search for the next PBag!
+		goto handleNextPBag; //Handle the next PBag, if any!
 	}
 
 	if (!getSFInstrument(soundfont, LE16(instrumentptr.genAmount.wAmount), &currentinstrument))
 	{
-		if (previousPBag == -1) //Finished?
-		{
-			#ifdef MIDI_LOCKSTART
-			unlock(voice->locknumber); //Lock us!
-			#endif
-			unlockMPURenderer(); //We're finished!
-			return 0;
-		}
+		previousPBag = (int_32)pbag; //Search for the next PBag!
+		goto handleNextPBag; //Handle the next PBag, if any!
 	}
 
 	handleNextIBag:
 	if (!lookupIBagByMIDIKey(soundfont, LE16(instrumentptr.genAmount.wAmount), note->note, note->noteon_velocity, &ibag, 1, previousIBag))
 	{
-		if ((previousPBag == -1) && (previousIBag == -1)) //Finished?
-		{
-			#ifdef MIDI_LOCKSTART
-			unlock(voice->locknumber); //Lock us!
-			#endif
-			unlockMPURenderer(); //We're finished!
-			return 0; //No samples!
-		}
-		else //Find the next IBag set on the preset?
-		{
-			previousPBag = (int_32)pbag; //Search for the next PBag!
-			previousIBag = -1; //Start looking for the next IBags to apply!
-			goto handleNextPBag; //Handle the next PBag, if any!
-		}
+		previousPBag = (int_32)pbag; //Search for the next PBag!
+		previousIBag = -1; //Start looking for the next IBags to apply!
+		goto handleNextPBag; //Handle the next PBag, if any!
 	}
 	else //A valid zone has been found! Register it to be used for the next check!
 	{
 		previousIBag = (int_32)ibag; //Check from this IBag onwards!
-	}
-
-	if (!lookupSFInstrumentGen(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, sampleID, &sampleptr))
-	{
-		#ifdef MIDI_LOCKSTART
-		unlock(voice->locknumber); //Lock us!
-		#endif
-		unlockMPURenderer(); //We're finished!
-		return 0; //No samples!
 	}
 
 	if (voicecounter++ != voicenumber) //Not the voice number we're searching?
@@ -713,14 +682,71 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 		goto handleNextIBag; //Find the next IBag to use!
 	}
 
+	if (!lookupSFInstrumentGen(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, sampleID, &sampleptr))
+	{
+		#ifdef MIDI_LOCKSTART
+		unlock(voice->locknumber); //Lock us!
+		#endif
+		unlockMPURenderer(); //We're finished!
+		return -2; //No samples for this split! We can't render!
+	}
+
 	if (!getSFSampleInformation(soundfont, LE16(sampleptr.genAmount.wAmount), &sampleInfo)) //Load the used sample information!
 	{
 #ifdef MIDI_LOCKSTART
 		unlock(voice->locknumber); //Lock us!
 #endif
 		unlockMPURenderer(); //We're finished!
-		return -2; //No sample for this split! We can't render!
+		return -2; //No samples for this split! We can't render!
 	}
+
+	//Determine the adjusting offsets!
+
+	//Fist, init to defaults!
+	startaddressoffset = LE32(voice->sample.dwStart);
+	endaddressoffset = LE32(voice->sample.dwEnd);
+	startloopaddressoffset = LE32(voice->sample.dwStartloop);
+	endloopaddressoffset = LE32(voice->sample.dwEndloop);
+
+	//Next, apply generators!
+	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, startAddrsOffset, &applyigen))
+	{
+		startaddressoffset += LE16(applyigen.genAmount.shAmount); //Apply!
+	}
+	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, startAddrsCoarseOffset, &applyigen))
+	{
+		startaddressoffset += (LE16(applyigen.genAmount.shAmount) << 15); //Apply!
+	}
+
+	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, endAddrsOffset, &applyigen))
+	{
+		endaddressoffset += LE16(applyigen.genAmount.shAmount); //Apply!
+	}
+	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, endAddrsCoarseOffset, &applyigen))
+	{
+		endaddressoffset += (LE16(applyigen.genAmount.shAmount) << 15); //Apply!
+	}
+
+	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, startloopAddrsOffset, &applyigen))
+	{
+		startloopaddressoffset += LE16(applyigen.genAmount.shAmount); //Apply!
+	}
+	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, startloopAddrsCoarseOffset, &applyigen))
+	{
+		startloopaddressoffset += (LE16(applyigen.genAmount.shAmount) << 15); //Apply!
+	}
+
+	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, endloopAddrsOffset, &applyigen))
+	{
+		endloopaddressoffset += LE16(applyigen.genAmount.shAmount); //Apply!
+	}
+	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, endloopAddrsCoarseOffset, &applyigen))
+	{
+		endloopaddressoffset += (LE16(applyigen.genAmount.shAmount) << 15); //Apply!
+	}
+
+	//Check the offsets against the available samples first, before starting to allocate a voice?
+	//Return -2 if so(can't render voice)!
 
 	//A requested voice counter has been found!
 
@@ -783,51 +809,6 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 		{
 			effectivevelocity = effectivenotevelocitytemp; //Override!
 		}
-	}
-
-	//Determine the adjusting offsets!
-
-	//Fist, init to defaults!
-	startaddressoffset = LE32(voice->sample.dwStart);
-	endaddressoffset = LE32(voice->sample.dwEnd);
-	startloopaddressoffset = LE32(voice->sample.dwStartloop);
-	endloopaddressoffset = LE32(voice->sample.dwEndloop);
-
-	//Next, apply generators!
-	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, startAddrsOffset, &applyigen))
-	{
-		startaddressoffset += LE16(applyigen.genAmount.shAmount); //Apply!
-	}
-	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, startAddrsCoarseOffset, &applyigen))
-	{
-		startaddressoffset += (LE16(applyigen.genAmount.shAmount) << 15); //Apply!
-	}
-
-	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, endAddrsOffset, &applyigen))
-	{
-		endaddressoffset += LE16(applyigen.genAmount.shAmount); //Apply!
-	}
-	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, endAddrsCoarseOffset, &applyigen))
-	{
-		endaddressoffset += (LE16(applyigen.genAmount.shAmount) << 15); //Apply!
-	}
-
-	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, startloopAddrsOffset, &applyigen))
-	{
-		startloopaddressoffset += LE16(applyigen.genAmount.shAmount); //Apply!
-	}
-	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, startloopAddrsCoarseOffset, &applyigen))
-	{
-		startloopaddressoffset += (LE16(applyigen.genAmount.shAmount) << 15); //Apply!
-	}
-
-	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, endloopAddrsOffset, &applyigen))
-	{
-		endloopaddressoffset += LE16(applyigen.genAmount.shAmount); //Apply!
-	}
-	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, endloopAddrsCoarseOffset, &applyigen))
-	{
-		endloopaddressoffset += (LE16(applyigen.genAmount.shAmount) << 15); //Apply!
 	}
 
 	//Save our info calculated!
