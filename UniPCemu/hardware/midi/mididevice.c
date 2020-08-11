@@ -1382,7 +1382,7 @@ OPTINLINE void MIDIDEVICE_noteOn(byte selectedchannel, byte channel, byte note, 
 	word requestedvoice;
 	sbyte newvoiceresult;
 	word voicelimit;
-	int voice, foundvoice, voicetosteal;
+	int voice, foundvoice, voicetosteal, voiceactive;
 	int_32 stolenvoiceranking, currentranking; //Stolen voice ranking starts lowest always!
 	voicelimit = MIDI_NOTEVOICES; //Amount of voices that can be allocated for each note on!
 
@@ -1419,38 +1419,41 @@ OPTINLINE void MIDIDEVICE_noteOn(byte selectedchannel, byte channel, byte note, 
 				}
 
 				//Unable to allocate? Perform ranking if it's active!
-				if (activevoices[voice].VolumeEnvelope.active && ((voice%voicelimit)==0)) //Are we active and the first voice?
+				for (voiceactive = voice; voiceactive < (voice + voicelimit); ++voiceactive) //Check all subvoices!
 				{
-					//Create ranking by scoring the voice!
-					currentranking = 0; //Start with no ranking!
-					if (activevoices[voice].VolumeEnvelope.active == ADSR_RELEASE) currentranking -= 2000; //Release gets priority to be stolen!
-					if (activevoices[voice].channel->sustain) currentranking -= 1000; //Lower when sustained!
-					float volume;
-					volume = combineAttenuation(activevoices[voice].initialAttenuation,activevoices[voice].CurrentVolumeEnvelope); //Load the ADSR volume!
-					if (activevoices[voice].lvolume > activevoices[voice].rvolume) //More left volume?
+					if (activevoices[voiceactive].VolumeEnvelope.active) //Are we active and the first voice?
 					{
-						volume *= activevoices[voice].lvolume; //Left volume!
-					}
-					else
-					{
-						volume *= activevoices[voice].rvolume; //Right volume!
-					}
-					currentranking += (int_32)(volume * 1000.0f); //Factor in volume, on a scale of 1000!
-					/*if ((activevoices[voice].bank == MIDI_channels[channel].bank) && (activevoices[voice].instrument == MIDI_channels[channel].program) && (activevoices[voice].note->note == note)) //Same note retriggered?
-					{
-						currentranking -= (int_32)(volume*1000.0f); //We're giving us priority to be stolen, if needed! Take us as if we're having no volume at all!
-						++currentranking; //We're taking all but the lowest volume (0)!
-					}*/
-					if ((stolenvoiceranking > currentranking) || (voicetosteal == -1)) //We're a lower rank or the first ranking?
-					{
-						stolenvoiceranking = currentranking; //New voice to steal!
-						voicetosteal = voice; //Steal this voice, if needed!
-					}
-					else if ((currentranking == stolenvoiceranking) && (voicetosteal != -1)) //Same ranking as the last one found?
-					{
-						if (activevoices[voice].starttime < activevoices[voicetosteal].starttime) //Earlier start time with same ranking?
+						//Create ranking by scoring the voice!
+						currentranking = 0; //Start with no ranking!
+						if (activevoices[voiceactive].VolumeEnvelope.active == ADSR_RELEASE) currentranking -= 2000; //Release gets priority to be stolen!
+						if (activevoices[voiceactive].channel->sustain) currentranking -= 1000; //Lower when sustained!
+						float volume;
+						volume = combineAttenuation(activevoices[voiceactive].initialAttenuation, activevoices[voiceactive].CurrentVolumeEnvelope); //Load the ADSR volume!
+						if (activevoices[voiceactive].lvolume > activevoices[voice].rvolume) //More left volume?
 						{
+							volume *= activevoices[voiceactive].lvolume; //Left volume!
+						}
+						else
+						{
+							volume *= activevoices[voiceactive].rvolume; //Right volume!
+						}
+						currentranking += (int_32)(volume * 1000.0f); //Factor in volume, on a scale of 1000!
+						/*if ((activevoices[voice].bank == MIDI_channels[channel].bank) && (activevoices[voice].instrument == MIDI_channels[channel].program) && (activevoices[voice].note->note == note)) //Same note retriggered?
+						{
+							currentranking -= (int_32)(volume*1000.0f); //We're giving us priority to be stolen, if needed! Take us as if we're having no volume at all!
+							++currentranking; //We're taking all but the lowest volume (0)!
+						}*/
+						if ((stolenvoiceranking > currentranking) || (voicetosteal == -1)) //We're a lower rank or the first ranking?
+						{
+							stolenvoiceranking = currentranking; //New voice to steal!
 							voicetosteal = voice; //Steal this voice, if needed!
+						}
+						else if ((currentranking == stolenvoiceranking) && (voicetosteal != -1)) //Same ranking as the last one found?
+						{
+							if (activevoices[voiceactive].starttime < activevoices[voicetosteal].starttime) //Earlier start time with same ranking?
+							{
+								voicetosteal = voice; //Steal this voice, if needed!
+							}
 						}
 					}
 				}
