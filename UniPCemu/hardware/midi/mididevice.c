@@ -461,7 +461,7 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	//Calculate the pitch bend speedup!
 	pitchcents = (float)(channel->pitch&0x3FFF); //Load active pitch bend (unsigned), Only low 14 bits are used!
 	pitchcents -= (float)0x2000; //Convert to a signed value!
-	pitchcents /= 128.0f; //Create a value between -1 and 1!
+	pitchcents /= (float)0x2000; //Create a value between -1 and 1!
 	pitchcents *= voice->pitchwheelmod; //Influence by pitch wheel!
 
 	//Now apply to the default speedup!
