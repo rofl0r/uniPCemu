@@ -576,7 +576,7 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 	sword rootMIDITone;
 	int_32 cents, tonecents; //Relative root MIDI tone, different cents calculations!
 	uint_32 preset, startaddressoffset, endaddressoffset, startloopaddressoffset, endloopaddressoffset, loopsize;
-	float panningtemp, pitchwheeltemp,attenuation,tempattenuation,attenuationcontrol;
+	float panningtemp, pitchwheeltemp,attenuation,tempattenuation,attenuationcontrol, lvolume, rvolume;
 	int_32 addattenuation;
 	byte effectivenote; //Effective note we're playing!
 	byte effectivevelocity; //Effective velocity we're playing!
@@ -1066,6 +1066,15 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 	}
 	panningtemp *= 0.001f; //Make into a percentage, it's in 0.1% units!
 	voice->panningmod = panningtemp; //Apply the modulator!
+
+	//Determine panning!
+	lvolume = rvolume = 0.5f; //Default to 50% each (center)!
+	panningtemp = voice->initpanning; //Get the panning specified!
+	panningtemp += voice->panningmod * ((float)(voice->channel->panposition - 0x2000) / 128); //Apply panning CC!
+	lvolume -= panningtemp; //Left percentage!
+	rvolume += panningtemp; //Right percentage!
+	voice->lvolume = lvolume; //Left panning!
+	voice->rvolume = rvolume; //Right panning!
 
 	//Chorus percentage
 	panningtemp = 200.0f; //Default to none!
