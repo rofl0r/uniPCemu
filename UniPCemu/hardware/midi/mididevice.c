@@ -286,6 +286,7 @@ void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float sampler
 	static sword readsample = 0; //The sample retrieved!
 	int_32 modulationratiocents;
 	uint_32 speedupbuffer;
+	float currentattenuation;
 
 	if (filterindex==0) //Main channel? Log the current sample speedup!
 	{
@@ -371,9 +372,10 @@ void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float sampler
 
 		//First, apply filters and current envelope!
 		applyMIDILowpassFilter(voice, &lchannel, Modulation, filterindex); //Low pass filter!
-		lchannel *= combineAttenuation(voice->initialAttenuation,Volume); //The volume of the samples including ADSR!
-		lchannel *= chorusvol; //Apply chorus&reverb volume for this stream!
-		lchannel *= VOLUME; //Apply general volume!
+		currentattenuation = combineAttenuation(voice->initialAttenuation,Volume); //The volume of the samples including ADSR!
+		currentattenuation *= chorusvol; //Apply chorus&reverb volume for this stream!
+		currentattenuation *= VOLUME; //Apply general volume!
+		lchannel *= currentattenuation; //Apply the current attenuation!
 		//Now the sample is ready for output into the actual final volume!
 
 		rchannel = lchannel; //Load into both channels!
