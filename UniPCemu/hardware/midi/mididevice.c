@@ -156,7 +156,6 @@ OPTINLINE void reset_MIDIDEVICE() //Reset the MIDI device for usage!
 			++notes; //Next note!
 		}
 		MIDI_channels[channel].bank = MIDI_channels[channel].activebank = 0; //Reset!
-		MIDI_channels[channel].channelrangemin = MIDI_channels[channel].channelrangemax = channel; //We respond to this channel only!
 		MIDI_channels[channel].control = 0; //First instrument!
 		MIDI_channels[channel].pitch = 0x2000; //Centered pitch = Default pitch!
 		MIDI_channels[channel].pressure = 0x40; //Centered pressure!
@@ -1295,30 +1294,111 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 
 /* Execution flow support */
 
-OPTINLINE byte MIDIDEVICE_FilterChannelVoice(byte selectedchannel, byte channel)
+void MIDIDEVICE_setupchannelfilters()
 {
-	if (!(MIDI_channels[channel].mode&MIDIDEVICE_OMNI)) //No Omni mode?
+	sbyte channel, subloop, endrange;
+	//MIDI_channels[channel].monophonicchannelcount To take into account?
+	//MIDI_channels[channel].mode 
+	for (channel = 0; channel < 0x10; ++channel) //Initialize all channels to not respond to anything!
 	{
-		if (channel!=selectedchannel) //Different channel selected?
+		MIDI_channels[channel].respondstart = -1; //Respond to nothing!
+		MIDI_channels[channel].respondend = -1; //Respond to one channel only!
+		MIDI_channels[channel].controlchannel = -1; //Default control channel: none!
+		MIDI_channels[channel].globalcontrolchannel = -1; //Default control channel: none!
+		MIDI_channels[channel].singlevoice = 0; //Not a single voice only(full poly mode)!
+	}
+	for (channel = 0; channel < 0x10; ++channel) //Process channels!
+	{
+		if (MIDI_channels[channel].mode & MIDIDEVICE_OMNI) //Respond to all channels?
 		{
-			return 0; //Don't execute!
+			for (subloop = 0; subloop < 0x10; ++subloop) //Initialize all channels to not respond to anything!
+			{
+				MIDI_channels[subloop].respondstart = -1; //Respond to nothing!
+				MIDI_channels[subloop].respondend = -1; //Respond to one channel only!
+				MIDI_channels[subloop].controlchannel = subloop; //Default control channel: as specified!
+				MIDI_channels[subloop].globalcontrolchannel = -1; //Default control channel: none!
+				MIDI_channels[channel].singlevoice = 0; //Not a single voice only(full poly mode)!
+			}
+
+			MIDI_channels[channel].respondstart = 0; //Respond to this channel...
+			MIDI_channels[channel].respondend = 0xF; //... Only for all channels!
+			MIDI_channels[channel].singlevoice = ((MIDI_channels[channel].mode&MIDIDEVICE_POLY)==0); //Not a single voice only(full poly mode when not selecting poly mode)!
+			return; //Stop searching!
+		}
+		else //Respond to selected channel only?
+		{
+			MIDI_channels[channel].respondstart = channel; //Respond to the ...
+			MIDI_channels[channel].respondend = channel; //... Selected channel only!
+			MIDI_channels[channel].controlchannel = channel; //Respond on this channel to CC messages!
+			if ((MIDI_channels[channel].mode & MIDIDEVICE_POLY) == 0) //Mono with omni off? Affect channel through channel+x-1
+			{
+				if (MIDI_channels[channel].monophonicchannelcount) //Non-zero: ending channel!
+				{
+					endrange = MIN(channel + MIDI_channels[channel].monophonicchannelcount - 1, 0xF); //The end of the response range!
+				}
+				else //Channel 16 is the ending channel!
+				{
+					endrange = 0xF; //Respond till the final channel!
+				}
+
+				for (subloop = MIDI_channels[channel].respondstart; subloop < MIDI_channels[channel].respondend; ++subloop) //Setup all effected channels!
+				{
+					//MIDI_channels[channel].controlchannel = -1; //Don't respond to normal control messages anymore?
+					MIDI_channels[channel].respondstart = subloop; //Respond to the ...
+					MIDI_channels[channel].respondend = subloop; //... Selected channel only!
+					MIDI_channels[channel].globalcontrolchannel = ((channel-1)&0xF); //The global control channel to use instead of the normal channel!
+					MIDI_channels[channel].singlevoice = 1; //Single voice only!
+				}
+				MIDI_channels[channel].controlchannel = -1; //Don't respond to this control channel!
+				MIDI_channels[(channel-1)&0xF].controlchannel = -1; //Don't respond to this control channel!
+			}
+			else //Multiple voices!
+			{
+				MIDI_channels[channel].respondstart = channel; //Respond to the ...
+				MIDI_channels[channel].respondend = channel; //... Selected channel only!
+				MIDI_channels[channel].singlevoice = 0; //Not a single voice only(full poly mode)!
+			}
+		}
+		channel = MIDI_channels[channel].respondend; //Continue at the next channel!
+	}
+}
+
+//channel=Channel to check response for, selectedchannel=One of all channels, in order!
+OPTINLINE byte MIDIDEVICE_FilterChannelVoice(byte selectedchannel, byte channel, byte filterchannel)
+{
+	if (filterchannel == 0) //Disabled on other channels?
+	{
+		return (selectedchannel == channel); //Filter the channel only!
+	}
+	//Follow the normal rules for channel responding!
+	if (MIDI_channels[channel].respondstart != -1) //Responding setup?
+	{
+		if (MIDI_channels[channel].respondend != -1) //Range specified?
+		{
+			if (!((selectedchannel >= MIDI_channels[channel].respondstart) && (selectedchannel <= MIDI_channels[channel].respondend))) //Out of range?
+			{
+				return 0; //Not responding!
+			}
+		}
+		else //Single channel specified?
+		{
+			if (selectedchannel != MIDI_channels[channel].respondstart) //Wrong channel?
+			{
+				return 0; //Not responding!
+			}
 		}
 	}
-	if (!(MIDI_channels[channel].mode&MIDIDEVICE_POLY)) //Mono mode?
+	else //Not responding at all?
 	{
-		if (!((selectedchannel>=MIDI_channels[channel].channelrangemin) &&
-			(selectedchannel<=MIDI_channels[channel].channelrangemax))) //Out of range?
-		{
-			return 0; //Don't execute!
-		}
+		return 0; //Not responding!
 	}
 	//Poly mode and Omni mode: Respond to all on any channel = Ignore the channel with Poly Mode!
 	return 1;
 }
 
-OPTINLINE void MIDIDEVICE_noteOff(byte selectedchannel, byte channel, byte note, byte velocity)
+OPTINLINE void MIDIDEVICE_noteOff(byte selectedchannel, byte channel, byte note, byte velocity, byte filterchannel)
 {
-	if (MIDIDEVICE_FilterChannelVoice(selectedchannel,channel)) //To be applied?
+	if (MIDIDEVICE_FilterChannelVoice(selectedchannel,channel,filterchannel)) //To be applied?
 	{
 		int i;
 		for (i = 0; i < (__MIDI_NUMVOICES*MIDI_NOTEVOICES); i++) //Process all voices!
@@ -1341,13 +1421,14 @@ OPTINLINE void MIDIDEVICE_noteOff(byte selectedchannel, byte channel, byte note,
 	}
 }
 
-OPTINLINE void MIDIDEVICE_AllNotesOff(byte selectedchannel, byte channel) //Used with command, mode change and Mono Mode.
+OPTINLINE void MIDIDEVICE_AllNotesOff(byte selectedchannel, byte channel, byte channelspecific) //Used with command, mode change and Mono Mode.
 {
 	word noteoff; //Current note to turn off!
 	//Note values
+	MIDIDEVICE_setupchannelfilters(); //Setup the channel filters!
 	for (noteoff=0;noteoff<0x100;) //Process all notes!
 	{
-		MIDIDEVICE_noteOff(selectedchannel,channel,(byte)noteoff++,64); //Execute Note Off!
+		MIDIDEVICE_noteOff(selectedchannel,channel,(byte)noteoff++,64,channelspecific); //Execute Note Off!
 	}
 	#ifdef MIDI_LOG
 	dolog("MPU","MIDIDEVICE: ALL NOTES OFF: %u",selectedchannel); //Log it!
@@ -1372,7 +1453,7 @@ void MIDIDEVICE_activeSense_Timer() //Timeout while Active Sensing!
 			{
 				for (channel = 0; channel < 0x10;)
 				{
-					MIDIDEVICE_AllNotesOff(currentchannel, channel++); //Turn all notes off!
+					MIDIDEVICE_AllNotesOff(currentchannel, channel++, 0); //Turn all notes off!
 				}
 				++currentchannel; //Next channel!
 			}
@@ -1418,11 +1499,11 @@ OPTINLINE void MIDIDEVICE_noteOn(byte selectedchannel, byte channel, byte note, 
 	int_32 stolenvoiceranking, currentranking; //Stolen voice ranking starts lowest always!
 	voicelimit = MIDI_NOTEVOICES; //Amount of voices that can be allocated for each note on!
 
-	if (MIDIDEVICE_FilterChannelVoice(selectedchannel,channel)) //To be applied?
+	if (MIDIDEVICE_FilterChannelVoice(selectedchannel,channel,1)) //To be applied?
 	{
 		if (!(MIDI_channels[channel].mode&MIDIDEVICE_POLY)) //Mono mode?
 		{
-			MIDIDEVICE_AllNotesOff(selectedchannel,channel); //Turn all notes off first!
+			MIDIDEVICE_AllNotesOff(selectedchannel,channel,1); //Turn all notes off on the selected channel first!
 		}
 		MIDI_channels[channel].notes[note].noteon_velocity = velocity; //Add velocity to our lookup!
 		requestedvoice = 0; //Try to allocate the first voice, if any!
@@ -1536,21 +1617,28 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 	firstparam = current->buffer[0]; //Read the first param: always needed!
 	switch (command&0xF0) //What command?
 	{
-		case 0x80: //Note off?
 		noteoff: //Note off!
 			#ifdef MIDI_LOG
 				if ((command & 0xF0) == 0x90) dolog("MPU", "MIDIDEVICE: NOTE ON: Redirected to NOTE OFF.");
 			#endif
+
+		case 0x80: //Note off?
+			MIDIDEVICE_setupchannelfilters(); //Setup the channel filters!
 			for (channel=0;channel<0x10;) //Process all channels!
 			{
-				MIDIDEVICE_noteOff(currentchannel,channel++,firstparam,current->buffer[1]); //Execute Note Off!
+				MIDIDEVICE_noteOff(currentchannel,channel++,firstparam,current->buffer[1],1); //Execute Note Off!
 			}
 			#ifdef MIDI_LOG
 				dolog("MPU","MIDIDEVICE: NOTE OFF: Channel %u Note %u Velocity %u",currentchannel,firstparam,current->buffer[1]); //Log it!
 			#endif
 			break;
 		case 0x90: //Note on?
-			if (!current->buffer[1]) goto noteoff; //Actually a note off?
+			if (!current->buffer[1])
+			{
+				current->buffer[1] = 0x40; //The specified note off velocity!
+				goto noteoff; //Actually a note off?
+			}
+			MIDIDEVICE_setupchannelfilters(); //Setup the channel filters to use!
 			for (channel=0;channel<0x10;) //Process all channels!
 			{
 				MIDIDEVICE_noteOn(currentchannel, channel++, firstparam, current->buffer[1]); //Execute Note On!
@@ -1689,7 +1777,7 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 				case 0x7F: //Poly Operation
 					for (channel=0;channel<0x10;)
 					{
-						MIDIDEVICE_AllNotesOff(currentchannel,channel++); //Turn all notes off!
+						MIDIDEVICE_AllNotesOff(currentchannel,channel++,0); //Turn all notes off!
 					}
 					if ((firstparam&0x7C)==0x7C) //Mode change command?
 					{
@@ -1709,28 +1797,8 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 							MIDI_channels[currentchannel].mode |= MIDIDEVICE_OMNI; //Enable Omni mode!
 							break;
 						case 2: //Mono operation
-							MIDI_channels[currentchannel].mode &= ~MIDIDEVICE_POLY; //Disable Poly mode!
-							MIDI_channels[currentchannel].mode &= ~MIDIDEVICE_OMNI; //Disable Omni mode!
-							if (current->buffer[1]) //Omni Off+Ammount of channels to respond to?
-							{
-								#ifdef MIDI_LOG
-									dolog("MPU", "MIDIDEVICE: Channel %u, MONO without OMNI, Channels to respond: %u", currentchannel,current->buffer[1]); //Log it!
-								#endif
-								rangemax = rangemin = currentchannel;
-								rangemax += current->buffer[1]; //Maximum range!
-								--rangemax;
-							}
-							else //Omni On?
-							{
-								#ifdef MIDI_LOG
-									dolog("MPU", "MIDIDEVICE: Channel %u, MONO with OMNI, Respond to all channels.", currentchannel); //Log it!
-								#endif
-								MIDI_channels[currentchannel].mode |= MIDIDEVICE_OMNI; //Enable Omni mode!
-								rangemin = 0; //Respond to...
-								rangemax = 0xF; //All channels!
-							}
-							MIDI_channels[currentchannel].channelrangemin = rangemin;
-							MIDI_channels[currentchannel].channelrangemax = rangemax;
+							MIDI_channels[currentchannel].mode &= ~MIDIDEVICE_POLY; //Disable Poly mode and enter mono mode!
+							MIDI_channels[currentchannel].monophonicchannelcount = current->buffer[1]; //Channel count, if non-zero!
 							break;
 						case 3: //Poly Operation
 							#ifdef MIDI_LOG

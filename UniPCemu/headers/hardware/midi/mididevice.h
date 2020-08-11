@@ -75,12 +75,17 @@ typedef struct
 	word activebank; //What bank are we?
 	sword pitch; //Current pitch (14-bit value)
 	byte sustain; //Enable sustain? Don't process KEY OFF while set!
-	byte channelrangemin, channelrangemax; //Ranges of used channels to respond to when in Mono Mode.
 	byte mode; //Channel mode: 0=Omni off, Mono; 1=Omni off, Poly; 2=Omni on, Mono; 3=Omni on, Poly;
-	//Bit 1=1:Poly/0:Mono; Bit2=1:Omni on/0:Omni off
+	//Bit 0=1:Poly/0:Mono; Bit1=1:Omni on/0:Omni off
 	/* Omni: respond to all channels (ignore channel part); Poly: Use multiple voices; Mono: Use one voice at the time (end other voices on Note On) */
+	sbyte respondstart; //Start channel to respond to! -1=Don't respond!
+	sbyte respondend; //End channel to respond to, if not only this channel! -1=Just this channel!
+	sbyte controlchannel; //What channel to respond to CC messages? -1=Don't respond in this way!
+	sbyte globalcontrolchannel; //Global control channel to respond to CC messages? -1=Don't respond in this way!
+	byte singlevoice; //Single voice only to be played?
 	byte choruslevel; //Current chorus depth set!
 	byte reverblevel; //Current reverb depth set!
+	byte monophonicchannelcount; //Monophonic channel count(in mono mode only)!
 } MIDIDEVICE_CHANNEL;
 
 typedef struct
