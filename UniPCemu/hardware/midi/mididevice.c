@@ -1462,16 +1462,16 @@ OPTINLINE void MIDIDEVICE_noteOn(byte selectedchannel, byte channel, byte note, 
 			if (voicetosteal != -1) //Something to steal?
 			{
 				lockMPURenderer();
-				#ifdef MIDI_LOCKSTART
-				lock(activevoices[voicetosteal].locknumber); //Lock us!
-				#endif
 				for (voice = voicetosteal; voice < (voicetosteal + voicelimit); ++voice)
 				{
-					activevoices[voicetosteal].VolumeEnvelope.active = 0; //Make inactive!
+					#ifdef MIDI_LOCKSTART
+					lock(activevoices[voice].locknumber); //Lock us!
+					#endif
+					activevoices[voice].VolumeEnvelope.active = 0; //Make inactive!
+					#ifdef MIDI_LOCKSTART
+					unlock(activevoices[voice].locknumber); //unlock us!
+					#endif
 				}
-				#ifdef MIDI_LOCKSTART
-				unlock(activevoices[voicetosteal].locknumber); //unlock us!
-				#endif
 				unlockMPURenderer();
 				newvoiceresult = MIDIDEVICE_newvoice(&activevoices[voicetosteal], channel,note,requestedvoice); //Steal the selected voice!
 				voice = voicetosteal + 1; //Next voice to use!
