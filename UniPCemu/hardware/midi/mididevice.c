@@ -1501,7 +1501,7 @@ OPTINLINE void MIDIDEVICE_noteOn(byte selectedchannel, byte channel, byte note, 
 
 	if (MIDIDEVICE_FilterChannelVoice(selectedchannel,channel,1)) //To be applied?
 	{
-		if (!(MIDI_channels[channel].mode&MIDIDEVICE_POLY)) //Mono mode?
+		if (MIDI_channels[channel].singlevoice) //Single voice only?
 		{
 			MIDIDEVICE_AllNotesOff(selectedchannel,channel,1); //Turn all notes off on the selected channel first!
 		}
