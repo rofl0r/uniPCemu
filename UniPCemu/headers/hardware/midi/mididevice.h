@@ -28,8 +28,10 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 
 //All MIDI voices that are available! Originally 64! Minimum of 24 according to General MIDI 1!
 #define __MIDI_NUMVOICES 24
-//Ammount of drum voices to reserve!
+//Amount of drum voices to reserve!
 #define MIDI_DRUMVOICES 8
+//Amount of voices allocated to each note
+#define MIDI_NOTEVOICES 2
 //How many samples to buffer at once! 42 according to MIDI specs! Set to 84 to work!
 #define __MIDI_SAMPLES 42
 
