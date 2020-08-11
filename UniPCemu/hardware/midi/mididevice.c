@@ -580,7 +580,7 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 	sword rootMIDITone;
 	int_32 cents, tonecents; //Relative root MIDI tone, different cents calculations!
 	uint_32 preset, startaddressoffset, endaddressoffset, startloopaddressoffset, endloopaddressoffset, loopsize;
-	float panningtemp, pitchwheeltemp,attenuation,tempattenuation,attenuationcontrol, lvolume, rvolume;
+	float panningtemp, pitchwheeltemp,attenuation,tempattenuation,attenuationcontrol, lvolume, rvolume, basechorusreverb;
 	int_32 addattenuation;
 	byte effectivenote; //Effective note we're playing!
 	byte effectivevelocity; //Effective velocity we're playing!
@@ -1096,14 +1096,30 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 	{
 		panningtemp = ((float)LE16(applymod.modAmount)); //Chorus effects send, in 0.1% units!
 	}
-	panningtemp *= 0.001f; //Make into a percentage, it's in 0.1% units!
 
+	//The generator for it to apply to!
+	basechorusreverb = 0.0f; //Init!
+	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, chorusEffectsSend, &applyigen))
+	{
+		basechorusreverb = (float)LE16(applyigen.genAmount.shAmount); //How many semitones! Apply to the cents: 1 semitone = 100 cents!
+		if (lookupSFPresetGenGlobal(soundfont, preset, pbag, chorusEffectsSend, &applygen))
+		{
+			basechorusreverb = (float)LE16(applygen.genAmount.shAmount); //How many semitones! Apply to the cents: 1 semitone = 100 cents!
+		}
+	}
+	else if (lookupSFPresetGenGlobal(soundfont, preset, pbag, chorusEffectsSend, &applygen))
+	{
+		basechorusreverb = (float)LE16(applygen.genAmount.shAmount); //How many semitones! Apply to the cents: 1 semitone = 100 cents!
+	}
+
+	panningtemp *= 0.001f; //Make into a percentage, it's in 0.1% units!
+	basechorusreverb *= 0.001f; //Make into a percentage, it's in 0.1% units!
 
 	panningtemp *= (1.0f/127.0f); //Linear depth!
 
 	for (chorusreverbdepth=1;chorusreverbdepth<0x100;chorusreverbdepth++) //Process all possible chorus depths!
 	{
-		voice->chorusdepth[chorusreverbdepth] = (panningtemp*(float)chorusreverbdepth); //Apply the volume!
+		voice->chorusdepth[chorusreverbdepth] = (panningtemp*(float)chorusreverbdepth)+basechorusreverb; //Apply the volume!
 	}
 	voice->chorusdepth[0] = 0.0f; //Always none at the original level!
 
@@ -1121,7 +1137,23 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 	{
 		panningtemp = (float)LE16(applymod.modAmount); //Reverb effects send, in 0.1% units!
 	}
+
+	basechorusreverb = 0.0f; //Init!
+	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, reverbEffectsSend, &applyigen))
+	{
+		basechorusreverb = (float)LE16(applyigen.genAmount.shAmount); //How many semitones! Apply to the cents: 1 semitone = 100 cents!
+		if (lookupSFPresetGenGlobal(soundfont, preset, pbag, reverbEffectsSend, &applygen))
+		{
+			basechorusreverb = (float)LE16(applygen.genAmount.shAmount); //How many semitones! Apply to the cents: 1 semitone = 100 cents!
+		}
+	}
+	else if (lookupSFPresetGenGlobal(soundfont, preset, pbag, reverbEffectsSend, &applygen))
+	{
+		basechorusreverb = (float)LE16(applygen.genAmount.shAmount); //How many semitones! Apply to the cents: 1 semitone = 100 cents!
+	}
+
 	panningtemp *= 0.001f; //Make into a percentage, it's in 0.1% units!
+	basechorusreverb *= 0.001f; //Make into a percentage, it's in 0.1% units!
 
 	panningtemp *= (1.0f/127.0f); //Linear depth!
 
@@ -1135,7 +1167,7 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 			}
 			else //Valid depth?
 			{
-				voice->reverbdepth[chorusreverbdepth][chorusreverbchannel] = (float)dB2factor((panningtemp * chorusreverbdepth),1.0f); //Apply the volume!
+				voice->reverbdepth[chorusreverbdepth][chorusreverbchannel] = (float)dB2factor((panningtemp * chorusreverbdepth)+basechorusreverb,1.0f); //Apply the volume!
 			}
 		}
 	}
