@@ -571,7 +571,7 @@ float calcNegativeUnipolarConcaveSourceMIDI(byte attenuationsetting)
 	return unipolarconcavesources[attenuationsetting&0x7F]; //Give the result!
 }
 
-void calcAttenuationModulators()
+void calcAttenuationModulators(MIDIDEVICE_VOICE *voice)
 {
 	float attenuation;
 	float tempattenuation;
