@@ -575,7 +575,10 @@ void calcAttenuationModulators()
 {
 	float attenuation;
 	float tempattenuation;
+	float attenuationcontrol;
+	int_32 addattenuation;
 	sfModList applymod;
+	
 	//Apply all settable volume settings!
 	attenuation = voice->initialAttenuationGen; //Initial atfenuation generator!
 
@@ -680,7 +683,7 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 	sword rootMIDITone;
 	int_32 cents, tonecents; //Relative root MIDI tone, different cents calculations!
 	uint_32 preset, startaddressoffset, endaddressoffset, startloopaddressoffset, endloopaddressoffset, loopsize;
-	float panningtemp, pitchwheeltemp,attenuation,tempattenuation,attenuationcontrol, lvolume, rvolume, basechorusreverb;
+	float panningtemp, pitchwheeltemp,attenuation,tempattenuation, lvolume, rvolume, basechorusreverb;
 	int_32 addattenuation;
 	byte effectivenote; //Effective note we're playing!
 	byte effectivevelocity; //Effective velocity we're playing!
