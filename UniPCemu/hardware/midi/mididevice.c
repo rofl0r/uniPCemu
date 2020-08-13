@@ -878,7 +878,6 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 
 	loopsize = endloopaddressoffset; //End of the loop!
 	loopsize -= startloopaddressoffset; //Size of the loop!
-	voice->loopsize = loopsize; //Save the loop size!
 
 	if ((loopsize==0) && activeloopflags) //Invalid loop to render?
 	{
@@ -926,6 +925,8 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 	}
 
 	memcpy(&voice->sample, &sampleInfo, sizeof(sampleInfo)); //Load the active sample info to become active for the allocated voice!
+
+	voice->loopsize = loopsize; //Save the loop size!
 
 	//Now, determine the actual note to be turned on!
 	voice->channel = channel; //What channel!
