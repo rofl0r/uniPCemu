@@ -684,7 +684,6 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 	int_32 cents, tonecents; //Relative root MIDI tone, different cents calculations!
 	uint_32 preset, startaddressoffset, endaddressoffset, startloopaddressoffset, endloopaddressoffset, loopsize;
 	float panningtemp, pitchwheeltemp,attenuation,tempattenuation, lvolume, rvolume, basechorusreverb;
-	int_32 addattenuation;
 	byte effectivenote; //Effective note we're playing!
 	byte effectivevelocity; //Effective velocity we're playing!
 	byte effectivenotevelocitytemp;
@@ -1636,7 +1635,6 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 {
 	//First, our variables!
 	byte command, currentchannel, channel, firstparam;
-	byte rangemin, rangemax; //Ranges for MONO mode.
 
 	//Process the current command!
 	command = current->command; //What command!
