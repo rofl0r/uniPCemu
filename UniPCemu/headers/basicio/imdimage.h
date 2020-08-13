@@ -1,6 +1,6 @@
 /*
 
-Copyright (C) 2020  Superfury
+Copyright (C) 2020 - 2020  Superfury
 
 This file is part of UniPCemu.
 
