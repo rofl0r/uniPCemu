@@ -613,7 +613,7 @@ void calcAttenuationModulators(MIDIDEVICE_VOICE *voice)
 
 	//CC7
 	addattenuation = 960.0f; //How much to use as a factor (default)!
-	attenuationcontrol = calcNegativeUnipolarConcaveSourceMIDI((channel->volumeMSB & 0x7F)); //The source of the attenuation!
+	attenuationcontrol = calcNegativeUnipolarConcaveSourceMIDI((voice->channel->volumeMSB & 0x7F)); //The source of the attenuation!
 	if (lookupSFInstrumentModGlobal(soundfont, voice->instrumentptr, voice->ibag, continuousController7ToInitialAttenuation, &applymod)) //Gotten MIDI Continuous Controller 7 to Initial Attenuation?
 	{
 		applymod.modAmount = LE16(applymod.modAmount); //Patch!
@@ -642,7 +642,7 @@ void calcAttenuationModulators(MIDIDEVICE_VOICE *voice)
 
 	//CC11
 	addattenuation = 960.0f; //How much to use as a factor (default)!
-	attenuationcontrol = calcNegativeUnipolarConcaveSourceMIDI((channel->expression & 0x7F)); //The source of the attenuation!
+	attenuationcontrol = calcNegativeUnipolarConcaveSourceMIDI((voice->channel->expression & 0x7F)); //The source of the attenuation!
 	if (lookupSFInstrumentModGlobal(soundfont, voice->instrumentptr, voice->ibag, continuousController11ToInitialAttenuation, &applymod)) //Gotten MIDI Continuous Controller 11 to Initial Attenuation?
 	{
 		applymod.modAmount = LE16(applymod.modAmount); //Patch!
