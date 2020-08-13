@@ -798,6 +798,8 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 		return -1; //Active voices can't be allocated! Request voice stealing or an available channel!
 	}
 
+	note->pressure = 0; //Initialize the pressure for this note to none yet!
+
 	//Initialize the requested voice!
 	//First, all our voice-specific variables and precalcs!
 	temp = voice->effect_backtrace_samplespeedup; //Back-up the effect backtrace!
