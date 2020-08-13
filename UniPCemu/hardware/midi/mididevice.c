@@ -164,7 +164,7 @@ OPTINLINE void reset_MIDIDEVICE() //Reset the MIDI device for usage!
 		MIDI_channels[channel].volumeMSB = 0x64; //Default volume as the default volume(100)!
 		MIDI_channels[channel].volumeLSB = 0x7F; //Default volume as the default volume(127?)!
 		MIDI_channels[channel].expression = 0x7F; //Default volume as the default max expression(127)!
-		MIDI_channels[channel].panposition = 0x2000; //Centered pan position as the default pan!
+		MIDI_channels[channel].panposition = (0x20<<7); //Centered pan position as the default pan!
 		MIDI_channels[channel].lvolume = MIDI_channels[channel].rvolume = 0.5; //Accompanying the pan position: centered volume!
 		MIDI_channels[channel++].mode = MIDIDEVICE_DEFAULTMODE; //Use the default mode!
 	}
