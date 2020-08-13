@@ -473,7 +473,7 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	//Determine panning!
 	lvolume = rvolume = 0.5f; //Default to 50% each (center)!
 	panningtemp = voice->initpanning; //Get the panning specified!
-	panningtemp += voice->panningmod*((float)(voice->channel->panposition-0x2000)/128.0f); //Apply panning CC!
+	panningtemp += voice->panningmod*((float)(voice->channel->panposition-0x2000)/((float)0x2000)); //Apply panning CC!
 	lvolume -= panningtemp; //Left percentage!
 	rvolume += panningtemp; //Right percentage!
 	lvolume = LIMITRANGE(lvolume, 0.0f, 1.0f); //Limit!
@@ -1101,7 +1101,7 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 	//Determine panning!
 	lvolume = rvolume = 0.5f; //Default to 50% each (center)!
 	panningtemp = voice->initpanning; //Get the panning specified!
-	panningtemp += voice->panningmod * ((float)(voice->channel->panposition - 0x2000) / 128.0f); //Apply panning CC!
+	panningtemp += voice->panningmod * ((float)(voice->channel->panposition - 0x2000) / ((float)0x2000)); //Apply panning CC!
 	lvolume -= panningtemp; //Left percentage!
 	rvolume += panningtemp; //Right percentage!
 	lvolume = LIMITRANGE(lvolume, 0.0f, 1.0f); //Limit!
