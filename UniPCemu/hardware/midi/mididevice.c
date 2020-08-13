@@ -1631,6 +1631,24 @@ OPTINLINE void MIDIDEVICE_noteOn(byte selectedchannel, byte channel, byte note, 
 	}
 }
 
+void MIDIDEVICE_updateAttenuationCC(byte channel)
+{
+	word voicenr;
+	MIDIDEVICE_VOICE *voice;
+	voicenr = 0; //First voice!
+	for (; voicenr < (__MIDI_NUMVOICES*MIDI_NOTEVOICES); ++voicenr) //Find a used voice!
+	{
+		voice = &activevoices[voicenr]; //The voice!
+		if (voice->VolumeEnvelope.active) //Active?
+		{
+			if (voice->channel==&MIDI_channels[channel]) //The requested channel?
+			{
+				calcAttenuationModulators(voice); //Calc the modulators!
+			}
+		}
+	}
+}
+
 OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI command!
 {
 	//First, our variables!
@@ -1715,6 +1733,7 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 					#endif
 					lockMPURenderer(); //Lock the audio!
 					MIDI_channels[currentchannel].volumeMSB = current->buffer[1]; //Set MSB!
+					MIDIDEVICE_updateAttenuationCC(currentchannel); //Update playing notes!
 					unlockMPURenderer(); //Unlock the audio!
 					break;
 				case 0x0B: //Expression (MSB) CC 11
@@ -1723,6 +1742,7 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 					#endif
 					lockMPURenderer(); //Lock the audio!
 					MIDI_channels[currentchannel].expression = current->buffer[1]; //Set Expression!
+					MIDIDEVICE_updateAttenuationCC(currentchannel); //Update playing notes!
 					unlockMPURenderer(); //Unlock the audio!
 					break;
 				case 0x27: //Volume (LSB) CC 39
@@ -1731,6 +1751,7 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 #endif
 					lockMPURenderer(); //Lock the audio!
 					MIDI_channels[currentchannel].volumeLSB = current->buffer[1]; //Set LSB!
+					MIDIDEVICE_updateAttenuationCC(currentchannel); //Update playing notes!
 					unlockMPURenderer(); //Unlock the audio!
 					break;
 
