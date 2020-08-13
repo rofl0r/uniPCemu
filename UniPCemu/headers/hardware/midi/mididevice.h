@@ -133,7 +133,8 @@ typedef struct
 	word bank; //What bank are we playing from?
 	byte instrument; //What instrument are we playing?
 	byte locknumber; //What lock number do we have? Only valid when actually used(lock defined)!
-	float initialAttenuation; //Initial attenuation!
+	float effectiveAttenuation; //Effective attenuation generator with modulators!
+	float initialAttenuationGen; //The generator initial value!
 
 	//Chorus and reverb calculations!
 	float chorusdepth[0x100]; //All chorus depths, index 0 is dry sound!
@@ -159,6 +160,13 @@ typedef struct
 	HIGHLOWPASSFILTER lowpassfilter[CHORUSSIZE]; //Each channel has it's own low-pass filter!
 	float last_lowpass[CHORUSSIZE]; //Last lowpass frequency used!
 	byte lowpass_dirty[CHORUSSIZE]; //Are we to update the low-pass filter?
+	byte effectivenote; //Effective note!
+	byte effectivevelocity; //Effective velocity!
+	//Pointers to used lists!
+	uint_32 preset;
+	word pbag;
+	word instrumentptr;
+	word ibag;
 } MIDIDEVICE_VOICE;
 
 void MIDIDEVICE_tickActiveSense(); //Tick the Active Sense (MIDI) line with any command/data!
