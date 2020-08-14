@@ -35,6 +35,8 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #define MIDI_DRUMVOICES 8
 //Amount of voices allocated to each note
 #define MIDI_NOTEVOICES 2
+//Total amount of voices
+#define MIDI_TOTALVOICES 48
 //How many samples to buffer at once! 42 according to MIDI specs! Set to 84 to work!
 #define __MIDI_SAMPLES 42
 

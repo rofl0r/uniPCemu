@@ -97,7 +97,7 @@ float choruscents[2];
 
 MIDIDEVICE_CHANNEL MIDI_channels[0x10]; //Stuff for all channels!
 
-MIDIDEVICE_VOICE activevoices[__MIDI_NUMVOICES*MIDI_NOTEVOICES]; //All active voices!
+MIDIDEVICE_VOICE activevoices[MIDI_TOTALVOICES]; //All active voices!
 
 /* MIDI direct output support*/
 
@@ -1460,7 +1460,7 @@ OPTINLINE void MIDIDEVICE_noteOff(byte selectedchannel, byte channel, byte note,
 	if (MIDIDEVICE_FilterChannelVoice(selectedchannel,channel,filterchannel)) //To be applied?
 	{
 		int i;
-		for (i = 0; i < (__MIDI_NUMVOICES*MIDI_NOTEVOICES); i++) //Process all voices!
+		for (i = 0; i < MIDI_TOTALVOICES; i++) //Process all voices!
 		{
 			#ifdef MIDI_LOCKSTART
 			lock(activevoices[i].locknumber); //Lock us!
@@ -1572,7 +1572,7 @@ OPTINLINE void MIDIDEVICE_noteOn(byte selectedchannel, byte channel, byte note, 
 		foundvoice = -1;
 		voicetosteal = -1;
 		stolenvoiceranking = 0; //Stolen voice ranking starts lowest always!
-		for (; voice < (__MIDI_NUMVOICES*MIDI_NOTEVOICES); voice += voicelimit) //Find a voice!
+		for (; voice < MIDI_TOTALVOICES; voice += voicelimit) //Find a voice!
 		{
 			if (activevoices[voice].purpose==purpose) //Our type of channel (drums vs melodic channels)?
 			{
@@ -1597,7 +1597,8 @@ OPTINLINE void MIDIDEVICE_noteOn(byte selectedchannel, byte channel, byte note, 
 					{
 						//Create ranking by scoring the voice!
 						currentranking = 0; //Start with no ranking!
-						if (activevoices[voiceactive].VolumeEnvelope.active == ADSR_RELEASE) currentranking -= 2000; //Release gets priority to be stolen!
+						if (activevoices[voiceactive].VolumeEnvelope.active == ADSR_IDLE) currentranking -= 4000; //Idle gets priority to be stolen!
+						else if (activevoices[voiceactive].VolumeEnvelope.active == ADSR_RELEASE) currentranking -= 2000; //Release gets priority to be stolen!
 						if (activevoices[voiceactive].channel->sustain) currentranking -= 1000; //Lower when sustained!
 						float volume;
 						volume = combineAttenuation(activevoices[voiceactive].effectiveAttenuation, activevoices[voiceactive].CurrentVolumeEnvelope); //Load the ADSR volume!
@@ -1659,6 +1660,7 @@ OPTINLINE void MIDIDEVICE_noteOn(byte selectedchannel, byte channel, byte note, 
 		{
 			return; //Finish up!
 		}
+		activevoices[voice].active = 0; //Make sure we allocate the next voice without issues!
 		goto nextRequestedVoice; //Handle the next requested voice!
 	}
 }
@@ -1668,7 +1670,7 @@ void MIDIDEVICE_updateAttenuationCC(byte channel)
 	word voicenr;
 	MIDIDEVICE_VOICE *voice;
 	voicenr = 0; //First voice!
-	for (; voicenr < (__MIDI_NUMVOICES*MIDI_NOTEVOICES); ++voicenr) //Find a used voice!
+	for (; voicenr < MIDI_TOTALVOICES; ++voicenr) //Find a used voice!
 	{
 		voice = &activevoices[voicenr]; //The voice!
 		if (voice->VolumeEnvelope.active) //Active?
@@ -2027,7 +2029,7 @@ void done_MIDIDEVICE() //Finish our midi device!
 	//Close the soundfont?
 	closeSF(&soundfont);
 	int i,j;
-	for (i=0;i<(__MIDI_NUMVOICES*MIDI_NOTEVOICES);i++) //Assign all voices available!
+	for (i=0;i<MIDI_TOTALVOICES;i++) //Assign all voices available!
 	{
 		removechannel(&MIDIDEVICE_renderer,&activevoices[i],0); //Remove the channel! Delay at 0.96ms for response speed!
 		if (activevoices[i].effect_backtrace_samplespeedup) //Used?
@@ -2073,7 +2075,7 @@ byte init_MIDIDEVICE(char *filename, byte use_direct_MIDI) //Initialise MIDI dev
 	}
 	#endif
 	#ifdef MIDI_LOCKSTART
-	for (result=0;result<(__MIDI_NUMVOICES*MIDI_NOTEVOICES);result++) //Process all voices!
+	for (result=0;result<MIDI_TOTALVOICES;result++) //Process all voices!
 	{
 		if (getLock(result + MIDI_LOCKSTART)) //Our MIDI lock!
 		{
@@ -2123,9 +2125,9 @@ byte init_MIDIDEVICE(char *filename, byte use_direct_MIDI) //Initialise MIDI dev
 	else
 	{
 		result = 1; //OK!
-		for (i=0;i<(__MIDI_NUMVOICES*MIDI_NOTEVOICES);i++) //Assign all voices available!
+		for (i=0;i<MIDI_TOTALVOICES;i++) //Assign all voices available!
 		{
-			activevoices[i].purpose = ((((__MIDI_NUMVOICES*MIDI_NOTEVOICES)-(i*MIDI_NOTEVOICES))-1) < MIDI_DRUMVOICES) ? 1 : 0; //Drum or melodic voice? Put the drum voices at the far end!
+			activevoices[i].purpose = ((((__MIDI_NUMVOICES)-(i/MIDI_NOTEVOICES))-1) < MIDI_DRUMVOICES) ? 1 : 0; //Drum or melodic voice? Put the drum voices at the far end!
 			activevoices[i].effect_backtrace_samplespeedup = allocfifobuffer(((uint_32)((chorus_delay[CHORUSSIZE])*MAX_SAMPLERATE)+1)<<2,0); //Not locked FIFO buffer containing the entire history!
 			#ifndef DISABLE_REVERB
 			for (j=0;j<CHORUSSIZE;++j) //All chorus backtrace channels!
