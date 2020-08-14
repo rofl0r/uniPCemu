@@ -431,7 +431,7 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	//lock(voice->locknumber); //Lock us!
 	#endif
 
-	if (voice->VolumeEnvelope.active==0) //Simple check!
+	if (voice->active==0) //Simple check!
 	{
 		#ifdef MIDI_LOCKSTART
 		//unlock(voice->locknumber); //Lock us!
@@ -465,13 +465,6 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	lock(voice->locknumber); //Actually check!
 	#endif
 
-	if (voice->VolumeEnvelope.active == 0) //Not active after all?
-	{
-		#ifdef MIDI_LOCKSTART
-		unlock(voice->locknumber);
-		#endif
-		return SOUNDHANDLER_RESULT_NOTFILLED; //Empty buffer: we're unused!
-	}
 	//Calculate the pitch bend speedup!
 	pitchcents = (float)(channel->pitch&0x3FFF); //Load active pitch bend (unsigned), Only low 14 bits are used!
 	pitchcents -= (float)0x2000; //Convert to a signed value!
@@ -532,6 +525,19 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 			MIDIDEVICE_getsample(chorusreverbsamplepos, totaldelay, samplerate, voice->effectivesamplespeedup, voice, VolumeEnvelope, ModulationEnvelope, currentchorusreverb, voice->chorusvol[currentchorusreverb], currentchorusreverb, &lchannel, &rchannel); //Get the sample from the MIDI device, with only the chorus effect!
 		} while (++currentchorusreverb<CHORUSSIZE); //Chorus loop.
 
+		if (unlikely((VolumeADSR->active==0) && (VolumeEnvelope>=1000.0f) && (voice->noteplaybackfinished==0))) //To finish note with chorus?
+		{
+			voice->noteplaybackfinished = 1; //Finish note!
+			voice->finishnoteleft = voice->reverbdelay[CHORUSREVERBSIZE-1]; //How long for any delay to be left?
+		}
+		else if (voice->noteplaybackfinished) //Counting down finish timer?
+		{
+			if (--voice->noteplaybackfinished==0) //Finished reverb?
+			{
+				voice->active = 0; //Finish the voice: nothing is left to be rendered!
+			}
+		}
+
 		//Apply reverb based on chorus history now!
 		#ifndef DISABLE_REVERB
 		chorus = 0; //Init chorus number!
@@ -556,6 +562,11 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 			reverb += (chorus^1); //Next reverb channel when needed!
 		} while (++currentchorusreverb<CHORUSREVERBSIZE); //Remaining channel loop.
 		VolumeEnvelope = tempstorage; //Restore the volume envelope!
+		#else
+		if (!VolumeADSR->active) //Finish?
+		{
+			voice->active = 0; //Inactive!
+		}
 		#endif
 
 		//Clip the samples to prevent overflow!
@@ -906,7 +917,7 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 
 	//If we reach here, the voice is valid and needs to be properly allocated!
 
-	if (voice->VolumeEnvelope.active) //Already active? Needs voice stealing to work!
+	if (voice->active) //Already active? Needs voice stealing to work!
 	{
 		#ifdef MIDI_LOCKSTART
 		unlock(voice->locknumber); //Lock us!
@@ -1333,6 +1344,7 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 	unlockMPURenderer(); //We're finished!
 	setSampleRate(&MIDIDEVICE_renderer, voice, (float)LE16(voice->sample.dwSampleRate)); //Use this new samplerate!
 	voice->starttime = starttime++; //Take a new start time!
+	voice->active = 1; //Active!
 	return 1; //Run: we're active!
 }
 
@@ -1578,7 +1590,7 @@ OPTINLINE void MIDIDEVICE_noteOn(byte selectedchannel, byte channel, byte note, 
 				//Unable to allocate? Perform ranking if it's active!
 				for (voiceactive = voice; voiceactive < (voice + voicelimit); ++voiceactive) //Check all subvoices!
 				{
-					if (activevoices[voiceactive].VolumeEnvelope.active) //Are we active and the first voice?
+					if (activevoices[voiceactive].active) //Are we active and the first voice?
 					{
 						//Create ranking by scoring the voice!
 						currentranking = 0; //Start with no ranking!

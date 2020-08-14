@@ -102,6 +102,7 @@ typedef struct
 	uint_32 startloopaddressoffset;
 	uint_32 endaddressoffset;
 	uint_32 endloopaddressoffset;
+	uint_32 finishnoteleft; //Time left since finish of note itself!
 
 	//Stuff for voice stealing
 	uint_64 starttime; //When have we started our voice?
@@ -167,6 +168,8 @@ typedef struct
 	word pbag;
 	word instrumentptr;
 	word ibag;
+	byte active; //Are we still playing something?
+	byte noteplaybackfinished; //Finallooptime valid to add?
 } MIDIDEVICE_VOICE;
 
 void MIDIDEVICE_tickActiveSense(); //Tick the Active Sense (MIDI) line with any command/data!
