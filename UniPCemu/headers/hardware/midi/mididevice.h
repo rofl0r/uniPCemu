@@ -124,6 +124,9 @@ typedef struct
 
 	int_32 modenv_pitchfactor; //How many cents to apply to the frequency of the sound?
 
+	byte loadedinformation; //Information is loaded?
+	sfPresetHeader currentpreset;
+	sfInst currentinstrument;
 	sfSample sample; //The sample to be played back!
 	ADSR VolumeEnvelope; //The volume envelope!
 	ADSR ModulationEnvelope; //The modulation envelope!

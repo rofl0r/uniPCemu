@@ -955,12 +955,17 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 	#endif
 
 	memcpy(&voice->sample, &sampleInfo, sizeof(sampleInfo)); //Load the active sample info to become active for the allocated voice!
+	memcpy(&voice->currentpreset, &currentpreset, sizeof(currentpreset)); //Load the active sample info to become active for the allocated voice!
+	memcpy(&voice->currentinstrument, &currentinstrument, sizeof(currentinstrument)); //Load the active sample info to become active for the allocated voice!
 
 	voice->loopsize = loopsize; //Save the loop size!
 
 	//Now, determine the actual note to be turned on!
 	voice->channel = channel; //What channel!
 	voice->note = note; //What note!
+
+	//Identify to any player we're displayable!
+	voice->loadedinformation = 1; //We've loaded information for this voice!
 
 	//Preset and instrument lookups!
 	voice->preset = preset; //Preset!
