@@ -42,6 +42,11 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include <mmsystem.h>  /* multimedia functions (such as MIDI) for Windows */
 #endif
 
+#ifdef IS_PSP
+//The PSP doesn't have enough memory to handle reverb(around 19MB on reverb buffers)
+#define DISABLE_REVERB
+#endif
+
 //Are we disabled?
 //#define __HW_DISABLED
 RIFFHEADER *soundfont; //Our loaded soundfont!
@@ -363,7 +368,11 @@ void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float sampler
 
 	//Next, apply finish!
 	loopflags = (samplepos >= voice->endaddressoffset) || (play_counter<0); //Expired or not started yet?
+	#ifndef DISABLE_REVERB
 	if (loopflags) goto finishedsample;
+	#else
+	if (loopflags) goto return;
+	#endif
 
 	if (getSFSample16(soundfont, (uint_32)samplepos, &readsample)) //Sample found?
 	{
@@ -382,16 +391,20 @@ void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float sampler
 		lchannel *= voice->lvolume; //Apply left panning, also according to the CC!
 		rchannel *= voice->rvolume; //Apply right panning, also according to the CC!
 
+		#ifndef DISABLE_REVERB
 		writefifobufferflt_2(voice->effect_backtrace_chorus[filterindex],lchannel,rchannel); //Left/right channel output!
+		#endif
 
 		*lchannelres += (int_32)lchannel; //Apply the immediate left channel!
 		*rchannelres += (int_32)rchannel; //Apply the immedaite right channel!
 	}
+	#ifndef DISABLE_REVERB
 	else
 	{
-		finishedsample: //loopflags set?
+	finishedsample: //loopflags set?
 		writefifobufferflt_2(voice->effect_backtrace_chorus[filterindex],0.0f,0.0f); //Left/right channel output!
 	}
+	#endif
 }
 
 byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata) //Sound output renderer!
@@ -520,6 +533,7 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 		} while (++currentchorusreverb<CHORUSSIZE); //Chorus loop.
 
 		//Apply reverb based on chorus history now!
+		#ifndef DISABLE_REVERB
 		chorus = 0; //Init chorus number!
 		reverb = 1; //First reverberation to apply!
 		tempstorage = VolumeEnvelope; //Store for temporary storage!
@@ -542,6 +556,7 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 			reverb += (chorus^1); //Next reverb channel when needed!
 		} while (++currentchorusreverb<CHORUSREVERBSIZE); //Remaining channel loop.
 		VolumeEnvelope = tempstorage; //Restore the volume envelope!
+		#endif
 
 		//Clip the samples to prevent overflow!
 		if (lchannel>SHRT_MAX) lchannel = SHRT_MAX;
@@ -918,10 +933,12 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 		voice->effect_backtrace_chorus[chorusreverbdepth] = chorus_backtrace[chorusreverbdepth]; //Restore!
 	}
 	fifobuffer_clear(voice->effect_backtrace_samplespeedup); //Clear our history buffer!
+	#ifndef DISABLE_REVERB
 	for (chorusreverbdepth = 0; chorusreverbdepth < CHORUSSIZE; ++chorusreverbdepth) //Initialize all chorus histories!
 	{
 		fifobuffer_clear(voice->effect_backtrace_chorus[chorusreverbdepth]); //Clear our history buffer!
 	}
+	#endif
 
 	memcpy(&voice->sample, &sampleInfo, sizeof(sampleInfo)); //Load the active sample info to become active for the allocated voice!
 
@@ -2002,10 +2019,12 @@ void done_MIDIDEVICE() //Finish our midi device!
 		{
 			free_fifobuffer(&activevoices[i].effect_backtrace_samplespeedup); //Release the FIFO buffer containing the entire history!
 		}
+		#ifndef DISABLE_REVERB
 		for (j=0;j<CHORUSSIZE;++j)
 		{
 			free_fifobuffer(&activevoices[i].effect_backtrace_chorus[j]); //Release the FIFO buffer containing the entire history!
 		}
+		#endif
 	}
 	MIDIDEVICE_ActiveSenseFinished(); //Finish our Active Sense: we're not needed anymore!
 	unlockaudio();
@@ -2093,10 +2112,12 @@ byte init_MIDIDEVICE(char *filename, byte use_direct_MIDI) //Initialise MIDI dev
 		{
 			activevoices[i].purpose = ((((__MIDI_NUMVOICES*MIDI_NOTEVOICES)-(i*MIDI_NOTEVOICES))-1) < MIDI_DRUMVOICES) ? 1 : 0; //Drum or melodic voice? Put the drum voices at the far end!
 			activevoices[i].effect_backtrace_samplespeedup = allocfifobuffer(((uint_32)((chorus_delay[CHORUSSIZE])*MAX_SAMPLERATE)+1)<<2,0); //Not locked FIFO buffer containing the entire history!
+			#ifndef DISABLE_REVERB
 			for (j=0;j<CHORUSSIZE;++j) //All chorus backtrace channels!
 			{
 				activevoices[i].effect_backtrace_chorus[j] = allocfifobuffer(((uint_32)((reverb_delay[CHORUSSIZE])*MAX_SAMPLERATE)+1)<<3,0); //Not locked FIFO buffer containing the entire history!				
 			}
+			#endif
 			addchannel(&MIDIDEVICE_renderer,&activevoices[i],"MIDI Voice",44100.0f,__MIDI_SAMPLES,1,SMPL16S); //Add the channel! Delay at 0.96ms for response speed! 44100/(1000000/960)=42.336 samples/response!
 			setVolume(&MIDIDEVICE_renderer,&activevoices[i],MIDI_VOLUME); //We're at 40% volume!
 		}
