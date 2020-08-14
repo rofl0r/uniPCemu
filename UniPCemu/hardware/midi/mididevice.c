@@ -1642,7 +1642,7 @@ OPTINLINE void MIDIDEVICE_noteOn(byte selectedchannel, byte channel, byte note, 
 					#ifdef MIDI_LOCKSTART
 					lock(activevoices[voice].locknumber); //Lock us!
 					#endif
-					activevoices[voice].VolumeEnvelope.active = 0; //Make inactive!
+					activevoices[voice].active = 0; //Make inactive!
 					#ifdef MIDI_LOCKSTART
 					unlock(activevoices[voice].locknumber); //unlock us!
 					#endif
