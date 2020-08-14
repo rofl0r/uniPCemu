@@ -525,16 +525,19 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 			MIDIDEVICE_getsample(chorusreverbsamplepos, totaldelay, samplerate, voice->effectivesamplespeedup, voice, VolumeEnvelope, ModulationEnvelope, currentchorusreverb, voice->chorusvol[currentchorusreverb], currentchorusreverb, &lchannel, &rchannel); //Get the sample from the MIDI device, with only the chorus effect!
 		} while (++currentchorusreverb<CHORUSSIZE); //Chorus loop.
 
-		if (unlikely((VolumeADSR->active==0) && (VolumeEnvelope>=1000.0f) && (voice->noteplaybackfinished==0))) //To finish note with chorus?
+		if (unlikely((VolumeADSR->active==ADSR_IDLE) && (voice->noteplaybackfinished==0))) //To finish note with chorus?
 		{
 			voice->noteplaybackfinished = 1; //Finish note!
-			voice->finishnoteleft = voice->reverbdelay[CHORUSREVERBSIZE-1]; //How long for any delay to be left?
+			voice->finishnoteleft = voice->reverbdelay[REVERBSIZE-1]; //How long for any delay to be left?
 		}
 		else if (voice->noteplaybackfinished) //Counting down finish timer?
 		{
-			if (--voice->noteplaybackfinished==0) //Finished reverb?
+			if (voice->finishnoteleft) //Anything left?
 			{
-				voice->active = 0; //Finish the voice: nothing is left to be rendered!
+				if ((--voice->finishnoteleft) == 0) //Finished reverb?
+				{
+					voice->active = 0; //Finish the voice: nothing is left to be rendered!
+				}
 			}
 		}
 
