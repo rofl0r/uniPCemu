@@ -150,7 +150,7 @@ extern GPU_TEXTSURFACE *frameratesurface; //Our framerate surface!
 
 OPTINLINE void printMIDIChannelStatus()
 {
-	int i,voice;
+	int i,voice,j;
 	uint_32 color; //The color to use!
 	GPU_text_locksurface(frameratesurface); //Lock the surface!
 	for (i = 0; i < __MIDI_NUMVOICES; i++) //Process all voices!
@@ -182,6 +182,21 @@ OPTINLINE void printMIDIChannelStatus()
 		else //Not assigned?
 		{
 			GPU_textprintf(frameratesurface, color, RGB(0xDD, 0xDD, 0xDD), "           "); //Dump information about the voice we're playing!
+		}
+		if (activevoices[i].loadedinformation) //information loaded?
+		{
+			for (j = 0; j < NUMITEMS(activevoices[i].currentpreset.achPresetName); ++j) //preset name!
+			{
+				if (!activevoices[i].currentpreset.achPresetName[j]) //End of string?
+				{
+					break;
+				}
+				GPU_textprintf(frameratesurface, color, RGB(0xDD, 0xDD, 0xDD), "%c", activevoices[i].currentpreset.achPresetName[j]); //Dump information about the voice we're playing!
+			}
+			for (; j < NUMITEMS(activevoices[i].currentpreset.achPresetName); ++j) //preset name remainder!
+			{
+				GPU_textprintf(frameratesurface, color, RGB(0xDD, 0xDD, 0xDD), " "); //Clear first!
+			}
 		}
 	}
 	GPU_text_releasesurface(frameratesurface); //Unlock the surface!
