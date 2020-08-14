@@ -145,21 +145,22 @@ OPTINLINE void updateMIDTimer(HEADER_CHNK *header) //Request an update of our ti
 	}
 }
 
-extern MIDIDEVICE_VOICE activevoices[__MIDI_NUMVOICES]; //All active voices!
+extern MIDIDEVICE_VOICE activevoices[MIDI_TOTALVOICES]; //All active voices!
 extern GPU_TEXTSURFACE *frameratesurface; //Our framerate surface!
 
 OPTINLINE void printMIDIChannelStatus()
 {
-	int i;
+	int i,voice;
 	uint_32 color; //The color to use!
 	GPU_text_locksurface(frameratesurface); //Lock the surface!
 	for (i = 0; i < __MIDI_NUMVOICES; i++) //Process all voices!
 	{
+		voice = (i * MIDI_NOTEVOICES); //The main voice handler!
 		GPU_textgotoxy(frameratesurface, 0, i + 5); //Row 5+!
-		if (activevoices[i].VolumeEnvelope.active) //Active voice?
+		if (activevoices[i].VolumeEnvelope.active && activevoices[i].active) //Fully active voice?
 		{
 			color = RGB(0x00, 0xFF, 0x00); //The color to use!
-			GPU_textprintf(frameratesurface, color, RGB(0xDD, 0xDD, 0xDD), "%02i", activevoices[i].VolumeEnvelope.active);
+			GPU_textprintf(frameratesurface, color, RGB(0xDD, 0xDD, 0xDD), "%02i", activevoices[i].active);
 		}
 		else //Inactive voice?
 		{
@@ -177,6 +178,10 @@ OPTINLINE void printMIDIChannelStatus()
 		if (activevoices[i].channel && activevoices[i].note) //Gotten assigned?
 		{
 			GPU_textprintf(frameratesurface, color, RGB(0xDD, 0xDD, 0xDD), " %04X %02X %02X", activevoices[i].channel->activebank, activevoices[i].channel->program, activevoices[i].note->note); //Dump information about the voice we're playing!
+		}
+		else //Not assigned?
+		{
+			GPU_textprintf(frameratesurface, color, RGB(0xDD, 0xDD, 0xDD), "           "); //Dump information about the voice we're playing!
 		}
 	}
 	GPU_text_releasesurface(frameratesurface); //Unlock the surface!
