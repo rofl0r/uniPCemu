@@ -43,8 +43,8 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #endif
 
 #ifdef IS_PSP
-//The PSP doesn't have enough memory to handle reverb(around 19MB on reverb buffers)
-#define DISABLE_REVERB
+//The PSP doesn't have enough memory to handle reverb(around 1.9MB on reverb buffers)
+//#define DISABLE_REVERB
 #endif
 
 //Are we disabled?
@@ -68,8 +68,8 @@ byte direct_midi = 0; //Enable direct MIDI synthesis?
 //Default mode is Omni Off, Poly
 #define MIDIDEVICE_DEFAULTMODE MIDIDEVICE_POLY
 
-//Reverb delay in seconds
-#define REVERB_DELAY 0.25f
+//Reverb delay in seconds (originally 250ms(19MB), now 50ms(960384 bytes of buffers))
+#define REVERB_DELAY 0.05f
 
 //Chorus delay in seconds (5ms)
 #define CHORUS_DELAY 0.005f
