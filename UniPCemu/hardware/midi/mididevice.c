@@ -661,7 +661,7 @@ float calcSFModSourceRaw(byte isInstrumentMod, byte isAmtSource, MIDIDEVICE_VOIC
 			inputrange = (float)0x4000; //The range!
 			break;
 		case 16: //Pitch wheel sensitivity (RPN 0)?
-			i = ((float)voice->channel->pitchbendsensitivitysemitones); //The semitones part of the pitch wheel sensitivity!
+			i = MIN(((float)voice->channel->pitchbendsensitivitysemitones)+((float)voice->channel->pitchbendsensitivitycents*0.01f),127.0f); //The semitones and cents part of the pitch wheel sensitivity! Limit to be within range!
 			inputrange = (float)0x7F; //The range!
 			break;
 		case 127: //Link?
