@@ -596,15 +596,15 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 float MIDIconcave(float val)
 {
 	float result;
-	if (val <= 0.0) //Invalid?
+	if (val <= 0.0f) //Invalid?
 	{
 		return 0.0f; //Nothing!
 	}
-	if (val >= 1.0) //Invalid?
+	if (val >= 1.0f) //Invalid?
 	{
 		return 1.0f; //Full!
 	}
-	result = val; //Linear!
+	result = 1.0f-val; //Linear!
 	result = (result * result); //Squared!
 	result = (-20.0f / 96.0f) * log10f(result); //Convert to the 0.0-0.9 range!
 	return result; //Give the result!
