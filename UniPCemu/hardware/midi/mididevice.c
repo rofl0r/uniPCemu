@@ -831,6 +831,10 @@ float getSFmodulator(byte isInstrumentMod, MIDIDEVICE_VOICE *voice, word destina
 			}
 			if (originMod == INT_MIN) //Nothing found?
 			{
+				if (foundindex == INT_MIN) //We're fully finished?
+				{
+					goto finishUp; //Finish up the result!
+				}
 				index = 0; //Try the next index!
 				goto processNextIndex;
 			}
