@@ -1223,7 +1223,7 @@ sfModList defaultInstrumentModulators[10] = { //Default instrument modulators!
 	{.sfModSrcOper = 0x0102, .sfModDestOper = initialFilterFc, .modAmount = -2400, .sfModAmtSrcOper = 0x0, .sfModTransOper = 0}, //Note-On velocity to Filter Cutoff
 	{.sfModSrcOper = 0x000D, .sfModDestOper = vibLfoToPitch, .modAmount = 50, .sfModAmtSrcOper = 0x0, .sfModTransOper = 0}, //Channel pressure to Vibrato LFO Pitch Depth
 	{.sfModSrcOper = 0x0081, .sfModDestOper = vibLfoToPitch, .modAmount = 50, .sfModAmtSrcOper = 0x0, .sfModTransOper = 0}, //CC1 to Vibrato LFO Pitch Depth
-	{.sfModSrcOper = 0x0582, .sfModDestOper = initialAttenuation, .modAmount = 960, .sfModAmtSrcOper = 0x0, .sfModTransOper = 0}, //CC7 to Initial Attenuation
+	{.sfModSrcOper = 0x0587, .sfModDestOper = initialAttenuation, .modAmount = 960, .sfModAmtSrcOper = 0x0, .sfModTransOper = 0}, //CC7 to Initial Attenuation. The soundfont 2.04 spec says 0582, but it's supposed to be 0587!
 	{.sfModSrcOper = 0x028A, .sfModDestOper = pan, .modAmount = 1000, .sfModAmtSrcOper = 0x0, .sfModTransOper = 0}, //CC10 to Pan Position
 	{.sfModSrcOper = 0x058B, .sfModDestOper = initialAttenuation, .modAmount = 960, .sfModAmtSrcOper = 0x0, .sfModTransOper = 0}, //CC11 to Initial Attenuation
 	{.sfModSrcOper = 0x00DB, .sfModDestOper = reverbEffectsSend, .modAmount = 200, .sfModAmtSrcOper = 0x0, .sfModTransOper = 0}, //CC91 to Reverb Effects Send
