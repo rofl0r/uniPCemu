@@ -892,9 +892,6 @@ void calcAttenuationModulators(MIDIDEVICE_VOICE *voice)
 	attenuation += getSFInstrumentmodulator(voice, initialAttenuation, 1, 0.0f, 960.0f); //Get the initial attenuation modulators!
 	attenuation += getSFPresetmodulator(voice, initialAttenuation, 1, 0.0f, 960.0f); //Get the initial attenuation modulators!
 
-	if (attenuation > 1440.0f) attenuation = 1440.0f; //Limit!
-	if (attenuation < 0.0f) attenuation = 0.0f; //Limit!
-
 	voice->effectiveAttenuation = attenuation; //Effective attenuation!
 }
 
