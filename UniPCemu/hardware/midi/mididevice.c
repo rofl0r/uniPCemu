@@ -704,7 +704,14 @@ float calcSFModSourceRaw(byte isInstrumentMod, byte isAmtSource, MIDIDEVICE_VOIC
 	case 1: //Concave?
 		if (polarity) //Bipolar?
 		{
-			//TODO
+			if (i>=0.5f) //Past half? Positive half!
+			{
+				i = MIDIconcave((i-0.5)*2.0f); //Positive half!
+			}
+			else //First half? Negative half?
+			{
+				i = -MIDIconcave((0.5-i)*2.0f); //Negative half!
+			}
 		}
 		else //Unipolar?
 		{
@@ -714,7 +721,14 @@ float calcSFModSourceRaw(byte isInstrumentMod, byte isAmtSource, MIDIDEVICE_VOIC
 	case 2: //Convex?
 		if (polarity) //Bipolar?
 		{
-			//TODO
+			if (i>=0.5f) //Past half? Positive half!
+			{
+				i = MIDIconvex((i-0.5)*2.0f); //Positive half!
+			}
+			else //First half? Negative half?
+			{
+				i = -MIDIconvex((0.5-i)*2.0f); //Negative half!
+			}
 		}
 		else //Unipolar?
 		{
