@@ -175,8 +175,6 @@ OPTINLINE void reset_MIDIDEVICE() //Reset the MIDI device for usage!
 		MIDI_channels[channel].panposition = (0x20<<7); //Centered pan position as the default pan!
 		MIDI_channels[channel].lvolume = MIDI_channels[channel].rvolume = 0.5; //Accompanying the pan position: centered volume!
 		MIDI_channels[channel].RPNmode = 0; //No (N)RPN selected!
-		MIDI_channels[channel].mastertuninghigh = 0x20; //Default ...
-		MIDI_channels[channel].mastertuninglow = 0x00; //... Value of centered A440 tuning!
 		MIDI_channels[channel].pitchbendsensitivitysemitones = 2; //2 semitones of ...
 		MIDI_channels[channel].pitchbendsensitivitycents = 0; //... default pitch bend?
 		MIDI_channels[channel++].mode = MIDIDEVICE_DEFAULTMODE; //Use the default mode!
@@ -2074,10 +2072,6 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 						{
 							MIDI_channels[currentchannel].pitchbendsensitivitysemitones = (current->buffer[1]&0x7F); //Semitones!
 						}
-						else  if ((MIDI_channels[currentchannel].RPNhi == 0) && (MIDI_channels[currentchannel].RPNlo == 1)) //Master Tuning?
-						{
-							MIDI_channels[currentchannel].mastertuninghigh = (current->buffer[1] & 0x7F); //Semitones!
-						}
 						//127,127=NULL!
 						//Other RPNs aren't supported!
 						break;
@@ -2098,10 +2092,6 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 						if ((MIDI_channels[currentchannel].RPNhi == 0) && (MIDI_channels[currentchannel].RPNlo == 0)) //Pitch wheel Sensitivity?
 						{
 							MIDI_channels[currentchannel].pitchbendsensitivitycents = (current->buffer[1] & 0x7F); //Cents!
-						}
-						else  if ((MIDI_channels[currentchannel].RPNhi == 0) && (MIDI_channels[currentchannel].RPNlo == 1)) //Master Tuning?
-						{
-							MIDI_channels[currentchannel].mastertuninglow = (current->buffer[1] & 0x7F); //Low!
 						}
 						//127,127=NULL!
 						//Other RPNs aren't supported!

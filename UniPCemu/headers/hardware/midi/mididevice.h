@@ -102,9 +102,6 @@ typedef struct
 	uint_32 NRPNnumbercounter; //NRPN number counter!
 	byte pitchbendsensitivitysemitones;
 	byte pitchbendsensitivitycents;
-	//Master tuning: center=8192=A440
-	byte mastertuninglow; //Master tuning Low 7 bits
-	byte mastertuninghigh; //Master tuning High 7 bits
 } MIDIDEVICE_CHANNEL;
 
 typedef struct
