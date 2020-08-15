@@ -91,6 +91,7 @@ typedef struct
 	byte choruslevel; //Current chorus depth set!
 	byte reverblevel; //Current reverb depth set!
 	byte monophonicchannelcount; //Monophonic channel count(in mono mode only)!
+	byte ContinuousControllers[0x80]; //All possible continuous controllers!
 } MIDIDEVICE_CHANNEL;
 
 typedef struct

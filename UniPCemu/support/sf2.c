@@ -1046,13 +1046,30 @@ Finally: some lookup functions for contents within the bags!
 
 */
 
-byte lookupSFPresetMod(RIFFHEADER *sf, uint_32 preset, word PBag, SFModulator sfModSrcOper, sfModList *result)
+/*
+
+lookupSFPresetMod: Retrieves a preset from the list
+parameters:
+	sfModDestOper: What destination to filter against.
+	index: The index to retrieve
+	originMod: Used to keep track of the original mod that's detected! Start with -INT_MAX!
+result:
+	0: No modulators left
+	1: Found
+	2: Found, but not applicable (skip this entry)!
+
+*/
+byte lookupSFPresetMod(RIFFHEADER *sf, uint_32 preset, word PBag, SFModulator sfModDestOper, word index, sfModList *result, int_32 *originMod, int_32* foundindex)
 {
 	sfPresetHeader currentpreset;
 	word CurrentMod;
 	sfPresetBag pbag;
-	sfModList mod,emptymod;
+	sfModList mod,emptymod,originatingmod;
 	byte found;
+	word currentindex;
+	byte gotoriginatingmod;
+	byte originatingfilter;
+	currentindex = 0; //First index to find!
 	found = 0; //Default: not found!
 	if (getSFPreset(sf,preset,&currentpreset)) //Retrieve the header!
 	{
@@ -1071,10 +1088,54 @@ byte lookupSFPresetMod(RIFFHEADER *sf, uint_32 preset, word PBag, SFModulator sf
 							if (getSFPresetMod(sf,CurrentMod,&mod)) //Valid?
 							{
 								if (memcmp(&mod,&emptymod,sizeof(mod))==0) break; //Stop searching on final item!
-								if (LE16(mod.sfModSrcOper)==sfModSrcOper) //Found?
+								if (LE16(mod.sfModDestOper)==sfModDestOper) //Found?
 								{
-									found = 1; //Found!
-									memcpy(result,&mod,sizeof(*result)); //Set to last found!
+									originatingfilter = 1; //Default: no originating filter!
+									if (*originMod == CurrentMod) //Current mod is originating?
+									{
+										memcpy(&originatingmod, &mod, sizeof(mod)); //Originating mod itself to keep track of!
+										gotoriginatingmod = 1; //Got originating mod!
+									}
+									if (*originMod != INT_MIN) //Originating mod specified?
+									{
+										if (gotoriginatingmod) //Got originating mod?
+										{
+											originatingfilter = ((originatingmod.sfModSrcOper == mod.sfModSrcOper) && (originatingmod.sfModDestOper == mod.sfModDestOper) && (originatingmod.sfModAmtSrcOper == mod.sfModAmtSrcOper));
+										}
+										else //Not gotten originating mod yet?
+										{
+											originatingfilter = 0; //Invalid to use!
+										}
+									}
+									if (originatingfilter) //Valid to use?
+									{
+										if (currentindex == index) //Requested index?
+										{
+											if (found == 0) //Not found yet?
+											{
+												found = 1; //Found!
+												*foundindex = CurrentMod; //What index has been found!
+												memcpy(result, &mod, sizeof(*result)); //Set to last found!
+												if (*originMod == INT_MIN) //Not set yet?
+												{
+													*originMod = -CurrentMod; //Copy of the original modulator!
+													memcpy(&originatingmod, &mod, sizeof(originatingmod)); //Copy of the originating mod!
+												}
+											}
+											else if (found == 1) //Already found something?
+											{
+												found = 2; //Found a second one, skip the first one!
+											}
+										}
+										else if (currentindex > index) //Later index than what's requested?
+										{
+											if (found) //Already found?
+											{
+												found = 2; //Found a second one, skip the first one!
+											}
+										}
+										++currentindex; //Next index to check against!
+									}
 								}
 							}
 							++CurrentMod;
@@ -1157,16 +1218,81 @@ byte lookupSFPresetGen(RIFFHEADER *sf, uint_32 preset, word PBag, SFGenerator sf
 	return found; //Not found or last found!
 }
 
+sfModList defaultInstrumentModulators[10] = { //Default instrument modulators!
+	{.sfModSrcOper = 0x0502, .sfModDestOper = initialAttenuation, .modAmount = 960, .sfModAmtSrcOper = 0x0, .sfModTransOper = 0}, //Note-On velocity to Initial Attenuation
+	{.sfModSrcOper = 0x0102, .sfModDestOper = initialFilterFc, .modAmount = -2400, .sfModAmtSrcOper = 0x0, .sfModTransOper = 0}, //Note-On velocity to Filter Cutoff
+	{.sfModSrcOper = 0x000D, .sfModDestOper = vibLfoToPitch, .modAmount = 50, .sfModAmtSrcOper = 0x0, .sfModTransOper = 0}, //Channel pressure to Vibrato LFO Pitch Depth
+	{.sfModSrcOper = 0x0081, .sfModDestOper = vibLfoToPitch, .modAmount = 50, .sfModAmtSrcOper = 0x0, .sfModTransOper = 0}, //CC1 to Vibrato LFO Pitch Depth
+	{.sfModSrcOper = 0x0582, .sfModDestOper = initialAttenuation, .modAmount = 960, .sfModAmtSrcOper = 0x0, .sfModTransOper = 0}, //CC7 to Initial Attenuation
+	{.sfModSrcOper = 0x028A, .sfModDestOper = pan, .modAmount = 1000, .sfModAmtSrcOper = 0x0, .sfModTransOper = 0}, //CC10 to Pan Position
+	{.sfModSrcOper = 0x058B, .sfModDestOper = initialAttenuation, .modAmount = 960, .sfModAmtSrcOper = 0x0, .sfModTransOper = 0}, //CC11 to Initial Attenuation
+	{.sfModSrcOper = 0x00DB, .sfModDestOper = reverbEffectsSend, .modAmount = 200, .sfModAmtSrcOper = 0x0, .sfModTransOper = 0}, //CC91 to Reverb Effects Send
+	{.sfModSrcOper = 0x00DD, .sfModDestOper = chorusEffectsSend, .modAmount = 200, .sfModAmtSrcOper = 0x0, .sfModTransOper = 0}, //CC93 to Chorus Effects Send
+	{.sfModSrcOper = 0x020E, .sfModDestOper = pitchBendinitialPitch, .modAmount = 200, .sfModAmtSrcOper = 0x0010, .sfModTransOper = 0} //CC93 to Chorus Effects Send
+};
 
+/*
 
-byte lookupSFInstrumentMod(RIFFHEADER *sf, word instrument, word IBag, SFModulator sfModSrcOper, sfModList *result)
+lookupSFInstrumentMod: Retrieves a instrument modulator from the list
+parameters:
+	sfModDestOper: What destination to filter against.
+	index: The index to retrieve
+	originMod: Used to keep track of the original mod that's detected! Start with -INT_MAX!
+result:
+	0: No modulators left
+	1: Found
+	2: Found, but not applicable (skip this entry)!
+
+*/
+byte lookupSFInstrumentMod(RIFFHEADER *sf, word instrument, word IBag, SFModulator sfModDestOper, word index, sfModList *result, int_32* originMod, int_32* foundindex)
 {
 	sfInst currentinstrument;
 	word CurrentMod;
 	sfInstBag ibag;
-	sfModList mod,emptymod;
+	sfModList mod,emptymod,originatingmod;
 	byte found;
+	word currentindex;
+	currentindex = 0; //First index to find!
 	found = 0; //Default: not found!
+	byte originatingfilter;
+	byte gotoriginatingmod;
+
+	//First, apply the default modulators!
+	for (CurrentMod = 0; CurrentMod < NUMITEMS(defaultInstrumentModulators); ++CurrentMod) //Process the defaults first!
+	{
+		memcpy(&mod, &defaultInstrumentModulators[CurrentMod], sizeof(mod)); //Take the default modulator found!
+		//Handle it just like another instrument modulator!
+		if (LE16(mod.sfModDestOper) == sfModDestOper) //Found destination?
+		{
+			if (currentindex == index) //Requested index?
+			{
+				if (found == 0) //Not found yet?
+				{
+					found = 1; //Found!
+					memcpy(result, &mod, sizeof(*result)); //Set to last found!
+					*foundindex = -CurrentMod; //What index has been found!
+					if (*originMod == INT_MIN) //Not set yet?
+					{
+						*originMod = -CurrentMod; //Copy of the original modulator!
+						memcpy(&originatingmod, &mod, sizeof(originatingmod)); //Copy of the originating mod!
+						gotoriginatingmod = 1; //Got originating mod!
+					}
+				}
+				else if (*originMod == -CurrentMod) //Originating mod?
+				{
+					memcpy(&originatingmod, &mod, sizeof(originatingmod)); //Copy of the originating mod!
+					gotoriginatingmod = 1; //Got originating mod!
+				}
+			}
+			else if (*originMod == -CurrentMod) //Originating mod?
+			{
+				memcpy(&originatingmod, &mod, sizeof(originatingmod)); //Copy of the originating mod!
+				gotoriginatingmod = 1; //Got originating mod!
+			}
+			++currentindex; //Next index to check against!
+		}
+	}
+
 	if (getSFInstrument(sf,instrument,&currentinstrument)) //Valid instrument?
 	{
 		if (isInstrumentBagNdx(sf,instrument,IBag)) //Process all PBags for our preset!
@@ -1181,11 +1307,55 @@ byte lookupSFInstrumentMod(RIFFHEADER *sf, word instrument, word IBag, SFModulat
 					{
 						if (getSFInstrumentMod(sf,CurrentMod,&mod)) //Valid?
 						{
-							if (memcmp(&mod,&emptymod,sizeof(mod))==0) break; //Stop searching on final item!
-							if (LE16(mod.sfModSrcOper)==sfModSrcOper) //Found?
+							if (memcmp(&mod, &emptymod, sizeof(mod)) == 0) break; //Stop searching on final item!
+							if (LE16(mod.sfModDestOper) == sfModDestOper) //Found?
 							{
-								found = 1;
-								memcpy(result,&mod,sizeof(*result)); //Set to last found!
+								originatingfilter = 1; //Default: no originating filter!
+								if (*originMod == CurrentMod) //Current mod is originating?
+								{
+									memcpy(&originatingmod, &mod, sizeof(mod)); //Originating mod itself to keep track of!
+									gotoriginatingmod = 1; //Got originating mod!
+								}
+								if (*originMod != INT_MIN) //Originating mod specified?
+								{
+									if (gotoriginatingmod) //Got originating mod?
+									{
+										originatingfilter = ((originatingmod.sfModSrcOper==mod.sfModSrcOper) && (originatingmod.sfModDestOper==mod.sfModDestOper) && (originatingmod.sfModAmtSrcOper==mod.sfModAmtSrcOper));
+									}
+									else //Not gotten originating mod yet?
+									{
+										originatingfilter = 0; //Invalid to use!
+									}
+								}
+								if (originatingfilter) //Valid to use?
+								{
+									if (currentindex == index) //Requested index?
+									{
+										if (found == 0) //Not found yet?
+										{
+											found = 1; //Found!
+											memcpy(result, &mod, sizeof(*result)); //Set to last found!
+											*foundindex = CurrentMod; //What index has been found!
+											if (*originMod == INT_MIN) //Not set yet?
+											{
+												*originMod = -CurrentMod; //Copy of the original modulator!
+												memcpy(&originatingmod, &mod, sizeof(originatingmod)); //Copy of the originating mod!
+											}
+										}
+										else if (found == 1) //Already found something?
+										{
+											found = 2; //Found a second one, skip the first one!
+										}
+									}
+									else if (currentindex > index) //Later index than what's requested?
+									{
+										if (found) //Already found?
+										{
+											found = 2; //Found a second one, skip the first one!
+										}
+									}
+									++currentindex; //Next index to check against!
+								}
 							}
 						}
 						++CurrentMod;
@@ -1444,13 +1614,15 @@ byte lookupIBagByMIDIKey(RIFFHEADER *sf, word instrument, byte MIDIKey, byte MID
 
 //Global lookup support for supported entries!
 
-byte lookupSFPresetModGlobal(RIFFHEADER *sf, uint_32 preset, word PBag, SFModulator sfModSrcOper, sfModList *result)
+byte lookupSFPresetModGlobal(RIFFHEADER *sf, uint_32 preset, word PBag, SFModulator sfModDestOper, word index, byte *isGlobal, sfModList *result, int_32* originMod, int_32* foundindex)
 {
+	byte tempresult;
 	sfPresetHeader currentpreset;
 	word GlobalPBag;
-	if (lookupSFPresetMod(sf,preset,PBag,sfModSrcOper,result)) //Found normally?
+	*isGlobal = 0; //Not global!
+	if ((tempresult = lookupSFPresetMod(sf,preset,PBag,sfModDestOper,index,result,originMod,foundindex))!=0) //Found normally?
 	{
-		return 1; //Found normally!
+		return tempresult; //Found normally!
 	}
 	if (getSFPreset(sf,preset,&currentpreset)) //Found?
 	{
@@ -1459,9 +1631,10 @@ byte lookupSFPresetModGlobal(RIFFHEADER *sf, uint_32 preset, word PBag, SFModula
 		{
 			if (isGlobalPresetZone(sf,preset,GlobalPBag)) //Global zone?
 			{
-				if (lookupSFPresetMod(sf,preset,GlobalPBag,sfModSrcOper,result)) //Global found?
+				if ((tempresult = lookupSFPresetMod(sf,preset,GlobalPBag,sfModDestOper,index,result,originMod,foundindex))) //Global found?
 				{
-					return 1; //Global found!
+					*isGlobal = 1; //Changed to global if not before!
+					return tempresult; //Global found!
 				}
 			}
 		}
@@ -1494,13 +1667,15 @@ byte lookupSFPresetGenGlobal(RIFFHEADER *sf, word preset, word PBag, SFGenerator
 	return 0; //Not found at all!
 }
 
-byte lookupSFInstrumentModGlobal(RIFFHEADER *sf, uint_32 instrument, word IBag, SFModulator sfModSrcOper, sfModList *result)
+byte lookupSFInstrumentModGlobal(RIFFHEADER *sf, uint_32 instrument, word IBag, SFModulator sfModDestOper, word index, byte *isGlobal, sfModList *result, int_32* originMod, int_32 *foundindex)
 {
 	sfInst currentinstrument;
 	word GlobalIBag;
-	if (lookupSFInstrumentMod(sf,instrument,IBag,sfModSrcOper,result)) //Found normally?
+	byte tempresult;
+	*isGlobal = 0; //Not global!
+	if ((tempresult = lookupSFInstrumentMod(sf,instrument,IBag,sfModDestOper,index,result,originMod,foundindex))!=0) //Found normally?
 	{
-		return 1; //Found normally!
+		return tempresult; //Found normally!
 	}
 	if (getSFInstrument(sf,instrument,&currentinstrument)) //Found?
 	{
@@ -1509,9 +1684,10 @@ byte lookupSFInstrumentModGlobal(RIFFHEADER *sf, uint_32 instrument, word IBag, 
 		{
 			if (isGlobalPresetZone(sf,instrument,GlobalIBag)) //Global zone?
 			{
-				if (lookupSFInstrumentMod(sf,instrument,GlobalIBag,sfModSrcOper,result)) //Global found?
+				if ((tempresult = lookupSFInstrumentMod(sf,instrument,GlobalIBag,sfModDestOper,index,result,originMod,foundindex))!=0) //Global found?
 				{
-					return 1; //Global found!
+					*isGlobal = 1; //Global!
+					return tempresult; //Global found!
 				}
 			}
 		}

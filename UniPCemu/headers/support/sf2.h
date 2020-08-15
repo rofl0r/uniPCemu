@@ -320,7 +320,8 @@ enum sfGenerator
 	scaleTuning = 56,
 	exclusiveClass = 57,		// instrument only
 	overridingRootKey = 58,		// instrument only
-	endOper = 60
+	endOper = 60,
+	pitchBendinitialPitch = 0xFFF //Special, not found in the original file. Used for the Pitch Bend operator.
 };
 
 enum sfModulator
@@ -472,9 +473,27 @@ byte isValidInstrumentZone(RIFFHEADER *sf, word instrument, word IBag);
 
 /* Finally: some lookup functions for contents within the bags! */
 
-byte lookupSFPresetMod(RIFFHEADER *sf, uint_32 preset, word PBag, SFModulator sfModSrcOper, sfModList *result);
-byte lookupSFPresetGen(RIFFHEADER *sf, uint_32 preset, word PBag, SFGenerator sfGenOper, sfGenList *result);
-byte lookupSFInstrumentMod(RIFFHEADER *sf, word instrument, word IBag, SFModulator sfModSrcOper, sfModList *result);
+/*
+
+lookupSFPresetMod/lookupSFInstrumentMod: Retrieves a preset/instrument modulator from the list
+parameters:
+	sfModDestOper: What destination to filter against.
+	index: The index to retrieve
+	foundindex: Pointer to a variable containing the found index to not traverse again!
+result:
+	0: No modulators left
+	1: Found
+	2: Found, but not applicable (skip this entry)!
+
+*/
+
+byte lookupSFPresetMod(RIFFHEADER *sf, uint_32 preset, word PBag, SFModulator sfModDestOper, word index, sfModList *result, int_32* originMod, int_32* foundindex);
+byte lookupSFInstrumentMod(RIFFHEADER *sf, word instrument, word IBag, SFModulator sfModDestOper, word index, sfModList *result, int_32* originMod, int_32* foundindex);
+
+//Lookup a generator from preset
+byte lookupSFPresetGen(RIFFHEADER* sf, uint_32 preset, word PBag, SFGenerator sfGenOper, sfGenList* result);
+
+//Lookup a generator from instrument
 byte lookupSFInstrumentGen(RIFFHEADER *sf, word instrument, word IBag, SFGenerator sfGenOper, sfInstGenList *result);
 
 byte lookupPresetByInstrument(RIFFHEADER *sf, word preset, word bank, uint_32 *result);
@@ -482,9 +501,19 @@ byte lookupPBagByMIDIKey(RIFFHEADER *sf, uint_32 preset, byte MIDIKey, byte MIDI
 byte lookupIBagByMIDIKey(RIFFHEADER *sf, word instrument, byte MIDIKey, byte MIDIVelocity, word *result, byte RequireInstrument, int_32 previousIBag);
 
 /* Global and normal lookup of data (global variations of the normal support) */
-byte lookupSFPresetModGlobal(RIFFHEADER *sf, uint_32 preset, word PBag, SFModulator sfModSrcOper, sfModList *result);
-byte lookupSFPresetGenGlobal(RIFFHEADER *sf, word preset, word PBag, SFGenerator sfGenOper, sfGenList *result);
-byte lookupSFInstrumentModGlobal(RIFFHEADER *sf, uint_32 instrument, word IBag, SFModulator sfModSrcOper, sfModList *result);
-byte lookupSFInstrumentGenGlobal(RIFFHEADER *sf, word instrument, word IBag, SFGenerator sfGenOper, sfInstGenList *result);
 
+/*
+
+lookupSFPresetModGlobal/lookupSFInstrumentModGlobal: See lookupSFPresetMod/lookupSFInstrumentMod
+parameters:
+	isGlobal: A flag indicating that the resulting modulator is global or not. Changing from non-Global to global means to abort(don't count the modulator as valid anymore).
+result:
+	See lookupSFPresetMod/lookupSFInstrumentMod
+
+*/
+byte lookupSFPresetModGlobal(RIFFHEADER *sf, uint_32 preset, word PBag, SFModulator sfModDestOper, word index, byte* isGlobal, sfModList *result, int_32* originMod, int_32* foundindex);
+byte lookupSFInstrumentModGlobal(RIFFHEADER *sf, uint_32 instrument, word IBag, SFModulator sfModDestOper, word index, byte* isGlobal, sfModList *result, int_32* originMod, int_32* foundindex);
+
+byte lookupSFPresetGenGlobal(RIFFHEADER* sf, word preset, word PBag, SFGenerator sfGenOper, sfGenList* result);
+byte lookupSFInstrumentGenGlobal(RIFFHEADER* sf, word instrument, word IBag, SFGenerator sfGenOper, sfInstGenList* result);
 #endif

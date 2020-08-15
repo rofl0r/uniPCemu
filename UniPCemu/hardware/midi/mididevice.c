@@ -592,12 +592,270 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	return SOUNDHANDLER_RESULT_FILLED; //We're filled!
 }
 
-float unipolarconcavesources[0x80]; //All possible unipolar concave sources!
-
-//calcNegativeUnipolarConcaveSourceMIDI: Calculates the result of a unipolar source, normalized between 0.x and less than 1.0!
-float calcNegativeUnipolarConcaveSourceMIDI(byte attenuationsetting)
+//val needs to be a normalized input! Performs a concave from 1 to 0!
+float MIDIconcave(float val)
 {
-	return unipolarconcavesources[attenuationsetting&0x7F]; //Give the result!
+	float result;
+	if (val <= 0.0) //Invalid?
+	{
+		return 0.0f; //Nothing!
+	}
+	if (val >= 1.0) //Invalid?
+	{
+		return 1.0f; //Full!
+	}
+	result = val; //Linear!
+	result = (result * result); //Squared!
+	result = (-20.0f / 96.0f) * log10f(result); //Convert to the 0.0-0.9 range!
+	return result; //Give the result!
+}
+
+//val needs to be a normalized input! Performs a convex from 1 to 0!
+float MIDIconvex(float val)
+{
+	return 1.0f - (MIDIconcave(1.0f - val)); //Convex is concave mirrored horizontally on the input, while also mirrored on the output!
+}
+
+float getSFmodulator(byte isInstrumentMod, MIDIDEVICE_VOICE* voice, word destination, byte applySrcAmt, float min, float max); //Prototype for linking!
+
+float calcSFModSourceRaw(byte isInstrumentMod, byte isAmtSource, MIDIDEVICE_VOICE* voice, sfModList* mod, SFModulator oper)
+{
+	float inputrange;
+	float i;
+	byte type, polarity, direction;
+	if (oper == 0) //Not affecting?
+	{
+		return 1.0f; //Not affecting the result!
+	}
+	if (oper & 0x80) //CC is the source when C is set?
+	{
+		i = ((float)voice->channel->ContinuousControllers[oper & 0x7F])-(float)0x80; //The CC!
+		inputrange = (float)0x7F; //The range!
+	}
+	else //The normal MIDI information is the source!
+	{
+		switch (oper & 0x7F) //What MIDI information is selected?
+		{
+		case 0: //No controller?
+			return 1.0f; //Output is considered 1!
+		case 2: //Note-on velocity?
+			i = (float)(voice->effectivevelocity); //Effective velocity!
+			inputrange = (float)0x7F; //The range!
+			break;
+		case 3: //Note-on key number?
+			i = ((float)voice->effectivenote); //Effective velocity!
+			inputrange = (float)0x7F; //The range!
+			break;
+		case 10: //Poly pressure?
+			i = ((float)voice->note->pressure); //Poly pressure!
+			inputrange = (float)0x7F; //The range!
+			break;
+		case 13: //Channel pressure?
+			i = ((float)voice->channel->pressure); //Channel pressure!
+			inputrange = (float)0x7F; //The range!
+			break;
+		case 14: //Pitch wheel?
+			i = ((float)voice->channel->pitch); //Pitch wheel value!
+			inputrange = (float)0x4000; //The range!
+			break;
+		case 16: //Pitch wheel sensitivity (RPN 0)?
+			i = 127.0f; //Not implemented yet!
+			inputrange = (float)0x7F; //The range!
+			break;
+		case 127: //Link?
+			if (isAmtSource) //Not supported?
+			{
+				return 1.0f; //Consider no controller?
+			}
+			//Give the result of another modulator?
+			i = 127.0f;
+			inputrange = (float)0x7F; //The range!
+			break;
+		default: //Unknown source?
+			i = 0.0f; //Unknown!
+			inputrange = (float)0x7F; //The range(non-zero)!
+			break;
+		}
+	}
+
+	//Now, i is the value from the input, while inputrange is the range of the input!
+	i /= inputrange; //Normalized to 0.0 through 1.0!
+	
+	//Now, apply type, polarity and direction!
+	type = ((oper >> 10) & 0x3F); //Type!
+	polarity = ((oper >> 9) & 1); //Polarity!
+	direction = ((oper >> 8) & 1); //Direction!
+	
+	if (direction) //Direction is reversed?
+	{
+		i = 1.0f - i; //Reverse the direction!
+	}
+
+	switch (type)
+	{
+	default: //Not supported?
+	case 0: //Linear?
+		if (polarity) //Bipolar?
+		{
+			i = (i * 2.0) - 1.0f; //Convert to a range of -1 to 1 for the proper input value!
+		}
+		//Unipolar is left alone(already done)!
+		break;
+	case 1: //Concave?
+		if (polarity) //Bipolar?
+		{
+			//TODO
+		}
+		else //Unipolar?
+		{
+			i = MIDIconcave(i); //Concave normally!
+		}
+		break;
+	case 2: //Convex?
+		if (polarity) //Bipolar?
+		{
+			//TODO
+		}
+		else //Unipolar?
+		{
+			i = MIDIconvex(i); //Concave normally!
+		}
+		break;
+	case 3: //Switch?
+		if (i >= 0.5f) //Past half?
+		{
+			i = 1.0f; //Full!
+		}
+		else //Less than half?
+		{
+			i = 0.0f; //Empty!
+		}
+		if (polarity) //Bipolar?
+		{
+			i = (i * 2.0) - 1.0f; //Convert to a range of -1 to 1 for the proper input value!
+		}
+		//Unipolar is left alone(already done)!
+		break;
+	}
+	return i; //Give the result!
+}
+
+//Get one of the sources!
+float getSFModSource(byte isInstrumentMod, MIDIDEVICE_VOICE* voice, sfModList* mod)
+{
+	return calcSFModSourceRaw(isInstrumentMod, 0, voice, mod, mod->sfModSrcOper); //TODO!
+}
+
+float getSFModAmtSource(byte isInstrumentMod, MIDIDEVICE_VOICE* voice, sfModList* mod)
+{
+	float result;
+	return calcSFModSourceRaw(isInstrumentMod, 1, voice, mod, mod->sfModAmtSrcOper); //TODO! Not supported yet!
+}
+
+float sfModulatorTransform(sfModList* mod, float input)
+{
+	return input; //Don't apply yet(linear only)!
+}
+
+float getSFmodulator(byte isInstrumentMod, MIDIDEVICE_VOICE *voice, word destination, byte applySrcAmt, float min, float max)
+{
+	byte modulatorSkip[0x20000]; //Skipping of modulators! Going both ways!
+	float result;
+	float tempresult;
+	int_32 index; //The index to check!
+	int_32 originMod;
+	byte isGlobal;
+	byte originGlobal;
+	byte lookupResult;
+	int_32 foundindex;
+	sfModList mod;
+	originMod = -1; //Default: no origin mod yet!
+	result = 0.0f; //Initialize the result!
+	if (!applySrcAmt) //Linked modulators?
+	{
+		return 0.0f; //Not supported yet!
+	}
+	memset(&modulatorSkip, 0, sizeof(modulatorSkip)); //Default: nothing skipped yet!
+	for (;;) //Keep searching for new modulators!
+	{
+	processNextIndex:
+		index = 0; //Initialize index!
+		originGlobal = 2; //Originating global: none set yet!
+		originMod = INT_MIN; //No originating modulator yet!
+
+		//Start of the search for the latest modulator!
+	processPriorityMod:
+		foundindex = INT_MIN; //Default: no found index!
+		if (isInstrumentMod) //Instrument modulator?
+		{
+			lookupResult = lookupSFInstrumentModGlobal(soundfont, voice->instrumentptr, voice->ibag, destination, index, &isGlobal, &mod, &originMod, &foundindex);
+		}
+		else //Preset modulator?
+		{
+			lookupResult = lookupSFPresetModGlobal(soundfont, voice->instrumentptr, voice->ibag, destination, index, &isGlobal, &mod, &originMod, &foundindex);
+		}
+		if (foundindex!=INT_MIN) //Any valid Index found?
+		{
+			if (modulatorSkip[(0x10000 + foundindex) & 0x1FFFF]) //Already skipping this?
+			{
+				if (index > 0xFFFF) //Finished?
+				{
+					goto finishUp; //Finish up!
+				}
+				++index; //Next index to try!
+				originMod = INT_MIN; //Reset!
+				goto processPriorityMod; //Try the next modulator!
+			}
+			modulatorSkip[(0x10000 + foundindex) & 0x1FFFF] = 1; //Skip this modulator in the future!
+		}
+		switch (lookupResult) //What result?
+		{
+		case 0: //Not found?
+			if ((index==0) && (foundindex==INT_MIN) && (originMod==INT_MIN)) //Finished?
+			{
+				goto finishUp;
+			}
+			if (originMod == INT_MIN) //Nothing found?
+			{
+				index = 0; //Try the next index!
+				goto processNextIndex;
+			}
+			//Next index to process?
+			break;
+		case 1: //Found a valid modulator?
+			//Handle the modulator!
+			tempresult = sfModulatorTransform(&mod,(getSFModSource(isInstrumentMod, voice, &mod)*getSFModAmtSource(isInstrumentMod, voice, &mod))); //Source times Dest is added to the result!
+
+			if (applySrcAmt) //Apply source amount?
+			{
+				tempresult *= (float)mod.modAmount; //Affect the result by the modulator amount value!
+			}
+
+			//Add to the result!
+			result += tempresult;
+
+			//Finish up this modulator!
+			modulatorSkip[(0x10000 + foundindex) & 0x1FFFF] = 1; //Skip this modulator in the future!
+			break;
+		case 2: //Needs next?
+			modulatorSkip[(0x10000 + foundindex) & 0x1FFFF] = 1; //Skip this modulator in the future!
+			++index; //Try the next index!
+			goto processPriorityMod;
+			break;
+		}
+	}
+finishUp:
+	return 0.0f; //Placeholder!
+}
+
+float getSFInstrumentmodulator(MIDIDEVICE_VOICE* voice, word destination, byte applySrcAmt, float min, float max)
+{
+	return getSFmodulator(1, voice, destination, applySrcAmt, min, max); //Give the result!
+}
+
+float getSFPresetmodulator(MIDIDEVICE_VOICE *voice, word destination, byte applySrcAmt, float min, float max)
+{
+	return getSFmodulator(0,voice,destination,applySrcAmt, min, max); //Give the result!
 }
 
 void calcAttenuationModulators(MIDIDEVICE_VOICE *voice)
@@ -611,92 +869,8 @@ void calcAttenuationModulators(MIDIDEVICE_VOICE *voice)
 	//Apply all settable volume settings!
 	attenuation = voice->initialAttenuationGen; //Initial atfenuation generator!
 
-	//Note on velocity
-	attenuationcontrol = calcNegativeUnipolarConcaveSourceMIDI(voice->effectivevelocity); //The source of the attenuation!
-	addattenuation = 960.0f; //How much to use as a factor (default)!
-	if (lookupSFInstrumentModGlobal(soundfont, voice->instrumentptr, voice->ibag, noteOnVelocityToInitialAttenuation, &applymod)) //Gotten Note On velocity to Initial Attenuation?
-	{
-		applymod.modAmount = LE16(applymod.modAmount); //Patch!
-		if (applymod.modAmount > 960) applymod.modAmount = 960; //Limit to max value if needed!
-		else if (applymod.modAmount < 0) applymod.modAmount = 0; //Limit to min value if needed!
-		addattenuation = (float)applymod.modAmount; //What to use!
-		if (lookupSFPresetModGlobal(soundfont, voice->preset, voice->pbag, noteOnVelocityToInitialAttenuation, &applymod)) //Gotten Note On velocity to Initial Attenuation?
-		{
-			applymod.modAmount = LE16(applymod.modAmount); //Patch!
-			if (applymod.modAmount > 960) applymod.modAmount = 960; //Limit to max value if needed!
-			else if (applymod.modAmount < 0) applymod.modAmount = 0; //Limit to min value if needed!
-			addattenuation += (float)applymod.modAmount; //Range is 960cB, so convert and apply(add to the initial attenuation generator)!
-		}
-	}
-	else if (lookupSFPresetModGlobal(soundfont, voice->preset, voice->pbag, noteOnVelocityToInitialAttenuation, &applymod)) //Gotten Note On velocity to Initial Attenuation?
-	{
-		applymod.modAmount = LE16(applymod.modAmount); //Patch!
-		if (applymod.modAmount > 960) applymod.modAmount = 960; //Limit to max value if needed!
-		else if (applymod.modAmount < 0) applymod.modAmount = 0; //Limit to min value if needed!
-		addattenuation = (float)applymod.modAmount; //Range is 960cB, so convert and apply(add to the initial attenuation generator)!
-	}
-	tempattenuation = addattenuation * attenuationcontrol; //How much do we want to attenuate?
-	//if (tempattenuation > 960.0f) tempattenuation = 960.0f; //Limit!
-	//if (tempattenuation < 0.0f) tempattenuation = 0.0f; //Limit!
-	attenuation += tempattenuation; //96dB range volume using a 960cB attenuation!
-
-	//CC7
-	addattenuation = 960.0f; //How much to use as a factor (default)!
-	attenuationcontrol = calcNegativeUnipolarConcaveSourceMIDI((voice->channel->volumeMSB & 0x7F)); //The source of the attenuation!
-	if (lookupSFInstrumentModGlobal(soundfont, voice->instrumentptr, voice->ibag, continuousController7ToInitialAttenuation, &applymod)) //Gotten MIDI Continuous Controller 7 to Initial Attenuation?
-	{
-		applymod.modAmount = LE16(applymod.modAmount); //Patch!
-		if (applymod.modAmount > 960) applymod.modAmount = 960; //Limit to max value if needed!
-		else if (applymod.modAmount < 0) applymod.modAmount = 0; //Limit to min value if needed!
-		addattenuation = (float)(applymod.modAmount); //Range is 960cB, so convert and apply(add to the initial attenuation generator)!
-		if (lookupSFPresetModGlobal(soundfont, voice->preset, voice->pbag, continuousController7ToInitialAttenuation, &applymod)) //Gotten MIDI Continuous Controller 7 to Initial Attenuation?
-		{
-			applymod.modAmount = LE16(applymod.modAmount); //Patch!
-			if (applymod.modAmount > 960) applymod.modAmount = 960; //Limit to max value if needed!
-			else if (applymod.modAmount < 0) applymod.modAmount = 0; //Limit to min value if needed!
-			addattenuation += (float)applymod.modAmount; //Range is 960cB, so convert and apply(add to the initial attenuation generator)!
-		}
-	}
-	else if (lookupSFPresetModGlobal(soundfont, voice->preset,voice->pbag, continuousController7ToInitialAttenuation,&applymod)) //Gotten MIDI Continuous Controller 7 to Initial Attenuation?
-	{
-		applymod.modAmount = LE16(applymod.modAmount); //Patch!
-		if (applymod.modAmount>960) applymod.modAmount = 960; //Limit to max value if needed!
-		else if (applymod.modAmount<0) applymod.modAmount = 0; //Limit to min value if needed!
-		addattenuation = applymod.modAmount; //Range is 960cB, so convert and apply(add to the initial attenuation generator)!
-	}
-	tempattenuation = addattenuation * attenuationcontrol; //How much do we want to attenuate?
-	//if (tempattenuation > 960.0f) tempattenuation = 960.0f; //Limit!
-	//if (tempattenuation < 0.0f) tempattenuation = 0.0f; //Limit!
-	attenuation += tempattenuation; //96dB range volume using a 960cB attenuation!
-
-	//CC11
-	addattenuation = 960.0f; //How much to use as a factor (default)!
-	attenuationcontrol = calcNegativeUnipolarConcaveSourceMIDI((voice->channel->expression & 0x7F)); //The source of the attenuation!
-	if (lookupSFInstrumentModGlobal(soundfont, voice->instrumentptr, voice->ibag, continuousController11ToInitialAttenuation, &applymod)) //Gotten MIDI Continuous Controller 11 to Initial Attenuation?
-	{
-		applymod.modAmount = LE16(applymod.modAmount); //Patch!
-		if (applymod.modAmount > 960) applymod.modAmount = 960; //Limit to max value if needed!
-		else if (applymod.modAmount < 0) applymod.modAmount = 0; //Limit to min value if needed!
-		addattenuation = (float)(applymod.modAmount); //Range is 960cB, so convert and apply(add to the initial attenuation generator)!
-		if (lookupSFPresetModGlobal(soundfont, voice->preset, voice->pbag, continuousController11ToInitialAttenuation, &applymod)) //Gotten MIDI Continuous Controller 11 to Initial Attenuation?
-		{
-			applymod.modAmount = LE16(applymod.modAmount); //Patch!
-			if (applymod.modAmount > 960) applymod.modAmount = 960; //Limit to max value if needed!
-			else if (applymod.modAmount < 0) applymod.modAmount = 0; //Limit to min value if needed!
-			addattenuation += (float)applymod.modAmount; //Range is 960cB, so convert and apply(add to the initial attenuation generator)!
-		}
-	}
-	else if (lookupSFPresetModGlobal(soundfont, voice->preset, voice->pbag, continuousController11ToInitialAttenuation, &applymod)) //Gotten MIDI Continuous Controller 11 to Initial Attenuation?
-	{
-		applymod.modAmount = LE16(applymod.modAmount); //Patch!
-		if (applymod.modAmount > 960) applymod.modAmount = 960; //Limit to max value if needed!
-		else if (applymod.modAmount < 0) applymod.modAmount = 0; //Limit to min value if needed!
-		addattenuation = applymod.modAmount; //Range is 960cB, so convert and apply(add to the initial attenuation generator)!
-	}
-	tempattenuation = addattenuation * attenuationcontrol; //How much do we want to attenuate?
-	//if (tempattenuation > 960.0f) tempattenuation = 960.0f; //Limit!
-	//if (tempattenuation < 0.0f) tempattenuation = 0.0f; //Limit!
-	attenuation += tempattenuation; //96dB range volume using a 960cB attenuation!
+	attenuation += getSFInstrumentmodulator(voice, initialAttenuation, 1, 0.0f, 960.0f); //Get the initial attenuation modulators!
+	attenuation += getSFPresetmodulator(voice, initialAttenuation, 1, 0.0f, 960.0f); //Get the initial attenuation modulators!
 
 	if (attenuation > 1440.0f) attenuation = 1440.0f; //Limit!
 	if (attenuation < 0.0f) attenuation = 0.0f; //Limit!
@@ -704,15 +878,138 @@ void calcAttenuationModulators(MIDIDEVICE_VOICE *voice)
 	voice->effectiveAttenuation = attenuation; //Effective attenuation!
 }
 
+void updateModulatorPanningMod(MIDIDEVICE_VOICE* voice)
+{
+	sfModList applymod;
+	float panningtemp;
+	panningtemp = 0.0f; //Init!
+	panningtemp += getSFInstrumentmodulator(voice, pan, 1, 0.0f, 1000.0f); //Get the initial attenuation modulators!
+	panningtemp += getSFPresetmodulator(voice, pan, 1, 0.0f, 1000.0f); //Get the initial attenuation modulators!
+	panningtemp *= 0.001f; //Make into a percentage, it's in 0.1% units!
+	voice->panningmod = panningtemp; //Apply the modulator!
+}
+
+void updateChorusMod(MIDIDEVICE_VOICE* voice)
+{
+	word chorusreverbdepth, chorusreverbchannel;
+	float basechorusreverb;
+	float panningtemp;
+	sfGenList applygen;
+	sfInstGenList applyigen;
+	//Chorus percentage
+	panningtemp = getSFInstrumentmodulator(voice, chorusEffectsSend, 1, 0.0f, 1000.0f);
+	panningtemp += getSFPresetmodulator(voice, chorusEffectsSend, 1, 0.0f, 1000.0f);
+
+	//The generator for it to apply to!
+	basechorusreverb = 0.0f; //Init!
+	if (lookupSFInstrumentGenGlobal(soundfont, voice->instrumentptr, voice->ibag, chorusEffectsSend, &applyigen))
+	{
+		basechorusreverb = (float)LE16(applyigen.genAmount.shAmount); //How many semitones! Apply to the cents: 1 semitone = 100 cents!
+		if (lookupSFPresetGenGlobal(soundfont, voice->preset, voice->pbag, chorusEffectsSend, &applygen))
+		{
+			basechorusreverb = (float)LE16(applygen.genAmount.shAmount); //How many semitones! Apply to the cents: 1 semitone = 100 cents!
+		}
+	}
+	else if (lookupSFPresetGenGlobal(soundfont, voice->preset, voice->pbag, chorusEffectsSend, &applygen))
+	{
+		basechorusreverb = (float)LE16(applygen.genAmount.shAmount); //How many semitones! Apply to the cents: 1 semitone = 100 cents!
+	}
+
+	panningtemp *= 0.001f; //Make into a percentage, it's in 0.1% units!
+	basechorusreverb *= 0.001f; //Make into a percentage, it's in 0.1% units!
+
+	panningtemp *= (1.0f / 127.0f); //Linear depth!
+
+	for (chorusreverbdepth = 1; chorusreverbdepth < 0x100; chorusreverbdepth++) //Process all possible chorus depths!
+	{
+		voice->chorusdepth[chorusreverbdepth] = (panningtemp * (float)chorusreverbdepth) + basechorusreverb; //Apply the volume!
+	}
+	voice->chorusdepth[0] = 0.0f; //Always none at the original level!
+
+	voice->currentchorusdepth = voice->channel->choruslevel; //Current chorus depth!
+
+	for (chorusreverbchannel = 0; chorusreverbchannel < 2; ++chorusreverbchannel) //Process all reverb&chorus channels, precalculating every used value!
+	{
+		voice->activechorusdepth[chorusreverbchannel] = voice->chorusdepth[voice->currentchorusdepth]; //The chorus feedback strength for that channel!
+	}
+}
+
+void updateReverbMod(MIDIDEVICE_VOICE* voice)
+{
+	word chorusreverbdepth, chorusreverbchannel;
+	float basechorusreverb;
+	float panningtemp;
+	sfGenList applygen;
+	sfInstGenList applyigen;
+	//Reverb percentage
+	panningtemp = getSFInstrumentmodulator(voice, reverbEffectsSend, 1, 0.0f, 1000.0f);
+	panningtemp += getSFPresetmodulator(voice, reverbEffectsSend, 1, 0.0f, 1000.0f);
+
+	basechorusreverb = 0.0f; //Init!
+	if (lookupSFInstrumentGenGlobal(soundfont, voice->instrumentptr, voice->ibag, reverbEffectsSend, &applyigen))
+	{
+		basechorusreverb = (float)LE16(applyigen.genAmount.shAmount); //How many semitones! Apply to the cents: 1 semitone = 100 cents!
+		if (lookupSFPresetGenGlobal(soundfont, voice->preset, voice->pbag, reverbEffectsSend, &applygen))
+		{
+			basechorusreverb = (float)LE16(applygen.genAmount.shAmount); //How many semitones! Apply to the cents: 1 semitone = 100 cents!
+		}
+	}
+	else if (lookupSFPresetGenGlobal(soundfont, voice->preset, voice->pbag, reverbEffectsSend, &applygen))
+	{
+		basechorusreverb = (float)LE16(applygen.genAmount.shAmount); //How many semitones! Apply to the cents: 1 semitone = 100 cents!
+	}
+
+	panningtemp *= 0.001f; //Make into a percentage, it's in 0.1% units!
+	basechorusreverb *= 0.001f; //Make into a percentage, it's in 0.1% units!
+
+	panningtemp *= (1.0f / 127.0f); //Linear depth!
+
+	for (chorusreverbdepth = 0; chorusreverbdepth < 0x100; chorusreverbdepth++) //Process all possible chorus depths!
+	{
+		for (chorusreverbchannel = 0; chorusreverbchannel < 2; chorusreverbchannel++) //Process all channels!
+		{
+			if (chorusreverbdepth == 0)
+			{
+				voice->reverbdepth[chorusreverbdepth][chorusreverbchannel] = 0.0; //Nothing at the main channel!
+			}
+			else //Valid depth?
+			{
+				voice->reverbdepth[chorusreverbdepth][chorusreverbchannel] = (float)dB2factor((panningtemp * chorusreverbdepth) + basechorusreverb, 1.0f); //Apply the volume!
+			}
+		}
+	}
+
+	voice->currentreverbdepth = voice->channel->reverblevel; //Current reverb depth!
+
+	for (chorusreverbchannel = 0; chorusreverbchannel < 2; ++chorusreverbchannel) //Process all reverb&chorus channels, precalculating every used value!
+	{
+		voice->activereverbdepth[chorusreverbchannel] = voice->reverbdepth[voice->currentreverbdepth][chorusreverbchannel]; //The selected value!
+	}
+
+	for (chorusreverbdepth = 0; chorusreverbdepth < REVERBSIZE; ++chorusreverbdepth)
+	{
+		voice->reverbvol[chorusreverbdepth] = voice->activereverbdepth[chorusreverbdepth]; //Chorus reverb volume!
+	}
+}
+
+void updatePitchWheelMod(MIDIDEVICE_VOICE* voice)
+{
+	float pitchwheeltemp;
+	//Pitch wheel modulator
+	pitchwheeltemp = getSFInstrumentmodulator(voice, pitchBendinitialPitch, 1, 0.0f, 12700.0f);
+	pitchwheeltemp += getSFPresetmodulator(voice, pitchBendinitialPitch, 1, 0.0f, 12700.0f);
+	voice->pitchwheelmod = pitchwheeltemp; //Apply the modulator!	
+}
+
 //result: 0=Finished not renderable, -1=Requires empty channel(voice stealing?), 1=Allocated, -2=Can't render, request next voice.
 OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel, byte request_note, byte voicenumber)
 {
 	const float MIDI_CHORUS_SINUS_BASE = 2.0f*(float)PI*CHORUS_LFO_FREQUENCY; //MIDI Sinus Base for chorus effects!
 	word pbag, ibag, chorusreverbdepth, chorusreverbchannel;
+	float panningtemp, pitchwheeltemp, attenuation, tempattenuation, lvolume, rvolume, basechorusreverb;
 	sword rootMIDITone;
 	int_32 cents, tonecents; //Relative root MIDI tone, different cents calculations!
 	uint_32 preset, startaddressoffset, endaddressoffset, startloopaddressoffset, endloopaddressoffset, loopsize;
-	float panningtemp, pitchwheeltemp,attenuation,tempattenuation, lvolume, rvolume, basechorusreverb;
 	byte effectivenote; //Effective note we're playing!
 	byte effectivevelocity; //Effective velocity we're playing!
 	byte effectivenotevelocitytemp;
@@ -726,7 +1023,6 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 	sfGenList instrumentptr, applygen;
 	sfInst currentinstrument;
 	sfInstGenList sampleptr, applyigen;
-	sfModList applymod;
 	sfSample sampleInfo;
 	FIFOBUFFER *temp, *chorus_backtrace[CHORUSSIZE];
 	int_32 previousPBag, previousIBag;
@@ -1117,21 +1413,7 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 	panningtemp *= 0.001f; //Make into a percentage, it's in 0.1% units!
 	voice->initpanning = panningtemp; //Set the initial panning, as a factor!
 
-	panningtemp = 1000.0f; //Default to none!
-	if (lookupSFInstrumentModGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount),ibag,continuousController10ToPanPosition,&applymod)) //Gotten panning modulator?
-	{
-		panningtemp = (float)LE16(applymod.modAmount); //Get the amount specified!
-		if (lookupSFPresetModGlobal(soundfont, preset, pbag, continuousController10ToPanPosition, &applymod)) //Gotten panning modulator?
-		{
-			panningtemp += (float)LE16(applymod.modAmount); //Get the amount specified!
-		}
-	}
-	else if (lookupSFPresetModGlobal(soundfont, preset, pbag, continuousController10ToPanPosition, &applymod)) //Gotten panning modulator?
-	{
-		panningtemp = (float)LE16(applymod.modAmount); //Get the amount specified!
-	}
-	panningtemp *= 0.001f; //Make into a percentage, it's in 0.1% units!
-	voice->panningmod = panningtemp; //Apply the modulator!
+	updateModulatorPanningMod(voice); //Update the panning mod!
 
 	//Determine panning!
 	lvolume = rvolume = 0.5f; //Default to 50% each (center)!
@@ -1144,108 +1426,8 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 	voice->lvolume = lvolume; //Left panning!
 	voice->rvolume = rvolume; //Right panning!
 
-	//Chorus percentage
-	panningtemp = 200.0f; //Default to none!
-	if (lookupSFInstrumentModGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, continuousController93ToChorusEffectsSend, &applymod)) //Gotten panning modulator?
-	{
-		panningtemp = (float)LE16(applymod.modAmount); //Get the amount specified!
-		if (lookupSFPresetModGlobal(soundfont, preset, pbag, continuousController93ToChorusEffectsSend, &applymod)) //Chorus effects send specified?
-		{
-			panningtemp += (float)LE16(applymod.modAmount); //Chorus effects send, in 0.1% units!
-		}
-	}
-	else if (lookupSFPresetModGlobal(soundfont, preset, pbag, continuousController93ToChorusEffectsSend, &applymod)) //Chorus effects send specified?
-	{
-		panningtemp = ((float)LE16(applymod.modAmount)); //Chorus effects send, in 0.1% units!
-	}
-
-	//The generator for it to apply to!
-	basechorusreverb = 0.0f; //Init!
-	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, chorusEffectsSend, &applyigen))
-	{
-		basechorusreverb = (float)LE16(applyigen.genAmount.shAmount); //How many semitones! Apply to the cents: 1 semitone = 100 cents!
-		if (lookupSFPresetGenGlobal(soundfont, preset, pbag, chorusEffectsSend, &applygen))
-		{
-			basechorusreverb = (float)LE16(applygen.genAmount.shAmount); //How many semitones! Apply to the cents: 1 semitone = 100 cents!
-		}
-	}
-	else if (lookupSFPresetGenGlobal(soundfont, preset, pbag, chorusEffectsSend, &applygen))
-	{
-		basechorusreverb = (float)LE16(applygen.genAmount.shAmount); //How many semitones! Apply to the cents: 1 semitone = 100 cents!
-	}
-
-	panningtemp *= 0.001f; //Make into a percentage, it's in 0.1% units!
-	basechorusreverb *= 0.001f; //Make into a percentage, it's in 0.1% units!
-
-	panningtemp *= (1.0f/127.0f); //Linear depth!
-
-	for (chorusreverbdepth=1;chorusreverbdepth<0x100;chorusreverbdepth++) //Process all possible chorus depths!
-	{
-		voice->chorusdepth[chorusreverbdepth] = (panningtemp*(float)chorusreverbdepth)+basechorusreverb; //Apply the volume!
-	}
-	voice->chorusdepth[0] = 0.0f; //Always none at the original level!
-
-	//Reverb percentage
-	panningtemp = 200.0f; //Default to none!
-	if (lookupSFInstrumentModGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, continuousController91ToReverbEffectsSend, &applymod)) //Gotten panning modulator?
-	{
-		panningtemp = (float)LE16(applymod.modAmount); //Get the amount specified!
-		if (lookupSFPresetModGlobal(soundfont, preset, pbag, continuousController91ToReverbEffectsSend, &applymod)) //Reverb effects send specified?
-		{
-			panningtemp += (float)LE16(applymod.modAmount); //Reverb effects send, in 0.1% units!
-		}
-	}
-	else if (lookupSFPresetModGlobal(soundfont, preset, pbag, continuousController91ToReverbEffectsSend, &applymod)) //Reverb effects send specified?
-	{
-		panningtemp = (float)LE16(applymod.modAmount); //Reverb effects send, in 0.1% units!
-	}
-
-	basechorusreverb = 0.0f; //Init!
-	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, reverbEffectsSend, &applyigen))
-	{
-		basechorusreverb = (float)LE16(applyigen.genAmount.shAmount); //How many semitones! Apply to the cents: 1 semitone = 100 cents!
-		if (lookupSFPresetGenGlobal(soundfont, preset, pbag, reverbEffectsSend, &applygen))
-		{
-			basechorusreverb = (float)LE16(applygen.genAmount.shAmount); //How many semitones! Apply to the cents: 1 semitone = 100 cents!
-		}
-	}
-	else if (lookupSFPresetGenGlobal(soundfont, preset, pbag, reverbEffectsSend, &applygen))
-	{
-		basechorusreverb = (float)LE16(applygen.genAmount.shAmount); //How many semitones! Apply to the cents: 1 semitone = 100 cents!
-	}
-
-	panningtemp *= 0.001f; //Make into a percentage, it's in 0.1% units!
-	basechorusreverb *= 0.001f; //Make into a percentage, it's in 0.1% units!
-
-	panningtemp *= (1.0f/127.0f); //Linear depth!
-
-	for (chorusreverbdepth=0;chorusreverbdepth<0x100;chorusreverbdepth++) //Process all possible chorus depths!
-	{
-		for (chorusreverbchannel=0;chorusreverbchannel<2;chorusreverbchannel++) //Process all channels!
-		{
-			if (chorusreverbdepth==0)
-			{
-				voice->reverbdepth[chorusreverbdepth][chorusreverbchannel] = 0.0; //Nothing at the main channel!
-			}
-			else //Valid depth?
-			{
-				voice->reverbdepth[chorusreverbdepth][chorusreverbchannel] = (float)dB2factor((panningtemp * chorusreverbdepth)+basechorusreverb,1.0f); //Apply the volume!
-			}
-		}
-	}
-	
-	voice->currentchorusdepth = channel->choruslevel; //Current chorus depth!
-	voice->currentreverbdepth = channel->reverblevel; //Current reverb depth!
-
-	for (chorusreverbchannel=0;chorusreverbchannel<2;++chorusreverbchannel) //Process all reverb&chorus channels, precalculating every used value!
-	{
-		voice->activechorusdepth[chorusreverbchannel] = voice->chorusdepth[voice->currentchorusdepth]; //The chorus feedback strength for that channel!
-	}
-
-	for (chorusreverbchannel=0;chorusreverbchannel<2;++chorusreverbchannel) //Process all reverb&chorus channels, precalculating every used value!
-	{
-		voice->activereverbdepth[chorusreverbchannel] = voice->reverbdepth[voice->currentreverbdepth][chorusreverbchannel]; //The selected value!
-	}
+	updateChorusMod(voice);
+	updateReverbMod(voice);
 
 	//Apply low pass filter!
 	voice->lowpassfilter_freq = 13500.0f; //Default: no low pass filter!
@@ -1315,21 +1497,7 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 	voice->chorusvol[0] = voice->activechorusdepth[0];
 	voice->reverbvol[0] = voice->activereverbdepth[0]; //Chorus reverb volume, fixed!
 
-	//Pitch wheel modulator
-	pitchwheeltemp = 12700.0f; //Default to 12700 cents!
-	if (lookupSFInstrumentModGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount),ibag,pitchWheeltoInitialPitchControlledByPitchWheelSensitivity,&applymod)) //Gotten panning modulator?
-	{
-		pitchwheeltemp = (float)LE16(applymod.modAmount); //Get the amount specified!
-		if (lookupSFPresetModGlobal(soundfont,preset, pbag, pitchWheeltoInitialPitchControlledByPitchWheelSensitivity, &applymod)) //Gotten panning modulator?
-		{
-			pitchwheeltemp += (float)LE16(applymod.modAmount); //Get the amount specified!
-		}
-	}
-	else if (lookupSFPresetModGlobal(soundfont, preset, pbag, pitchWheeltoInitialPitchControlledByPitchWheelSensitivity, &applymod)) //Gotten panning modulator?
-	{
-		pitchwheeltemp = (float)LE16(applymod.modAmount); //Get the amount specified!
-	}
-	voice->pitchwheelmod = pitchwheeltemp; //Apply the modulator!	
+	updatePitchWheelMod(voice);
 
 	//Now determine the volume envelope!
 	voice->CurrentVolumeEnvelope = 1000.0f; //Default: nothing yet, so no volume, full attenuation!
@@ -1772,6 +1940,7 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 					#endif
 					lockMPURenderer(); //Lock the audio!
 					MIDI_channels[currentchannel].volumeMSB = current->buffer[1]; //Set MSB!
+					MIDI_channels[currentchannel].ContinuousControllers[firstparam] = (current->buffer[1] & 0x7F); //Specify the CC itself!
 					MIDIDEVICE_updateAttenuationCC(currentchannel); //Update playing notes!
 					unlockMPURenderer(); //Unlock the audio!
 					break;
@@ -1781,6 +1950,7 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 					#endif
 					lockMPURenderer(); //Lock the audio!
 					MIDI_channels[currentchannel].expression = current->buffer[1]; //Set Expression!
+					MIDI_channels[currentchannel].ContinuousControllers[firstparam] = (current->buffer[1] & 0x7F); //Specify the CC itself!
 					MIDIDEVICE_updateAttenuationCC(currentchannel); //Update playing notes!
 					unlockMPURenderer(); //Unlock the audio!
 					break;
@@ -1790,6 +1960,7 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 #endif
 					lockMPURenderer(); //Lock the audio!
 					MIDI_channels[currentchannel].volumeLSB = current->buffer[1]; //Set LSB!
+					MIDI_channels[currentchannel].ContinuousControllers[firstparam] = (current->buffer[1] & 0x7F); //Specify the CC itself!
 					MIDIDEVICE_updateAttenuationCC(currentchannel); //Update playing notes!
 					unlockMPURenderer(); //Unlock the audio!
 					break;
@@ -1801,6 +1972,7 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 					lockMPURenderer(); //Lock the audio!
 					MIDI_channels[currentchannel].panposition &= 0x3F80; //Only keep MSB!
 					MIDI_channels[currentchannel].panposition |= current->buffer[1]; //Set LSB!
+					MIDI_channels[currentchannel].ContinuousControllers[firstparam] = (current->buffer[1] & 0x7F); //Specify the CC itself!
 					unlockMPURenderer(); //Unlock the audio!
 					break;
 				case 0x2A: //Pan position (LSB)
@@ -1810,6 +1982,7 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 					lockMPURenderer(); //Lock the audio!
 					MIDI_channels[currentchannel].panposition &= 0x7F; //Only keep LSB!
 					MIDI_channels[currentchannel].panposition |= (current->buffer[1] << 7); //Set MSB!
+					MIDI_channels[currentchannel].ContinuousControllers[firstparam] = (current->buffer[1] & 0x7F); //Specify the CC itself!
 					unlockMPURenderer(); //Unlock the audio!
 					break;
 
@@ -1831,6 +2004,7 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 					#endif
 					lockMPURenderer(); //Lock the audio!
 					MIDI_channels[currentchannel].sustain = (current->buffer[1]&MIDI_CONTROLLER_ON)?1:0; //Sustain?
+					MIDI_channels[currentchannel].ContinuousControllers[firstparam] = (current->buffer[1] & 0x7F); //Specify the CC itself!
 					unlockMPURenderer(); //Unlock the audio!
 					break;
 				//case 0x41: //Portamento (On/Off)
@@ -1842,11 +2016,13 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 				case 0x5B: //Reverb Level
 					lockMPURenderer(); //Lock the audio!
 					MIDI_channels[currentchannel].reverblevel = current->buffer[1]; //Reverb level!
+					MIDI_channels[currentchannel].ContinuousControllers[firstparam] = (current->buffer[1] & 0x7F); //Specify the CC itself!
 					unlockMPURenderer(); //Unlock the audio!
 					break;
 				case 0x5D: //Chorus Level
 					lockMPURenderer(); //Lock the audio!
 					MIDI_channels[currentchannel].choruslevel = current->buffer[1]; //Chorus level!
+					MIDI_channels[currentchannel].ContinuousControllers[firstparam] = (current->buffer[1] & 0x7F); //Specify the CC itself!
 					unlockMPURenderer(); //Unlock the audio!
 					break;
 					//Sound function On/Off:
@@ -1902,6 +2078,7 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 					#ifdef MIDI_LOG
 						dolog("MPU", "MIDIDEVICE: Unknown Continuous Controller change: %u=%u", currentchannel, firstparam); //Log it!
 					#endif
+					MIDI_channels[currentchannel].ContinuousControllers[firstparam] = (current->buffer[1] & 0x7F); //Specify the CC itself!
 					break;
 			}
 			break;
@@ -2103,17 +2280,6 @@ byte init_MIDIDEVICE(char *filename, byte use_direct_MIDI) //Initialise MIDI dev
 	{
 		choruscents[i] = (MIDI_CHORUS_SINUS_CENTS*(float)i); //Cents used for this chorus!
 	}
-
-	unipolarconcavesources[0] = 1.0f; //0=Full attenuation value!
-	for (sourceprecalcindex = 1; sourceprecalcindex < 0x80; ++sourceprecalcindex) //Precalc all!
-	{
-		//Make a concave trend on non-zero values!
-		precalcval = ((float)sourceprecalcindex / 127.0f); //Linear!
-		precalcval = (precalcval * precalcval); //Squared!
-		precalcval = (-20.0f / 96.0f) * log10f(precalcval); //Convert to the 0.0-0.9 range!
-		unipolarconcavesources[sourceprecalcindex] = precalcval; //Save the precalcs!
-	}
-	unipolarconcavesources[0x7F] = 0.0f; //Special positive output(no attenuation)!
 
 	MIDIDEVICE_generateSinusTable(); //Make sure we can generate sinuses required!
 
