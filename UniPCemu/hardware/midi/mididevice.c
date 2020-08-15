@@ -632,7 +632,7 @@ float calcSFModSourceRaw(byte isInstrumentMod, byte isAmtSource, MIDIDEVICE_VOIC
 	}
 	if (oper & 0x80) //CC is the source when C is set?
 	{
-		i = (float)voice->channel->ContinuousControllers[oper & 0x7F]); //The CC!
+		i = (float)voice->channel->ContinuousControllers[oper & 0x7F]; //The CC!
 		inputrange = (float)0x7F; //The range!
 	}
 	else //The normal MIDI information is the source!
