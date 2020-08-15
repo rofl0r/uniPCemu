@@ -794,6 +794,7 @@ float getSFmodulator(byte isInstrumentMod, MIDIDEVICE_VOICE *voice, word destina
 	{
 	processNextIndex:
 		index = 0; //Initialize index!
+	processNewOriginMod:
 		originGlobal = 2; //Originating global: none set yet!
 		originMod = INT_MIN; //No originating modulator yet!
 
@@ -817,8 +818,7 @@ float getSFmodulator(byte isInstrumentMod, MIDIDEVICE_VOICE *voice, word destina
 					goto finishUp; //Finish up!
 				}
 				++index; //Next index to try!
-				originMod = INT_MIN; //Reset!
-				goto processPriorityMod; //Try the next modulator!
+				goto processNewOriginMod; //Try the next modulator!
 			}
 			modulatorSkip[(0x10000 + foundindex) & 0x1FFFF] = 1; //Skip this modulator in the future!
 		}
@@ -848,6 +848,8 @@ float getSFmodulator(byte isInstrumentMod, MIDIDEVICE_VOICE *voice, word destina
 			{
 				tempresult *= (float)mod.modAmount; //Affect the result by the modulator amount value!
 			}
+			if (tempresult > max) tempresult = max; //Limit!
+			if (tempresult < min) tempresult = min; //Limit!
 
 			//Add to the result!
 			result += tempresult;
@@ -863,7 +865,7 @@ float getSFmodulator(byte isInstrumentMod, MIDIDEVICE_VOICE *voice, word destina
 		}
 	}
 finishUp:
-	return 0.0f; //Placeholder!
+	return result; //Placeholder!
 }
 
 float getSFInstrumentmodulator(MIDIDEVICE_VOICE* voice, word destination, byte applySrcAmt, float min, float max)
