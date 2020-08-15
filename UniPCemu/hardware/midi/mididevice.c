@@ -610,7 +610,7 @@ float MIDIconcave(float val)
 	return result; //Give the result!
 }
 
-//val needs to be a normalized input! Performs a convex from 1 to 0!
+//val needs to be a normalized input! Performs a convex from 0 to 1!
 float MIDIconvex(float val)
 {
 	return 1.0f - (MIDIconcave(1.0f - val)); //Convex is concave mirrored horizontally on the input, while also mirrored on the output!
