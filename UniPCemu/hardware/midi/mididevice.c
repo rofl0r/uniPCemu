@@ -272,7 +272,7 @@ Combine attenuation values with each other to a new single scale.
 OPTINLINE float combineAttenuation(float initialAttenuation, float volumeEnvelope)
 {
 	//First, clip!
-	if (initialAttenuation > 1440.0f) initialAttenuation = 1440.0f; //Limit to max!
+	if (initialAttenuation > 2880.0f) initialAttenuation = 2880.0f; //Limit to max!
 	if (initialAttenuation < 0.0f) initialAttenuation = 0.0f; //Limit to min!
 	if (volumeEnvelope > 1000.0f) volumeEnvelope = 1000.0f; //Limit to max!
 	if (volumeEnvelope < 0.0f) volumeEnvelope = 0.0f; //Limit to min!
