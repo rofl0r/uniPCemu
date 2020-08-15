@@ -468,21 +468,15 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	lock(voice->locknumber); //Actually check!
 	#endif
 
-	//Calculate the pitch bend speedup!
-	pitchcents = (float)(channel->pitch&0x3FFF); //Load active pitch bend (unsigned), Only low 14 bits are used!
-	pitchcents -= (float)0x2000; //Convert to a signed value!
-	pitchcents /= (float)0x2000; //Create a value between -1 and 1!
-	pitchcents *= voice->pitchwheelmod; //Influence by pitch wheel!
-
 	//Now apply to the default speedup!
 	currentsamplespeedup = voice->initsamplespeedup; //Load the default sample speedup for our tone!
-	currentsamplespeedup += pitchcents; //Apply pitch bend!
+	currentsamplespeedup += voice->pitchwheelmod; //Apply pitch bend!
 	voice->effectivesamplespeedup = (int_32)currentsamplespeedup; //Load the speedup of the samples we need!
 
 	//Determine panning!
 	lvolume = rvolume = 0.5f; //Default to 50% each (center)!
 	panningtemp = voice->initpanning; //Get the panning specified!
-	panningtemp += voice->panningmod*((float)((voice->channel->panposition>>7)-0x20)/((float)0x20)); //Apply panning CC!
+	panningtemp += voice->panningmod; //Apply panning CC!
 	lvolume -= panningtemp; //Left percentage!
 	rvolume += panningtemp; //Right percentage!
 	lvolume = LIMITRANGE(lvolume, 0.0f, 1.0f); //Limit!
@@ -1438,7 +1432,7 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 	//Determine panning!
 	lvolume = rvolume = 0.5f; //Default to 50% each (center)!
 	panningtemp = voice->initpanning; //Get the panning specified!
-	panningtemp += voice->panningmod * ((float)((voice->channel->panposition>>7) - 0x20) / ((float)0x20)); //Apply panning CC!
+	panningtemp += voice->panningmod; //Apply panning CC!
 	lvolume -= panningtemp; //Left percentage!
 	rvolume += panningtemp; //Right percentage!
 	lvolume = LIMITRANGE(lvolume, 0.0f, 1.0f); //Limit!
@@ -1876,6 +1870,42 @@ void MIDIDEVICE_updateAttenuationCC(byte channel)
 	}
 }
 
+void MIDIDEVICE_updatePitchWheelCC(byte channel)
+{
+	word voicenr;
+	MIDIDEVICE_VOICE* voice;
+	voicenr = 0; //First voice!
+	for (; voicenr < MIDI_TOTALVOICES; ++voicenr) //Find a used voice!
+	{
+		voice = &activevoices[voicenr]; //The voice!
+		if (voice->VolumeEnvelope.active) //Active?
+		{
+			if (voice->channel == &MIDI_channels[channel]) //The requested channel?
+			{
+				updatePitchWheelMod(voice); //Calc the pitch wheel!
+			}
+		}
+	}
+}
+
+void MIDIDEVICE_updatePanningCC(byte channel)
+{
+	word voicenr;
+	MIDIDEVICE_VOICE* voice;
+	voicenr = 0; //First voice!
+	for (; voicenr < MIDI_TOTALVOICES; ++voicenr) //Find a used voice!
+	{
+		voice = &activevoices[voicenr]; //The voice!
+		if (voice->VolumeEnvelope.active) //Active?
+		{
+			if (voice->channel == &MIDI_channels[channel]) //The requested channel?
+			{
+				updateModulatorPanningMod(voice); //Calc the panning modulators!
+			}
+		}
+	}
+}
+
 OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI command!
 {
 	//First, our variables!
@@ -1993,6 +2023,7 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 					MIDI_channels[currentchannel].panposition &= 0x3F80; //Only keep MSB!
 					MIDI_channels[currentchannel].panposition |= current->buffer[1]; //Set LSB!
 					MIDI_channels[currentchannel].ContinuousControllers[firstparam] = (current->buffer[1] & 0x7F); //Specify the CC itself!
+					MIDIDEVICE_updatePanningCC(currentchannel); //Update playing notes!
 					unlockMPURenderer(); //Unlock the audio!
 					break;
 				case 0x2A: //Pan position (LSB)
@@ -2003,6 +2034,7 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 					MIDI_channels[currentchannel].panposition &= 0x7F; //Only keep LSB!
 					MIDI_channels[currentchannel].panposition |= (current->buffer[1] << 7); //Set MSB!
 					MIDI_channels[currentchannel].ContinuousControllers[firstparam] = (current->buffer[1] & 0x7F); //Specify the CC itself!
+					MIDIDEVICE_updatePanningCC(channel); //Update playing notes!
 					unlockMPURenderer(); //Unlock the audio!
 					break;
 
@@ -2122,6 +2154,7 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 		case 0xE0: //Pitch wheel?
 			lockMPURenderer(); //Lock the audio!
 			MIDI_channels[currentchannel].pitch = (sword)((current->buffer[1]<<7)|firstparam); //Actual pitch, converted to signed value!
+			MIDIDEVICE_updatePitchWheelCC(currentchannel); //Update playing notes!
 			unlockMPURenderer(); //Unlock the audio!
 			#ifdef MIDI_LOG
 				dolog("MPU","MIDIDEVICE: Pitch wheel: %u=%u",currentchannel,MIDI_channels[currentchannel].pitch); //Log it!
