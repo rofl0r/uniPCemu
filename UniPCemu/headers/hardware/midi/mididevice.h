@@ -92,6 +92,19 @@ typedef struct
 	byte reverblevel; //Current reverb depth set!
 	byte monophonicchannelcount; //Monophonic channel count(in mono mode only)!
 	byte ContinuousControllers[0x80]; //All possible continuous controllers!
+	byte RPNhi;
+	byte RPNlo;
+	byte NRPNhi;
+	byte NRPNlo;
+	byte RPNmode; //0=None, 1=RPN, 2=NRPN(normal)
+	byte NRPNpendingmode; //Pending special input mode for NRPN(See Soundfont 2.04 documentation)?
+	uint_32 NRPNnumber; //NRPN number in Soundfont 2.04 mode!
+	uint_32 NRPNnumbercounter; //NRPN number counter!
+	byte pitchbendsensitivitysemitones;
+	byte pitchbendsensitivitycents;
+	//Master tuning: center=8192=A440
+	byte mastertuninglow; //Master tuning Low 7 bits
+	byte mastertuninghigh; //Master tuning High 7 bits
 } MIDIDEVICE_CHANNEL;
 
 typedef struct

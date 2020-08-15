@@ -174,6 +174,7 @@ OPTINLINE void reset_MIDIDEVICE() //Reset the MIDI device for usage!
 		MIDI_channels[channel].expression = 0x7F; //Default volume as the default max expression(127)!
 		MIDI_channels[channel].panposition = (0x20<<7); //Centered pan position as the default pan!
 		MIDI_channels[channel].lvolume = MIDI_channels[channel].rvolume = 0.5; //Accompanying the pan position: centered volume!
+		MIDI_channels[channel].RPNmode = 0; //No (N)RPN selected!
 		MIDI_channels[channel++].mode = MIDIDEVICE_DEFAULTMODE; //Use the default mode!
 	}
 	MIDI_channels[MIDI_DRUMCHANNEL].bank = MIDI_channels[MIDI_DRUMCHANNEL].activebank = 0x80; //We're locked to a drum set!
@@ -2058,6 +2059,114 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 					MIDI_channels[currentchannel].sustain = (current->buffer[1]&MIDI_CONTROLLER_ON)?1:0; //Sustain?
 					MIDI_channels[currentchannel].ContinuousControllers[firstparam] = (current->buffer[1] & 0x7F); //Specify the CC itself!
 					unlockMPURenderer(); //Unlock the audio!
+					break;
+				case 0x06: //(N)RPN data entry high
+					switch (MIDI_channels[currentchannel].RPNmode) //What RPN mode?
+					{
+					case 0: //Nothing: ignore!
+						break;
+					case 1: //RPN mode!
+						if ((MIDI_channels[currentchannel].RPNhi == 0) && (MIDI_channels[currentchannel].RPNlo == 0)) //Pitch wheel Sensitivity?
+						{
+							MIDI_channels[currentchannel].pitchbendsensitivitysemitones = (current->buffer[1]&0x7F); //Semitones!
+						}
+						else  if ((MIDI_channels[currentchannel].RPNhi == 0) && (MIDI_channels[currentchannel].RPNlo == 1)) //Master Tuning?
+						{
+							MIDI_channels[currentchannel].mastertuninghigh = (current->buffer[1] & 0x7F); //Semitones!
+						}
+						//127,127=NULL!
+						//Other RPNs aren't supported!
+						break;
+					case 2: //NRPN mode!
+						//Use RPNhi and RPNlo for the selection?
+						//None supported!
+						break;
+					case 3: //Soundfont 2.04 NRPN mode!
+						break;
+					}
+					break;
+				case 0x26: //(N)RPN data entry low
+					switch (MIDI_channels[currentchannel].RPNmode) //What RPN mode?
+					{
+					case 0: //Nothing: ignore!
+						break;
+					case 1: //RPN mode!
+						if ((MIDI_channels[currentchannel].RPNhi == 0) && (MIDI_channels[currentchannel].RPNlo == 0)) //Pitch wheel Sensitivity?
+						{
+							MIDI_channels[currentchannel].pitchbendsensitivitycents = (current->buffer[1] & 0x7F); //Cents!
+						}
+						else  if ((MIDI_channels[currentchannel].RPNhi == 0) && (MIDI_channels[currentchannel].RPNlo == 1)) //Master Tuning?
+						{
+							MIDI_channels[currentchannel].mastertuninglow = (current->buffer[1] & 0x7F); //Low!
+						}
+						//127,127=NULL!
+						//Other RPNs aren't supported!
+						break;
+					case 2: //NRPN mode!
+						//Use RPNhi and RPNlo for the selection?
+						//None supported!
+						break;
+					case 3: //Soundfont 2.04 NRPN mode!
+						//Use NRPNnumber for the selection!
+						//Not supported by this implementation!
+						break;
+					}
+					break;
+				case 0x65: //RPN high
+					MIDI_channels[currentchannel].RPNhi = (current->buffer[1] & 0x7F); //RPN high!
+					MIDI_channels[currentchannel].RPNmode = 1; //RPN mode!
+					break;
+				case 0x64: //RPN low
+					MIDI_channels[currentchannel].RPNlo = (current->buffer[1] & 0x7F); //RPN low!
+					MIDI_channels[currentchannel].RPNmode = 1; //RPN mode!
+					break;
+				case 0x63: //NRPN high
+					MIDI_channels[currentchannel].NRPNhi = (current->buffer[1] & 0x7F); //RPN high!
+					if (MIDI_channels[currentchannel].NRPNhi != 120) //Normal mode!
+					{
+						MIDI_channels[currentchannel].RPNmode = 2; //Normal NRPN mode!
+						MIDI_channels[currentchannel].NRPNpendingmode = 0; //Normal mode!
+					}
+					else
+					{
+						MIDI_channels[currentchannel].NRPNpendingmode = 1; //Soundfont 2.01 mode style index!
+						MIDI_channels[currentchannel].NRPNnumber = 0; //Initialize the number!
+						MIDI_channels[currentchannel].NRPNnumbercounter = 0; //Initialize the number!
+						MIDI_channels[currentchannel].RPNmode = 3; //Soundfont mode!
+					}
+					break;
+				case 0x62: //NPRN low
+					if (MIDI_channels[currentchannel].NRPNpendingmode == 0) //Normal mode?
+					{
+						MIDI_channels[currentchannel].NRPNlo = (current->buffer[1] & 0x7F); //RPN low!
+						MIDI_channels[currentchannel].RPNmode = 2; //NRPN mode!
+					}
+					else //Soundfont 2.01 mode?
+					{
+						MIDI_channels[currentchannel].RPNmode = 3; //Soundfont mode!
+						if ((current->buffer[1] & 0x7F) < 100) //Finish count?
+						{
+							MIDI_channels[currentchannel].NRPNnumbercounter += (current->buffer[1] & 0x7F); //Finish the counting!
+							MIDI_channels[currentchannel].NRPNnumber = MIDI_channels[currentchannel].NRPNnumbercounter; //Latch!
+							MIDI_channels[currentchannel].NRPNnumbercounter = 0; //Clear the count for a new entry to be written!
+						}
+						else if ((current->buffer[1] & 0x7F) == 101) //Count 100?
+						{
+							MIDI_channels[currentchannel].NRPNnumbercounter += 100; //Continue the counting!
+							MIDI_channels[currentchannel].NRPNnumber = MIDI_channels[currentchannel].NRPNnumbercounter; //Latch!
+						}
+						else if ((current->buffer[1] & 0x7F) == 102) //Count 1000?
+						{
+							MIDI_channels[currentchannel].NRPNnumbercounter += 1000; //Continue the counting!
+							MIDI_channels[currentchannel].NRPNnumber = MIDI_channels[currentchannel].NRPNnumbercounter; //Latch!
+						}
+						else if ((current->buffer[1] & 0x7F) == 103) //Count 10000?
+						{
+							MIDI_channels[currentchannel].NRPNnumbercounter += 10000; //Continue the counting!
+							MIDI_channels[currentchannel].NRPNnumber = MIDI_channels[currentchannel].NRPNnumbercounter; //Latch!
+						}
+						//Other values are ignored, according to Soundfont 2.04!
+					}
 					break;
 				//case 0x41: //Portamento (On/Off)
 					//break;
