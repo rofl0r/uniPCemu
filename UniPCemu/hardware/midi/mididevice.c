@@ -166,8 +166,11 @@ OPTINLINE void reset_MIDIDEVICE() //Reset the MIDI device for usage!
 		MIDI_channels[channel].pressure = 0x40; //Centered pressure!
 		MIDI_channels[channel].program = 0; //First program!
 		MIDI_channels[channel].sustain = 0; //Disable sustain!
+		MIDI_channels[channel].ContinuousControllers[0x07] = 0x64; //Same as below!
 		MIDI_channels[channel].volumeMSB = 0x64; //Default volume as the default volume(100)!
+		MIDI_channels[channel].ContinuousControllers[0x27] = 0x7F; //Same as below!
 		MIDI_channels[channel].volumeLSB = 0x7F; //Default volume as the default volume(127?)!
+		MIDI_channels[channel].ContinuousControllers[0x0B] = 0x7F; //Same as below!
 		MIDI_channels[channel].expression = 0x7F; //Default volume as the default max expression(127)!
 		MIDI_channels[channel].panposition = (0x20<<7); //Centered pan position as the default pan!
 		MIDI_channels[channel].lvolume = MIDI_channels[channel].rvolume = 0.5; //Accompanying the pan position: centered volume!
