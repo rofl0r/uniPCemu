@@ -1228,7 +1228,7 @@ sfModList defaultInstrumentModulators[10] = { //Default instrument modulators!
 	{.sfModSrcOper = 0x058B, .sfModDestOper = initialAttenuation, .modAmount = 960, .sfModAmtSrcOper = 0x0, .sfModTransOper = 0}, //CC11 to Initial Attenuation
 	{.sfModSrcOper = 0x00DB, .sfModDestOper = reverbEffectsSend, .modAmount = 200, .sfModAmtSrcOper = 0x0, .sfModTransOper = 0}, //CC91 to Reverb Effects Send
 	{.sfModSrcOper = 0x00DD, .sfModDestOper = chorusEffectsSend, .modAmount = 200, .sfModAmtSrcOper = 0x0, .sfModTransOper = 0}, //CC93 to Chorus Effects Send
-	{.sfModSrcOper = 0x020E, .sfModDestOper = pitchBendinitialPitch, .modAmount = 200, .sfModAmtSrcOper = 0x0010, .sfModTransOper = 0} //CC93 to Chorus Effects Send
+	{.sfModSrcOper = 0x020E, .sfModDestOper = pitchBendinitialPitch, .modAmount = 12700, .sfModAmtSrcOper = 0x0010, .sfModTransOper = 0} //CC93 to Chorus Effects Send
 };
 
 /*
