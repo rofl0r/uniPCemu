@@ -175,6 +175,10 @@ OPTINLINE void reset_MIDIDEVICE() //Reset the MIDI device for usage!
 		MIDI_channels[channel].panposition = (0x20<<7); //Centered pan position as the default pan!
 		MIDI_channels[channel].lvolume = MIDI_channels[channel].rvolume = 0.5; //Accompanying the pan position: centered volume!
 		MIDI_channels[channel].RPNmode = 0; //No (N)RPN selected!
+		MIDI_channels[channel].mastertuninghigh = 0x20; //Default ...
+		MIDI_channels[channel].mastertuninglow = 0x00; //... Value of centered A440 tuning!
+		MIDI_channels[channel].pitchbendsensitivitysemitones = 2; //2 semitones of ...
+		MIDI_channels[channel].pitchbendsensitivitycents = 0; //... default pitch bend?
 		MIDI_channels[channel++].mode = MIDIDEVICE_DEFAULTMODE; //Use the default mode!
 	}
 	MIDI_channels[MIDI_DRUMCHANNEL].bank = MIDI_channels[MIDI_DRUMCHANNEL].activebank = 0x80; //We're locked to a drum set!
@@ -657,7 +661,7 @@ float calcSFModSourceRaw(byte isInstrumentMod, byte isAmtSource, MIDIDEVICE_VOIC
 			inputrange = (float)0x4000; //The range!
 			break;
 		case 16: //Pitch wheel sensitivity (RPN 0)?
-			i = 127.0f; //Not implemented yet!
+			i = ((float)voice->channel->pitchbendsensitivitysemitones); //The semitones part of the pitch wheel sensitivity!
 			inputrange = (float)0x7F; //The range!
 			break;
 		case 127: //Link?
