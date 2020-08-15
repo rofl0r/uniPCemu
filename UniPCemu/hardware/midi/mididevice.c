@@ -2034,7 +2034,7 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 					MIDI_channels[currentchannel].panposition &= 0x7F; //Only keep LSB!
 					MIDI_channels[currentchannel].panposition |= (current->buffer[1] << 7); //Set MSB!
 					MIDI_channels[currentchannel].ContinuousControllers[firstparam] = (current->buffer[1] & 0x7F); //Specify the CC itself!
-					MIDIDEVICE_updatePanningCC(channel); //Update playing notes!
+					MIDIDEVICE_updatePanningCC(currentchannel); //Update playing notes!
 					unlockMPURenderer(); //Unlock the audio!
 					break;
 
