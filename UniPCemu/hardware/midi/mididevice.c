@@ -319,7 +319,7 @@ void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float sampler
 		if (voice->chorussinpos[filterindex]>=SINUSTABLE_PERCISION_FLT) voice->chorussinpos[filterindex] -= SINUSTABLE_PERCISION_FLT; //Wrap around when needed(once per second)!
 	}
 
-	modulationratiocents += voice->modenv_pitchfactor; //Apply pitch bend as well!
+	modulationratiocents += (Modulation*voice->modenv_pitchfactor); //Apply pitch bend as well!
 	//Apply pitch bend to the current factor too!
 	modulationratiocents += samplespeedup; //Speedup according to pitch bend!
 
@@ -1478,7 +1478,7 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 
 	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, modEnvToPitch, &applyigen)) //Gotten a filter on the modulation envelope's pitch?
 	{
-		voice->modenv_pitchfactor = LE16(applyigen.genAmount.shAmount); //Apply the filter for frequency cutoff!
+		voice->modenv_pitchfactor = LE16(applyigen.genAmount.shAmount); //Apply the modulator envelope to pitch!
 	}
 	else
 	{
