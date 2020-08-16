@@ -123,8 +123,7 @@ typedef struct
 	//Our assigned notes/channels for lookup!
 	MIDIDEVICE_CHANNEL *channel; //The active channel!
 	MIDIDEVICE_NOTE *note; //The active note!
-	float pitchwheelmod, initpanning, panningmod; //Precalculated speedup of the samples, to be processed into effective speedup when starting the rendering!
-	int_32 initsamplespeedup; //Initial sample speedup, in cents!
+	float initpanning, panningmod; //Precalculated speedup of the samples, to be processed into effective speedup when starting the rendering!
 	int_32 effectivesamplespeedup; //The speedup of the samples, in cents!
 	float lvolume, rvolume; //Left and right panning!
 	float lowpassfilter_freq; //What frequency to filter? 0.0f=No filter!

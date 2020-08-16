@@ -471,11 +471,6 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	lock(voice->locknumber); //Actually check!
 	#endif
 
-	//Now apply to the default speedup!
-	currentsamplespeedup = voice->initsamplespeedup; //Load the default sample speedup for our tone!
-	currentsamplespeedup += voice->pitchwheelmod; //Apply pitch bend!
-	voice->effectivesamplespeedup = (int_32)currentsamplespeedup; //Load the speedup of the samples we need!
-
 	//Determine panning!
 	lvolume = rvolume = 0.5f; //Default to 50% each (center)!
 	panningtemp = voice->initpanning; //Get the panning specified!
@@ -1086,7 +1081,7 @@ void updateSampleSpeed(MIDIDEVICE_VOICE* voice)
 	cents += tonecents; //Apply the MIDI tone cents for the MIDI tone!
 
 	//Now the cents variable contains the diviation in cents.
-	voice->initsamplespeedup = cents; //Load the default speedup we need for our tone!
+	voice->effectivesamplespeedup = cents; //Load the default speedup we need for our tone!
 }
 
 //result: 0=Finished not renderable, -1=Requires empty channel(voice stealing?), 1=Allocated, -2=Can't render, request next voice.
@@ -1094,7 +1089,7 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 {
 	const float MIDI_CHORUS_SINUS_BASE = 2.0f*(float)PI*CHORUS_LFO_FREQUENCY; //MIDI Sinus Base for chorus effects!
 	word pbag, ibag, chorusreverbdepth, chorusreverbchannel;
-	float panningtemp, pitchwheeltemp, attenuation, tempattenuation, lvolume, rvolume, basechorusreverb;
+	float panningtemp, attenuation, tempattenuation, lvolume, rvolume, basechorusreverb;
 	sword rootMIDITone;
 	uint_32 preset, startaddressoffset, endaddressoffset, startloopaddressoffset, endloopaddressoffset, loopsize;
 	byte effectivenote; //Effective note we're playing!
