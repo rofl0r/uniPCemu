@@ -320,21 +320,7 @@ enum sfGenerator
 	scaleTuning = 56,
 	exclusiveClass = 57,		// instrument only
 	overridingRootKey = 58,		// instrument only
-	endOper = 60,
-	pitchBendinitialPitch = 0xFFF //Special, not found in the original file. Used for the Pitch Bend operator.
-};
-
-enum sfModulator
-{
-	noteOnVelocityToInitialAttenuation = 0x0502,
-	noteOnVelocityToFilterCutoff = 0x0102,
-	channelPressureToVibratoLFOPitchDepth = 0x000D,
-	continuousController7ToInitialAttenuation = 0x0582,
-	continuousController10ToPanPosition = 0x028A,
-	continuousController11ToInitialAttenuation = 0x058B,
-	continuousController91ToReverbEffectsSend = 0x00DB,
-	continuousController93ToChorusEffectsSend = 0x00DD,
-	pitchWheeltoInitialPitchControlledByPitchWheelSensitivity = 0x020E
+	endOper = 60
 };
 
 //Our own defines!
