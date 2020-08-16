@@ -297,6 +297,7 @@ void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float sampler
 	int_32 modulationratiocents;
 	uint_32 speedupbuffer;
 	float currentattenuation;
+	int_64 samplesskipped;
 
 	if (filterindex==0) //Main channel? Log the current sample speedup!
 	{
@@ -311,26 +312,40 @@ void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float sampler
 		}
 	}
 
-	modulationratiocents = 0; //Default: none!
-	if (chorus) //Chorus extension channel?
+	if (play_counter >= 0) //Valid to lookup the position?
 	{
-		modulationratiocents = MIDIDEVICE_chorussinf(voice->chorussinpos[filterindex],chorus,0); //Pitch bend default!
-		voice->chorussinpos[filterindex] += voice->chorussinposstep; //Step by one sample rendered!
-		if (voice->chorussinpos[filterindex]>=SINUSTABLE_PERCISION_FLT) voice->chorussinpos[filterindex] -= SINUSTABLE_PERCISION_FLT; //Wrap around when needed(once per second)!
+		modulationratiocents = 0; //Default: none!
+		if (chorus) //Chorus extension channel?
+		{
+			modulationratiocents = MIDIDEVICE_chorussinf(voice->chorussinpos[filterindex], chorus, 0); //Pitch bend default!
+			voice->chorussinpos[filterindex] += voice->chorussinposstep; //Step by one sample rendered!
+			if (voice->chorussinpos[filterindex] >= SINUSTABLE_PERCISION_FLT) voice->chorussinpos[filterindex] -= SINUSTABLE_PERCISION_FLT; //Wrap around when needed(once per second)!
+		}
+
+		modulationratiocents += (Modulation * voice->modenv_pitchfactor); //Apply pitch bend as well!
+		//Apply pitch bend to the current factor too!
+		modulationratiocents += samplespeedup; //Speedup according to pitch bend!
+
+		//Apply the new modulation ratio, if needed!
+		if (modulationratiocents != voice->modulationratiocents[filterindex]) //Different ratio?
+		{
+			voice->modulationratiocents[filterindex] = modulationratiocents; //Update the last ratio!
+			voice->modulationratiosamples[filterindex] = cents2samplesfactord((DOUBLE)modulationratiocents); //Calculate the pitch bend and modulation ratio to apply!
+		}
+
+		samplepos = voice->monotonecounter[filterindex]; //Monotone counter!
+		voice->monotonecounter_diff[filterindex] += (voice->modulationratiosamples[filterindex]); //Apply the pitch bend and other modulation data to the sample to retrieve!
+		if (voice->monotonecounter_diff[filterindex] >= 1.0f) //Valid to add for the next sample?
+		{
+			samplesskipped = (int_64)voice->monotonecounter_diff[filterindex]; //Load the samples skipped!
+			voice->monotonecounter_diff[filterindex] -= (float)samplesskipped; //Remainder!
+			voice->monotonecounter[filterindex] += samplesskipped; //Skipped this amount of samples ahead!
+		}
 	}
-
-	modulationratiocents += (Modulation*voice->modenv_pitchfactor); //Apply pitch bend as well!
-	//Apply pitch bend to the current factor too!
-	modulationratiocents += samplespeedup; //Speedup according to pitch bend!
-
-	//Apply the new modulation ratio, if needed!
-	if (modulationratiocents!=voice->modulationratiocents[filterindex]) //Different ratio?
+	else
 	{
-		voice->modulationratiocents[filterindex] = modulationratiocents; //Update the last ratio!
-		voice->modulationratiosamples[filterindex] = cents2samplesfactord((DOUBLE)modulationratiocents); //Calculate the pitch bend and modulation ratio to apply!
+		samplepos = 0; //Nothing to give on sample information!
 	}
-
-	samplepos = (int_64)((DOUBLE)play_counter*voice->modulationratiosamples[filterindex]); //Apply the pitch bend and other modulation data to the sample to retrieve!
 
 	//Now, calculate the start offset to start looping!
 	samplepos += voice->startaddressoffset; //The start of the sample!
@@ -1346,6 +1361,13 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 	voice->ibag = ibag; //IBag!
 
 	voice->play_counter = 0; //Reset play counter!
+	
+	for (chorusreverbdepth = 0; chorusreverbdepth < CHORUSSIZE; ++chorusreverbdepth) //Init chorus channels!
+	{
+		//Initialize all monotone counters!
+		voice->monotonecounter[chorusreverbdepth] = 0;
+		voice->monotonecounter_diff[chorusreverbdepth] = 0.0f;
+	}
 
 	effectivevelocity = note->noteon_velocity; //What velocity to use?
 	effectivenote = note->note; //What is the effective note we're playing?

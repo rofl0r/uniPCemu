@@ -107,6 +107,8 @@ typedef struct
 typedef struct
 {
 	int_64 play_counter; //Current play position within the soundfont!
+	int_64 monotonecounter[CHORUSSIZE]; //Monotonic counter for positive only for each chorus channel!
+	float monotonecounter_diff[CHORUSSIZE]; //Diff counter for each chorus channel!
 	uint_32 loopsize; //The size of a loop!
 	int_64 finallooppos; //Final loop position!
 	int_64 finallooppos_playcounter; //Play counter at the final loop position we've calculated!
