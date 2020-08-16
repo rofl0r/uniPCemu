@@ -1390,7 +1390,14 @@ byte CPU_segmentWritten_protectedmode_IRET(byte oldCPL, word value, word isJMPor
 		segmentWritten_tempSS = CPU_POP16(CPU_Operand_size[activeCPU]);
 
 		if (segmentWritten(CPU_SEGMENT_SS, segmentWritten_tempSS, (getRPL(value) << 13) | 0x1000)) return 1; //Back to our calling stack!
-		REG_ESP = tempesp;
+		if (STACK_SEGMENT_DESCRIPTOR_B_BIT()) //32-bit stack write (undocumented)?
+		{
+			REG_ESP = tempesp; //32-bits written!
+		}
+		else
+		{
+			REG_SP = tempesp; //Only write SP, leave upper bits alone!
+		}
 
 		*RETF_segmentregister = 1; //We're checking the segments for privilege changes to be invalidated!
 	}
