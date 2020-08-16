@@ -420,7 +420,7 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 #endif
 	if (!stereo) return 0; //Can't handle non-stereo output!
 	//Initialisation info
-	float pitchcents, currentsamplespeedup, lvolume, rvolume, panningtemp;
+	float lvolume, rvolume, panningtemp;
 	float VolumeEnvelope=0; //Current volume envelope data!
 	float ModulationEnvelope=0; //Current modulation envelope data!
 	//Initialised values!
@@ -763,7 +763,6 @@ float getSFModSource(byte isInstrumentMod, MIDIDEVICE_VOICE* voice, sfModList* m
 
 float getSFModAmtSource(byte isInstrumentMod, MIDIDEVICE_VOICE* voice, sfModList* mod)
 {
-	float result;
 	return calcSFModSourceRaw(isInstrumentMod, 1, voice, mod, mod->sfModAmtSrcOper); //TODO! Not supported yet!
 }
 
@@ -884,11 +883,7 @@ float getSFPresetmodulator(MIDIDEVICE_VOICE *voice, word destination, byte apply
 
 void calcAttenuationModulators(MIDIDEVICE_VOICE *voice)
 {
-	float attenuation;
-	float tempattenuation;
-	float attenuationcontrol;
-	int_32 addattenuation;
-	sfModList applymod;
+	int_32 attenuation;
 	
 	//Apply all settable volume settings!
 	attenuation = voice->initialAttenuationGen; //Initial atfenuation generator!
@@ -901,7 +896,6 @@ void calcAttenuationModulators(MIDIDEVICE_VOICE *voice)
 
 void updateModulatorPanningMod(MIDIDEVICE_VOICE* voice)
 {
-	sfModList applymod;
 	float panningtemp;
 	panningtemp = 0.0f; //Init!
 	panningtemp += getSFInstrumentmodulator(voice, pan, 1, 0.0f, 1000.0f); //Get the initial attenuation modulators!
@@ -1088,8 +1082,8 @@ void updateSampleSpeed(MIDIDEVICE_VOICE* voice)
 OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel, byte request_note, byte voicenumber)
 {
 	const float MIDI_CHORUS_SINUS_BASE = 2.0f*(float)PI*CHORUS_LFO_FREQUENCY; //MIDI Sinus Base for chorus effects!
-	word pbag, ibag, chorusreverbdepth, chorusreverbchannel;
-	float panningtemp, attenuation, tempattenuation, lvolume, rvolume, basechorusreverb;
+	word pbag, ibag, chorusreverbdepth;
+	float panningtemp, attenuation, tempattenuation, lvolume, rvolume;
 	sword rootMIDITone;
 	uint_32 preset, startaddressoffset, endaddressoffset, startloopaddressoffset, endloopaddressoffset, loopsize;
 	byte effectivenote; //Effective note we're playing!
@@ -2398,11 +2392,9 @@ void done_MIDIDEVICE() //Finish our midi device!
 
 byte init_MIDIDEVICE(char *filename, byte use_direct_MIDI) //Initialise MIDI device for usage!
 {
-	word sourceprecalcindex;
 	float MIDI_CHORUS_SINUS_CENTS;
 	MIDI_CHORUS_SINUS_CENTS = (0.5f*CHORUS_LFO_CENTS); //Cents modulation for the outgoing sinus!
 	byte result;
-	float precalcval;
 	#ifdef __HW_DISABLED
 		return 0; //We're disabled!
 	#endif
