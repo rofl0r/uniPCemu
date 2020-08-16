@@ -848,8 +848,11 @@ float getSFmodulator(byte isInstrumentMod, MIDIDEVICE_VOICE *voice, word destina
 			{
 				tempresult *= (float)mod.modAmount; //Affect the result by the modulator amount value!
 			}
-			if (tempresult > max) tempresult = max; //Limit!
-			if (tempresult < min) tempresult = min; //Limit!
+			if ((min != 0.0f) || (max != 0.0f)) //Limits specified?
+			{
+				if (tempresult > max) tempresult = max; //Limit!
+				if (tempresult < min) tempresult = min; //Limit!
+			}
 
 			//Add to the result!
 			result += tempresult;
@@ -1030,8 +1033,8 @@ void updateSampleSpeed(MIDIDEVICE_VOICE* voice)
 		cents = (int_32)LE16(applygen.genAmount.shAmount) * 100; //How many semitones! Apply to the cents: 1 semitone = 100 cents!
 	}
 
-	cents += getSFInstrumentmodulator(voice, coarseTune, 1, 0.0f, 12700.0f);
-	cents += getSFPresetmodulator(voice, coarseTune, 1, 0.0f, 12700.0f);
+	cents += getSFInstrumentmodulator(voice, coarseTune, 1, 0.0f, 0.0f);
+	cents += getSFPresetmodulator(voice, coarseTune, 1, 0.0f, 0.0f);
 
 	//Fine tune...
 	if (lookupSFInstrumentGenGlobal(soundfont, voice->instrumentptr, voice->ibag, fineTune, &applyigen))
@@ -1047,8 +1050,8 @@ void updateSampleSpeed(MIDIDEVICE_VOICE* voice)
 		cents += (int_32)LE16(applygen.genAmount.shAmount); //Add the ammount of cents!
 	}
 
-	cents += getSFInstrumentmodulator(voice, fineTune, 1, 0.0f, 12700.0f);
-	cents += getSFPresetmodulator(voice, fineTune, 1, 0.0f, 12700.0f);
+	cents += getSFInstrumentmodulator(voice, fineTune, 1, 0.0f, 0.0f);
+	cents += getSFPresetmodulator(voice, fineTune, 1, 0.0f, 0.0f);
 
 	//Scale tuning: how the MIDI number affects semitone (percentage of semitones)
 	tonecents = 100; //Default: 100 cents(%) scale tuning!
@@ -1065,8 +1068,8 @@ void updateSampleSpeed(MIDIDEVICE_VOICE* voice)
 		tonecents = (int_32)LE16(applygen.genAmount.shAmount); //Apply semitone factor in percent for each tone!
 	}
 
-	tonecents += getSFInstrumentmodulator(voice, scaleTuning, 1, 0.0f, 12700.0f);
-	tonecents += getSFPresetmodulator(voice, scaleTuning, 1, 0.0f, 12700.0f);
+	tonecents += getSFInstrumentmodulator(voice, scaleTuning, 1, 0.0f, 0.0f);
+	tonecents += getSFPresetmodulator(voice, scaleTuning, 1, 0.0f, 0.0f);
 
 	cents += voice->sample.chPitchCorrection; //Apply pitch correction for the used sample!
 
