@@ -152,6 +152,7 @@ typedef struct
 	byte locknumber; //What lock number do we have? Only valid when actually used(lock defined)!
 	float effectiveAttenuation; //Effective attenuation generator with modulators!
 	float initialAttenuationGen; //The generator initial value!
+	sword rootMIDITone;
 
 	//Chorus and reverb calculations!
 	float chorusdepth[0x100]; //All chorus depths, index 0 is dry sound!

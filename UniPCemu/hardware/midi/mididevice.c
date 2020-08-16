@@ -1009,13 +1009,75 @@ void updateReverbMod(MIDIDEVICE_VOICE* voice)
 	}
 }
 
-void updatePitchWheelMod(MIDIDEVICE_VOICE* voice)
+void updateSampleSpeed(MIDIDEVICE_VOICE* voice)
 {
-	float pitchwheeltemp;
-	//Pitch wheel modulator
-	pitchwheeltemp = getSFInstrumentmodulator(voice, pitchBendinitialPitch, 1, 0.0f, 12700.0f);
-	pitchwheeltemp += getSFPresetmodulator(voice, pitchBendinitialPitch, 1, 0.0f, 12700.0f);
-	voice->pitchwheelmod = pitchwheeltemp; //Apply the modulator!	
+	sfGenList applygen;
+	sfInstGenList applyigen;
+	int_32 cents, tonecents; //Relative root MIDI tone, different cents calculations!
+	cents = 0; //Default: none!
+
+	//Coarse tune...
+	if (lookupSFInstrumentGenGlobal(soundfont, voice->instrumentptr, voice->ibag, coarseTune, &applyigen))
+	{
+		cents = (int_32)LE16(applyigen.genAmount.shAmount) * 100; //How many semitones! Apply to the cents: 1 semitone = 100 cents!
+		if (lookupSFPresetGenGlobal(soundfont, voice->preset, voice->pbag, coarseTune, &applygen))
+		{
+			cents += (int_32)LE16(applygen.genAmount.shAmount) * 100; //How many semitones! Apply to the cents: 1 semitone = 100 cents!
+		}
+	}
+	else if (lookupSFPresetGenGlobal(soundfont, voice->preset, voice->pbag, coarseTune, &applygen))
+	{
+		cents = (int_32)LE16(applygen.genAmount.shAmount) * 100; //How many semitones! Apply to the cents: 1 semitone = 100 cents!
+	}
+
+	cents += getSFInstrumentmodulator(voice, coarseTune, 1, 0.0f, 12700.0f);
+	cents += getSFPresetmodulator(voice, coarseTune, 1, 0.0f, 12700.0f);
+
+	//Fine tune...
+	if (lookupSFInstrumentGenGlobal(soundfont, voice->instrumentptr, voice->ibag, fineTune, &applyigen))
+	{
+		cents += (int_32)LE16(applyigen.genAmount.shAmount); //Add the ammount of cents!
+		if (lookupSFPresetGenGlobal(soundfont, voice->preset, voice->pbag, fineTune, &applygen))
+		{
+			cents += (int_32)LE16(applygen.genAmount.shAmount); //Add the ammount of cents!
+		}
+	}
+	else if (lookupSFPresetGenGlobal(soundfont, voice->preset, voice->pbag, fineTune, &applygen))
+	{
+		cents += (int_32)LE16(applygen.genAmount.shAmount); //Add the ammount of cents!
+	}
+
+	cents += getSFInstrumentmodulator(voice, fineTune, 1, 0.0f, 12700.0f);
+	cents += getSFPresetmodulator(voice, fineTune, 1, 0.0f, 12700.0f);
+
+	//Scale tuning: how the MIDI number affects semitone (percentage of semitones)
+	tonecents = 100; //Default: 100 cents(%) scale tuning!
+	if (lookupSFInstrumentGenGlobal(soundfont, voice->instrumentptr, voice->ibag, scaleTuning, &applyigen))
+	{
+		tonecents = (int_32)LE16(applyigen.genAmount.shAmount); //Apply semitone factor in percent for each tone!
+		if (lookupSFPresetGenGlobal(soundfont, voice->preset, voice->pbag, scaleTuning, &applygen))
+		{
+			tonecents += (int_32)LE16(applygen.genAmount.shAmount); //Apply semitone factor in percent for each tone!
+		}
+	}
+	else if (lookupSFPresetGenGlobal(soundfont, voice->preset, voice->pbag, scaleTuning, &applygen))
+	{
+		tonecents = (int_32)LE16(applygen.genAmount.shAmount); //Apply semitone factor in percent for each tone!
+	}
+
+	tonecents += getSFInstrumentmodulator(voice, scaleTuning, 1, 0.0f, 12700.0f);
+	tonecents += getSFPresetmodulator(voice, scaleTuning, 1, 0.0f, 12700.0f);
+
+	cents += voice->sample.chPitchCorrection; //Apply pitch correction for the used sample!
+
+	cents *= (tonecents * 0.01f); //Apply scale tuning to the coarse/fine tuning as well!
+
+	tonecents *= voice->rootMIDITone; //Difference in tones we use is applied to the ammount of cents!
+
+	cents += tonecents; //Apply the MIDI tone cents for the MIDI tone!
+
+	//Now the cents variable contains the diviation in cents.
+	voice->initsamplespeedup = cents; //Load the default speedup we need for our tone!
 }
 
 //result: 0=Finished not renderable, -1=Requires empty channel(voice stealing?), 1=Allocated, -2=Can't render, request next voice.
@@ -1025,7 +1087,6 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 	word pbag, ibag, chorusreverbdepth, chorusreverbchannel;
 	float panningtemp, pitchwheeltemp, attenuation, tempattenuation, lvolume, rvolume, basechorusreverb;
 	sword rootMIDITone;
-	int_32 cents, tonecents; //Relative root MIDI tone, different cents calculations!
 	uint_32 preset, startaddressoffset, endaddressoffset, startloopaddressoffset, endloopaddressoffset, loopsize;
 	byte effectivenote; //Effective note we're playing!
 	byte effectivevelocity; //Effective velocity we're playing!
@@ -1341,61 +1402,9 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 	rootMIDITone = (((sword)effectivenote)-rootMIDITone); //>positive difference, <negative difference.
 	//Ammount of MIDI notes too high is in rootMIDITone.
 
-	cents = 0; //Default: none!
+	voice->rootMIDITone = rootMIDITone; //Save the relative tone!
 
-	//Coarse tune...
-	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, coarseTune, &applyigen))
-	{
-		cents = (int_32)LE16(applyigen.genAmount.shAmount)*100; //How many semitones! Apply to the cents: 1 semitone = 100 cents!
-		if (lookupSFPresetGenGlobal(soundfont, preset, pbag, coarseTune, &applygen))
-		{
-			cents += (int_32)LE16(applygen.genAmount.shAmount) * 100; //How many semitones! Apply to the cents: 1 semitone = 100 cents!
-		}
-	}
-	else if (lookupSFPresetGenGlobal(soundfont, preset, pbag, coarseTune, &applygen))
-	{
-		cents = (int_32)LE16(applygen.genAmount.shAmount)*100; //How many semitones! Apply to the cents: 1 semitone = 100 cents!
-	}
-
-	//Fine tune...
-	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, fineTune, &applyigen))
-	{
-		cents += (int_32)LE16(applyigen.genAmount.shAmount); //Add the ammount of cents!
-		if (lookupSFPresetGenGlobal(soundfont, preset, pbag, fineTune, &applygen))
-		{
-			cents += (int_32)LE16(applygen.genAmount.shAmount); //Add the ammount of cents!
-		}
-	}
-	else if (lookupSFPresetGenGlobal(soundfont, preset, pbag, fineTune, &applygen))
-	{
-		cents += (int_32)LE16(applygen.genAmount.shAmount); //Add the ammount of cents!
-	}
-
-	//Scale tuning: how the MIDI number affects semitone (percentage of semitones)
-	tonecents = 100; //Default: 100 cents(%) scale tuning!
-	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, scaleTuning, &applyigen))
-	{
-		tonecents = (int_32)LE16(applyigen.genAmount.shAmount); //Apply semitone factor in percent for each tone!
-		if (lookupSFPresetGenGlobal(soundfont, preset, pbag, scaleTuning, &applygen))
-		{
-			tonecents += (int_32)LE16(applygen.genAmount.shAmount); //Apply semitone factor in percent for each tone!
-		}
-	}
-	else if (lookupSFPresetGenGlobal(soundfont, preset, pbag, scaleTuning, &applygen))
-	{
-		tonecents = (int_32)LE16(applygen.genAmount.shAmount); //Apply semitone factor in percent for each tone!
-	}
-
-	cents += voice->sample.chPitchCorrection; //Apply pitch correction for the used sample!
-
-	cents *= (tonecents * 0.01f); //Apply scale tuning to the coarse/fine tuning as well!
-
-	tonecents *= rootMIDITone; //Difference in tones we use is applied to the ammount of cents!
-
-	cents += tonecents; //Apply the MIDI tone cents for the MIDI tone!
-
-	//Now the cents variable contains the diviation in cents.
-	voice->initsamplespeedup = cents; //Load the default speedup we need for our tone!
+	updateSampleSpeed(voice); //Update the sample speed!
 	
 	//Determine the attenuation generator to use!
 	attenuation = 0; //Default attenuation!
@@ -1513,8 +1522,6 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 	#endif
 	voice->chorusvol[0] = voice->activechorusdepth[0];
 	voice->reverbvol[0] = voice->activereverbdepth[0]; //Chorus reverb volume, fixed!
-
-	updatePitchWheelMod(voice);
 
 	//Now determine the volume envelope!
 	voice->CurrentVolumeEnvelope = 1000.0f; //Default: nothing yet, so no volume, full attenuation!
@@ -1885,7 +1892,7 @@ void MIDIDEVICE_updatePitchWheelCC(byte channel)
 		{
 			if (voice->channel == &MIDI_channels[channel]) //The requested channel?
 			{
-				updatePitchWheelMod(voice); //Calc the pitch wheel!
+				updateSampleSpeed(voice); //Calc the pitch wheel!
 			}
 		}
 	}
