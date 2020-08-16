@@ -543,8 +543,14 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 
 		//Apply reverb based on chorus history now!
 		#ifndef DISABLE_REVERB
+		#if CHORUSSIZE==1
+		//Only 1 chorus channel?
 		chorus = 0; //Init chorus number!
 		reverb = 1; //First reverberation to apply!
+		#else
+		chorus = 0; //Init chorus number!
+		reverb = 1; //First reverberation to apply!
+		#endif
 		tempstorage = VolumeEnvelope; //Store for temporary storage!
 		activechannel = (chorusreverbsamplepos>=0); //Are we an active channel?
 		do //Process all reverb used(2 reverb channels)!
