@@ -124,7 +124,7 @@ OPTINLINE void reset_MIDIDEVICE() //Reset the MIDI device for usage!
 	byte channel,chorusreverbdepth;
 	word notes;
 	byte purposebackup;
-	FIFOBUFFER *temp, *chorus_backtrace[CHORUSSIZE];
+	FIFOBUFFER *temp, *temp2, *chorus_backtrace[CHORUSSIZE];
 
 	lockMPURenderer();
 	memset(&MIDI_channels,0,sizeof(MIDI_channels)); //Clear our data!
@@ -132,6 +132,7 @@ OPTINLINE void reset_MIDIDEVICE() //Reset the MIDI device for usage!
 	for (channel=0;channel<NUMITEMS(activevoices);channel++) //Process all voices!
 	{
 		temp = activevoices[channel].effect_backtrace_samplespeedup; //Back-up the effect backtrace!
+		temp2 = activevoices[channel].effect_backtrace_modenv_pitchfactor; //Back-up the effect backtrace!
 		for (chorusreverbdepth=0;chorusreverbdepth<CHORUSSIZE;++chorusreverbdepth)
 		{
 			chorus_backtrace[chorusreverbdepth] = activevoices[channel].effect_backtrace_chorus[chorusreverbdepth]; //Back-up!
@@ -144,6 +145,7 @@ OPTINLINE void reset_MIDIDEVICE() //Reset the MIDI device for usage!
 			activevoices[channel].effect_backtrace_chorus[chorusreverbdepth] = chorus_backtrace[chorusreverbdepth]; //Restore!
 		}
 		activevoices[channel].effect_backtrace_samplespeedup = temp; //Restore our buffer!
+		activevoices[channel].effect_backtrace_modenv_pitchfactor = temp2; //Restore our buffer!
 		fifobuffer_clear(temp); //Clear our buffer!
 	}
 
@@ -295,20 +297,28 @@ void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float sampler
 	byte loopflags; //Flags used during looping!
 	static sword readsample = 0; //The sample retrieved!
 	int_32 modulationratiocents;
-	uint_32 speedupbuffer;
+	uint_32 tempbuffer;
+	int_32 modenv_pitchfactor;
 	float currentattenuation;
 	int_64 samplesskipped;
+
+	modenv_pitchfactor = voice->modenv_pitchfactor; //The current pitch factor!
 
 	if (filterindex==0) //Main channel? Log the current sample speedup!
 	{
 		writefifobuffer32(voice->effect_backtrace_samplespeedup,signed2unsigned32(samplespeedup)); //Log a history of this!
+		writefifobuffer32(voice->effect_backtrace_modenv_pitchfactor,signed2unsigned32(modenv_pitchfactor)); //Log a history of this!
 	}
 
 	if ((play_counter>=0) && filterindex) //Are we a running channel that needs reading back?
 	{
-		if (readfifobuffer32_backtrace(voice->effect_backtrace_samplespeedup,&speedupbuffer,totaldelay,voice->isfinalchannel_chorus[filterindex])) //Try to read from history! Only apply the value when not the originating channel!
+		if (readfifobuffer32_backtrace(voice->effect_backtrace_samplespeedup,&tempbuffer,totaldelay,voice->isfinalchannel_chorus[filterindex])) //Try to read from history! Only apply the value when not the originating channel!
 		{
-			samplespeedup = unsigned2signed32(speedupbuffer); //Apply the sample speedup from that point in time! Not for the originating channel!
+			samplespeedup = unsigned2signed32(tempbuffer); //Apply the sample speedup from that point in time! Not for the originating channel!
+		}
+		if (readfifobuffer32_backtrace(voice->effect_backtrace_modenv_pitchfactor, &tempbuffer, totaldelay, voice->isfinalchannel_chorus[filterindex])) //Try to read from history! Only apply the value when not the originating channel!
+		{
+			modenv_pitchfactor = unsigned2signed32(tempbuffer); //Apply the pitch factor from that point in time! Not for the originating channel!
 		}
 	}
 
@@ -1115,7 +1125,7 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 	sfInst currentinstrument;
 	sfInstGenList sampleptr, applyigen;
 	sfSample sampleInfo;
-	FIFOBUFFER *temp, *chorus_backtrace[CHORUSSIZE];
+	FIFOBUFFER *temp, *temp2, *chorus_backtrace[CHORUSSIZE];
 	int_32 previousPBag, previousIBag;
 	static uint_64 starttime = 0; //Increasing start time counter (1 each note on)!
 
@@ -1321,6 +1331,7 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 	//Initialize the requested voice!
 	//First, all our voice-specific variables and precalcs!
 	temp = voice->effect_backtrace_samplespeedup; //Back-up the effect backtrace!
+	temp2 = voice->effect_backtrace_modenv_pitchfactor; //Back-up the effect backtrace!
 	for (chorusreverbdepth = 0; chorusreverbdepth < CHORUSSIZE; ++chorusreverbdepth)
 	{
 		chorus_backtrace[chorusreverbdepth] = voice->effect_backtrace_chorus[chorusreverbdepth]; //Back-up!
@@ -1329,12 +1340,14 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 	memset(voice, 0, sizeof(*voice)); //Clear the entire channel!
 	voice->purpose = purposebackup;
 	voice->effect_backtrace_samplespeedup = temp; //Restore our buffer!
+	voice->effect_backtrace_modenv_pitchfactor = temp2; //Restore our buffer!
 	for (chorusreverbdepth = 0; chorusreverbdepth < CHORUSSIZE; ++chorusreverbdepth)
 	{
 		voice->effect_backtrace_chorus[chorusreverbdepth] = chorus_backtrace[chorusreverbdepth]; //Restore!
 	}
 	fifobuffer_clear(voice->effect_backtrace_samplespeedup); //Clear our history buffer!
-	#ifndef DISABLE_REVERB
+	fifobuffer_clear(voice->effect_backtrace_modenv_pitchfactor); //Clear our history buffer!
+#ifndef DISABLE_REVERB
 	for (chorusreverbdepth = 0; chorusreverbdepth < CHORUSSIZE; ++chorusreverbdepth) //Initialize all chorus histories!
 	{
 		fifobuffer_clear(voice->effect_backtrace_chorus[chorusreverbdepth]); //Clear our history buffer!
@@ -1882,54 +1895,20 @@ OPTINLINE void MIDIDEVICE_noteOn(byte selectedchannel, byte channel, byte note, 
 	}
 }
 
-void MIDIDEVICE_updateAttenuationCC(byte channel)
+void updateMIDImodulators(byte channel)
 {
 	word voicenr;
-	MIDIDEVICE_VOICE *voice;
+	MIDIDEVICE_VOICE* voice;
 	voicenr = 0; //First voice!
 	for (; voicenr < MIDI_TOTALVOICES; ++voicenr) //Find a used voice!
 	{
 		voice = &activevoices[voicenr]; //The voice!
 		if (voice->VolumeEnvelope.active) //Active?
 		{
-			if (voice->channel==&MIDI_channels[channel]) //The requested channel?
+			if (voice->channel == &MIDI_channels[channel]) //The requested channel?
 			{
 				calcAttenuationModulators(voice); //Calc the modulators!
-			}
-		}
-	}
-}
-
-void MIDIDEVICE_updatePitchWheelCC(byte channel)
-{
-	word voicenr;
-	MIDIDEVICE_VOICE* voice;
-	voicenr = 0; //First voice!
-	for (; voicenr < MIDI_TOTALVOICES; ++voicenr) //Find a used voice!
-	{
-		voice = &activevoices[voicenr]; //The voice!
-		if (voice->VolumeEnvelope.active) //Active?
-		{
-			if (voice->channel == &MIDI_channels[channel]) //The requested channel?
-			{
 				updateSampleSpeed(voice); //Calc the pitch wheel!
-			}
-		}
-	}
-}
-
-void MIDIDEVICE_updatePanningCC(byte channel)
-{
-	word voicenr;
-	MIDIDEVICE_VOICE* voice;
-	voicenr = 0; //First voice!
-	for (; voicenr < MIDI_TOTALVOICES; ++voicenr) //Find a used voice!
-	{
-		voice = &activevoices[voicenr]; //The voice!
-		if (voice->VolumeEnvelope.active) //Active?
-		{
-			if (voice->channel == &MIDI_channels[channel]) //The requested channel?
-			{
 				updateModulatorPanningMod(voice); //Calc the panning modulators!
 			}
 		}
@@ -1981,6 +1960,7 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 		case 0xA0: //Aftertouch?
 			lockMPURenderer(); //Lock the audio!
 			MIDI_channels[currentchannel].notes[firstparam].pressure = current->buffer[1];
+			updateMIDImodulators(currentchannel); //Update!
 			unlockMPURenderer(); //Unlock the audio!
 			#ifdef MIDI_LOG
 				dolog("MPU","MIDIDEVICE: Aftertouch: %u-%u",currentchannel,MIDI_channels[currentchannel].notes[firstparam].pressure); //Log it!
@@ -2021,7 +2001,7 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 					lockMPURenderer(); //Lock the audio!
 					MIDI_channels[currentchannel].volumeMSB = current->buffer[1]; //Set MSB!
 					MIDI_channels[currentchannel].ContinuousControllers[firstparam] = (current->buffer[1] & 0x7F); //Specify the CC itself!
-					MIDIDEVICE_updateAttenuationCC(currentchannel); //Update playing notes!
+					updateMIDImodulators(currentchannel); //Update!
 					unlockMPURenderer(); //Unlock the audio!
 					break;
 				case 0x0B: //Expression (MSB) CC 11
@@ -2031,7 +2011,7 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 					lockMPURenderer(); //Lock the audio!
 					MIDI_channels[currentchannel].expression = current->buffer[1]; //Set Expression!
 					MIDI_channels[currentchannel].ContinuousControllers[firstparam] = (current->buffer[1] & 0x7F); //Specify the CC itself!
-					MIDIDEVICE_updateAttenuationCC(currentchannel); //Update playing notes!
+					updateMIDImodulators(currentchannel); //Update!
 					unlockMPURenderer(); //Unlock the audio!
 					break;
 				case 0x27: //Volume (LSB) CC 39
@@ -2041,7 +2021,7 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 					lockMPURenderer(); //Lock the audio!
 					MIDI_channels[currentchannel].volumeLSB = current->buffer[1]; //Set LSB!
 					MIDI_channels[currentchannel].ContinuousControllers[firstparam] = (current->buffer[1] & 0x7F); //Specify the CC itself!
-					MIDIDEVICE_updateAttenuationCC(currentchannel); //Update playing notes!
+					updateMIDImodulators(currentchannel); //Update!
 					unlockMPURenderer(); //Unlock the audio!
 					break;
 
@@ -2053,7 +2033,7 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 					MIDI_channels[currentchannel].panposition &= 0x3F80; //Only keep MSB!
 					MIDI_channels[currentchannel].panposition |= current->buffer[1]; //Set LSB!
 					MIDI_channels[currentchannel].ContinuousControllers[firstparam] = (current->buffer[1] & 0x7F); //Specify the CC itself!
-					MIDIDEVICE_updatePanningCC(currentchannel); //Update playing notes!
+					updateMIDImodulators(currentchannel); //Update!
 					unlockMPURenderer(); //Unlock the audio!
 					break;
 				case 0x2A: //Pan position (LSB)
@@ -2064,7 +2044,7 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 					MIDI_channels[currentchannel].panposition &= 0x7F; //Only keep LSB!
 					MIDI_channels[currentchannel].panposition |= (current->buffer[1] << 7); //Set MSB!
 					MIDI_channels[currentchannel].ContinuousControllers[firstparam] = (current->buffer[1] & 0x7F); //Specify the CC itself!
-					MIDIDEVICE_updatePanningCC(currentchannel); //Update playing notes!
+					updateMIDImodulators(currentchannel); //Update!
 					unlockMPURenderer(); //Unlock the audio!
 					break;
 
@@ -2098,6 +2078,7 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 						if ((MIDI_channels[currentchannel].RPNhi == 0) && (MIDI_channels[currentchannel].RPNlo == 0)) //Pitch wheel Sensitivity?
 						{
 							MIDI_channels[currentchannel].pitchbendsensitivitysemitones = (current->buffer[1]&0x7F); //Semitones!
+							updateMIDImodulators(currentchannel); //Update!
 						}
 						//127,127=NULL!
 						//Other RPNs aren't supported!
@@ -2119,6 +2100,7 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 						if ((MIDI_channels[currentchannel].RPNhi == 0) && (MIDI_channels[currentchannel].RPNlo == 0)) //Pitch wheel Sensitivity?
 						{
 							MIDI_channels[currentchannel].pitchbendsensitivitycents = (current->buffer[1] & 0x7F); //Cents!
+							updateMIDImodulators(currentchannel); //Update!
 						}
 						//127,127=NULL!
 						//Other RPNs aren't supported!
@@ -2199,12 +2181,14 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 					lockMPURenderer(); //Lock the audio!
 					MIDI_channels[currentchannel].reverblevel = current->buffer[1]; //Reverb level!
 					MIDI_channels[currentchannel].ContinuousControllers[firstparam] = (current->buffer[1] & 0x7F); //Specify the CC itself!
+					updateMIDImodulators(currentchannel); //Update!
 					unlockMPURenderer(); //Unlock the audio!
 					break;
 				case 0x5D: //Chorus Level
 					lockMPURenderer(); //Lock the audio!
 					MIDI_channels[currentchannel].choruslevel = current->buffer[1]; //Chorus level!
 					MIDI_channels[currentchannel].ContinuousControllers[firstparam] = (current->buffer[1] & 0x7F); //Specify the CC itself!
+					updateMIDImodulators(currentchannel); //Update!
 					unlockMPURenderer(); //Unlock the audio!
 					break;
 					//Sound function On/Off:
@@ -2261,6 +2245,7 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 						dolog("MPU", "MIDIDEVICE: Unknown Continuous Controller change: %u=%u", currentchannel, firstparam); //Log it!
 					#endif
 					MIDI_channels[currentchannel].ContinuousControllers[firstparam] = (current->buffer[1] & 0x7F); //Specify the CC itself!
+					updateMIDImodulators(currentchannel); //Update!
 					break;
 			}
 			break;
@@ -2276,6 +2261,7 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 		case 0xD0: //Channel pressure?
 			lockMPURenderer(); //Lock the audio!
 			MIDI_channels[currentchannel].pressure = firstparam;
+			updateMIDImodulators(currentchannel); //Update!
 			unlockMPURenderer(); //Unlock the audio!
 			#ifdef MIDI_LOG
 				dolog("MPU","MIDIDEVICE: Channel pressure: %u=%u",currentchannel,MIDI_channels[currentchannel].pressure); //Log it!
@@ -2284,7 +2270,7 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 		case 0xE0: //Pitch wheel?
 			lockMPURenderer(); //Lock the audio!
 			MIDI_channels[currentchannel].pitch = (sword)((current->buffer[1]<<7)|firstparam); //Actual pitch, converted to signed value!
-			MIDIDEVICE_updatePitchWheelCC(currentchannel); //Update playing notes!
+			updateMIDImodulators(currentchannel); //Update!
 			unlockMPURenderer(); //Unlock the audio!
 			#ifdef MIDI_LOG
 				dolog("MPU","MIDIDEVICE: Pitch wheel: %u=%u",currentchannel,MIDI_channels[currentchannel].pitch); //Log it!
@@ -2401,7 +2387,11 @@ void done_MIDIDEVICE() //Finish our midi device!
 		{
 			free_fifobuffer(&activevoices[i].effect_backtrace_samplespeedup); //Release the FIFO buffer containing the entire history!
 		}
-		#ifndef DISABLE_REVERB
+		if (activevoices[i].effect_backtrace_modenv_pitchfactor) //Used?
+		{
+			free_fifobuffer(&activevoices[i].effect_backtrace_modenv_pitchfactor); //Release the FIFO buffer containing the entire history!
+		}
+#ifndef DISABLE_REVERB
 		for (j=0;j<CHORUSSIZE;++j)
 		{
 			free_fifobuffer(&activevoices[i].effect_backtrace_chorus[j]); //Release the FIFO buffer containing the entire history!
@@ -2481,6 +2471,7 @@ byte init_MIDIDEVICE(char *filename, byte use_direct_MIDI) //Initialise MIDI dev
 		{
 			activevoices[i].purpose = ((((__MIDI_NUMVOICES)-(i/MIDI_NOTEVOICES))-1) < MIDI_DRUMVOICES) ? 1 : 0; //Drum or melodic voice? Put the drum voices at the far end!
 			activevoices[i].effect_backtrace_samplespeedup = allocfifobuffer(((uint_32)((chorus_delay[CHORUSSIZE])*MAX_SAMPLERATE)+1)<<2,0); //Not locked FIFO buffer containing the entire history!
+			activevoices[i].effect_backtrace_modenv_pitchfactor = allocfifobuffer(((uint_32)((chorus_delay[CHORUSSIZE])*MAX_SAMPLERATE)+1)<<2,0); //Not locked FIFO buffer containing the entire history!
 			#ifndef DISABLE_REVERB
 			for (j=0;j<CHORUSSIZE;++j) //All chorus backtrace channels!
 			{
