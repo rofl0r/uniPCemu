@@ -322,7 +322,7 @@ void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float sampler
 		}
 	}
 
-	if (play_counter >= 0) //Valid to lookup the position?
+	if (likely(play_counter >= 0)) //Valid to lookup the position?
 	{
 		modulationratiocents = 0; //Default: none!
 		if (chorus) //Chorus extension channel?
@@ -345,12 +345,9 @@ void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float sampler
 
 		samplepos = voice->monotonecounter[filterindex]; //Monotone counter!
 		voice->monotonecounter_diff[filterindex] += (voice->modulationratiosamples[filterindex]); //Apply the pitch bend and other modulation data to the sample to retrieve!
-		if (voice->monotonecounter_diff[filterindex] >= 1.0f) //Valid to add for the next sample?
-		{
-			samplesskipped = (int_64)voice->monotonecounter_diff[filterindex]; //Load the samples skipped!
-			voice->monotonecounter_diff[filterindex] -= (float)samplesskipped; //Remainder!
-			voice->monotonecounter[filterindex] += samplesskipped; //Skipped this amount of samples ahead!
-		}
+		samplesskipped = (int_64)voice->monotonecounter_diff[filterindex]; //Load the samples skipped!
+		voice->monotonecounter_diff[filterindex] -= (float)samplesskipped; //Remainder!
+		voice->monotonecounter[filterindex] += samplesskipped; //Skipped this amount of samples ahead!
 	}
 	else
 	{
