@@ -277,15 +277,23 @@ combineAttenuation:
 Combine attenuation values with each other to a new single scale.
 	
 */
-OPTINLINE float combineAttenuation(float initialAttenuation, float volumeEnvelope)
+OPTINLINE float combineAttenuation(MIDIDEVICE_VOICE* voice, float initialAttenuation, float volumeEnvelope)
 {
 	//First, clip!
+
+	if ((voice->last_initialattenuation == initialAttenuation) && (voice->last_volumeenvelope == volumeEnvelope)) //Unchanged?
+	{
+		return voice->last_attenuation; //Give the last attenuation!
+	}
+	voice->last_initialattenuation = initialAttenuation; //Last!
+	voice->last_volumeenvelope = volumeEnvelope; //Last!
+
 	if (initialAttenuation > 2880.0f) initialAttenuation = 2880.0f; //Limit to max!
 	if (initialAttenuation < 0.0f) initialAttenuation = 0.0f; //Limit to min!
 	if (volumeEnvelope > 1000.0f) volumeEnvelope = 1000.0f; //Limit to max!
 	if (volumeEnvelope < 0.0f) volumeEnvelope = 0.0f; //Limit to min!
 	//Now, combine! Normalize, convert to gain(in relative Bels), combine, convert to attenuation and apply the new scale for the attenuate function.
-	return MIDIattenuate(initialAttenuation + (volumeEnvelope*0.96)); //Volume needs to be converted to a 960cB range!
+	return (voice->last_attenuation = MIDIattenuate(initialAttenuation + (volumeEnvelope*0.96))); //Volume needs to be converted to a 960cB range!
 }
 
 void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float samplerate, int_32 samplespeedup, MIDIDEVICE_VOICE *voice, float Volume, float Modulation, byte chorus, float chorusvol, byte filterindex, int_32 *lchannelres, int_32 *rchannelres) //Get a sample from an MIDI note!
@@ -410,7 +418,7 @@ void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float sampler
 
 		//First, apply filters and current envelope!
 		applyMIDILowpassFilter(voice, &lchannel, Modulation, filterindex); //Low pass filter!
-		currentattenuation = combineAttenuation(voice->effectiveAttenuation,Volume); //The volume of the samples including ADSR!
+		currentattenuation = combineAttenuation(voice,voice->effectiveAttenuation,Volume); //The volume of the samples including ADSR!
 		currentattenuation *= chorusvol; //Apply chorus&reverb volume for this stream!
 		currentattenuation *= VOLUME; //Apply general volume!
 		lchannel *= currentattenuation; //Apply the current attenuation!
@@ -1830,7 +1838,7 @@ OPTINLINE void MIDIDEVICE_noteOn(byte selectedchannel, byte channel, byte note, 
 						else if (activevoices[voiceactive].VolumeEnvelope.active == ADSR_RELEASE) currentranking -= 2000; //Release gets priority to be stolen!
 						if (activevoices[voiceactive].channel->sustain) currentranking -= 1000; //Lower when sustained!
 						float volume;
-						volume = combineAttenuation(activevoices[voiceactive].effectiveAttenuation, activevoices[voiceactive].CurrentVolumeEnvelope); //Load the ADSR volume!
+						volume = combineAttenuation(&activevoices[voiceactive],activevoices[voiceactive].effectiveAttenuation, activevoices[voiceactive].CurrentVolumeEnvelope); //Load the ADSR volume!
 						if (activevoices[voiceactive].lvolume > activevoices[voice].rvolume) //More left volume?
 						{
 							volume *= activevoices[voiceactive].lvolume; //Left volume!

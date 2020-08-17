@@ -189,6 +189,9 @@ typedef struct
 	word ibag;
 	byte active; //Are we still playing something?
 	byte noteplaybackfinished; //Finallooptime valid to add?
+	float last_initialattenuation; //Last initial attenuation!
+	float last_volumeenvelope; //Last volume envelope!
+	float last_attenuation; //Last attenuation!
 } MIDIDEVICE_VOICE;
 
 void MIDIDEVICE_tickActiveSense(); //Tick the Active Sense (MIDI) line with any command/data!
