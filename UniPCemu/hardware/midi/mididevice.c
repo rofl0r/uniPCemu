@@ -309,8 +309,7 @@ void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float sampler
 		writefifobuffer32(voice->effect_backtrace_samplespeedup,signed2unsigned32(samplespeedup)); //Log a history of this!
 		writefifobuffer32(voice->effect_backtrace_modenv_pitchfactor,signed2unsigned32(modenv_pitchfactor)); //Log a history of this!
 	}
-
-	if ((play_counter>=0) && filterindex) //Are we a running channel that needs reading back?
+	else if (play_counter>=0) //Are we a running channel that needs reading back?
 	{
 		if (readfifobuffer32_backtrace(voice->effect_backtrace_samplespeedup,&tempbuffer,totaldelay,voice->isfinalchannel_chorus[filterindex])) //Try to read from history! Only apply the value when not the originating channel!
 		{
@@ -322,37 +321,40 @@ void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float sampler
 		}
 	}
 
-	if (likely(play_counter >= 0)) //Valid to lookup the position?
+	if (unlikely(play_counter < 0)) //Invalid to lookup the position?
 	{
-		modulationratiocents = 0; //Default: none!
-		if (chorus) //Chorus extension channel?
-		{
-			modulationratiocents = MIDIDEVICE_chorussinf(voice->chorussinpos[filterindex], chorus, 0); //Pitch bend default!
-			voice->chorussinpos[filterindex] += voice->chorussinposstep; //Step by one sample rendered!
-			if (voice->chorussinpos[filterindex] >= SINUSTABLE_PERCISION_FLT) voice->chorussinpos[filterindex] -= SINUSTABLE_PERCISION_FLT; //Wrap around when needed(once per second)!
-		}
-
-		modulationratiocents += (Modulation * voice->modenv_pitchfactor); //Apply pitch bend as well!
-		//Apply pitch bend to the current factor too!
-		modulationratiocents += samplespeedup; //Speedup according to pitch bend!
-
-		//Apply the new modulation ratio, if needed!
-		if (modulationratiocents != voice->modulationratiocents[filterindex]) //Different ratio?
-		{
-			voice->modulationratiocents[filterindex] = modulationratiocents; //Update the last ratio!
-			voice->modulationratiosamples[filterindex] = cents2samplesfactord((DOUBLE)modulationratiocents); //Calculate the pitch bend and modulation ratio to apply!
-		}
-
-		samplepos = voice->monotonecounter[filterindex]; //Monotone counter!
-		voice->monotonecounter_diff[filterindex] += (voice->modulationratiosamples[filterindex]); //Apply the pitch bend and other modulation data to the sample to retrieve!
-		samplesskipped = (int_64)voice->monotonecounter_diff[filterindex]; //Load the samples skipped!
-		voice->monotonecounter_diff[filterindex] -= (float)samplesskipped; //Remainder!
-		voice->monotonecounter[filterindex] += samplesskipped; //Skipped this amount of samples ahead!
+	#ifndef DISABLE_REVERB
+		goto finishedsample;
+	#else
+		return; //Abort: nothing to do!
+	#endif
 	}
-	else
+
+	//Valid to play?
+	modulationratiocents = 0; //Default: none!
+	if (chorus) //Chorus extension channel?
 	{
-		samplepos = 0; //Nothing to give on sample information!
+		modulationratiocents = MIDIDEVICE_chorussinf(voice->chorussinpos[filterindex], chorus, 0); //Pitch bend default!
+		voice->chorussinpos[filterindex] += voice->chorussinposstep; //Step by one sample rendered!
+		if (unlikely(voice->chorussinpos[filterindex] >= SINUSTABLE_PERCISION_FLT)) voice->chorussinpos[filterindex] -= SINUSTABLE_PERCISION_FLT; //Wrap around when needed(once per second)!
 	}
+
+	modulationratiocents += (Modulation * voice->modenv_pitchfactor); //Apply pitch bend as well!
+	//Apply pitch bend to the current factor too!
+	modulationratiocents += samplespeedup; //Speedup according to pitch bend!
+
+	//Apply the new modulation ratio, if needed!
+	if (modulationratiocents != voice->modulationratiocents[filterindex]) //Different ratio?
+	{
+		voice->modulationratiocents[filterindex] = modulationratiocents; //Update the last ratio!
+		voice->modulationratiosamples[filterindex] = cents2samplesfactord((DOUBLE)modulationratiocents); //Calculate the pitch bend and modulation ratio to apply!
+	}
+
+	samplepos = voice->monotonecounter[filterindex]; //Monotone counter!
+	voice->monotonecounter_diff[filterindex] += (voice->modulationratiosamples[filterindex]); //Apply the pitch bend and other modulation data to the sample to retrieve!
+	samplesskipped = (int_64)voice->monotonecounter_diff[filterindex]; //Load the samples skipped!
+	voice->monotonecounter_diff[filterindex] -= (float)samplesskipped; //Remainder!
+	voice->monotonecounter[filterindex] += samplesskipped; //Skipped this amount of samples ahead!
 
 	//Now, calculate the start offset to start looping!
 	samplepos += voice->startaddressoffset; //The start of the sample!
@@ -395,14 +397,14 @@ void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float sampler
 	}
 
 	//Next, apply finish!
-	loopflags = (samplepos >= voice->endaddressoffset) || (play_counter<0); //Expired or not started yet?
+	loopflags = (samplepos >= voice->endaddressoffset); //Expired or not started yet?
 	#ifndef DISABLE_REVERB
 	if (loopflags) goto finishedsample;
 	#else
 	if (loopflags) goto return;
 	#endif
 
-	if (getSFSample16(soundfont, (uint_32)samplepos, &readsample)) //Sample found?
+	if (likely(getSFSample16(soundfont, (uint_32)samplepos, &readsample))) //Sample found?
 	{
 		lchannel = (float)readsample; //Convert to floating point for our calculations!
 
