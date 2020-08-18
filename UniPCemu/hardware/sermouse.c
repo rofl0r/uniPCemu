@@ -67,7 +67,7 @@ void SERmouse_packet_handler(byte buttons, float *xmovemm, float *ymovemm, float
 			SERMouse.buttons_dirty = 0; //Not dirty anymore!
 			byte buttons = 0;
 			//Convert buttons (packet=1=left, 2=right, 4=middle) to output (1=right, 2=left)!
-			effectivebuttons = buttons; //Left/right/middle mouse button!
+			effectivebuttons = SERMouse.buttons; //Left/right/middle mouse button!
 			effectivebuttons &= 3; //Only left&right mouse buttons!
 			effectivebuttons = (effectivebuttons >> 1) | ((effectivebuttons & 1) << 1);  //Left mouse button and right mouse buttons are switched in the packet vs our mouse handler packet!
 			byte highbits;
@@ -89,7 +89,7 @@ void SERmouse_packet_handler(byte buttons, float *xmovemm, float *ymovemm, float
 			//Bits 0-1 are X6&X7. Bits 2-3 are Y6&Y7. They're signed values.
 			highbits = ((xmove >> 6) & 0x3); //X6&X7 to bits 0-1!
 			highbits |= ((ymove >> 4) & 0xC); //Y6&7 to bits 2-3!
-			writefifobuffer(SERMouse.buffer, 0x40 | (buttons << 4) | highbits); //Give info and buttons!
+			writefifobuffer(SERMouse.buffer, 0x40 | (effectivebuttons << 4) | highbits); //Give info and buttons!
 			writefifobuffer(SERMouse.buffer, (xmove&0x3F)); //X movement!
 			writefifobuffer(SERMouse.buffer, (ymove&0x3F)); //Y movement!
 		}
