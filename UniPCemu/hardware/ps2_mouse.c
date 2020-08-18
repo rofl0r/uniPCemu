@@ -36,6 +36,15 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 
 extern Controller8042_t Controller8042; //The 8042 controller!
 
+typedef struct MOUSE_PACKET
+{
+	sbyte xmove;
+	sbyte ymove;
+	byte buttons; //1=Left, 2=Right, 4=Middle bitmask.
+	sbyte scroll; //scroll up(MAX -8)/down(MAX +7); Used during 4-byte packets only! After setsamplerate 200,200,80 and request ID 4.
+	struct MOUSE_PACKET* next; //Next packet!
+} MOUSE_PACKET;
+
 struct
 {
 	union //All mouse data!
@@ -62,15 +71,22 @@ struct
 			byte scaling21; //1:1=0 or 2:1=1
 			byte Resend; //Use last read once?
 			byte buttonstatus; //Button status for status bytes!
+			byte buttonstatus_dirty; //Buttons dirty?
 			byte disabled; //Is the mouse input disabled atm?
 			byte pollRemote; //Set when requested to poll a remote packet!
 		};
 		byte data[15]; //All mouse data!
 	};
+
 	FIFOBUFFER *buffer; //FIFO buffer for commands etc.
 
 	MOUSE_PACKET *packets; //Contains all packets!
 	MOUSE_PACKET *lastpacket; //Last send packet!
+
+	float xmove; //X movement recorded, in mm!
+	float ymove; //Y movement recorded, in mm!
+	float effectiveresolution; //Effective resolution, in mm!
+
 	byte supported; //PS/2 mouse supported on this system?
 	DOUBLE timeout; //Timeout for reset commands!
 	float activesamplerate; //Currently active samplerate!
@@ -117,6 +133,7 @@ OPTINLINE void flushPackets() //Flushes all mouse packets!
 		freez((void **)&Mouse.lastpacket,sizeof(MOUSE_PACKET),"Mouse_FlushPacket");
 	}
 	Mouse.buttonstatus = 0; //No buttons!
+	Mouse.buttonstatus_dirty = 0; //Not dirty!
 	
 }
 
@@ -131,42 +148,105 @@ OPTINLINE void resend_lastpacket() //Resends the last packet!
 	Mouse.packetindex = 0; //Reset packet index always!
 }
 
-OPTINLINE byte add_mouse_packet(MOUSE_PACKET *packet) //Add an allocated mouse packet!
+OPTINLINE void update_mouseresolution() //Resolution specified for the mouse!
 {
-	if (__HW_DISABLED) return 1; //Abort!
-	if (likely(Mouse.buttonstatus == packet->buttons)) //Same button status?
+	if (__HW_DISABLED) return; //Abort!
+	switch (Mouse.resolution) //What resolution?
 	{
-		if (!packet->xmove && !packet->ymove) //Nothing happened?
+	case 0x00: case 0x01: case 0x02: case 0x03:
+		Mouse.effectiveresolution = 1.0f/((float)(1 << Mouse.resolution)); //1/2/4/8 count/mm!
+		break;
+	default: //Unknown?
+		Mouse.effectiveresolution = 1.0f; //Unchanged!
+		break;
+	}
+}
+
+byte mouse_movepending()
+{
+	return ((int_32)(Mouse.xmove/Mouse.effectiveresolution)) || ((int_32)(Mouse.ymove/Mouse.effectiveresolution)) || (Mouse.buttonstatus_dirty); //Movement or buttons changing registered?
+}
+
+OPTINLINE byte add_mouse_packet(byte buttons, float* xmovemm, float* ymovemm, float* xmovemickeys, float* ymovemickeys) //Add an allocated mouse packet!
+{
+	MOUSE_PACKET *packet, *currentpacket;
+	float resolution;
+	int_32 xmove, ymove;
+	byte movementpending;
+	if (__HW_DISABLED) return 1; //Abort!
+	movementpending = 0; //Default: not pending!
+	if (likely(Mouse.buttonstatus == buttons)) //Same button status?
+	{
+		if (!*xmovemm && !*ymovemm) //Nothing happened?
 		{
-			freez((void **)&packet, sizeof(MOUSE_PACKET), "Mouse_EmptyPacket"); //Discard the packet!
+			if (mouse_movepending()) //Require mouse movement checks?
+			{
+				movementpending = 1; //Pendign mouse movement handling!
+				goto handleMousePackets; //Tick any pending mouse packets!
+			}
 			return 0; //Discard the packet!
 		}
 	}
-	Mouse.buttonstatus = packet->buttons; //Save the current button status!
-	MOUSE_PACKET *currentpacket = Mouse.packets; //Current packet!
-	if (unlikely(Mouse.packets)) //Already have one?
+	//We're a valid packet to receive!
+	if (Mouse.packets) //A packet is already queued? We can't send another one!
 	{
-		while (likely(currentpacket->next)) //Gotten next?
-		{
-			currentpacket = (MOUSE_PACKET *)currentpacket->next; //Next packet!
-		}
-		currentpacket->next = packet; //Set next packet to the new packet!
+		return 0; //Discard the packet until we can receive it!
 	}
-	else
+	Mouse.buttonstatus_dirty |= (Mouse.buttonstatus != buttons); //Buttons dirty?
+	Mouse.buttonstatus = buttons; //Save the current button status!
+	Mouse.xmove += *xmovemm; //X movement!
+	Mouse.ymove += *ymovemm; //Y movement!
+	*xmovemm = 0.0f; //Clear: we're processed!
+	*ymovemm = 0.0f; //Clear: we're processed!
+
+handleMousePackets:
+	if (Mouse.packets) //A packet is already queued? We can't send another one!
 	{
-		Mouse.packets = packet; //Set as current packet!
+		return 0; //Discard the packet until we can receive it!
+	}
+	if (mouse_movepending()) //Movement pending?
+	{
+		xmove = (int_32)(*xmovemm / Mouse.effectiveresolution); //How much movement?
+		ymove = (int_32)(*ymovemm / Mouse.effectiveresolution); //How much movement?
+
+		packet = (MOUSE_PACKET*)zalloc(sizeof(MOUSE_PACKET), "Mouse_Packet", NULL); //Allocate a mouse packet!
+		if (packet) //Packet successfully allocated?
+		{
+			Mouse.buttonstatus_dirty = 0; //Not dirty anymore!
+			*xmovemm -= (xmove * Mouse.effectiveresolution); //Substract handled movement!
+			*ymovemm -= (ymove * Mouse.effectiveresolution); //Substract handled movement!
+
+			//Now, add the packet to the queue!
+			currentpacket = Mouse.packets; //Current packet!
+			if (unlikely(Mouse.packets)) //Already have one?
+			{
+				while (likely(currentpacket->next)) //Gotten next?
+				{
+					currentpacket = (MOUSE_PACKET*)currentpacket->next; //Next packet!
+				}
+				currentpacket->next = packet; //Set next packet to the new packet!
+			}
+			else
+			{
+				Mouse.packets = packet; //Set as current packet!
+			}
+		}
+		else //Couldn't parse?
+		{
+			return 1; //Packet parsed, but not handled!
+		}
 	}
 	return 1; //Packet ready!
 }
 
 //Handle a mouse packet!
-byte PS2mouse_packet_handler(MOUSE_PACKET *packet) //Packet muse be allocated using zalloc!
+byte PS2mouse_packet_handler(byte buttons, float* xmovemm, float* ymovemm, float* xmovemickeys, float* ymovemickeys) //Packet muse be allocated using zalloc!
 {
 	if (__HW_DISABLED) return 0; //Abort!
 	if (likely(Mouse.supported==0)) return 0; //PS/2 mouse not supported!
 	if (!PS2_SECONDPORTDISABLED(Controller8042)) //We're enabled?
 	{
-		if (add_mouse_packet(packet)) //Add a mouse packet, and according to timing!
+		if (add_mouse_packet(buttons, xmovemm, ymovemm, xmovemickeys, ymovemickeys)) //Add a mouse packet, and according to timing!
 		{} //Do nothing when added!
 	}
 	return 1; //We're supported!
@@ -216,6 +296,7 @@ OPTINLINE void resetPS2Mouse(byte cause)
 	memset(&Mouse.data,0,sizeof(Mouse.data)); //Reset the mouse!
 	//No data reporting!
 	Mouse.resolution = 0x02; //4 pixel/mm resolution!
+	update_mouseresolution(); //Update it!
 }
 
 void updatePS2Mouse(DOUBLE timepassed)
@@ -270,6 +351,7 @@ OPTINLINE void initPS2Mouse()
 	memset(&Mouse.data,0,sizeof(Mouse.data)); //Reset the mouse!
 	//No data reporting!
 	Mouse.resolution = 0x02; //4 pixel/mm resolution!
+	update_mouseresolution(); //Update it!
 	
 	Mouse.command = 0xFF; //Reset!
 	Mouse.timeout = (DOUBLE)0; //Start timing for our message!
@@ -317,6 +399,7 @@ OPTINLINE void loadMouseDefaults() //Load the Mouse Defaults!
 	Mouse.samplerate = 100; //100 packets/second!
 	update_mouseTimer(); //Update the timer!
 	Mouse.resolution = 2; //4 Pixels/mm!
+	update_mouseresolution(); //update it!
 	Mouse.scaling21 = 0; //Set the default scaling to 1:1 scaling!
 }
 
@@ -513,6 +596,7 @@ OPTINLINE void datawritten_mouse(byte data) //Data has been written to the mouse
 			break;
 		case 0xE8: //Set resolution?
 			Mouse.resolution = (data&0x03); //Set the resolution!
+			update_mouseresolution(); //Update it!
 			give_mouse_output(0xFA); //Acnowledge!
 			input_lastwrite_mouse(); //Give byte to the user!			
 			Mouse.has_command = 0; //We don't have a command anymore!
@@ -557,18 +641,6 @@ void handle_mousewrite(byte data)
 	}
 }
 
-OPTINLINE int apply_resolution(int movement) //Apply movement from joystick -255 - +255!
-{
-	if (__HW_DISABLED) return 0; //Abort!
-	switch (Mouse.resolution) //What resolution?
-	{
-		case 0x00: case 0x01: case 0x02: case 0x03:
-			return movement<<Mouse.resolution; //1/2/4/8 count/mm!
-		default: //Unknown?
-			return movement; //Unchanged!
-	}
-}
-
 OPTINLINE int apply_scaling(int movement) //Apply scaling on a mouse packet x/ymove!
 {
 	if (__HW_DISABLED) return 0; //Abort!
@@ -595,7 +667,7 @@ OPTINLINE int apply_scaling(int movement) //Apply scaling on a mouse packet x/ym
 OPTINLINE int applypacketmovement(int movement)
 {
 	if (__HW_DISABLED) return 0; //Abort!
-	return apply_scaling(apply_resolution(movement)); //Apply resolution (in mm), then scaling!
+	return apply_scaling(movement); //Apply resolution (in mm), then scaling!
 }
 
 OPTINLINE byte processMousePacket(MOUSE_PACKET *packet, byte index)
@@ -726,6 +798,7 @@ void PS2_initMouse(byte enabled) //Initialise the mouse to reset mode?
 
 		update_mouseTimer(); //(Re)set mouse timer!
 		Mouse.disabled = 1; //Default: disabled!
+		update_mouseresolution(); //update the resolution!
 	}
 }
 

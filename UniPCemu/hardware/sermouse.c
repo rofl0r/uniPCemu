@@ -42,24 +42,34 @@ byte useSERMouse() //Serial mouse enabled?
 	return SERMouse.supported; //Are we supported?
 }
 
-void SERmouse_packet_handler(MOUSE_PACKET *packet)
+void SERmouse_packet_handler(byte buttons, float *xmovemm, float *ymovemm, float *xmovemickeys, float *ymovemickeys)
 {
-	if (unlikely(((((packet->xmovemickey) || (packet->ymovemickey)) && SERMouse.movement) || (SERMouse.buttons != packet->buttons)) && SERMouse.powered)) //Something to do and powered on?
+	int_32 curxmove;
+	int_32 curymove;
+	curxmove = (int_32)*xmovemickeys; //x movement, in whole mickeys!
+	curymove = (int_32)*ymovemickeys; //y movement, in whole mickeys!
+	if (unlikely(((((curxmove) || (curymove)) && SERMouse.movement) || (SERMouse.buttons != buttons)) && SERMouse.powered)) //Something to do and powered on?
 	{
 		//Process the packet into the buffer, if possible!
 		if (fifobuffer_freesize(SERMouse.buffer) > 2) //Gotten enough space to process?
 		{
 			byte buttons = 0;
-			SERMouse.buttons = packet->buttons; //Save last button status!
+			SERMouse.buttons = buttons; //Save last button status!
 			//Convert buttons (packet=1=left, 2=right, 4=middle) to output (1=right, 2=left)!
-			buttons = packet->buttons; //Left/right/middle mouse button!
+			buttons = buttons; //Left/right/middle mouse button!
 			buttons &= 3; //Only left&right mouse buttons!
 			buttons = (buttons >> 1) | ((buttons & 1) << 1);  //Left mouse button and right mouse buttons are switched in the packet vs our mouse handler packet!
 			byte highbits;
 			byte xmove, ymove;
 			//Translate our movement to valid values if needed!
-			xmove = signed2unsigned8(MAX(MIN(packet->xmovemickey,0x7F),-0x80)); //Limit!
-			ymove = signed2unsigned8(MAX(MIN(packet->ymovemickey,0x7F),-0x80)); //Limit!
+			curxmove = MAX(MIN(curxmove,0x7F),-0x80); //Limit consumption!
+			curymove = MAX(MIN(curymove,0x7F),-0x80); //Limit consumption!
+
+			*xmovemickeys -= (float)curxmove; //Handle movement!
+			*ymovemickeys -= (float)curymove; //Handle movement!
+
+			xmove = signed2unsigned8(curxmove); //Apply consumption!
+			ymove = signed2unsigned8(curymove); //Apply consumption!
 
 			if (SERMouse.movement==0) //Not gotten movement masked?
 			{
@@ -73,9 +83,11 @@ void SERmouse_packet_handler(MOUSE_PACKET *packet)
 			writefifobuffer(SERMouse.buffer, (ymove&0x3F)); //Y movement!
 		}
 	}
-	MOUSE_PACKET *temp;
-	temp = packet; //Load packet to delete!
-	freez((void **)&temp, sizeof(*temp), "SERMouse_FlushPacket");
+}
+
+void updateSERmouse(float timepassed)
+{
+	//TODO!
 }
 
 byte SERmouse_getStatus()

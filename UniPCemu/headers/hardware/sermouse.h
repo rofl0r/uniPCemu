@@ -25,8 +25,10 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/hardware/ps2_mouse.h" //PS/2 mouse packet support!
 
 byte useSERMouse(); //Serial mouse enabled?
-void SERmouse_packet_handler(MOUSE_PACKET *packet);
+void SERmouse_packet_handler(byte buttons, float* xmovemm, float* ymovemm, float* xmovemickeys, float* ymovemickeys);
 void initSERMouse(byte enabled); //Inititialise serial mouse!
 void doneSERMouse(); //Finish our serial mouse hardware emulation!
+
+void updateSERmouse(float timepassed);
 
 #endif

@@ -30,19 +30,8 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #define MOUSE_DEFAULTTIMEOUT 100000.0
 #endif
 
-typedef struct MOUSE_PACKET
-{
-sbyte xmove;
-sbyte ymove;
-sbyte xmovemickey;
-sbyte ymovemickey;
-byte buttons; //1=Left, 2=Right, 4=Middle bitmask.
-sbyte scroll; //scroll up(MAX -8)/down(MAX +7); Used during 4-byte packets only! After setsamplerate 200,200,80 and request ID 4.
-struct MOUSE_PACKET *next; //Next packet!
-} MOUSE_PACKET;
-
 void PS2_initMouse(byte enabled); //Initialise the mouse to reset mode?
-byte PS2mouse_packet_handler(MOUSE_PACKET *packet); //A packet has arrived (on mouse!)
+byte PS2mouse_packet_handler(byte buttons, float* xmovemm, float* ymovemm, float* xmovemickeys, float* ymovemickeys); //A packet has arrived (on mouse!)
 int useMouseTimer(); //Use the mouse timer?
 float HWmouse_getsamplerate(); //Which repeat rate to use after the repeat delay! (packets/second)
 
