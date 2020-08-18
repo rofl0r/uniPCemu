@@ -65,7 +65,7 @@ void SERmouse_packet_handler(byte buttons, float *xmovemm, float *ymovemm, float
 		if (fifobuffer_freesize(SERMouse.buffer) > 2) //Gotten enough space to process?
 		{
 			SERMouse.buttons_dirty = 0; //Not dirty anymore!
-			byte buttons = 0;
+			byte effectivebuttons = 0;
 			//Convert buttons (packet=1=left, 2=right, 4=middle) to output (1=right, 2=left)!
 			effectivebuttons = SERMouse.buttons; //Left/right/middle mouse button!
 			effectivebuttons &= 3; //Only left&right mouse buttons!
