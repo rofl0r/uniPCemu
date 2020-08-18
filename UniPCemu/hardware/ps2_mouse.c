@@ -173,7 +173,7 @@ OPTINLINE byte add_mouse_packet(byte buttons, float* xmovemm, float* ymovemm, fl
 	int_32 xmove, ymove;
 	//byte movementpending;
 	if (__HW_DISABLED) return 1; //Abort!
-	movementpending = 0; //Default: not pending!
+	//movementpending = 0; //Default: not pending!
 	if (likely(Mouse.buttonstatus == buttons)) //Same button status?
 	{
 		if (!*xmovemm && !*ymovemm) //Nothing happened?
