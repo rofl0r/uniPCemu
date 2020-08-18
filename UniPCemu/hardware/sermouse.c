@@ -35,6 +35,9 @@ struct
 	byte powered; //Are we powered on?
 	byte port;
 	byte previousline;
+	float xmove;
+	float ymove;
+	byte buttons_dirty;
 } SERMouse;
 
 byte useSERMouse() //Serial mouse enabled?
@@ -46,27 +49,35 @@ void SERmouse_packet_handler(byte buttons, float *xmovemm, float *ymovemm, float
 {
 	int_32 curxmove;
 	int_32 curymove;
-	curxmove = (int_32)*xmovemickeys; //x movement, in whole mickeys!
-	curymove = (int_32)*ymovemickeys; //y movement, in whole mickeys!
-	if (unlikely(((((curxmove) || (curymove)) && SERMouse.movement) || (SERMouse.buttons != buttons)) && SERMouse.powered)) //Something to do and powered on?
+	byte effectivebuttons;
+	SERMouse.xmove += *xmovemickeys; //X movement!
+	SERMouse.ymove += *ymovemickeys; //Y movement!
+	*xmovemickeys = 0.0f; //Clear: we're processed!
+	*ymovemickeys = 0.0f; //Clear: we're processed!
+	SERMouse.buttons_dirty |= (buttons != SERMouse.buttons); //Buttons dirtied?
+	SERMouse.buttons = buttons; //Save last button status for dirty detection!
+
+	curxmove = (int_32)SERMouse.xmove; //x movement, in whole mickeys!
+	curymove = (int_32)SERMouse.ymove; //y movement, in whole mickeys!
+	if (unlikely(((((curxmove) || (curymove)) && SERMouse.movement) || (SERMouse.buttons_dirty)) && SERMouse.powered)) //Something to do and powered on?
 	{
 		//Process the packet into the buffer, if possible!
 		if (fifobuffer_freesize(SERMouse.buffer) > 2) //Gotten enough space to process?
 		{
+			SERMouse.buttons_dirty = 0; //Not dirty anymore!
 			byte buttons = 0;
-			SERMouse.buttons = buttons; //Save last button status!
 			//Convert buttons (packet=1=left, 2=right, 4=middle) to output (1=right, 2=left)!
-			buttons = buttons; //Left/right/middle mouse button!
-			buttons &= 3; //Only left&right mouse buttons!
-			buttons = (buttons >> 1) | ((buttons & 1) << 1);  //Left mouse button and right mouse buttons are switched in the packet vs our mouse handler packet!
+			effectivebuttons = buttons; //Left/right/middle mouse button!
+			effectivebuttons &= 3; //Only left&right mouse buttons!
+			effectivebuttons = (effectivebuttons >> 1) | ((effectivebuttons & 1) << 1);  //Left mouse button and right mouse buttons are switched in the packet vs our mouse handler packet!
 			byte highbits;
 			byte xmove, ymove;
 			//Translate our movement to valid values if needed!
 			curxmove = MAX(MIN(curxmove,0x7F),-0x80); //Limit consumption!
 			curymove = MAX(MIN(curymove,0x7F),-0x80); //Limit consumption!
 
-			*xmovemickeys -= (float)curxmove; //Handle movement!
-			*ymovemickeys -= (float)curymove; //Handle movement!
+			SERMouse.xmove -= (float)curxmove; //Handle movement!
+			SERMouse.ymove -= (float)curymove; //Handle movement!
 
 			xmove = signed2unsigned8(curxmove); //Apply consumption!
 			ymove = signed2unsigned8(curymove); //Apply consumption!
@@ -83,11 +94,6 @@ void SERmouse_packet_handler(byte buttons, float *xmovemm, float *ymovemm, float
 			writefifobuffer(SERMouse.buffer, (ymove&0x3F)); //Y movement!
 		}
 	}
-}
-
-void updateSERmouse(float timepassed)
-{
-	//TODO!
 }
 
 byte SERmouse_getStatus()
