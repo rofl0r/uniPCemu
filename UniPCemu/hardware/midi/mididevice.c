@@ -811,7 +811,7 @@ float getSFmodulator(byte isInstrumentMod, MIDIDEVICE_VOICE *voice, word destina
 	int_32 index; //The index to check!
 	int_32 originMod;
 	byte isGlobal;
-	byte originGlobal;
+	//byte originGlobal;
 	byte lookupResult;
 	int_32 foundindex;
 	sfModList mod;
@@ -827,7 +827,7 @@ float getSFmodulator(byte isInstrumentMod, MIDIDEVICE_VOICE *voice, word destina
 	processNextIndex:
 		index = 0; //Initialize index!
 	processNewOriginMod:
-		originGlobal = 2; //Originating global: none set yet!
+		//originGlobal = 2; //Originating global: none set yet!
 		originMod = INT_MIN; //No originating modulator yet!
 
 		//Start of the search for the latest modulator!
@@ -1592,7 +1592,7 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 
 void MIDIDEVICE_setupchannelfilters()
 {
-	sbyte channel, subloop, endrange;
+	sbyte channel, subloop , endrange;
 	//MIDI_channels[channel].monophonicchannelcount To take into account?
 	//MIDI_channels[channel].mode 
 	for (channel = 0; channel < 0x10; ++channel) //Initialize all channels to not respond to anything!
@@ -1637,7 +1637,7 @@ void MIDIDEVICE_setupchannelfilters()
 					endrange = 0xF; //Respond till the final channel!
 				}
 
-				for (subloop = MIDI_channels[channel].respondstart; subloop < MIDI_channels[channel].respondend; ++subloop) //Setup all effected channels!
+				for (subloop = MIDI_channels[channel].respondstart; subloop <= endrange; ++subloop) //Setup all effected channels!
 				{
 					//MIDI_channels[channel].controlchannel = -1; //Don't respond to normal control messages anymore?
 					MIDI_channels[channel].respondstart = subloop; //Respond to the ...
