@@ -206,15 +206,15 @@ handleMousePackets:
 	}
 	if (mouse_movepending()) //Movement pending?
 	{
-		xmove = (int_32)(*xmovemm / Mouse.effectiveresolution); //How much movement?
-		ymove = (int_32)(*ymovemm / Mouse.effectiveresolution); //How much movement?
+		xmove = (int_32)(Mouse.xmove / Mouse.effectiveresolution); //How much movement?
+		ymove = (int_32)(Mouse.ymove / Mouse.effectiveresolution); //How much movement?
 
 		packet = (MOUSE_PACKET*)zalloc(sizeof(MOUSE_PACKET), "Mouse_Packet", NULL); //Allocate a mouse packet!
 		if (packet) //Packet successfully allocated?
 		{
 			Mouse.buttonstatus_dirty = 0; //Not dirty anymore!
-			*xmovemm -= (xmove * Mouse.effectiveresolution); //Substract handled movement!
-			*ymovemm -= (ymove * Mouse.effectiveresolution); //Substract handled movement!
+			Mouse.xmove -= (xmove * Mouse.effectiveresolution); //Substract handled movement!
+			Mouse.ymove -= (ymove * Mouse.effectiveresolution); //Substract handled movement!
 
 			//Now, add the packet to the queue!
 			currentpacket = Mouse.packets; //Current packet!
