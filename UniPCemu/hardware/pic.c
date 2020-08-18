@@ -200,7 +200,7 @@ byte isSlave(byte PIC)
 
 byte startSlaveMode(byte PIC, byte IR) //For master only! Set slave mode masterIR processing on INTA?
 {
-	return (i8259.icw[PIC][2]&(1<<IR)) && (!isSlave(PIC)); //Process slaves and set IR on the slave UD instead of 0?
+	return (i8259.icw[PIC][2]&(1<<IR)) && (!isSlave(PIC)) && ((i8259.icw[PIC][0]&2)==0); //Process slaves and set IR on the slave UD instead of 0 while in cascade mode?
 }
 
 byte respondMasterSlave(byte PIC, byte masterIR) //Process this PIC as a slave for a set slave IR?
