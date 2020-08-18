@@ -546,7 +546,7 @@ void handle_mousewrite(byte data)
 	{
 		if (Mouse.mode == 1) //Wrap mode?
 		{
-			give_mouse_output(Mouse.command); //Wrap mode!
+			give_mouse_output(data); //Wrap mode!
 			return; //Don't process as a command!
 		}
 		datawritten_mouse(data); //Data has been written!
@@ -609,10 +609,10 @@ OPTINLINE byte processMousePacket(MOUSE_PACKET *packet, byte index)
 	int packetmovementy = applypacketmovement(packet->ymove); //Apply y movement!
 	packetmovementy = -packetmovementy; //Y is reversed for some unknown reason!
 	
-	xoverflow = ((packetmovementx < -0x100) || (packetmovementx > 0x1FF)); //X overflow?
-	yoverflow = ((packetmovementy < -0x100) || (packetmovementy > 0x1FF)); //Y overflow?
-	xmove = signed2unsigned16(MAX(MIN(packetmovementx, 0x1FF), -0x100)); //Limit!
-	ymove = signed2unsigned16(MAX(MIN(packetmovementy, 0x1FF), -0x100)); //Limit!
+	xoverflow = ((packetmovementx < -0x100) || (packetmovementx > 0xFF)); //X overflow?
+	yoverflow = ((packetmovementy < -0x100) || (packetmovementy > 0xFF)); //Y overflow?
+	xmove = signed2unsigned16(MAX(MIN(packetmovementx, 0xFF), -0x100)); //Limit!
+	ymove = signed2unsigned16(MAX(MIN(packetmovementy, 0xFF), -0x100)); //Limit!
 
 	switch (index) //What index?
 	{
