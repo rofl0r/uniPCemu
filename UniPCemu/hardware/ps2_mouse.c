@@ -170,9 +170,8 @@ byte mouse_movepending()
 OPTINLINE byte add_mouse_packet(byte buttons, float* xmovemm, float* ymovemm, float* xmovemickeys, float* ymovemickeys) //Add an allocated mouse packet!
 {
 	MOUSE_PACKET *packet, *currentpacket;
-	float resolution;
 	int_32 xmove, ymove;
-	byte movementpending;
+	//byte movementpending;
 	if (__HW_DISABLED) return 1; //Abort!
 	movementpending = 0; //Default: not pending!
 	if (likely(Mouse.buttonstatus == buttons)) //Same button status?
@@ -181,7 +180,7 @@ OPTINLINE byte add_mouse_packet(byte buttons, float* xmovemm, float* ymovemm, fl
 		{
 			if (mouse_movepending()) //Require mouse movement checks?
 			{
-				movementpending = 1; //Pendign mouse movement handling!
+				//movementpending = 1; //Pendign mouse movement handling!
 				goto handleMousePackets; //Tick any pending mouse packets!
 			}
 			return 0; //Discard the packet!
