@@ -150,12 +150,12 @@ extern GPU_TEXTSURFACE *frameratesurface; //Our framerate surface!
 
 OPTINLINE void printMIDIChannelStatus()
 {
-	int i,voice,j;
+	int i,j /*,voice*/;
 	uint_32 color; //The color to use!
 	GPU_text_locksurface(frameratesurface); //Lock the surface!
-	for (i = 0; i < __MIDI_NUMVOICES; i++) //Process all voices!
+	for (i = 0; i < MIDI_TOTALVOICES; i++) //Process all voices!
 	{
-		voice = (i * MIDI_NOTEVOICES); //The main voice handler!
+		//voice = (i / MIDI_NOTEVOICES); //The main voice handler!
 		GPU_textgotoxy(frameratesurface, 0, i + 5); //Row 5+!
 		if (activevoices[i].VolumeEnvelope.active && activevoices[i].active) //Fully active voice?
 		{
