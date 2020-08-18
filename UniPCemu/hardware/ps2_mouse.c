@@ -187,7 +187,6 @@ byte add_mouse_packet(byte buttons, float* xmovemm, float* ymovemm, float* xmove
 	*xmovemm = 0.0f; //Clear: we're processed!
 	*ymovemm = 0.0f; //Clear: we're processed!
 
-handleMousePackets:
 	if (Mouse.packets) //A packet is already queued? We can't send another one!
 	{
 		return 0; //Discard the packet until we can receive it!
