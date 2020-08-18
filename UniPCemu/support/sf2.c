@@ -1069,8 +1069,10 @@ byte lookupSFPresetMod(RIFFHEADER *sf, uint_32 preset, word PBag, SFModulator sf
 	word currentindex;
 	byte gotoriginatingmod;
 	byte originatingfilter;
+	memset(&originatingmod, 0, sizeof(originatingmod)); //Init!
 	currentindex = 0; //First index to find!
 	found = 0; //Default: not found!
+	gotoriginatingmod = 0; //Default: not gotten yet!
 	if (getSFPreset(sf,preset,&currentpreset)) //Retrieve the header!
 	{
 		if (isValidPreset(&currentpreset)) //Valid preset?
@@ -1157,6 +1159,7 @@ byte lookupSFPresetGen(RIFFHEADER *sf, uint_32 preset, word PBag, SFGenerator sf
 	byte found;
 	found = 0; //Default: not found!
 	uint_32 firstgen, keyrange, temp; //Other generators and temporary calculation!
+	keyrange = 0; //Not specified yet!
 	if (getSFPreset(sf,preset,&currentpreset)) //Retrieve the header!
 	{
 		if (isValidPreset(&currentpreset)) //Valid preset?
@@ -1256,6 +1259,8 @@ byte lookupSFInstrumentMod(RIFFHEADER *sf, word instrument, word IBag, SFModulat
 	found = 0; //Default: not found!
 	byte originatingfilter;
 	byte gotoriginatingmod;
+	gotoriginatingmod = 0; //Not gotten the originating mod yet!
+	memset(&originatingmod, 0, sizeof(originatingmod)); //Init originating mod!
 
 	//First, apply the default modulators!
 	for (CurrentMod = 0; CurrentMod < NUMITEMS(defaultInstrumentModulators); ++CurrentMod) //Process the defaults first!
