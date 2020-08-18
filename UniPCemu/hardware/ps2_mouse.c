@@ -38,8 +38,8 @@ extern Controller8042_t Controller8042; //The 8042 controller!
 
 typedef struct MOUSE_PACKET
 {
-	sbyte xmove;
-	sbyte ymove;
+	int_32 xmove;
+	int_32 ymove;
 	byte buttons; //1=Left, 2=Right, 4=Middle bitmask.
 	sbyte scroll; //scroll up(MAX -8)/down(MAX +7); Used during 4-byte packets only! After setsamplerate 200,200,80 and request ID 4.
 	struct MOUSE_PACKET* next; //Next packet!
@@ -167,26 +167,15 @@ byte mouse_movepending()
 	return ((int_32)(Mouse.xmove/Mouse.effectiveresolution)) || ((int_32)(Mouse.ymove/Mouse.effectiveresolution)) || (Mouse.buttonstatus_dirty); //Movement or buttons changing registered?
 }
 
-OPTINLINE byte add_mouse_packet(byte buttons, float* xmovemm, float* ymovemm, float* xmovemickeys, float* ymovemickeys) //Add an allocated mouse packet!
+byte add_mouse_packet(byte buttons, float* xmovemm, float* ymovemm, float* xmovemickeys, float* ymovemickeys) //Add an allocated mouse packet!
 {
 	MOUSE_PACKET *packet, *currentpacket;
 	int_32 xmove, ymove;
 	//byte movementpending;
 	if (__HW_DISABLED) return 1; //Abort!
 	//movementpending = 0; //Default: not pending!
-	if (likely(Mouse.buttonstatus == buttons)) //Same button status?
-	{
-		if (!*xmovemm && !*ymovemm) //Nothing happened?
-		{
-			if (mouse_movepending()) //Require mouse movement checks?
-			{
-				//movementpending = 1; //Pendign mouse movement handling!
-				goto handleMousePackets; //Tick any pending mouse packets!
-			}
-			return 0; //Discard the packet!
-		}
-	}
-	//We're a valid packet to receive!
+
+	//We're a valid packet to receive?
 	if (Mouse.packets) //A packet is already queued? We can't send another one!
 	{
 		return 0; //Discard the packet until we can receive it!
@@ -207,6 +196,8 @@ handleMousePackets:
 	{
 		xmove = (int_32)(Mouse.xmove / Mouse.effectiveresolution); //How much movement?
 		ymove = (int_32)(Mouse.ymove / Mouse.effectiveresolution); //How much movement?
+		xmove = LIMITRANGE(xmove, -0x100, 0xFF); //X movement limited to container!
+		ymove = LIMITRANGE(ymove, -0x100, 0xFF); //Y movement limited to container!
 
 		packet = (MOUSE_PACKET*)zalloc(sizeof(MOUSE_PACKET), "Mouse_Packet", NULL); //Allocate a mouse packet!
 		if (packet) //Packet successfully allocated?
@@ -214,6 +205,12 @@ handleMousePackets:
 			Mouse.buttonstatus_dirty = 0; //Not dirty anymore!
 			Mouse.xmove -= (xmove * Mouse.effectiveresolution); //Substract handled movement!
 			Mouse.ymove -= (ymove * Mouse.effectiveresolution); //Substract handled movement!
+
+			//Apply the status to the packet!
+			packet->buttons = Mouse.buttonstatus; //The buttons!
+			packet->xmove = xmove; //X movement!
+			packet->ymove = ymove; //Y movement!
+			packet->scroll = 0; //Scrolling not supported!
 
 			//Now, add the packet to the queue!
 			currentpacket = Mouse.packets; //Current packet!
