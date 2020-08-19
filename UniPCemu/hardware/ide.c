@@ -5001,6 +5001,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		}
 		if ((((uint_64)ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount)<<9)>sizeof(ATA[channel].Drive[ATA_activeDrive(channel)].data)) //Not enough space to store the sectors? We're executing an invalid command result(invalid parameter)!
 		{
+			ATA[channel].Drive[ATA_activeDrive(channel)].multiplesectors = 0; //Disable multiple mode, according to ATA-1!
 			goto invalidcommand;
 		}
 		ATA[channel].Drive[ATA_activeDrive(channel)].multiplesectors = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount; //Sector count register is used!
@@ -5008,6 +5009,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[59] = (ATA[channel].Drive[ATA_activeDrive(channel)].multiplesectors?0x100:0)|(ATA[channel].Drive[ATA_activeDrive(channel)].multiplesectors); //Current multiple sectors setting! Bit 8 is set when updated!
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //Reset command status!
 		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER = 0; //Reset data register!
+		ATA_IRQ(channel, ATA_activeDrive(channel), ATA_FINISHREADYTIMING(1.0), 0); //Raise IRQ!
 		break;
 	case 0xDC: //BIOS - post-boot?
 	case 0xDD: //BIOS - pre-boot?
