@@ -4591,7 +4591,7 @@ void ATA_reset(byte channel, byte slave)
 
 	if (is_mounted(ATA_Drives[channel][slave]) && ATA_Drives[channel][slave] && (ATA_Drives[channel][slave] < CDROM0)) //Mounted as non-CD-ROM?
 	{
-		ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel, slave, 1); //Seek complete by default!
+		ATA[channel].Drive[slave].STATUSREGISTER = 0x00; //Clear the status register to become the default again when reaching completion of the reset!
 	}
 }
 
