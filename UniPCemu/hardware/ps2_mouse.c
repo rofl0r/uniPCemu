@@ -582,7 +582,21 @@ OPTINLINE void datawritten_mouse(byte data) //Data has been written to the mouse
 	switch (Mouse.command) //What command?
 	{
 		case 0xF3: //Set sample rate?
-			Mouse.samplerate = data; //Set the sample rate (in samples/second)!
+			switch (data) //What rate?
+			{
+			case 10:
+			case 20:
+			case 40:
+			case 60:
+			case 80:
+			case 100:
+			case 200: //Valid?
+				Mouse.samplerate = data; //Set the sample rate (in samples/second)!
+				break;
+			default: //incorrect?
+				give_mouse_output(0xFE); //Invalid!
+				break;
+			}
 			update_mouseTimer(); //Update the timer!
 			give_mouse_output(0xFA); //Acnowledge!
 			input_lastwrite_mouse(); //Give byte to the user!
