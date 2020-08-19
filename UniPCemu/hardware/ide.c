@@ -2015,7 +2015,6 @@ OPTINLINE byte ATA_readsector(byte channel, byte command) //Read the current sec
 			ATA_writeLBACHS(channel); //Update the current sector!
 			ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //We're back in command mode!
 			EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 0); //We're not reading anymore!
-			ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel,ATA_activeDrive(channel),1); //Seek complete!
 			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount = 0; //How many sectors are left is updated!
 			return 0; //We're finished!
 		}
@@ -2078,7 +2077,6 @@ OPTINLINE byte ATA_readsector(byte channel, byte command) //Read the current sec
 			ATA_increasesector(channel); //Increase the current sector!
 		}
 
-		ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel,ATA_activeDrive(channel),1); //Seek complete!
 		ATA[channel].Drive[ATA_activeDrive(channel)].datapos = 0; //Initialise our data position!
 		ATA[channel].Drive[ATA_activeDrive(channel)].datablock = 0x200*multiple; //We're refreshing after this many bytes!
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 1; //Transferring data IN!
@@ -2157,7 +2155,6 @@ OPTINLINE byte ATA_writesector(byte channel, byte command)
 #endif
 			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount = (ATA[channel].Drive[ATA_activeDrive(channel)].datasize&0xFF); //How many sectors are left is updated!
 			EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 0); //We're doing nothing!
-			ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel,ATA_activeDrive(channel),1); //Seek complete!
 			return 1; //We're finished!
 		}
 		else //Busy transferring?
@@ -4591,6 +4588,11 @@ void ATA_reset(byte channel, byte slave)
 	*/
 		ATA[channel].Drive[slave].resetTriggersIRQ = 0; //No IRQ on completion!
 	//}
+
+	if (is_mounted(ATA_Drives[channel][slave]) && ATA_Drives[channel][slave] && (ATA_Drives[channel][slave] < CDROM0)) //Mounted as non-CD-ROM?
+	{
+		ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel, slave, 1); //Seek complete by default!
+	}
 }
 
 OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a command!
@@ -4685,7 +4687,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		}
 		else
 		{
-			ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel,ATA_activeDrive(channel),1); //We've not completed seeking!
+			ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel,ATA_activeDrive(channel),0); //We've not completed seeking!
 			ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER = 0; //Track 0 couldn't be found!
 			ATA_ERRORREGISTER_TRACK0NOTFOUNDW(channel,ATA_activeDrive(channel),1); //Track 0 couldn't be found!
 			ATA_STATUSREGISTER_ERRORW(channel,ATA_activeDrive(channel),1); //Set error bit!
@@ -4756,6 +4758,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		ATA[channel].Drive[ATA_activeDrive(channel)].datasize = ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount; //Load sector count!
 		if (!ATA[channel].Drive[ATA_activeDrive(channel)].datasize) ATA[channel].Drive[ATA_activeDrive(channel)].datasize = 0x100; //0 becomes 256!
 		ATA_readLBACHS(channel); //Read the LBA/CHS address!
+		ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel, ATA_activeDrive(channel), 1); //Seek complete!
 		if (ATA_readsector(channel,command)) //OK?
 		{
 			ATA_IRQ(channel, ATA_activeDrive(channel),ATA_FINISHREADYTIMING(200.0),1); //Give our requesting IRQ!
@@ -4843,6 +4846,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		ATA[channel].Drive[ATA_activeDrive(channel)].datablock = 0x200*multiple; //We're writing 512 bytes to our output at a time!
 		ATA[channel].Drive[ATA_activeDrive(channel)].command = command; //We're executing this command!
 		EMU_setDiskBusy(ATA_Drives[channel][ATA_activeDrive(channel)], 2); //We're writing!
+		ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel, ATA_activeDrive(channel), 1); //Seek complete!
 		break;
 	case 0x91: //Initialise device parameters?
 #ifdef ATA_LOG
@@ -4878,7 +4882,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		ATA[channel].Drive[ATA_activeDrive(channel)].command = 0xEC; //We're running this command!
 		CDROMIDENTIFY:
 		memcpy(&ATA[channel].Drive[ATA_activeDrive(channel)].data, &ATA[channel].Drive[ATA_activeDrive(channel)].driveparams, sizeof(ATA[channel].Drive[ATA_activeDrive(channel)].driveparams)); //Set drive parameters currently set!
-		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER = 0; //Clear any errors!
+		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER &= 0x10; //Clear any errors!
 		ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER = 0; //No errors!
 		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow = 0; //Needs to be 0 to detect!
 		ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh = 0; //Needs to be 0 to detect!
@@ -4976,7 +4980,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 			break;
 		}
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //Reset command status!
-		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER = 0; //Reset data register!
+		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER &= 0x10; //Reset data register, except DSC/Release!
 		break;
 	case 0x00: //NOP (ATAPI Mandatory)?
 		break;
@@ -5008,7 +5012,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 
 		ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[59] = (ATA[channel].Drive[ATA_activeDrive(channel)].multiplesectors?0x100:0)|(ATA[channel].Drive[ATA_activeDrive(channel)].multiplesectors); //Current multiple sectors setting! Bit 8 is set when updated!
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //Reset command status!
-		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER = 0; //Reset data register!
+		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER &= 0x10; //Reset data register!
 		ATA_IRQ(channel, ATA_activeDrive(channel), ATA_FINISHREADYTIMING(1.0), 0); //Raise IRQ!
 		break;
 	case 0xDC: //BIOS - post-boot?
@@ -5048,7 +5052,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		{
 			ATA[channel].Drive[ATA_activeDrive(channel)].ERRORREGISTER = 4; //Reset error register!
 		}
-		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER = 0; //Clear status!
+		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER &= 0x10; //Clear status!
 		ATA_STATUSREGISTER_ERRORW(channel, ATA_activeDrive(channel), 1); //Error occurred: wee're executing an invalid command!
 		ATA_STATUSREGISTER_DRIVEREADYW(channel,ATA_activeDrive(channel),1); //Ready!
 		//Reset of the status register is 0!
@@ -5074,7 +5078,6 @@ OPTINLINE void ATA_updateStatus(byte channel)
 		ATA_STATUSREGISTER_DATAREQUESTREADYW(channel,ATA_activeDrive(channel),0); //We're requesting data to transfer!
 		if (ATA_Drives[channel][ATA_activeDrive(channel)] < CDROM0) //Hard disk?
 		{
-			ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel,ATA_activeDrive(channel),1); //Not seeking anymore, since we're ready to run!
 			ATA_STATUSREGISTER_ERRORW(channel, ATA_activeDrive(channel), 0); //No error!
 		}
 		if (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.reportReady == 0) //Reporting non-existant?
