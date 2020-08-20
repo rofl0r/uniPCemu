@@ -900,6 +900,8 @@ typedef struct
 	word exec_CS, exec_lastCS; //(Previous) Executing CS!
 	uint_32 exec_EIP, exec_lastEIP; //(Previous) Executing EIP!
 	uint_32 InterruptReturnEIP; //Interrupt return EIP!
+	word nextCS; //Next instruction CS
+	uint_32 nextEIP; //Next instruction EIP
 } CPU_type;
 
 #ifndef IS_CPU

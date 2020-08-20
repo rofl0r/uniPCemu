@@ -1347,6 +1347,8 @@ skipcurrentOpcodeInformations: //Skip all timings and parameters(invalid instruc
 	CPU[activeCPU].currentopcode = *OP; //Last OPcode for reference!
 	CPU[activeCPU].currentopcode0F = CPU[activeCPU].is0Fopcode; //Last OPcode for reference!
 	CPU[activeCPU].currentmodrm = (likely(currentOpcodeInformation)?currentOpcodeInformation->has_modrm:0)?params.modrm:0; //Modr/m if used!
+	CPU[activeCPU].nextCS = REG_CS;
+	CPU[activeCPU].nextEIP = REG_EIP;
 	currentOP_handler = CurrentCPU_opcode_jmptbl[((word)*OP << 2) | (CPU[activeCPU].is0Fopcode<<1) | CPU_Operand_size[activeCPU]];
 	CPU_executionphase_newopcode(); //We're starting a new opcode, notify the execution phase handlers!
 	return 0; //We're done fetching the instruction!
