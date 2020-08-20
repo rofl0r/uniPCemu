@@ -4588,6 +4588,9 @@ void ATA_reset(byte channel, byte slave)
 	*/
 		ATA[channel].Drive[slave].resetTriggersIRQ = 0; //No IRQ on completion!
 	//}
+		if (is_mounted(ATA_Drives[channel][slave]) && ATA_Drives[channel][slave] && (ATA_Drives[channel][slave] < CDROM0)) //Mounted as non-CD-ROM?
+			ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel, ATA_activeDrive(channel), 1); //Not seeking anymore, since we're ready to run!	
+
 }
 
 OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a command!
