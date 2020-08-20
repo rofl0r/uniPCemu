@@ -4529,9 +4529,9 @@ void ATA_reset(byte channel, byte slave)
 	{
 		if ((fullslaveinfo & 0x80) == 0) //Normal reset?
 		{
-			if ((fullslaveinfo & 0x80) || ((ATA_STATUSREGISTER_ERRORR(channel, slave) == 0) && ((fullslaveinfo & 0x80) == 0))) //Pending error for these drives?
+			if (((fullslaveinfo & 0x80) || ((ATA_STATUSREGISTER_ERRORR(channel, slave) == 0) && ((fullslaveinfo & 0x80) == 0))) && (ATA_Drives[channel][slave] >= CDROM0)) //Pending error for these CD-ROM drives?
 				ATA[channel].Drive[slave].ERRORREGISTER = 0x00; //No error, but being a reserved value of 0 usually!
-			else //SRST reset with error left to handle?
+			else //SRST reset with error left to handle(ATAPI) or ATA drive?
 				if (ATA_Drives[channel][slave] >= CDROM0) //CD-ROM drive?
 				{
 					ATA[channel].Drive[slave].ERRORREGISTER = (ATA[channel].Drive[slave].ERRORREGISTER & 0xF0) | 0x01; //No error, but being a reserved value of 1 usually!
