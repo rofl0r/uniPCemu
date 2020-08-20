@@ -1464,6 +1464,7 @@ void debuggerThread()
 				else //Use the supplied EIP!
 				{
 					skipstep = 2; //Simply skip until the next instruction is reached after this address!
+					skipopcodes_destEIP = CPU[activeCPU].nextEIP; //Next EIP address!
 				}
 			}
 			BPsinglestep = 0; //Stop breakpoint single step when this is used!
