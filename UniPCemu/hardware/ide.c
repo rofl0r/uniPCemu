@@ -4588,11 +4588,6 @@ void ATA_reset(byte channel, byte slave)
 	*/
 		ATA[channel].Drive[slave].resetTriggersIRQ = 0; //No IRQ on completion!
 	//}
-
-	if (is_mounted(ATA_Drives[channel][slave]) && ATA_Drives[channel][slave] && (ATA_Drives[channel][slave] < CDROM0)) //Mounted as non-CD-ROM?
-	{
-		ATA[channel].Drive[slave].STATUSREGISTER = 0x00; //Clear the status register to become the default again when reaching completion of the reset!
-	}
 }
 
 OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a command!
