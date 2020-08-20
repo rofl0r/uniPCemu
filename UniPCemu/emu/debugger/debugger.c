@@ -54,6 +54,7 @@ byte log_timestampbackup; //Backup of the original timestamp value!
 //Debugger skipping functionality
 uint_32 skipopcodes = 0; //Skip none!
 byte skipstep = 0; //Skip while stepping? 1=repeating, 2=EIP destination, 3=Stop asap.
+word skipopcodes_destCS = 0; //Wait for CS to become this value?
 uint_32 skipopcodes_destEIP = 0; //Wait for EIP to become this value?
 
 //Repeat log?
@@ -1445,7 +1446,8 @@ void debuggerThread()
 				delay(0);
 				lock(LOCK_INPUT);
 			}
-			skipopcodes_destEIP = REGD_EIP(debuggerregisters)+(uint_32)OPlength; //Destination instruction position!
+			skipopcodes_destEIP = CPU[activeCPU].nextEIP; //Destination instruction position!
+			skipopcodes_destCS = CPU[activeCPU].nextCS; //Destination instruction position!
 			if (getcpumode() != CPU_MODE_PROTECTED) //Not protected mode?
 			{
 				skipopcodes_destEIP &= 0xFFFF; //Wrap around, like we need to!
@@ -1453,6 +1455,7 @@ void debuggerThread()
 			if (psp_keypressed(BUTTON_CIRCLE) && (CPU[activeCPU].repeating==0)) //Wait for the jump to be taken from the current address?
 			{
 				skipopcodes_destEIP = REGD_EIP(debuggerregisters); //We're jumping from this address!
+				skipopcodes_destCS = REGD_CS(debuggerregisters); //We're jumping from this address!
 				skipstep = 4;
 			}
 			else //Normal behaviour?
@@ -1464,7 +1467,6 @@ void debuggerThread()
 				else //Use the supplied EIP!
 				{
 					skipstep = 2; //Simply skip until the next instruction is reached after this address!
-					skipopcodes_destEIP = CPU[activeCPU].nextEIP; //Next EIP address!
 				}
 			}
 			BPsinglestep = 0; //Stop breakpoint single step when this is used!
@@ -1575,7 +1577,7 @@ void debugger_step() //Processes the debugging step!
 				{
 					skipstep = 0; //Disable skip step!
 				}
-				else if (REGD_EIP(debuggerregisters) == skipopcodes_destEIP) //We've reached the destination address?
+				else if ((REGD_EIP(debuggerregisters) == skipopcodes_destEIP) && (REGD_CS(debuggerregisters) == skipopcodes_destCS)) //We've reached the destination address?
 				{
 					if ((skipstep==4) && didJump) //Jumped at our specified step?
 					{
