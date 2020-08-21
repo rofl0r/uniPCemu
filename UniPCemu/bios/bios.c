@@ -1687,13 +1687,13 @@ int BIOS_SaveData() //Save BIOS settings!
 	if (!write_private_profile_uint64("i430fxCMOS", cmos_commentused, "gotCMOS", BIOS_Settings.got_i430fxCMOS, inifile)) ABORT_SAVEDATA //Gotten an CMOS?
 	if (!saveBIOSCMOS(&BIOS_Settings.i430fxCMOS, "i430fxCMOS", cmos_commentused,inifile)) ABORT_SAVEDATA //The full saved CMOS!
 
-	memcpy(&loadedsettings,&BIOS_Settings,sizeof(BIOS_Settings)); //Reload from buffer!
-	loadedsettings_loaded = 1; //Buffered in memory!
-
 	if (!closeinifile(&inifile)) //Failed to write the ini file?
 	{
 		return 0; //Failed to write the ini file!
 	}
+
+	memcpy(&loadedsettings,&BIOS_Settings,sizeof(BIOS_Settings)); //Reload from buffer!
+	loadedsettings_loaded = 1; //Buffered in memory!
 
 	//Fully written!
 	return 1; //BIOS Written & saved successfully!
