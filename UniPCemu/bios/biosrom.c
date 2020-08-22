@@ -862,6 +862,25 @@ int BIOS_load_VGAROM() //Load custom ROM from emulator itself!
 	return 1; //Loaded!
 }
 
+void BIOS_finishROMs()
+{
+	uint_32 counter;
+	if (BIOS_custom_ROM != &EMU_BIOS[0]) //Custom BIOS ROM loaded?
+	{
+		BIOS_free_custom(NULL); //Free the custom ROM!
+	}
+	if (BIOS_custom_VGAROM != &EMU_VGAROM[0]) //Custom VGA ROM loaded?
+	{
+		BIOS_free_VGAROM(); //Free the VGA ROM!
+	}
+	//Now, process all normal ROMs!
+	for (counter = 0; counter < 0x100; ++counter)
+	{
+		BIOS_free_ROM(counter); //Free said ROM, if loaded!
+	}
+	BIOS_freeOPTROMS(); //Free all option ROMs!
+}
+
 byte BIOSROM_DisableLowMemory = 0; //Disable low-memory mapping of the BIOS and OPTROMs! Disable mapping of low memory locations E0000-FFFFF used on the Compaq Deskpro 386.
 
 extern uint_32 memory_dataread;

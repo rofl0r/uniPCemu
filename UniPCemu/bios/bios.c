@@ -742,11 +742,14 @@ void autoDetectMemorySize(int tosave) //Auto detect memory size (tosave=save BIO
 	if (__HW_DISABLED) return; //Ignore updates to memory!
 	debugrow("Detecting MMU memory size to use...");
 	
-	uint_32 freememory = freemem(); //The free memory available!
+	uint_32 freememory;
 	int_32 memoryblocks;
 	uint_64 maximummemory;
 	byte AThighblocks; //Are we using AT high blocks instead of low blocks?
 	byte memorylimitshift;
+
+	freememory = freemem(); //The free memory available!
+
 	memorylimitshift = 20; //Default to MB (2^20) chunks!
 	
 	#ifdef ANDROID
@@ -894,11 +897,6 @@ void autoDetectMemorySize(int tosave) //Auto detect memory size (tosave=save BIO
 	{
 		if (*archmem>=0xF00000) *archmem = 0x1000000; //16MB memory max!
 	}
-	if (!memoryblocks) //Not enough memory (at least 16KB or AT specs required)?
-	{
-		raiseError("Settings","Ran out of enough memory to use! Free memory: %u bytes",*archmem); //Show error&quit: not enough memory to work with!
-		sleep(); //Wait forever!
-	}
 	//dolog("BIOS","Detected memory: %u bytes",*(getarchmem()));
 
 	if ((uint_64)*archmem>=((uint_64)4096<<20)) //Past 4G?
@@ -906,10 +904,14 @@ void autoDetectMemorySize(int tosave) //Auto detect memory size (tosave=save BIO
 		*archmem = (uint_32)((((uint_64)4096)<<20)-MEMORY_BLOCKSIZE_AT_HIGH); //Limit to the max, just below 4G!
 	}
 
+	debugrow("Finished detecting MMU memory size to use...");
+
 	if (tosave)
 	{
 		forceBIOSSave(); //Force BIOS save!
 	}
+
+	debugrow("Detected memory size ready.");
 }
 
 

@@ -521,9 +521,10 @@ resetmmu:
 	}
 	else //Not allocated?
 	{
-		MMU_redetectMemory:
 		MMU.size = 0; //We don't have size!
+		MMU_redetectMemory:
 		doneMMU(); //Free up memory if allocated, to make sure we're not allocated anymore on the next try!
+		MMU.size = 0; //We don't have size!
 		if (memory_allowresize) //Can we resize memory?
 		{
 			autoDetectMemorySize(1); //Redetect memory size!
@@ -533,13 +534,16 @@ resetmmu:
 		}
 	}
 	memorycheckdummy = zalloc(FREEMEMALLOC, "freememcheck", NULL); //Lockless free memory check!
-	if (memorycheckdummy==NULL) //Not enough free memory?
+	if ((memorycheckdummy==NULL) && MMU.size) //Not enough free memory with allocated memory?
 	{
 		goto MMU_redetectMemory; //Force memory redetection to make free memory!
 	}
-	freez(&memorycheckdummy, FREEMEMALLOC, "freememcheck"); //Release the checked memory!
+	if (memorycheckdummy != NULL) //Allocated?
+	{
+		freez(&memorycheckdummy, FREEMEMALLOC, "freememcheck"); //Release the checked memory!
+	}
 	memory_allowresize = 1; //Allow resizing again!
-	if (!MMU.size || !MMU.memory) //No size?
+	if (MMU.size && !MMU.memory) //No valid size?
 	{
 		raiseError("MMU", "No memory available to use!");
 	}

@@ -663,6 +663,8 @@ void doneEMU()
 {
 	if (emu_started) //Started?
 	{
+		debugrow("doneEMU: Finishing loaded ROMs...");
+		BIOS_finishROMs(); //Release the loaded ROMs from the emulator itself!
 		debugrow("doneEMU: Finishing MID player...");
 		finishMIDplayer(); //Finish the MID player!
 		debugrow("doneEMU: Finishing DRO player...");
@@ -1429,12 +1431,6 @@ skipcpu: //Finish the CPU loop!
 	if (reset) //To soft-reset?
 	{
 		debugrow("Reset requested!");
-		return 1; //Full reset emu!
-	}
-
-	if (!hasmemory()) //Forced termination?
-	{
-		debugrow("No memory (anymore)! Reset requested!");
 		return 1; //Full reset emu!
 	}
 

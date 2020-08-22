@@ -31,6 +31,8 @@ void BIOS_free_custom(char *rom);
 int BIOS_load_systemROM(); //Load custom ROM from emulator itself!
 void BIOS_free_systemROM(); //Release the system ROM from the emulator itself!
 
+void BIOS_finishROMs();
+
 int BIOS_load_VGAROM(); //Load custom ROM from emulator itself!
 void BIOS_free_VGAROM();
 
