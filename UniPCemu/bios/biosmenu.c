@@ -675,6 +675,7 @@ void clearrow(int row)
 extern MMU_type MMU; //Memory unit to detect memory!
 void BIOSClearScreen() //Resets the BIOS's screen!
 {
+	uint_32 memorysize;
 	if (__HW_DISABLED) return; //Abort!
 	GPU_text_locksurface(frameratesurface);
 	GPU_textclearscreen(frameratesurface); //Make sure the surface is empty for a neat BIOS!
@@ -704,7 +705,19 @@ void BIOSClearScreen() //Resets the BIOS's screen!
 	EMU_unlocktext();
 	printcenter(BIOSText,0); //Show the BIOS's text!
 	EMU_locktext();
-	GPU_EMU_printscreen(BIOS_WIDTH-safe_strlen("MEM:1234MB",256),0,"MEM:%04iMB",(MMU.size/MBMEMORY)); //Show amount of memory to be able to use!
+	memorysize = MMU.size; //Memory size to display!
+	if (memorysize>=0x100000) //Megabytes?
+	{
+		GPU_EMU_printscreen(BIOS_WIDTH-safe_strlen("MEM:1234MB",256),0,"MEM:%04iMB",(MMU.size/MBMEMORY)); //Show amount of memory to be able to use!
+	}
+	else if (memorysize>=0x400) //Kilobytes?
+	{
+		GPU_EMU_printscreen(BIOS_WIDTH-safe_strlen("MEM:1234KB",256),0,"MEM:%04iKB",(MMU.size/1024)); //Show amount of memory to be able to use!
+	}
+	else //Bytes?
+	{
+		GPU_EMU_printscreen(BIOS_WIDTH-safe_strlen(" MEM:1234B",256),0," MEM:%04iB",MMU.size); //Show amount of memory to be able to use!
+	}
 	EMU_textcolor(BIOS_ATTR_TEXT); //Std: display text!
 	EMU_unlocktext();
 }
