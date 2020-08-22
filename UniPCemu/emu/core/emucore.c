@@ -392,6 +392,8 @@ void initEMU(int full) //Init!
 	char soundfont[256];
 	doneEMU(); //Make sure we're finished too!
 
+	closeLogFile(0); //Close all log files!
+
 	MHZ14tick = (1000000000/(DOUBLE)MHZ14); //Initialize the 14 MHZ tick timing!
 	Pentiumtick = (1000000000/(DOUBLE)33000000.0); //Timing of the Pentium IPS TimeStamp Counter clock, at 33MHz!
 	MHZ14_ticktiming = 0.0; //Default to no time passed yet!
