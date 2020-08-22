@@ -1370,7 +1370,8 @@ void initAdlib()
 	//Find the maximum volume archievable with exponential lookups!
 	MaximumExponential = ((0x3F << 5) + (Silence << 3)) + OPL2_LogSinTable[0]; //Highest input to the LogSin input!
 	DOUBLE maxresult=0.0,buffer=0.0;
-	uint_32 n=0;
+	uint_32 n;
+	n = 0;
 	do
 	{
 		buffer = OPL2_Exponential_real((word)n); //Load the current value translated!
