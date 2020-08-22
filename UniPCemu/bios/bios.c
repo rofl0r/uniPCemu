@@ -1093,7 +1093,8 @@ void BIOS_LoadData() //Load BIOS settings!
 	inifile = readinifile(BIOS_Settings_file); //Read the ini file!
 	if (!inifile) //Failed?
 	{
-		return; //Abort!
+		BIOS_LoadDefaults(1); //Load the defaults, save!
+		return; //We've loaded the defaults!
 	}
 
 	//General
