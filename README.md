@@ -27,6 +27,7 @@ This README would normally document whatever steps are necessary to get your app
 		- Don't forget to add the paths **C:\SDL\SDL2\include** to both Win32 and x64 target include directories, as well as **C:\SDL\SDL2\VisualC\$(Platform)\$(Configuration)** to both Win32 and x64 target library directories.
 		- Don't forget to change the Output directory to **$(SolutionDir)$(Platform)\$(Configuration)\ ** and the Intermediate directory to **$(Platform)\$(Configuration)\ ** for SDL 1.2 itself and SDLmain.
 		- Don't forget to add the paths **C:\SDL\SDL-1.2.15\include** to the include directories and **C:\SDL\SDL-1.2.15\VisualC\$(Platform)\$(Configuration)** to both Win32 and x64 target platform directories for SDL_net.
+		- Don't forget to set the output and intermediate directories for SDL_net to **$(Platform)\$(Configuration)\ **.
 	- Set the Visual C++ Local Windows Debugger for the project to use **$(TargetDir)** for it's working directory, to comply with the other paths set in the project.
 
 * Configuration
