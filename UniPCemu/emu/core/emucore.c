@@ -783,9 +783,6 @@ void initEMUreset() //Simple reset emulator!
 {
 	debugrow("initEMUreset!");
 	debugrow("immediatelyafter");
-	#ifdef IS_PSP
-		pspDebugScreenClear(); //Clear the debug screen!
-	#endif
 	EMU_RUNNING = 0; //Emulator isn't running anymore!
 
 	reset = 0; //Not resetting!
