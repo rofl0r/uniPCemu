@@ -3,4 +3,5 @@ set PROJECT=UniPCemu
 set whatarch=x86
 set SDL=SDL
 set useNET=yes
+set release=debug
 call ../commonemuframework/generateDependenciesVC.bat

@@ -1,6 +1,7 @@
 @echo off
 set PROJECT=UniPCemu
-set whatarch=x64
+set whatarch=x86
 set SDL=SDL
-set useNET=no
+set useNET=yes
+set release=release
 call ../commonemuframework/generateDependenciesVC.bat
