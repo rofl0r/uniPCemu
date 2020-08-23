@@ -699,7 +699,7 @@ void i430fx_MMUready()
 	effectiveDRAMsettings = 0; //Default DRAM settings is the first entry!
 	for (memorydetection = 0; memorydetection < NUMITEMS(i430fx_DRAMsettingslookup); ++memorydetection) //Check all possible memory sizes!
 	{
-		if (MEMsize() <= (i430fx_DRAMsettingslookup[memorydetection].maxmemorysize<<20)) //Within the limits of the maximum memory size?
+		if (MEMsize() <= (i430fx_DRAMsettingslookup[memorydetection].maxmemorysize<<20U)) //Within the limits of the maximum memory size?
 		{
 			effectiveDRAMsettings = memorydetection; //Use this memory size information!
 		}
