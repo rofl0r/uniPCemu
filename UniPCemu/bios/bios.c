@@ -1042,7 +1042,7 @@ void loadBIOSCMOS(CMOSDATA *CMOS, char *section, INI_FILE *i)
 	CMOS->floppy1_nodisk_type = (byte)get_private_profile_uint64(section, "floppy1_nodisk_type", 0, i);
 	if (CMOS->floppy1_nodisk_type >= NUMFLOPPYGEOMETRIES) CMOS->floppy1_nodisk_type = 0; //Default if invalid!
 
-	CMOS->emulated_CPU = (word)get_private_profile_uint64(section, "cpu", BIOS_Settings.emulated_CPU, i);
+	CMOS->emulated_CPU = (byte)get_private_profile_uint64(section, "cpu", BIOS_Settings.emulated_CPU, i);
 	CMOS->DataBusSize = (byte)get_private_profile_uint64(section, "databussize", BIOS_Settings.DataBusSize, i); //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
 	CMOS->CPUspeed = (uint_32)get_private_profile_uint64(section, "cpuspeed", BIOS_Settings.CPUSpeed, i);
 	CMOS->TurboCPUspeed = (uint_32)get_private_profile_uint64(section, "turbocpuspeed", BIOS_Settings.TurboCPUSpeed, i);
