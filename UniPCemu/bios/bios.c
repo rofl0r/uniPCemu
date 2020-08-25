@@ -737,8 +737,11 @@ byte is_EOF(FILE *fp)
 	return res;
 }
 
+#define MAX_LINE_LENGTH 256
+
 void autoDetectMemorySize(int tosave) //Auto detect memory size (tosave=save BIOS?)
 {
+	char line[MAX_LINE_LENGTH];
 	if (__HW_DISABLED) return; //Ignore updates to memory!
 	debugrow("Detecting MMU memory size to use...");
 	
@@ -766,52 +769,55 @@ void autoDetectMemorySize(int tosave) //Auto detect memory size (tosave=save BIO
 	{
 		int memorylimitMB=SHRT_MAX;
 		char memorylimitsize='?';
+		char *linepos;
 		byte limitread;
-		FILE *f;
-		f = fopen(limitfilename,"rb");
+		BIGFILE *f;
+		f = emufopen64(limitfilename,"rb");
 		limitread = 0; //Default: not read!
 		if (f) //Valid file?
 		{
-			if (fscanf(f,"%d",&memorylimitMB)) //Read up to 4 bytes to the buffer!
+			for (;!emufeof64(f);) //Read a line, processing all possible lines?
 			{
-				if (is_EOF(f)) //Read until EOF? We're valid!
+				if (read_line64(f, &line[0], sizeof(line))) //Read a line?
 				{
-					limitread = 1; //We're read!
-				}
-				else //Might have more?
-				{
-					if (fscanf(f,"%c",&memorylimitsize)) //Read size?
+					if (sscanf(line, "%d", &memorylimitMB)) //Read up to 4 bytes to the buffer!
 					{
-						if (is_EOF(f)) //Read until EOF? We're valid!
+						linepos = &line[0]; //Init!
+						for (; ((*linepos >= '0') && (*linepos <= '9'));) //Skip numbers!
+						{
+							++linepos; //SKip ahead!
+						}
+						if (sscanf(linepos, "%c", &memorylimitsize)) //Read size?
 						{
 							limitread = 2; //We're read!
 							switch (memorylimitsize) //What size?
 							{
-								case 'b':
-								case 'B': //KB?
-									memorylimitsize = 'B'; //Default to Bytes!
-									break;
-								case 'k':
-								case 'K': //KB?
-									memorylimitsize = 'K'; //Default to KB!
-									break;
-								case 'm':
-								case 'M': //MB?
-									memorylimitsize = 'M'; //Default to MB!
-									break;
-								case 'g':
-								case 'G': //GB?
-									memorylimitsize = 'G'; //Default to GB!
-									break;
-								default: //Unknown size?
-									memorylimitsize = 'M'; //Default to MB!
-									break;
+							case 'b':
+							case 'B': //KB?
+								memorylimitsize = 'B'; //Default to Bytes!
+								break;
+							case 'k':
+							case 'K': //KB?
+								memorylimitsize = 'K'; //Default to KB!
+								break;
+							case 'm':
+							case 'M': //MB?
+								memorylimitsize = 'M'; //Default to MB!
+								break;
+							case 'g':
+							case 'G': //GB?
+								memorylimitsize = 'G'; //Default to GB!
+								break;
+							default: //Unknown size?
+								memorylimitsize = 'M'; //Default to MB!
+								break;
 							}
 						}
 					}
 				}
 			}
-			fclose(f); //Close the file!
+			emufclose64(f); //Close the file!
+			f = NULL; //Deallocated!
 		}
 		if (limitread) //Are we read?
 		{
