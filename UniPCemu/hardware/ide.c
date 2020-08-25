@@ -4525,33 +4525,8 @@ void ATA_reset(byte channel, byte slave)
 	fullslaveinfo = slave; //Complete slave info!
 	slave &= 0x7F; //Are we a master or slave!
 	//Clear errors!
-	if ((fullslaveinfo & 0x80) || (!(ATA_Drives[channel][slave] >= CDROM0))) //ATAPI reset for ATAPI devices or non-ATAPI reset for non-ATAPI devices?
-	{
-		if ((fullslaveinfo & 0x80) == 0) //Normal reset?
-		{
-			if (((fullslaveinfo & 0x80) || ((ATA_STATUSREGISTER_ERRORR(channel, slave) == 0) && ((fullslaveinfo & 0x80) == 0))) && (ATA_Drives[channel][slave] >= CDROM0)) //Pending error for these CD-ROM drives?
-				ATA[channel].Drive[slave].ERRORREGISTER = 0x00; //No error, but being a reserved value of 0 usually!
-			else //SRST reset with error left to handle(ATAPI) or ATA drive?
-				if (ATA_Drives[channel][slave] >= CDROM0) //CD-ROM drive?
-				{
-					ATA[channel].Drive[slave].ERRORREGISTER = (ATA[channel].Drive[slave].ERRORREGISTER & 0xF0) | 0x01; //No error, but being a reserved value of 1 usually!
-				}
-				else //HDD?
-				{
-					ATA_STATUSREGISTER_ERRORW(channel, slave, 0); //Error bit is reset when a new command is received, as defined in the documentation!
-					ATA[channel].Drive[slave].ERRORREGISTER = 0x01; //No error, but being a reserved value of 1 usually!
-				}
-		}
-		else //ATAPI reset?
-		{
-			ATA[channel].Drive[slave].ERRORREGISTER &= 0x7F; //Clear bit 7 of the error register, according to ATA/ATAPI-4!
-		}
-	}
-	else
-	{
-		slave &= 0x7F;
-		ATA[channel].Drive[slave].ERRORREGISTER = 0x00; //No error, but being a reserved value of 0 usually!
-	}
+	ATA[channel].Drive[slave].ERRORREGISTER = 0x01; //No error, but being a reserved value of 1 usually!
+	ATA_STATUSREGISTER_ERRORW(channel, slave, 0); //Error bit is reset when a new command is received, as defined in the documentation!
 	if ((ATA_Drives[channel][slave]==0) || (ATA_Drives[channel][slave] >= CDROM0)) //CD-ROM style reset?
 	{
 		ATA[channel].Drive[slave].PARAMETERS.reportReady = 0; //Report not ready now!
@@ -4578,19 +4553,9 @@ void ATA_reset(byte channel, byte slave)
 	EMU_setDiskBusy(ATA_Drives[channel][slave], 0| (ATA[channel].Drive[slave].ATAPI_caddyejected << 1)); //We're not reading or writing anything anymore!
 
 	//Bochs and Dosbox: Both SRST and ATAPI reset don't trigger an IRQ!
-	/*
-	if ((fullslaveinfo & 0x80) && ((ATA_Drives[channel][slave] >= CDROM0))) //ATAPI reset for ATAPI devices that's not a SRST reset?
-	{
-		ATA[channel].Drive[slave].resetTriggersIRQ = 1; //Triggers an IRQ on completion!
-	}
-	else
-	{
-	*/
-		ATA[channel].Drive[slave].resetTriggersIRQ = 0; //No IRQ on completion!
-	//}
-		if (is_mounted(ATA_Drives[channel][slave]) && ATA_Drives[channel][slave] && (ATA_Drives[channel][slave] < CDROM0)) //Mounted as non-CD-ROM?
-			ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel, ATA_activeDrive(channel), 1); //Not seeking anymore, since we're ready to run!	
-
+	ATA[channel].Drive[slave].resetTriggersIRQ = 0; //No IRQ on completion!
+	if (is_mounted(ATA_Drives[channel][slave]) && ATA_Drives[channel][slave] && (ATA_Drives[channel][slave] < CDROM0)) //Mounted as non-CD-ROM?
+		ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel, ATA_activeDrive(channel), 1); //Not seeking anymore, since we're ready to run!
 }
 
 OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a command!
