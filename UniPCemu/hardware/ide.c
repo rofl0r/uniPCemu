@@ -5853,10 +5853,12 @@ void initATA()
 	{
 		ATA_Drives[0][0] = HDD1; //Mount HDD1!
 	}
+	/*
 	else
 	{
 		CDROM_channel = 0; //Move CDROM to primary channel!
 	}
+	*/
 	ATA_Drives[CDROM_channel][0] = CDROM0; //CDROM0 always present as master!
 	ATA_Drives[CDROM_channel][1] = CDROM1; //CDROM1 always present as slave!
 	int i,j,k;
