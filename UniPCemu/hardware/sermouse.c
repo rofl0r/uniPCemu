@@ -151,6 +151,8 @@ void initSERMouse(byte enabled)
 	}
 	else
 	{
+		SERMouse.port = allocUARTport(); //Try to allocate a port to use!
+		//No need to register the device: just us an empty port with nothing connected to it!
 		unsupportedUARTMouse:
 		SERMouse.buffer = NULL; //No buffer present!
 	}
