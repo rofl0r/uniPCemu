@@ -813,6 +813,10 @@ void autoDetectMemorySize(int tosave) //Auto detect memory size (tosave=save BIO
 								break;
 							}
 						}
+						else
+						{
+							memorylimitsize = 'B'; //Default to Bytes!
+						}
 					}
 				}
 			}
