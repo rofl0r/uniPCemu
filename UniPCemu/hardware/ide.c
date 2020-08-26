@@ -4524,8 +4524,16 @@ void ATA_reset(byte channel, byte slave)
 	byte fullslaveinfo;
 	fullslaveinfo = slave; //Complete slave info!
 	slave &= 0x7F; //Are we a master or slave!
-	//Clear errors!
 	ATA[channel].Drive[slave].ERRORREGISTER = 0x01; //No error, but being a reserved value of 1 usually!
+	if ((fullslaveinfo & 0x80) == 0) //Normal SRST? Don't apply this for Device Reset commands!
+	{
+		if (ATA_Drives[channel][slave] >= CDROM0) //On a CD-ROM drive?
+		{
+			giveSignature(channel, slave); //Give the signature!
+			return; //Don't respond to the reset!
+		}
+	}
+	//Clear errors!
 	ATA_STATUSREGISTER_ERRORW(channel, slave, 0); //Error bit is reset when a new command is received, as defined in the documentation!
 	if ((ATA_Drives[channel][slave]==0) || (ATA_Drives[channel][slave] >= CDROM0)) //CD-ROM style reset?
 	{
@@ -5155,7 +5163,10 @@ byte outATA8(word port, byte value)
 	}
 	port -= getPORTaddress(ATA_channel); //Get the port from the base!
 	ATA_slave = ATA[ATA_channel].activedrive; //Slave?
-	if (!(ATA_Drives[ATA_channel][0]|ATA_Drives[ATA_channel][1])) return 0; //No drives mapped here?
+	if (!(ATA_Drives[ATA_channel][0] || ATA_Drives[ATA_channel][1])) //Invalid controller?
+	{
+		return 0; //Float the bus: nothing is connected!
+	}
 	switch (port) //What port?
 	{
 	case 0: //DATA?
@@ -5250,7 +5261,7 @@ byte outATA8(word port, byte value)
 	return 0; //Safety!
 port3_write: //Special port #3?
 	port -= (getControlPORTaddress(ATA_channel)+2); //Get the port from the base!
-	if (!(ATA_Drives[ATA_channel][0]|ATA_Drives[ATA_channel][1])) //Invalid drive or controller?
+	if (!(ATA_Drives[ATA_channel][0]|ATA_Drives[ATA_channel][1])) //Invalid controller?
 	{
 		return 0; //Ignore!
 	}
@@ -5365,10 +5376,10 @@ byte inATA8(word port, byte *result)
 	}
 	port -= getPORTaddress(ATA_channel); //Get the port from the base!
 	ATA_slave = ATA[ATA_channel].activedrive; //Slave?
-	if ((!ATA_Drives[ATA_channel][0]) && (!ATA_Drives[ATA_channel][1])) //Invalid controller when no drives present?
+	if (((!ATA_Drives[ATA_channel][0]) && (!ATA_Drives[ATA_channel][1])) && (port<6)) //Invalid controller when no drives present for most registers?
 	{
-		*result = 0; //Give 0: we're not present!
-		return 1; //OK!
+		*result = 0; //Nothing to store!
+		return 1; //Float the bus: nothing is connected!
 	}
 	switch (port) //What port?
 	{
@@ -5416,6 +5427,10 @@ byte inATA8(word port, byte *result)
 		return 1; //OK!
 		break;
 	case 6: //Drive/head?
+		if (!(ATA_Drives[ATA_channel][0] || ATA_Drives[ATA_channel][1])) //Invalid controller?
+		{
+			return 0; //Float the bus: nothing is connected!
+		}
 		*result = ATA[ATA_channel].Drive[ATA_activeDrive(ATA_channel)].PARAMETERS.drivehead; //Get drive/head!
 #ifdef ATA_LOG
 		dolog("ATA", "Drive/head register read: %02X %u.%u", *result, ATA_channel, ATA_activeDrive(ATA_channel));
@@ -5423,6 +5438,10 @@ byte inATA8(word port, byte *result)
 		return 1; //OK!
 		break;
 	case 7: //Status?
+		if (!(ATA_Drives[ATA_channel][0] || ATA_Drives[ATA_channel][1])) //Invalid controller?
+		{
+			return 0; //Float the bus: nothing is connected!
+		}
 		ATA_updateStatus(ATA_channel); //Update the status register if needed!
 		ATA_removeIRQ(ATA_channel,ATA_activeDrive(ATA_channel)); //Acnowledge IRQ!
 		*result = ATA[ATA_channel].Drive[ATA_activeDrive(ATA_channel)].STATUSREGISTER; //Get status!
@@ -5446,6 +5465,10 @@ port3_read: //Special port #3?
 	switch (port) //What port?
 	{
 	case 0: //Alternate status register?
+		if (!(ATA_Drives[ATA_channel][0] || ATA_Drives[ATA_channel][1])) //Invalid controller?
+		{
+			return 0; //Float the bus: nothing is connected!
+		}
 		if (!ATA_Drives[ATA_channel][ATA_activeDrive(ATA_channel)]) //Invalid drive?
 		{
 			*result = 0; //Give 0: we're not present!
@@ -5460,10 +5483,9 @@ port3_read: //Special port #3?
 		break;
 	case 1: //Drive address register?
 		if (activePCI_IDE!=&PCI_IDE) return 0; //Disable on i430fx hardware to prevent port conflicts!
-		if (!(ATA_Drives[ATA_channel][0]|ATA_Drives[ATA_channel][1])) //Invalid controller?
+		if (!(ATA_Drives[ATA_channel][0] || ATA_Drives[ATA_channel][1])) //Invalid controller?
 		{
-			*result = 0; //Give 0: we're not present!
-			return 1; //OK!
+			return 0; //Float the bus: nothing is connected!
 		}
 		*result = (ATA[ATA_channel].DriveAddressRegister&0x7F); //Give the data, make sure we don't apply the flag shared with the Floppy Disk Controller!
 #ifdef ATA_LOG
