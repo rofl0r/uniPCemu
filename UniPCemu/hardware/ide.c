@@ -222,7 +222,7 @@ typedef struct
 		byte EnableMediaStatusNotification; //Enable Media Status Notification?
 		byte preventMediumRemoval; //Are we preventing medium removal for removable disks(CD-ROM)?
 		byte allowDiskInsertion; //Allow a disk to be inserted?
-		byte ATAPI_caddyejected; //Caddy ejected?
+		byte ATAPI_caddyejected; //Caddy ejected? 0=Inserted, 1=Ejected, 2=Request insertion.
 		byte MediumChangeRequested; //Is the user requesting the drive to be ejected?
 		byte isSpinning; //Are we spinning the disc?
 		uint_32 ATAPI_LBA; //ATAPI LBA storage!
@@ -656,6 +656,8 @@ void ATAPI_setModePages(byte disk_channel, byte disk_slave)
 
 void ATAPI_command_reportError(byte channel, byte slave); //Prototype!
 void ATAPI_SET_SENSE(byte channel, byte drive, byte SK, byte ASC, byte ASCQ); //Prototype!
+
+void ATAPI_insertCD(int disk, byte disk_channel, byte disk_drive); //Prototype for inserting a new CD, whether present or not, inserting the caddy!
 
 void ATAPI_diskchangedhandler(byte channel, byte drive, byte inserted)
 {
@@ -1334,6 +1336,15 @@ byte ATAPI_audioplayer_startPlayback(byte channel, byte drive, byte startM, byte
 	return 0; //Failure!
 }
 
+void handleATAPIcaddyeject(byte channel, byte drive)
+{
+	ATA[channel].Drive[drive].isSpinning = 0; //Not spinning!
+	requestEjectDisk(ATA_Drives[channel][drive]); //Request for the specified disk to be ejected!
+	ATA[channel].Drive[drive].allowDiskInsertion = 1; //Allow the disk to be inserted afterwards!
+	ATA[channel].Drive[drive].ATAPI_caddyejected = 1; //We're ejected!
+	EMU_setDiskBusy(ATA_Drives[channel][drive], 0 | (ATA[channel].Drive[drive].ATAPI_caddyejected << 1)); //We're not reading anymore!
+}
+
 void updateATA(DOUBLE timepassed) //ATA timing!
 {
 	uint_32 samples;
@@ -1356,6 +1367,26 @@ void updateATA(DOUBLE timepassed) //ATA timing!
 					}
 				}
 			}
+		}
+
+		if (ATA[0].Drive[0].ATAPI_caddyejected == 2) //Request caddy to be inserted?
+		{
+			ATAPI_insertCD(ATA_Drives[0][0], 0, 0); //Insert the caddy!
+		}
+
+		if (ATA[0].Drive[1].ATAPI_caddyejected == 2) //Request caddy to be inserted?
+		{
+			ATAPI_insertCD(ATA_Drives[0][1], 0, 1); //Insert the caddy!
+		}
+
+		if (ATA[1].Drive[0].ATAPI_caddyejected == 2) //Request caddy to be inserted?
+		{
+			ATAPI_insertCD(ATA_Drives[1][0], 1, 0); //Insert the caddy!
+		}
+
+		if (ATA[1].Drive[1].ATAPI_caddyejected == 2) //Request caddy to be inserted?
+		{
+			ATAPI_insertCD(ATA_Drives[1][1], 1, 1); //Insert the caddy!
 		}
 
 		//Handle ATA drive select timing!
@@ -2692,6 +2723,32 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 	return 0; //We're finished!
 }
 
+byte ATA_caddyejected(int disk) //Is the caddy ejected?
+{
+	byte disk_drive, disk_channel, disk_nr;
+	switch (disk) //What disk?
+	{
+		//Four disk numbers!
+	case HDD0:
+		disk_nr = 0;
+		break;
+	case HDD1:
+		disk_nr = 1;
+		break;
+	case CDROM0:
+		disk_nr = 2;
+		break;
+	case CDROM1:
+		disk_nr = 3;
+		break;
+	default: //Unsupported?
+		return 1; //Abort, we're unsupported, so allow changes!
+	}
+	disk_channel = ATA_DrivesReverse[disk_nr][0]; //The channel of the disk!
+	disk_drive = ATA_DrivesReverse[disk_nr][1]; //The master/slave of the disk!
+	return ATA[disk_channel].Drive[disk_drive].ATAPI_caddyejected; //Is the caddy ejected?
+}
+
 //ejectRequested: 0=Normal behaviour, 1=Eject/mount from disk mounting request, 2=Eject from CPU.
 byte ATA_allowDiskChange(int disk, byte ejectRequested) //Are we allowing this disk to be changed?
 {
@@ -2718,7 +2775,7 @@ byte ATA_allowDiskChange(int disk, byte ejectRequested) //Are we allowing this d
 	disk_drive = ATA_DrivesReverse[disk_nr][1]; //The master/slave of the disk!
 	if ((ejectRequested==1) && (ATA[disk_channel].Drive[disk_drive].EnableMediaStatusNotification|(ATA[disk_channel].Drive[disk_drive].preventMediumRemoval&2))) //Requesting eject button from user while media status notification is enabled(the OS itself handes us) or locked by ATAPI?
 	{
-		ATA[disk_channel].Drive[disk_drive].MediumChangeRequested = 1; //We're requesting the medium to change!
+		return 0; //Deny access to the mounted disk!
 	}
 	return (!(ATA[disk_channel].Drive[disk_drive].preventMediumRemoval && (ejectRequested!=2))) || (ATA[disk_channel].Drive[disk_drive].allowDiskInsertion || ATA[disk_channel].Drive[disk_drive].ATAPI_caddyejected); //Are we not preventing removal of this medium?
 }
@@ -4336,11 +4393,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		case 2: //Eject the disc if possible?
 			if (ATA_allowDiskChange(ATA_Drives[channel][drive],2)) //Do we allow the disc to be changed? Stop spinning if spinning!
 			{
-				ATA[channel].Drive[drive].isSpinning = 0; //Not spinning!
-				requestEjectDisk(ATA_Drives[channel][drive]); //Request for the specified disk to be ejected!
-				ATA[channel].Drive[drive].allowDiskInsertion = !is_mounted(ATA_Drives[channel][drive]); //Allow the disk to be inserted afterwards!
-				ATA[channel].Drive[drive].ATAPI_caddyejected = 1; //We're ejected!
-				EMU_setDiskBusy(ATA_Drives[channel][drive], 0 | (ATA[channel].Drive[drive].ATAPI_caddyejected << 1)); //We're not reading anymore!
+				handleATAPIcaddyeject(channel, drive); //Handle the ejection of the caddy!
 			}
 			else //Not allowed to change?
 			{
@@ -5560,24 +5613,185 @@ void strcpy_swappedpadded(word *buffer, byte sizeinwords, byte *s)
 	byte counter, lowbyte, highbyte;
 	word length;
 	length = (word)safestrlen((char *)s,((size_t)sizeinwords<<(size_t)1)); //Check the length for the copy!
-	for (counter=0;counter<sizeinwords;++counter) //Step words!
+for (counter = 0; counter < sizeinwords; ++counter) //Step words!
+{
+	lowbyte = highbyte = 0x20; //Initialize to unused!
+	if (length >= ((counter << 1) | 1)) //Low byte available?
 	{
-		lowbyte = highbyte = 0x20; //Initialize to unused!
-		if (length>=((counter<<1)|1)) //Low byte available?
-		{
-			lowbyte = s[(counter<<1)|1]; //Low byte as high byte!
-		}
-		if (length>=(counter<<1)) //High byte available?
-		{
-			highbyte = s[(counter<<1)]; //High byte as low byte!
-		}
-		buffer[counter] = lowbyte|(highbyte<<8); //Set the byte information!
+		lowbyte = s[(counter << 1) | 1]; //Low byte as high byte!
 	}
+	if (length >= (counter << 1)) //High byte available?
+	{
+		highbyte = s[(counter << 1)]; //High byte as low byte!
+	}
+	buffer[counter] = lowbyte | (highbyte << 8); //Set the byte information!
+}
+}
+
+//Internal use only:
+void ATAPI_insertCD(int disk, byte disk_channel, byte disk_drive)
+{
+	if (ATA_allowDiskChange(disk, 1)) //Allow changing of said disk?
+	{
+		//Normal handling of automatic insertion after some time!
+		byte abortreason, additionalsensecode, ascq = 0;
+		//ATA_ERRORREGISTER_MEDIACHANGEDW(disk_channel,disk_drive,1); //We've changed media!
+		ATA[disk_channel].Drive[disk_drive].isSpinning = is_mounted(disk) ? 1 : 0; //We're spinning automatically, since the media has been inserted!
+		//Disable the IRQ for now to let the software know we've changed!
+		if (!ATA[disk_channel].Drive[disk_drive].ATAPI_diskchangeTimeout) //Not already pending?
+		{
+			ATA[disk_channel].Drive[disk_drive].ATAPI_diskchangeTimeout = ATAPI_INSERTION_TIME; //New timer!
+		}
+		else
+		{
+			ATA[disk_channel].Drive[disk_drive].ATAPI_diskchangeTimeout += ATAPI_INSERTION_TIME; //Add to pending timing!
+		}
+		ATA[disk_channel].Drive[disk_drive].ATAPI_diskchangeDirection = ATAPI_DYNAMICLOADINGPROCESS; //Start the insertion mechanism!
+		ATA[disk_channel].Drive[disk_drive].PendingLoadingMode = LOAD_INSERT_CD; //Loading and inserting the CD is now starting!
+		ATA[disk_channel].Drive[disk_drive].PendingSpinType = ATAPI_CDINSERTED; //We're firing an CD inserted event!
+		ATA[disk_channel].Drive[disk_drive].ATAPI_diskChanged = 1; //Is the disc changed?
+		ATA[disk_channel].Drive[disk_drive].ATAPI_mediaChanged = 1; //Media has been changed(Microsoft way)?
+		ATA[disk_channel].Drive[disk_drive].ATAPI_mediaChanged2 = 1; //Media has been changed(Documented way)?
+		ATA[disk_channel].Drive[disk_drive].diskInserted = is_mounted(ATA_Drives[disk_channel][disk_drive]); //Are we inserted from the emulated point of view?
+		EMU_setDiskBusy(ATA_Drives[disk_channel][disk_drive], 0 | (ATA[disk_channel].Drive[disk_drive].ATAPI_caddyejected << 1)); //We're not reading anymore!
+		//Run an event handler for the OS!
+		if (ATA[disk_channel].Drive[disk_drive].PARAMETERS.reportReady) //Ready?
+		{
+			ATA[disk_channel].activedrive = disk_drive; //Make us active! Unknown how real hardware handles this(for interrupts)!
+			abortreason = SENSE_UNIT_ATTENTION;
+			additionalsensecode = ASC_MEDIUM_MAY_HAVE_CHANGED;
+			ATA[disk_channel].Drive[disk_drive].ATAPI_processingPACKET = 3; //Result phase!
+			ATA[disk_channel].Drive[disk_drive].commandstatus = 0xFF; //Move to error mode!
+			ATA[disk_channel].activedrive = disk_drive; //Make us active!
+			ATAPI_giveresultsize(disk_channel, disk_drive, 0, 1); //No result size!
+			ATA[disk_channel].Drive[disk_drive].ERRORREGISTER = /*4|*/(abortreason << 4); //Reset error register! This also contains a copy of the Sense Key!
+			ATAPI_SENSEPACKET_SENSEKEYW(disk_channel, disk_drive, abortreason); //Reason of the error
+			ATAPI_SENSEPACKET_RESERVED2W(disk_channel, disk_drive, 0); //Reserved field!
+			ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(disk_channel, disk_drive, additionalsensecode); //Extended reason code
+			ATAPI_SENSEPACKET_ASCQW(disk_channel, disk_drive, ascq); //ASCQ code!
+			ATAPI_SENSEPACKET_ILIW(disk_channel, disk_drive, 0); //ILI bit cleared!
+			ATAPI_SENSEPACKET_ERRORCODEW(disk_channel, disk_drive, 0x70); //Default error code?
+			ATAPI_SENSEPACKET_ADDITIONALSENSELENGTHW(disk_channel, disk_drive, 8); //Additional Sense Length = 8?
+			ATAPI_SENSEPACKET_INFORMATION0W(disk_channel, disk_drive, 0);	 //No info!
+			ATAPI_SENSEPACKET_INFORMATION1W(disk_channel, disk_drive, 0); //No info!
+			ATAPI_SENSEPACKET_INFORMATION2W(disk_channel, disk_drive, 0); //No info!
+			ATAPI_SENSEPACKET_INFORMATION3W(disk_channel, disk_drive, 0); //No info!
+			ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION0W(disk_channel, disk_drive, 0); //No command specific information?
+			ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION1W(disk_channel, disk_drive, 0); //No command specific information?
+			ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION2W(disk_channel, disk_drive, 0); //No command specific information?
+			ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION3W(disk_channel, disk_drive, 0); //No command specific information?
+			ATAPI_SENSEPACKET_VALIDW(disk_channel, disk_drive, 1); //We're valid!
+			ATA[disk_channel].Drive[disk_drive].STATUSREGISTER = 0x40; //Clear status!
+			ATA_STATUSREGISTER_DRIVEREADYW(disk_channel, disk_drive, 1); //Ready!
+			ATA_STATUSREGISTER_ERRORW(disk_channel, disk_drive, 1); //Ready!
+		}
+	}
+	//Otherwise, just requested?
+}
+
+//Request to eject the caddy by the settings menu!
+byte ATAPI_ejectcaddy(int disk)
+{
+	byte disk_drive, disk_channel, disk_nr;
+	switch (disk) //What disk?
+	{
+		//Four disk numbers!
+	case HDD0:
+		disk_nr = 0;
+		break;
+	case HDD1:
+		disk_nr = 1;
+		break;
+	case CDROM0:
+		disk_nr = 2;
+		break;
+	case CDROM1:
+		disk_nr = 3;
+		break;
+	default: //Unsupported?
+		return 0; //Abort!
+	}
+	disk_channel = ATA_DrivesReverse[disk_nr][0]; //The channel of the disk!
+	disk_drive = ATA_DrivesReverse[disk_nr][1]; //The master/slave of the disk!
+	ATA_channel = disk_channel; //The channel of the access?
+	ATA_slave = disk_drive; //Slave?
+	if ((disk_nr >= 2) && CDROM_DiskChanged) //CDROM changed?
+	{
+		if (ATA[disk_channel].Drive[disk_drive].ATAPI_caddyejected == 0) //Not ejected?
+		{
+			ATA[disk_channel].Drive[disk_drive].MediumChangeRequested = 1; //We're requesting the medium to change!
+			if (ATA_allowDiskChange(disk, 1)) //Request to be ejected immediately? We're not handled by software?
+			{
+				ATA[disk_channel].Drive[disk_drive].MediumChangeRequested = 0; //We're not requesting the medium to change anymore!
+				//Caddy is ejected!
+				handleATAPIcaddyeject(disk_channel, disk_drive); //Handle the ejection of the caddy directly!
+				return 1; //OK!
+			}
+			//Otherwise, let the OS handle it!
+		}
+		else //Already ejected?
+		{
+			return 1; //Success!
+		}
+	}
+	return 0; //Not ejectable!
+}
+
+//Request to insert the caddy by the settings menu!
+byte ATAPI_insertcaddy(int disk)
+{
+	byte disk_drive, disk_channel, disk_nr;
+	switch (disk) //What disk?
+	{
+		//Four disk numbers!
+	case HDD0:
+		disk_nr = 0;
+		break;
+	case HDD1:
+		disk_nr = 1;
+		break;
+	case CDROM0:
+		disk_nr = 2;
+		break;
+	case CDROM1:
+		disk_nr = 3;
+		break;
+	default: //Unsupported?
+		return 0; //Abort!
+	}
+	disk_channel = ATA_DrivesReverse[disk_nr][0]; //The channel of the disk!
+	disk_drive = ATA_DrivesReverse[disk_nr][1]; //The master/slave of the disk!
+	ATA_channel = disk_channel; //The channel of the access?
+	ATA_slave = disk_drive; //Slave?
+	if ((disk_channel != 0xFF) && (disk_drive != 0xFF)) //Valid?
+	{
+		if ((disk_nr >= 2) && CDROM_DiskChanged) //CDROM changed?
+		{
+			if (ATA[disk_channel].Drive[disk_drive].ATAPI_caddyejected == 0) //Not ejected?
+			{
+				return 0; //Can't insert what's not ejected!
+			}
+			else //Already ejected?
+			{
+				ATA[disk_channel].Drive[disk_drive].ATAPI_caddyejected = 2; //Request to insert the caddy when running again!
+				//Don't update any LEDs: the disk stays ejected until handled by the OS or hardware!
+				return 1; //OK!
+			}
+		}
+		else if (disk_nr >= 2) //Always valid?
+		{
+			return 1; //OK!
+		}
+		else //HDD?
+		{
+			return 0; //Fail on HDD!
+		}
+	}
+	return 0; //Couldn't insert caddy!
 }
 
 void ATA_DiskChanged(int disk)
 {
-	byte abortreason,additionalsensecode,ascq=0;
 	byte cue_M, cue_S, cue_F, cue_startM, cue_startS, cue_startF, cue_endM, cue_endS, cue_endF;
 	char *cueimage;
 	char newserial[21]; //A serial to build!
@@ -5615,58 +5829,6 @@ void ATA_DiskChanged(int disk)
 		ATA[disk_channel].Drive[disk_drive].lastF = 0; //Our last position!
 		ATA[disk_channel].Drive[disk_drive].lastformat = 0x14; //Unknown format, nothing read yet, assume data!
 		ATA[disk_channel].Drive[disk_drive].lasttrack = 1; //Our last track!
-
-
-		//ATA_ERRORREGISTER_MEDIACHANGEDW(disk_channel,disk_drive,1); //We've changed media!
-		ATA[disk_channel].Drive[disk_drive].isSpinning = is_mounted(disk)?1:0; //We're spinning automatically, since the media has been inserted!
-		//Disable the IRQ for now to let the software know we've changed!
-		if (!ATA[disk_channel].Drive[disk_drive].ATAPI_diskchangeTimeout) //Not already pending?
-		{
-			ATA[disk_channel].Drive[disk_drive].ATAPI_diskchangeTimeout = ATAPI_INSERTION_TIME; //New timer!
-		}
-		else
-		{
-			ATA[disk_channel].Drive[disk_drive].ATAPI_diskchangeTimeout += ATAPI_INSERTION_TIME; //Add to pending timing!
-		}
-		ATA[disk_channel].Drive[disk_drive].ATAPI_diskchangeDirection = ATAPI_DYNAMICLOADINGPROCESS; //Start the insertion mechanism!
-		ATA[disk_channel].Drive[disk_drive].PendingLoadingMode = LOAD_INSERT_CD; //Loading and inserting the CD is now starting!
-		ATA[disk_channel].Drive[disk_drive].PendingSpinType = ATAPI_CDINSERTED; //We're firing an CD inserted event!
-		ATA[disk_channel].Drive[disk_drive].ATAPI_diskChanged = 1; //Is the disc changed?
-		ATA[disk_channel].Drive[disk_drive].ATAPI_mediaChanged = 1; //Media has been changed(Microsoft way)?
-		ATA[disk_channel].Drive[disk_drive].ATAPI_mediaChanged2 = 1; //Media has been changed(Documented way)?
-		ATA[disk_channel].Drive[disk_drive].diskInserted = is_mounted(ATA_Drives[disk_channel][disk_drive]); //Are we inserted from the emulated point of view?
-		EMU_setDiskBusy(ATA_Drives[disk_channel][disk_drive], 0 | (ATA[disk_channel].Drive[disk_drive].ATAPI_caddyejected << 1)); //We're not reading anymore!
-		//Run an event handler for the OS!
-		if (ATA[disk_channel].Drive[disk_drive].PARAMETERS.reportReady) //Ready?
-		{
-			ATA[disk_channel].activedrive = disk_drive; //Make us active! Unknown how real hardware handles this(for interrupts)!
-			abortreason = SENSE_UNIT_ATTENTION;
-			additionalsensecode = ASC_MEDIUM_MAY_HAVE_CHANGED;
-			ATA[disk_channel].Drive[disk_drive].ATAPI_processingPACKET = 3; //Result phase!
-			ATA[disk_channel].Drive[disk_drive].commandstatus = 0xFF; //Move to error mode!
-			ATA[disk_channel].activedrive = disk_drive; //Make us active!
-			ATAPI_giveresultsize(disk_channel,disk_drive,0,1); //No result size!
-			ATA[disk_channel].Drive[disk_drive].ERRORREGISTER = /*4|*/(abortreason<<4); //Reset error register! This also contains a copy of the Sense Key!
-			ATAPI_SENSEPACKET_SENSEKEYW(disk_channel, disk_drive,abortreason); //Reason of the error
-			ATAPI_SENSEPACKET_RESERVED2W(disk_channel, disk_drive, 0); //Reserved field!
-			ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(disk_channel, disk_drive,additionalsensecode); //Extended reason code
-			ATAPI_SENSEPACKET_ASCQW(disk_channel, disk_drive, ascq); //ASCQ code!
-			ATAPI_SENSEPACKET_ILIW(disk_channel, disk_drive,0); //ILI bit cleared!
-			ATAPI_SENSEPACKET_ERRORCODEW(disk_channel, disk_drive,0x70); //Default error code?
-			ATAPI_SENSEPACKET_ADDITIONALSENSELENGTHW(disk_channel, disk_drive,8); //Additional Sense Length = 8?
-			ATAPI_SENSEPACKET_INFORMATION0W(disk_channel, disk_drive,0);	 //No info!
-			ATAPI_SENSEPACKET_INFORMATION1W(disk_channel, disk_drive,0); //No info!
-			ATAPI_SENSEPACKET_INFORMATION2W(disk_channel, disk_drive,0); //No info!
-			ATAPI_SENSEPACKET_INFORMATION3W(disk_channel, disk_drive,0); //No info!
-			ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION0W(disk_channel, disk_drive,0); //No command specific information?
-			ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION1W(disk_channel, disk_drive,0); //No command specific information?
-			ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION2W(disk_channel, disk_drive,0); //No command specific information?
-			ATAPI_SENSEPACKET_COMMANDSPECIFICINFORMATION3W(disk_channel, disk_drive,0); //No command specific information?
-			ATAPI_SENSEPACKET_VALIDW(disk_channel, disk_drive,1); //We're valid!
-			ATA[disk_channel].Drive[disk_drive].STATUSREGISTER = 0x40; //Clear status!
-			ATA_STATUSREGISTER_DRIVEREADYW(disk_channel, disk_drive,1); //Ready!
-			ATA_STATUSREGISTER_ERRORW(disk_channel, disk_drive,1); //Ready!
-		}
 	}
 	byte IS_CDROM = ((disk==CDROM0)||(disk==CDROM1))?1:0; //CD-ROM drive?
 	if ((disk_channel == 0xFF) || (disk_drive == 0xFF)) return; //Not mounted!

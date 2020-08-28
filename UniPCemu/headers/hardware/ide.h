@@ -27,6 +27,9 @@ void cleanATA(); //ATA timing reset!
 void updateATA(DOUBLE timepassed); //ATA timing!
 
 byte ATA_allowDiskChange(int disk, byte ejectRequested); //Are we allowing this disk to be changed?
+byte ATA_caddyejected(int disk); //Is the caddy ejected?
+byte ATAPI_ejectcaddy(int disk); //Request an eject of a caddy!
+byte ATAPI_insertcaddy(int disk); //Request the insert of a caddy!
 
 //Geometry detection support for harddisks!
 word get_SPT(int disk, uint_64 disk_size);

@@ -234,6 +234,8 @@ void BIOS_floppy0_nodisk_type();
 void BIOS_floppy1_nodisk_type();
 void BIOS_DirectInput_Disable_RALT(); //Disable RALT during Direct Input mode!
 void BIOS_GenerateIMDFloppyDisk(); //Generate an IMD floppy disk image!
+void BIOS_LoadEjectCDROM0(); //Load/Eject CD-ROM 0!
+void BIOS_LoadEjectCDROM1(); //Load/Eject CD-ROM 1!
 
 //First, global handler!
 Handler BIOS_Menus[] =
@@ -317,6 +319,8 @@ Handler BIOS_Menus[] =
 	,BIOS_DirectInput_Disable_RALT //Disable RALT during Direct Input mode is #76!
 	,BIOS_DirectInput_remap_NUM0_to_Delete //Remap NUM0 to Delete is #77!
 	,BIOS_GenerateIMDFloppyDisk //Generate IMD floppy disk is #78!
+	,BIOS_LoadEjectCDROM0 //Load/Eject CD-ROM 0 is #79!
+	,BIOS_LoadEjectCDROM1 //Load/Eject CD-ROM 1 is #80!
 };
 
 //Not implemented?
@@ -1428,6 +1432,71 @@ void BIOS_hdd1_selection() //HDD1 selection menu!
 	BIOS_Menu = 1; //Return to image menu!
 }
 
+extern byte CDROM_channel; //Default: no CD-ROM channel!
+
+void BIOS_LoadEjectCDROM0() //Load/Eject CD-ROM 0!
+{
+	byte ejectstatus;
+	byte inserted; //Insert success?
+	byte ejected; //Eject success?
+	lock(LOCK_MAINTHREAD);
+	if (CDROM_channel != 0xFF) //Has a channel?
+	{
+		if ((ejectstatus = ATA_caddyejected(CDROM0))!=0) //Is the caddy ejected or pending to insert?
+		{
+			if (ejectstatus == 1) //Plain ejected?
+			{
+				if (ATAPI_insertcaddy(CDROM0)) //Request to be inserted!
+				{
+					//Do something when it's requested to be inserted?
+				}
+			}
+			//Otherwise, it's requesting to be ejected, don't do anything!
+		}
+		else //Caddy is inserted?
+		{
+			if (ATAPI_ejectcaddy(CDROM0)) //Allowed to change? Double as the eject button!
+			{
+				//Caddy is now requested to be ejected?
+			}
+		}
+	}
+	unlock(LOCK_MAINTHREAD);
+	BIOS_Menu = 1; //Return to image menu!
+}
+
+void BIOS_LoadEjectCDROM1() //Load/Eject CD-ROM 1!
+{
+	byte ejectstatus;
+	byte inserted; //Insert success?
+	byte ejected; //Eject success?
+	lock(LOCK_MAINTHREAD);
+	if (CDROM_channel != 0xFF) //Has a channel?
+	{
+		if ((ejectstatus = ATA_caddyejected(CDROM1)) != 0) //Is the caddy ejected or pending to insert?
+		{
+			if (ejectstatus == 1) //Plain ejected?
+			{
+				if (ATAPI_insertcaddy(CDROM1)) //Request to be inserted!
+				{
+					//Do something when it's requested to be inserted?
+				}
+			}
+			//Otherwise, it's requesting to be ejected, don't do anything!
+		}
+		else //Caddy is inserted?
+		{
+			if (ATAPI_ejectcaddy(CDROM1)) //Allowed to change? Double as the eject button!
+			{
+				//Caddy is now requested to be ejected?
+			}
+		}
+	}
+	unlock(LOCK_MAINTHREAD);
+	BIOS_Menu = 1; //Return to image menu!
+}
+
+
 void BIOS_cdrom0_selection() //CDROM0 selection menu!
 {
 	if (ATA_allowDiskChange(CDROM0,1)) //Allowed to change? Double as the eject button!
@@ -1483,7 +1552,10 @@ void BIOS_ejectdisk(int disk) //Eject an ejectable disk?
 		{
 			if (ATA_allowDiskChange(disk,2)) //Allowed to be changed?
 			{
+				/*
 				safestrcpy(BIOS_Settings.cdrom0,sizeof(BIOS_Settings.cdrom0), ""); //Clear the option!
+				*/
+				//Don't actually unmount it, just leave the drive open to be changed!
 				ejected = 1; //We're ejected!
 			}
 		}
@@ -1493,7 +1565,10 @@ void BIOS_ejectdisk(int disk) //Eject an ejectable disk?
 		{
 			if (ATA_allowDiskChange(disk,2)) //Allowed to be changed?
 			{
+				/*
 				safestrcpy(BIOS_Settings.cdrom1,sizeof(BIOS_Settings.cdrom1), ""); //Clear the option!
+				*/
+				//Don't actually unmount it, just leave the drive open to be changed!
 				ejected = 1; //We're ejected!
 			}
 		}
@@ -1549,7 +1624,7 @@ extern FLOPPY_GEOMETRY floppygeometries[NUMFLOPPYGEOMETRIES];
 void BIOS_InitDisksText()
 {
 	int i;
-	for (i=0; i<15; i++)
+	for (i=0; i<17; i++)
 	{
 		memset(&menuoptions[i][0],0,sizeof(menuoptions[i])); //Init!
 	}
@@ -1559,15 +1634,17 @@ void BIOS_InitDisksText()
 	safestrcpy(menuoptions[3],sizeof(menuoptions[0]),"Second HDD: ");
 	safestrcpy(menuoptions[4],sizeof(menuoptions[0]),"First CD-ROM: ");
 	safestrcpy(menuoptions[5],sizeof(menuoptions[0]),"Second CD-ROM: ");
-	safestrcpy(menuoptions[6],sizeof(menuoptions[0]),"Generate Floppy Image");
-	safestrcpy(menuoptions[7],sizeof(menuoptions[0]),"Generate IMD Floppy Image");
-	safestrcpy(menuoptions[8],sizeof(menuoptions[0]),"Generate Static HDD Image");
-	safestrcpy(menuoptions[9],sizeof(menuoptions[0]),"Generate Dynamic HDD Image");
-	safestrcpy(menuoptions[10],sizeof(menuoptions[0]), "Convert static to dynamic HDD Image");
-	safestrcpy(menuoptions[11],sizeof(menuoptions[0]), "Convert dynamic to static HDD Image");
-	safestrcpy(menuoptions[12],sizeof(menuoptions[0]), "Defragment a dynamic HDD Image");
-	safestrcpy(menuoptions[13], sizeof(menuoptions[0]), "Floppy A without disk type: ");
-	safestrcpy(menuoptions[14], sizeof(menuoptions[0]), "Floppy B without disk type: ");
+	safestrcpy(menuoptions[6], sizeof(menuoptions[0]), "Load/Eject first CD-ROM");
+	safestrcpy(menuoptions[7], sizeof(menuoptions[0]), "Load/Eject second CD-ROM");
+	safestrcpy(menuoptions[8],sizeof(menuoptions[0]),"Generate Floppy Image");
+	safestrcpy(menuoptions[9],sizeof(menuoptions[0]),"Generate IMD Floppy Image");
+	safestrcpy(menuoptions[10],sizeof(menuoptions[0]),"Generate Static HDD Image");
+	safestrcpy(menuoptions[11],sizeof(menuoptions[0]),"Generate Dynamic HDD Image");
+	safestrcpy(menuoptions[12],sizeof(menuoptions[0]), "Convert static to dynamic HDD Image");
+	safestrcpy(menuoptions[13],sizeof(menuoptions[0]), "Convert dynamic to static HDD Image");
+	safestrcpy(menuoptions[14],sizeof(menuoptions[0]), "Defragment a dynamic HDD Image");
+	safestrcpy(menuoptions[15], sizeof(menuoptions[0]), "Floppy A without disk type: ");
+	safestrcpy(menuoptions[16], sizeof(menuoptions[0]), "Floppy B without disk type: ");
 
 //FLOPPY0
 	if (strcmp(BIOS_Settings.floppy0,"")==0) //No disk?
@@ -1667,8 +1744,8 @@ void BIOS_InitDisksText()
 		currentCMOS = &BIOS_Settings.ATCMOS; //We've used!
 	}
 
-	safestrcat(menuoptions[13],sizeof(menuoptions[12]),floppygeometries[currentCMOS->floppy0_nodisk_type].text);
-	safestrcat(menuoptions[14],sizeof(menuoptions[13]),floppygeometries[currentCMOS->floppy1_nodisk_type].text);
+	safestrcat(menuoptions[15],sizeof(menuoptions[15]),floppygeometries[currentCMOS->floppy0_nodisk_type].text);
+	safestrcat(menuoptions[16],sizeof(menuoptions[16]),floppygeometries[currentCMOS->floppy1_nodisk_type].text);
 }
 
 
@@ -1760,19 +1837,31 @@ void BIOS_DisksMenu() //Manages the mounted disks!
 			BIOS_Menu = 7; //CDROM1 selection!
 		}
 		break;
-	case 6: //Generate Floppy Image?
+	case 6: //Load/Eject first CD-ROM button?
+		if (Menu_Stat == BIOSMENU_STAT_OK) //Plain status?
+		{
+			BIOS_Menu = 79; //Defragment a dynamic HDD Image!
+		}
+		break;
+	case 7: //Load/Eject first CD-ROM button?
+		if (Menu_Stat == BIOSMENU_STAT_OK) //Plain status?
+		{
+			BIOS_Menu = 80; //Defragment a dynamic HDD Image!
+		}
+		break;
+	case 8: //Generate Floppy Image?
 		if (Menu_Stat==BIOSMENU_STAT_OK) //Plain status?
 		{
 			BIOS_Menu = 43; //Generate Floppy Image!
 		}
 		break;
-	case 7: //Generate IMD Floppy Image?
+	case 9: //Generate IMD Floppy Image?
 		if (Menu_Stat == BIOSMENU_STAT_OK) //Plain status?
 		{
 			BIOS_Menu = 78; //Generate IMD Floppy Image!
 		}
 		break;
-	case 8: //Generate Static HDD?
+	case 10: //Generate Static HDD?
 		if (Menu_Stat==BIOSMENU_STAT_OK) //Bochs type?
 		{
 			generateHDD_type = 1; //Bochs type!
@@ -1784,7 +1873,7 @@ void BIOS_DisksMenu() //Manages the mounted disks!
 			BIOS_Menu = 11; //Generate Static HDD!
 		}
 		break;
-	case 9: //Generate Dynamic HDD?
+	case 11: //Generate Dynamic HDD?
 		if (Menu_Stat==BIOSMENU_STAT_OK) //Bochs type?
 		{
 			generateHDD_type = 3; //Bochs type!
@@ -1796,34 +1885,40 @@ void BIOS_DisksMenu() //Manages the mounted disks!
 			BIOS_Menu = 12; //Generate Dynamic HDD!
 		}
 		break;
-	case 10: //Convert static to dynamic HDD?
+	case 12: //Convert static to dynamic HDD?
 		if (Menu_Stat==BIOSMENU_STAT_OK) //Plain status?
 		{
 			BIOS_Menu = 19; //Convert static to dynamic HDD!
 		}
 		break;
-	case 11: //Convert dynamic to static HDD?
+	case 13: //Convert dynamic to static HDD?
 		if (Menu_Stat==BIOSMENU_STAT_OK) //Plain status?
 		{
 			BIOS_Menu = 20; //Convert dynamic to static HDD!
 		}
 		break;
-	case 12: //Defragment a dynamic HDD Image?
+	case 14: //Defragment a dynamic HDD Image?
 		if (Menu_Stat==BIOSMENU_STAT_OK) //Plain status?
 		{
 			BIOS_Menu = 21; //Defragment a dynamic HDD Image!
 		}
 		break;
-	case 13: //Floppy A without disk type?
+	case 15: //Floppy A without disk type?
 		if (Menu_Stat == BIOSMENU_STAT_OK) //Plain status?
 		{
 			BIOS_Menu = 74; //Floppy A without disk type!
 		}
 		break;
-	case 14: //Floppy B without disk type?
+	case 16: //Floppy B without disk type?
 		if (Menu_Stat == BIOSMENU_STAT_OK) //Plain status?
 		{
 			BIOS_Menu = 75; //Floppy B without disk type!
+		}
+		break;
+	case 17: //Load/Eject CD-ROM0 button?
+		if (Menu_Stat == BIOSMENU_STAT_OK) //Plain status?
+		{
+			BIOS_Menu = 21; //Defragment a dynamic HDD Image!
 		}
 		break;
 	default: //Unknown option?
