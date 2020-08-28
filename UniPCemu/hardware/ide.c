@@ -4936,25 +4936,38 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		dolog("ATA", "GETMEDIASTATUS:%u,%u=%02X", channel, ATA_activeDrive(channel), command);
 #endif
 		drive = ATA_Drives[channel][ATA_activeDrive(channel)]; //Load the drive identifier!
-		ATAPI_MEDIASTATUS_RSRVD(channel,ATA_activeDrive(channel),0); //Reserved!
-		ATAPI_MEDIASTATUS_RSRVD2(channel,ATA_activeDrive(channel),0); //Reserved!
-		ATAPI_MEDIASTATUS_RSRVD3(channel,ATA_activeDrive(channel),0); //Reserved!
-		ATAPI_MEDIASTATUS_RSRVD4(channel,ATA_activeDrive(channel),0); //Reserved!
-		ATAPI_MEDIASTATUS_NOMED(channel,ATA_activeDrive(channel),is_mounted(drive)?0:1); //No media?
-		ATAPI_MEDIASTATUS_MCR(channel,ATA_activeDrive(channel),ATA[channel].Drive[ATA_activeDrive(channel)].MediumChangeRequested); //Media change requests is handled by a combination of this module and the disk manager(which sets it on requests from the user)?
-		ATAPI_MEDIASTATUS_MC(channel,ATA_activeDrive(channel),ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_mediaChanged); //Disk has been ejected/inserted?
-		ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_mediaChanged = 0; //Only set this when the disk has actually changed(inserted/removed). Afterwards, clear it on next calls.
-		ATA_activeDrive(channel),ATA[channel].Drive[ATA_activeDrive(channel)].MediumChangeRequested = 0; //Requesting the medium to change is only reported once!
-		if (is_mounted(drive)) //Drive inserted?
+		if (ATA[channel].Drive[ATA_activeDrive(channel)].MediumChangeRequested || //Media change requested?
+			ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_mediaChanged //Report media changd?
+			) //Required to answer?
 		{
-			ATAPI_MEDIASTATUS_WT_PT(channel,ATA_activeDrive(channel),drivereadonly(drive)); //Are we read-only!
+			ATAPI_MEDIASTATUS_RSRVD(channel, ATA_activeDrive(channel), 0); //Reserved!
+			ATAPI_MEDIASTATUS_RSRVD2(channel, ATA_activeDrive(channel), 0); //Reserved!
+			ATAPI_MEDIASTATUS_RSRVD3(channel, ATA_activeDrive(channel), 0); //Reserved!
+			ATAPI_MEDIASTATUS_RSRVD4(channel, ATA_activeDrive(channel), 0); //Reserved!
+			ATAPI_MEDIASTATUS_NOMED(channel, ATA_activeDrive(channel), is_mounted(drive) ? 0 : 1); //No media?
+			ATAPI_MEDIASTATUS_MCR(channel, ATA_activeDrive(channel), ATA[channel].Drive[ATA_activeDrive(channel)].MediumChangeRequested); //Media change requests is handled by a combination of this module and the disk manager(which sets it on requests from the user)?
+			ATAPI_MEDIASTATUS_MC(channel, ATA_activeDrive(channel), ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_mediaChanged); //Disk has been ejected/inserted?
+			ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_mediaChanged = 0; //Only set this when the disk has actually changed(inserted/removed). Afterwards, clear it on next calls.
+			ATA[ATA_activeDrive(channel)].Drive[ATA_activeDrive(channel)].MediumChangeRequested = 0; //Requesting the medium to change is only reported once!
+			if (is_mounted(drive)) //Drive inserted?
+			{
+				ATAPI_MEDIASTATUS_WT_PT(channel, ATA_activeDrive(channel), drivereadonly(drive)); //Are we read-only!
+			}
+			else
+			{
+				ATAPI_MEDIASTATUS_WT_PT(channel, ATA_activeDrive(channel), 0); //Are we read-only!
+			}
+			ATA_IRQ(channel, ATA_activeDrive(channel), ATAPI_FINISHREADYTIMING, 0); //Raise IRQ!
+			ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0xFF; //Reset status: error command!
 		}
-		else
+		else if (ATA_Drives[channel][ATA_activeDrive(channel)]>=CDROM0) //CD-ROM drive?
 		{
-			ATAPI_MEDIASTATUS_WT_PT(channel,ATA_activeDrive(channel),0); //Are we read-only!
+			ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //Reset status: No error to report, since there's nothing to report!
 		}
-		ATA_IRQ(channel, ATA_activeDrive(channel),ATAPI_FINISHREADYTIMING,0); //Raise IRQ!
-		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //Reset status!
+		else //Invalid command?
+		{
+			goto invalidcommand; //Error out!
+		}
 		break;
 	case 0xEF: //Set features (Mandatory)?
 #ifdef ATA_LOG
