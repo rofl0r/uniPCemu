@@ -1437,8 +1437,6 @@ extern byte CDROM_channel; //Default: no CD-ROM channel!
 void BIOS_LoadEjectCDROM0() //Load/Eject CD-ROM 0!
 {
 	byte ejectstatus;
-	byte inserted; //Insert success?
-	byte ejected; //Eject success?
 	lock(LOCK_MAINTHREAD);
 	if (CDROM_channel != 0xFF) //Has a channel?
 	{
@@ -1468,8 +1466,6 @@ void BIOS_LoadEjectCDROM0() //Load/Eject CD-ROM 0!
 void BIOS_LoadEjectCDROM1() //Load/Eject CD-ROM 1!
 {
 	byte ejectstatus;
-	byte inserted; //Insert success?
-	byte ejected; //Eject success?
 	lock(LOCK_MAINTHREAD);
 	if (CDROM_channel != 0xFF) //Has a channel?
 	{
