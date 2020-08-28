@@ -5935,6 +5935,7 @@ void ATA_DiskChanged(int disk)
 			ATA[disk_channel].Drive[disk_drive].driveparams[80] = (1<<4); //Supports ATA-1 on HDD, ATA-4 on CD-ROM!
 			ATA[disk_channel].Drive[disk_drive].driveparams[81] = 0x0017; //ATA/ATAPI-4 T13 1153D revision 17 on CD-ROM, ATA (ATA-1) X3T9.2 781D prior to revision 4 for hard disk(=1, but 0 due to ATA-1 specification not mentioning it).
 			ATA[disk_channel].Drive[disk_drive].driveparams[82] = ((1<<4)|(1<<9)|(1<<14)); //On CD-ROM, PACKET; DEVICE RESET; NOP is supported, ON hard disk, only NOP is supported.
+			ATA[disk_channel].Drive[disk_drive].driveparams[83] = (1<<4); //On CD-ROM, removable status notification feature set!
 			ATA[disk_channel].Drive[disk_drive].driveparams[127] = 0x0001; //01 in bit 0-1 means that we're using the removable media Microsoft feature set.
 		}
 		ATA_updateCapacity(disk_channel,disk_drive); //Update the drive capacity!
