@@ -1415,7 +1415,8 @@ void updateATA(DOUBLE timepassed) //ATA timing!
 			if (ATA[0].Drive[0].resetTiming<=0.0) //Timeout?
 			{
 				ATA[0].Drive[0].resetTiming = 0.0; //Timer finished!
-				ATA[0].Drive[0].commandstatus = 0; //We're ready now!
+				if (ATA[0].Drive[0].commandstatus==3) //Busy only?
+					ATA[0].Drive[0].commandstatus = 0; //We're ready now!
 				if (ATA[0].Drive[0].resetTriggersIRQ) //Triggers an IRQ(for ATAPI devices)?
 				{
 					ATA_channel = 0;
@@ -1432,7 +1433,8 @@ void updateATA(DOUBLE timepassed) //ATA timing!
 			if (ATA[0].Drive[1].resetTiming<=0.0) //Timeout?
 			{
 				ATA[0].Drive[1].resetTiming = 0.0; //Timer finished!
-				ATA[0].Drive[1].commandstatus = 0; //We're ready now!
+				if (ATA[0].Drive[1].commandstatus==3) //Busy only?
+					ATA[0].Drive[1].commandstatus = 0; //We're ready now!
 				if (ATA[0].Drive[1].resetTriggersIRQ) //Triggers an IRQ(for ATAPI devices)?
 				{
 					ATA_channel = 0;
@@ -1449,7 +1451,8 @@ void updateATA(DOUBLE timepassed) //ATA timing!
 			if (ATA[1].Drive[0].resetTiming<=0.0) //Timeout?
 			{
 				ATA[1].Drive[0].resetTiming = 0.0; //Timer finished!
-				ATA[1].Drive[0].commandstatus = 0; //We're ready now!
+				if (ATA[1].Drive[0].commandstatus==3) //Busy only?
+					ATA[1].Drive[0].commandstatus = 0; //We're ready now!
 				if (ATA[1].Drive[0].resetTriggersIRQ) //Triggers an IRQ(for ATAPI devices)?
 				{
 					ATA_channel = 1;
@@ -1466,7 +1469,8 @@ void updateATA(DOUBLE timepassed) //ATA timing!
 			if (ATA[1].Drive[1].resetTiming<=0.0) //Timeout?
 			{
 				ATA[1].Drive[1].resetTiming = 0.0; //Timer finished!
-				ATA[1].Drive[1].commandstatus = 0; //We're ready now!
+				if (ATA[1].Drive[1].commandstatus==3) //Busy only?
+					ATA[1].Drive[1].commandstatus = 0; //We're ready now!
 				if (ATA[1].Drive[1].resetTriggersIRQ) //Triggers an IRQ(for ATAPI devices)?
 				{
 					ATA_channel = 1;
@@ -4578,22 +4582,14 @@ void ATA_reset(byte channel, byte slave)
 	fullslaveinfo = slave; //Complete slave info!
 	slave &= 0x7F; //Are we a master or slave!
 	ATA[channel].Drive[slave].ERRORREGISTER = 0x01; //No error, but being a reserved value of 1 usually!
-	if ((fullslaveinfo & 0x80) == 0) //Normal SRST? Don't apply this for Device Reset commands!
-	{
-		if (ATA_Drives[channel][slave] >= CDROM0) //On a CD-ROM drive?
-		{
-			giveSignature(channel, slave); //Give the signature!
-			return; //Don't respond to the reset!
-		}
-	}
-	//Clear errors!
-	ATA_STATUSREGISTER_ERRORW(channel, slave, 0); //Error bit is reset when a new command is received, as defined in the documentation!
 	if ((ATA_Drives[channel][slave]==0) || (ATA_Drives[channel][slave] >= CDROM0)) //CD-ROM style reset?
 	{
 		ATA[channel].Drive[slave].PARAMETERS.reportReady = 0; //Report not ready now!
 	}
 	else //ATA-style reset?
 	{
+		//Clear errors!
+		ATA_STATUSREGISTER_ERRORW(channel, slave, 0); //Error bit is reset when a new command is received, as defined in the documentation!
 		ATA[channel].Drive[slave].PARAMETERS.reportReady = 1; //Report ready now!
 	}
 
@@ -4601,11 +4597,14 @@ void ATA_reset(byte channel, byte slave)
 	ATA_DRIVEHEAD_HEADW(channel,slave,0); //What head?
 	ATA_DRIVEHEAD_LBAMODE_2W(channel,slave,0); //LBA mode?
 	ATA[channel].Drive[slave].PARAMETERS.drivehead |= 0xA0; //Always 1!
-	ATA[channel].Drive[slave].commandstatus = 3; //We're busy waiting!
-	ATA[channel].Drive[slave].command = 0; //Full reset!
+	if ((ATA_Drives[channel][slave]<CDROM0) || (fullslaveinfo&0x80)) //Not a CD-ROM drive or ATAPI DEVICE RESET?
+	{
+		ATA[channel].Drive[slave].commandstatus = 3; //We're busy waiting! Reset to command mode afterwards!
+		ATA[channel].Drive[slave].command = 0; //Full reset!
+		ATA[channel].Drive[slave].ATAPI_processingPACKET = 0; //Not processing any packet!
+	}
 	ATA[channel].Drive[slave].resetTiming = ATA_RESET_TIMEOUT; //How long to wait in reset!
-	ATA[channel].Drive[slave].ATAPI_processingPACKET = 0; //Not processing any packet!
-	if (ATA[channel].Drive[slave].resetSetsDefaults) //Allow resetting to defaults?
+	if (ATA[channel].Drive[slave].resetSetsDefaults && (!(((fullslaveinfo & 0x80) == 0) && ATA_Drives[channel][slave]>=CDROM0))) //Allow resetting to defaults except SRST for CD-ROM drives?
 	{
 		ATA[channel].Drive[slave].multiplesectors = 0; //Disable multiple mode!
 		ATA[channel].Drive[slave].Enable8BitTransfers = 0; //Disable 8-bit transfers only!
@@ -5125,13 +5124,13 @@ OPTINLINE void ATA_updateStatus(byte channel)
 		break;
 	case 1: //Transferring data IN?
 		//ATA_STATUSREGISTER_INDEXW(channel, ATA_activeDrive(channel), (ATA[channel].Drive[ATA_activeDrive(channel)].IRQraised && (ATA_Drives[channel][ATA_activeDrive(channel)]>=CDROM0))?1:0); //Are we an IRQ cause!
-		ATA_STATUSREGISTER_BUSYW(channel,ATA_activeDrive(channel),((ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PendingExecuteTransfer?1:0)) | (((ATA[channel].Drive[ATA_activeDrive(channel)].IRQTimeout && ATA[channel].Drive[ATA_activeDrive(channel)].IRQTimeout_busy) || ATA[channel].Drive[ATA_activeDrive(channel)].BusyTiming)?1:0)); //Not busy! You can write to the CBRs! We're busy when waiting.
+		ATA_STATUSREGISTER_BUSYW(channel,ATA_activeDrive(channel),((ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PendingExecuteTransfer?1:0)) | (((ATA[channel].Drive[ATA_activeDrive(channel)].IRQTimeout && ATA[channel].Drive[ATA_activeDrive(channel)].IRQTimeout_busy) || ATA[channel].Drive[ATA_activeDrive(channel)].BusyTiming || (ATA[channel].Drive[ATA_activeDrive(channel)].resetTiming))?1:0)); //Not busy! You can write to the CBRs! We're busy when waiting.
 		ATA_STATUSREGISTER_DRIVEREADYW(channel,ATA_activeDrive(channel),(((ATA[channel].driveselectTiming)||ATA_STATUSREGISTER_BUSYR(channel,ATA_activeDrive(channel)))?0:1) & (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.reportReady&1)); //We're ready to process a command!
 		ATA_STATUSREGISTER_DATAREQUESTREADYW(channel,ATA_activeDrive(channel),((ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PendingExecuteTransfer||ATA_STATUSREGISTER_BUSYR(channel, ATA_activeDrive(channel)))?0:1)); //We're requesting data to transfer! Not transferring when waiting.
 		break;
 	case 2: //Transferring data OUT?
 		//ATA_STATUSREGISTER_INDEXW(channel, ATA_activeDrive(channel), (ATA[channel].Drive[ATA_activeDrive(channel)].IRQraised && (ATA_Drives[channel][ATA_activeDrive(channel)]>=CDROM0))?1:0); //Are we an IRQ cause!
-		ATA_STATUSREGISTER_BUSYW(channel,ATA_activeDrive(channel),(ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PendingExecuteTransfer?1:0) | (((ATA[channel].Drive[ATA_activeDrive(channel)].IRQTimeout && ATA[channel].Drive[ATA_activeDrive(channel)].IRQTimeout_busy) || ATA[channel].Drive[ATA_activeDrive(channel)].BusyTiming) ? 1 : 0)); //Not busy! You can write to the CBRs! We're busy when waiting.
+		ATA_STATUSREGISTER_BUSYW(channel,ATA_activeDrive(channel),(ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PendingExecuteTransfer?1:0) | (((ATA[channel].Drive[ATA_activeDrive(channel)].IRQTimeout && ATA[channel].Drive[ATA_activeDrive(channel)].IRQTimeout_busy) || ATA[channel].Drive[ATA_activeDrive(channel)].BusyTiming || (ATA[channel].Drive[ATA_activeDrive(channel)].resetTiming)) ? 1 : 0)); //Not busy! You can write to the CBRs! We're busy when waiting.
 		ATA_STATUSREGISTER_DRIVEREADYW(channel,ATA_activeDrive(channel),(((ATA[channel].driveselectTiming||ATA_STATUSREGISTER_BUSYR(channel,ATA_activeDrive(channel))))?0:1) & (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.reportReady&1)); //We're ready to process a command!
 		ATA_STATUSREGISTER_DATAREQUESTREADYW(channel,ATA_activeDrive(channel),((ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_PendingExecuteTransfer||ATA_STATUSREGISTER_BUSYR(channel, ATA_activeDrive(channel)))?0:1)); //We're requesting data to transfer! Not transferring when waiting.
 		break;
@@ -5511,6 +5510,10 @@ byte inATA8(word port, byte *result)
 		ATA_updateStatus(ATA_channel); //Update the status register if needed!
 		ATA_removeIRQ(ATA_channel,ATA_activeDrive(ATA_channel)); //Acnowledge IRQ!
 		*result = ATA[ATA_channel].Drive[ATA_activeDrive(ATA_channel)].STATUSREGISTER; //Get status!
+		if (!ATA[ATA_channel].Drive[ATA_activeDrive(ATA_channel)].PARAMETERS.reportReady) //Not ready yet?
+		{
+			*result &= 0x90; //BSY and DSC only reported!
+		}
 		if (ATA_Drives[ATA_channel][ATA_activeDrive(ATA_channel)] == 0) //Invalid drive?
 		{
 			*result = 0; //Return 0 for invalid drives!
@@ -5542,6 +5545,10 @@ port3_read: //Special port #3?
 		}
 		ATA_updateStatus(ATA_channel); //Update the status register if needed!
 		*result = ATA[ATA_channel].Drive[ATA_activeDrive(ATA_channel)].STATUSREGISTER; //Get status!
+		if (!ATA[ATA_channel].Drive[ATA_activeDrive(ATA_channel)].PARAMETERS.reportReady) //Not ready yet?
+		{
+			*result &= 0x90; //BSY and DSC only reported!
+		}
 #ifdef ATA_LOG
 		dolog("ATA", "Alternate status register read: %02X %u.%u", *result, ATA_channel, ATA_activeDrive(ATA_channel));
 #endif
