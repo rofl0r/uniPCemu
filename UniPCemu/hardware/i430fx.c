@@ -611,9 +611,7 @@ void i430fx_writeaddr(byte index, byte *value) //Written an address?
 			//Should reset all PCI devices?
 			if (*value & 2) //Hard reset?
 			{
-				i430fx_hardreset(); //Perform a hard reset of the hardware!
-				i430fx_configuration[0x59] = 0xF; //Reset this!
-				i430fx_PCIConfigurationChangeHandler(0x59, 3, 0, 1); //Updated!
+				i430fx_hardreset(); //Perform a full hard reset of the hardware!
 			}
 			CPU[activeCPU].resetPending = 1; //Start pending reset!
 			*value &= ~4; //Cannot be read as a 1, according to documentation!
