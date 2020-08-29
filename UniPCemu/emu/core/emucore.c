@@ -1471,7 +1471,7 @@ extern Controller8042_t Controller8042;
 extern byte SystemControlPortA;
 void EMU_onCPUReset(byte isInit)
 {
-	if (isInit) //Initializing?
+	if ((isInit&0xF)||(isInit&0x40)) //Initializing or forced initialize(bit 4-7 are the bits 0-3 of the resetPending flag)?
 	{
 		SystemControlPortA &= ~2; //Clear A20 here!
 		if ((is_XT == 0) || (EMULATED_CPU >= CPU_80286) || (is_Compaq == 1) || (is_i430fx)) //AT-class CPU?

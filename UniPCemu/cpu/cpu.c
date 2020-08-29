@@ -823,7 +823,7 @@ OPTINLINE void CPU_initRegisters(byte isInit) //Init the registers!
 	}
 	else //Default or 80386?
 	{
-		if (isInit==0) //Were we not an init?
+		if ((isInit&0xF)==0) //Were we not an init?
 		{
 			CPU[activeCPU].registers->CR0 = oldCR0; //Restore before resetting, if possible!
 		}
@@ -957,13 +957,15 @@ void initCPU() //Initialize CPU for full system reset into known state!
 
 void CPU_tickPendingReset()
 {
+	byte resetPendingFlag;
 	if (unlikely(CPU[activeCPU].resetPending)) //Are we pending?
 	{
 		if (BIU_resetRequested() && (CPU[activeCPU].instructionfetch.CPU_isFetching==1) && (CPU[activeCPU].resetPending != 2)) //Starting a new instruction or halted with pending Reset?
 		{
+			resetPendingFlag = CPU[activeCPU].resetPending; //The flag!
 			unlock(LOCK_CPU);
 			doneCPU(); //Finish the CPU!
-			resetCPU(0); //Simply fully reset the CPU on triple fault(e.g. reset pin result)!
+			resetCPU(0|(resetPendingFlag<<4)); //Simply fully reset the CPU on triple fault(e.g. reset pin result)!
 			lock(LOCK_CPU);
 			CPU[activeCPU].resetPending = 0; //Not pending reset anymore!
 		}
