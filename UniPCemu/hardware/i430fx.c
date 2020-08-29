@@ -613,7 +613,7 @@ void i430fx_writeaddr(byte index, byte *value) //Written an address?
 			{
 				i430fx_hardreset(); //Perform a full hard reset of the hardware!
 			}
-			CPU[activeCPU].resetPending = 1; //Start pending reset!
+			CPU[activeCPU].resetPending = 1|4; //Start pending reset!
 			*value &= ~4; //Cannot be read as a 1, according to documentation!
 		}
 	}
