@@ -515,7 +515,7 @@ void i430fx_hardreset()
 	PCI_unusedBAR(config_piix, 5); //Unused!
 
 	//Initalize all mappings!
-	for (address = 0x59; address < 0x5F; ++address) //Initialize us!
+	for (address = 0x59; address <= 0x5F; ++address) //Initialize us!
 	{
 		i430fx_PCIConfigurationChangeHandler(address, 3, 0, 1); //Initialize all required settings!
 	}
