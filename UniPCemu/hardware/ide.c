@@ -4407,8 +4407,10 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			}
 			break;
 		case 3: //Load the disc (Close tray)?
-			ATA[channel].Drive[drive].ATAPI_caddyejected = 0; //We're not ejected anymore!
-			EMU_setDiskBusy(ATA_Drives[channel][drive], 0 | (ATA[channel].Drive[drive].ATAPI_caddyejected << 1)); //We're not reading anymore!
+			if (ATA[channel].Drive[drive].ATAPI_caddyejected == 1) //Caddy is ejected?
+			{
+				ATA[channel].Drive[drive].ATAPI_caddyejected = 2; //Request the caddy to be inserted again!
+			}
 			break;
 		default:
 			break;
