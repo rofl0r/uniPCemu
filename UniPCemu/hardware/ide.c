@@ -77,6 +77,7 @@ enum
 //Some timeouts for the spindown/spinup timing!
 #define ATAPI_SPINDOWN_TIMEOUT 10000000000.0
 #define ATAPI_SPINUP_TIMEOUT 1000000000.0
+#define ATAPI_SPINDOWNSTOP_TIMEOUT 1000000000.0
 #define ATAPI_INSERTION_TIME 4000000000.0
 
 //What has happened during a ATAPI_DISKCHANGETIMEOUT?
@@ -224,7 +225,6 @@ typedef struct
 		byte allowDiskInsertion; //Allow a disk to be inserted?
 		byte ATAPI_caddyejected; //Caddy ejected? 0=Inserted, 1=Ejected, 2=Request insertion.
 		byte MediumChangeRequested; //Is the user requesting the drive to be ejected?
-		byte isSpinning; //Are we spinning the disc?
 		uint_32 ATAPI_LBA; //ATAPI LBA storage!
 		uint_32 ATAPI_lastLBA; //ATAPI last LBA storage!
 		uint_32 ATAPI_disksize; //The ATAPI disk size!
@@ -288,7 +288,8 @@ enum {
 	LOAD_INSERT_CD=2,			/* user is "inserting" the CD */
 	LOAD_DISC_LOADING=3,		/* disc is "spinning up" */
 	LOAD_DISC_READIED=4,		/* disc just "became ready" */
-	LOAD_READY=5
+	LOAD_READY=5,
+	LOAD_SPINDOWN=6 /* disc is requested to spin down */
 };
 
 //Drive/Head register
@@ -692,6 +693,7 @@ void ATAPI_dynamicloadingprocess_spindown(byte channel, byte drive)
 	{
 	case LOAD_DISC_READIED:
 	case LOAD_READY:
+	case LOAD_SPINDOWN: //Requested to spin down?
 		ATA[channel].Drive[drive].PendingLoadingMode = LOAD_IDLE; //Becoming idle!
 		ATA[channel].Drive[drive].ATAPI_diskchangeTimeout = 0.0f; //Nothing!
 		ATAPI_setModePages(channel, drive); //Update with the new status!
@@ -857,6 +859,7 @@ byte ATAPI_common_spin_response(byte channel, byte drive, byte spinupdown, byte 
 		}
 		break;
 	case LOAD_READY:
+	case LOAD_SPINDOWN: //Requested to be spinning down?
 		if (spinupdown) //To spin up or a keep spinning operation?
 		{
 			//Tick the timer if needed!
@@ -870,6 +873,7 @@ byte ATAPI_common_spin_response(byte channel, byte drive, byte spinupdown, byte 
 			}
 			ATA[channel].Drive[drive].ATAPI_diskchangeDirection = ATAPI_DYNAMICLOADINGPROCESS; //We're unchanged from now on!
 			ATA[channel].Drive[drive].PendingSpinType = ATAPI_SPINDOWN; //We're spinning down!
+			ATA[channel].Drive[drive].PendingLoadingMode = LOAD_READY; //Handle it like a loading ready, abort any spindown!
 		}
 		break;
 	case LOAD_NO_DISC:
@@ -1338,7 +1342,6 @@ byte ATAPI_audioplayer_startPlayback(byte channel, byte drive, byte startM, byte
 
 void handleATAPIcaddyeject(byte channel, byte drive)
 {
-	ATA[channel].Drive[drive].isSpinning = 0; //Not spinning!
 	requestEjectDisk(ATA_Drives[channel][drive]); //Request for the specified disk to be ejected!
 	ATA[channel].Drive[drive].allowDiskInsertion = 1; //Allow the disk to be inserted afterwards!
 	ATA[channel].Drive[drive].ATAPI_caddyejected = 1; //We're ejected!
@@ -3653,8 +3656,17 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 					ATA[channel].Drive[drive].data[1] = (byte)ATAPI_supportedmodepagecodes_length[i]; //LSB of Size of the data following the header!
 
 					//Disc in drive and type of said disc:
-					switch (ATA[channel].Drive[drive].PendingLoadingMode)
+					if (ATA[channel].Drive[drive].ATAPI_caddyejected) //Caddy is ejected?
 					{
+						ATA[channel].Drive[drive].data[2] = 0x71; //Door open
+					}
+					else switch (ATA[channel].Drive[drive].PendingLoadingMode)
+					{
+					case LOAD_SPINDOWN: //Spinning down requested?
+						if (!ATA[channel].Drive[drive].diskInserted) //Disc not inserted?
+						{
+							goto nodiscpresentmode;
+						}
 					case LOAD_DISC_LOADING:
 					case LOAD_DISC_READIED:
 					case LOAD_READY:
@@ -3663,6 +3675,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 						break;
 					default:
 					case LOAD_NO_DISC: //No disc inserted?
+					nodiscpresentmode: //No disc present mode?
 						ATA[channel].Drive[drive].data[2] = 0x70; //Closed and no disc
 						break;
 					case LOAD_INSERT_CD: //Door open and inserting/removing disc?
@@ -3743,7 +3756,6 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		if ((spinresponse = ATAPI_common_spin_response(channel, drive, 1, 1))==1)
 		{
 			if (!(is_mounted(ATA_Drives[channel][drive]) && ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
-			ATA[channel].Drive[drive].isSpinning = 1; //We start spinning now!
 			LBA = (((((ATA[channel].Drive[drive].ATAPI_PACKET[2] << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[3]) << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[4]) << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[5]; //The LBA address!
 			ATA[channel].Drive[drive].datasize = ATA[channel].Drive[drive].ATAPI_PACKET[8] | ATA[channel].Drive[drive].ATAPI_PACKET[7] | ATA[channel].Drive[drive].ATAPI_PACKET[6]; //The amount of sectors to transfer!
 			transfer_req = ATA[channel].Drive[drive].ATAPI_PACKET[9]; //Requested type of packets!
@@ -3803,7 +3815,6 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		if ((spinresponse = ATAPI_common_spin_response(channel, drive, 1, 1))==1)
 		{
 			if (!(is_mounted(ATA_Drives[channel][drive]) && ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
-			ATA[channel].Drive[drive].isSpinning = 1; //We start spinning now!
 			LBA = MSF2LBAbin(ATA[channel].Drive[drive].ATAPI_PACKET[3], ATA[channel].Drive[drive].ATAPI_PACKET[4], ATA[channel].Drive[drive].ATAPI_PACKET[5]); //The LBA address!
 			endLBA = MSF2LBAbin(ATA[channel].Drive[drive].ATAPI_PACKET[6], ATA[channel].Drive[drive].ATAPI_PACKET[7], ATA[channel].Drive[drive].ATAPI_PACKET[8]); //The LBA address!
 
@@ -3872,8 +3883,6 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		if ((spinresponse = ATAPI_common_spin_response(channel, drive, 1, 1))==1)
 		{
 			if (!(is_mounted(ATA_Drives[channel][drive]) && ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
-			ATA[channel].Drive[drive].isSpinning = 1; //We start spinning now!
-			if (!ATA[channel].Drive[drive].isSpinning) { abortreason = SENSE_NOT_READY; additionalsensecode = 0x4; goto ATAPI_invalidcommand; } //We need to be running!
 
 			LBA = (((((ATA[channel].Drive[drive].ATAPI_PACKET[2] << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[3]) << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[4]) << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[5]; //The LBA address!
 			alloc_length = (ATA[channel].Drive[drive].ATAPI_PACKET[7] << 8) | (ATA[channel].Drive[drive].ATAPI_PACKET[8]); //Allocated length!
@@ -3926,7 +3935,6 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 	case 0x42: //Read sub-channel (mandatory)?
 		if ((spinresponse = ATAPI_common_spin_response(channel,drive,1,1))==1)
 		{
-			ATA[channel].Drive[drive].isSpinning = 1; //We start spinning now!
 			MSF = (ATA[channel].Drive[drive].ATAPI_PACKET[1]&2); //MSF bit!
 			sub_Q = (ATA[channel].Drive[drive].ATAPI_PACKET[2] & 0x40); //SubQ bit!
 			data_format = ATA[channel].Drive[drive].ATAPI_PACKET[3]; //Sub-channel Data Format
@@ -4049,7 +4057,6 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		if ((spinresponse = ATAPI_common_spin_response(channel,drive,1,1))==1)
 		{
 			if (!(is_mounted(ATA_Drives[channel][drive])&&ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
-			ATA[channel].Drive[drive].isSpinning = 1; //We start spinning now!
 			MSF = (ATA[channel].Drive[drive].ATAPI_PACKET[1]>>1)&1;
 			starting_track = ATA[channel].Drive[drive].ATAPI_PACKET[6]; //Starting track!
 			alloc_length = (ATA[channel].Drive[drive].ATAPI_PACKET[7]<<8)|(ATA[channel].Drive[drive].ATAPI_PACKET[8]); //Allocated length!
@@ -4093,8 +4100,6 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		{
 			//Clear sense data
 			if (!(is_mounted(ATA_Drives[channel][drive])&&ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
-			ATA[channel].Drive[drive].isSpinning = 1; //We start spinning now!
-			if (!ATA[channel].Drive[drive].isSpinning) { abortreason = SENSE_NOT_READY;additionalsensecode = 0x4;goto ATAPI_invalidcommand; } //We need to be running!
 			//[9]=Amount of sectors, [2-5]=LBA address, LBA mid/high=2048.
 			LBA = (((((ATA[channel].Drive[drive].ATAPI_PACKET[2] << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[3]) << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[4]) << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[5]; //The LBA address!
 
@@ -4176,7 +4181,6 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 	case 0x4E: //Stop play/scan (Mandatory)?
 		//Simply ignore the command for now, as audio is unsupported?
 		if (!(is_mounted(ATA_Drives[channel][drive])&&ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
-		if (!ATA[channel].Drive[drive].isSpinning) { abortreason = SENSE_NOT_READY;additionalsensecode = 0x4;goto ATAPI_invalidcommand; } //We need to be running!
 
 		//Issuing this command while scanning makes the play command continue. Issuing this command while paused shall stop the play command.
 		if (ATA[channel].Drive[drive].AUDIO_PLAYER.status == PLAYER_PAUSED) //Paused?
@@ -4204,7 +4208,6 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		if ((spinresponse = ATAPI_common_spin_response(channel, drive, 1, 1)) == 1)
 		{
 			if (!(is_mounted(ATA_Drives[channel][drive]) && ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
-			if (!ATA[channel].Drive[drive].isSpinning) { abortreason = SENSE_NOT_READY; additionalsensecode = 0x4; goto ATAPI_invalidcommand; } //We need to be running!
 			if (ATA[channel].Drive[drive].ATAPI_PACKET[8] & 1) //Resume?
 			{
 				//Resume if paused, otherwise, NOP!
@@ -4256,7 +4259,6 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		if ((spinresponse = ATAPI_common_spin_response(channel, drive, 1, 1)) == 1)
 		{
 			if (!(is_mounted(ATA_Drives[channel][drive]) && ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
-			if (!ATA[channel].Drive[drive].isSpinning) { abortreason = SENSE_NOT_READY; additionalsensecode = 0x4; goto ATAPI_invalidcommand; } //We need to be running!
 
 			LBA = ((((((ATA[channel].Drive[drive].ATAPI_PACKET[2] << 8) | (ATA[channel].Drive[drive].ATAPI_PACKET[3])) << 8) | (ATA[channel].Drive[drive].ATAPI_PACKET[4])) << 8) | (ATA[channel].Drive[drive].ATAPI_PACKET[5])); //Starting LBA address!
 			alloc_length = ((ATA[channel].Drive[drive].ATAPI_PACKET[7] << 8) | (ATA[channel].Drive[drive].ATAPI_PACKET[8])); //Amount of frames to play (0 is valid, which means end MSF = start MSF)!
@@ -4322,7 +4324,6 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		if ((spinresponse = ATAPI_common_spin_response(channel, drive, 1, 1)) == 1)
 		{
 			if (!(is_mounted(ATA_Drives[channel][drive]) && ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
-			if (!ATA[channel].Drive[drive].isSpinning) { abortreason = SENSE_NOT_READY; additionalsensecode = 0x4; goto ATAPI_invalidcommand; } //We need to be running!
 			startM = ATA[channel].Drive[drive].ATAPI_PACKET[3]; //Start M!
 			startS = ATA[channel].Drive[drive].ATAPI_PACKET[4]; //Start S!
 			startF = ATA[channel].Drive[drive].ATAPI_PACKET[5]; //Start F!
@@ -4389,10 +4390,34 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		switch (ATA[channel].Drive[drive].ATAPI_PACKET[4] & 3) //What kind of action to take?
 		{
 		case 0: //Stop the disc?
-			ATA[channel].Drive[drive].isSpinning = 0; //We're stopped now!
+			switch (ATA[channel].Drive[drive].PendingLoadingMode) //What loading mode?
+			{
+			case LOAD_IDLE: /* disc is stationary, not spinning */
+			case LOAD_NO_DISC: /* caddy inserted, not spinning, no disc */
+			case LOAD_INSERT_CD: /* user is "inserting" the CD */
+			case LOAD_DISC_LOADING: /* disc is "spinning up" */
+			case LOAD_DISC_READIED: /* disc just "became ready" */
+				break; //Don't do anything!
+			case LOAD_SPINDOWN: /* disc is requested to spin down */
+				//Don't stop the disc if it's already stopping to spin (NOP)!
+				break;
+			case LOAD_READY: /* Disc is ready to be read and spinning! */
+				ATA[channel].Drive[drive].PendingLoadingMode = LOAD_SPINDOWN; //Start becoming idle!
+				ATA[channel].Drive[drive].PendingSpinType = ATAPI_SPINDOWN; //Spin down!
+				ATA[channel].Drive[drive].ATAPI_diskchangeTimeout = ATAPI_SPINDOWNSTOP_TIMEOUT; //Timeout to spinup complete!
+				ATA[channel].Drive[drive].ATAPI_diskchangeDirection = ATAPI_DYNAMICLOADINGPROCESS; //We're unchanged from now on!
+			}
 			break;
 		case 1: //Start the disc and read the TOC?
-			ATA[channel].Drive[drive].isSpinning = 1; //We're running now!
+			if (ATAPI_common_spin_response(channel, drive, 1, 0) == 1) //Spinning up?
+			{
+				//OK! We're starting up or are started!
+			}
+			else //Report error!
+			{
+				ATAPI_command_reportError(channel, drive); //Report the error!
+				ATAPI_aborted = 1; //We're aborted!
+			}
 			break;
 		case 2: //Eject the disc if possible?
 			if (ATA_allowDiskChange(ATA_Drives[channel][drive],2)) //Do we allow the disc to be changed? Stop spinning if spinning!
@@ -4425,8 +4450,6 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		if ((spinresponse = ATAPI_common_spin_response(channel,drive,1,1))==1)
 		{
 			if (!(is_mounted(ATA_Drives[channel][drive])&&ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
-			ATA[channel].Drive[drive].isSpinning = 1; //We start spinning now!
-			if (!ATA[channel].Drive[drive].isSpinning) { abortreason = SENSE_NOT_READY;additionalsensecode = 0x4;goto ATAPI_invalidcommand; } //We need to be running!
 			//[9]=Amount of sectors, [2-5]=LBA address, LBA mid/high=2048.
 			LBA = (((((ATA[channel].Drive[drive].ATAPI_PACKET[2]<<8) | ATA[channel].Drive[drive].ATAPI_PACKET[3])<<8)| ATA[channel].Drive[drive].ATAPI_PACKET[4]) << 8)| ATA[channel].Drive[drive].ATAPI_PACKET[5]; //The LBA address!
 			ATA[channel].Drive[drive].datasize = (ATA[channel].Drive[drive].ATAPI_PACKET[7]<<8)|(ATA[channel].Drive[drive].ATAPI_PACKET[8]); //How many sectors to transfer
@@ -4464,8 +4487,6 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		if ((spinresponse = ATAPI_common_spin_response(channel, drive, 1, 1))==1)
 		{
 			if (!(is_mounted(ATA_Drives[channel][drive]) && ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
-			ATA[channel].Drive[drive].isSpinning = 1; //We start spinning now!
-			if (!ATA[channel].Drive[drive].isSpinning) { abortreason = SENSE_NOT_READY; additionalsensecode = 0x4; goto ATAPI_invalidcommand; } //We need to be running!
 			ATA[channel].Drive[drive].datapos = 0; //Start of data!
 			ATA[channel].Drive[drive].datablock = 8; //Size of a block of information to transfer!
 			ATA[channel].Drive[drive].datasize = 1; //Number of blocks of information to transfer!
@@ -5675,7 +5696,6 @@ void ATAPI_insertCD(int disk, byte disk_channel, byte disk_drive)
 		//Normal handling of automatic insertion after some time!
 		byte abortreason, additionalsensecode, ascq = 0;
 		//ATA_ERRORREGISTER_MEDIACHANGEDW(disk_channel,disk_drive,1); //We've changed media!
-		ATA[disk_channel].Drive[disk_drive].isSpinning = is_mounted(disk) ? 1 : 0; //We're spinning automatically, since the media has been inserted!
 		//Disable the IRQ for now to let the software know we've changed!
 		if (!ATA[disk_channel].Drive[disk_drive].ATAPI_diskchangeTimeout) //Not already pending?
 		{
