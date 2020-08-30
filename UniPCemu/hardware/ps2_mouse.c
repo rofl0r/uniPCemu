@@ -289,6 +289,8 @@ OPTINLINE void resetPS2Mouse(byte cause)
 	if (__HW_DISABLED) return; //Abort!
 	flushPackets(); //Flush all packets!
 	memset(&Mouse.data,0,sizeof(Mouse.data)); //Reset the mouse!
+	Mouse.samplerate = 100; //100 packets/second!
+	update_mouseTimer(); //Update the timer!
 	//No data reporting!
 	Mouse.resolution = 0x02; //4 pixel/mm resolution!
 	update_mouseresolution(); //Update it!
@@ -344,6 +346,9 @@ OPTINLINE void initPS2Mouse()
 	if (__HW_DISABLED) return; //Abort!
 	flushPackets(); //Flush all packets!
 	memset(&Mouse.data,0,sizeof(Mouse.data)); //Reset the mouse!
+	Mouse.samplerate = 100; //100 packets/second!
+	update_mouseTimer(); //Update the timer!
+
 	//No data reporting!
 	Mouse.resolution = 0x02; //4 pixel/mm resolution!
 	update_mouseresolution(); //Update it!
@@ -391,7 +396,6 @@ OPTINLINE void give_mouse_status() //Gives the mouse status buffer!
 OPTINLINE void loadMouseDefaults() //Load the Mouse Defaults!
 {
 	Mouse.data_reporting = 0;
-	Mouse.samplerate = 100; //100 packets/second!
 	update_mouseTimer(); //Update the timer!
 	Mouse.resolution = 2; //4 Pixels/mm!
 	update_mouseresolution(); //update it!
@@ -592,12 +596,12 @@ OPTINLINE void datawritten_mouse(byte data) //Data has been written to the mouse
 			case 100:
 			case 200: //Valid?
 				Mouse.samplerate = data; //Set the sample rate (in samples/second)!
+				update_mouseTimer(); //Update the timer!
 				break;
 			default: //incorrect?
 				give_mouse_output(0xFE); //Invalid!
 				break;
 			}
-			update_mouseTimer(); //Update the timer!
 			give_mouse_output(0xFA); //Acnowledge!
 			input_lastwrite_mouse(); //Give byte to the user!
 			Mouse.has_command = 0; //We don't have a command anymore!
@@ -805,6 +809,7 @@ void PS2_initMouse(byte enabled) //Initialise the mouse to reset mode?
 
 		initPS2Mouse(); //Reset the mouse to power-on defaults!
 
+		Mouse.samplerate = 100; //100 packets/second!
 		update_mouseTimer(); //(Re)set mouse timer!
 		Mouse.disabled = 1; //Default: disabled!
 		update_mouseresolution(); //update the resolution!
