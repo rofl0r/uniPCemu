@@ -5429,6 +5429,27 @@ byte inATA32(word port, uint_32 *result)
 	return 1;
 }
 
+//Give the status register, masked if required!
+byte ATA_maskStatus(byte result)
+{
+	if ((ATA[ATA_channel].Drive[ATA_slave].PARAMETERS.reportReady & 1) == 0) //Not ready yet (for ATAPI drives)?
+	{
+		switch (ATA[ATA_channel].Drive[ATA_slave].commandstatus)  //What command status?
+		{
+		case 0: //New command?
+			return (result&~0xC0); //BSY and DRDY off!
+			break;
+		case 1: //DATA IN
+		case 2: //DATA OUT
+			return (result&~0x40); //Only DRDY off!
+			break;
+		default: //No masking needed?
+			//Don't mask BSY or DRDY!
+			break;
+		}
+	}
+	return result; //Give the status unmodified!
+}
 
 byte inATA8(word port, byte *result)
 {
@@ -5513,11 +5534,7 @@ byte inATA8(word port, byte *result)
 		}
 		ATA_updateStatus(ATA_channel); //Update the status register if needed!
 		ATA_removeIRQ(ATA_channel,ATA_activeDrive(ATA_channel)); //Acnowledge IRQ!
-		*result = ATA[ATA_channel].Drive[ATA_activeDrive(ATA_channel)].STATUSREGISTER; //Get status!
-		if (!(ATA[ATA_channel].Drive[ATA_activeDrive(ATA_channel)].PARAMETERS.reportReady&1)) //Not ready yet?
-		{
-			*result &= 0x90; //BSY and DSC only reported!
-		}
+		*result = ATA_maskStatus(ATA[ATA_channel].Drive[ATA_activeDrive(ATA_channel)].STATUSREGISTER); //Get status!
 		if (ATA_Drives[ATA_channel][ATA_activeDrive(ATA_channel)] == 0) //Invalid drive?
 		{
 			*result = 0; //Return 0 for invalid drives!
@@ -5548,11 +5565,7 @@ port3_read: //Special port #3?
 			return 1; //OK!
 		}
 		ATA_updateStatus(ATA_channel); //Update the status register if needed!
-		*result = ATA[ATA_channel].Drive[ATA_activeDrive(ATA_channel)].STATUSREGISTER; //Get status!
-		if (!(ATA[ATA_channel].Drive[ATA_activeDrive(ATA_channel)].PARAMETERS.reportReady&1)) //Not ready yet?
-		{
-			*result &= 0x90; //BSY and DSC only reported!
-		}
+		*result = ATA_maskStatus(ATA[ATA_channel].Drive[ATA_activeDrive(ATA_channel)].STATUSREGISTER); //Get status!
 #ifdef ATA_LOG
 		dolog("ATA", "Alternate status register read: %02X %u.%u", *result, ATA_channel, ATA_activeDrive(ATA_channel));
 #endif
