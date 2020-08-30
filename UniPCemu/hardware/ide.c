@@ -75,9 +75,15 @@ enum
 };
 
 //Some timeouts for the spindown/spinup timing!
+//Spinning down automatically time
 #define ATAPI_SPINDOWN_TIMEOUT 10000000000.0
+//Spinning up time
 #define ATAPI_SPINUP_TIMEOUT 1000000000.0
+//Spinning down manually time
 #define ATAPI_SPINDOWNSTOP_TIMEOUT 1000000000.0
+//Immediate loading time for the tray to load by software (1 second to load the tray)!
+#define ATAPI_INSERTION_FASTTIME 1000000000.0
+//Loading time for manual load by a user (3 seconds to load a disc, 1 second to load the tray)!
 #define ATAPI_INSERTION_TIME 4000000000.0
 
 //What has happened during a ATAPI_DISKCHANGETIMEOUT?
@@ -224,6 +230,8 @@ typedef struct
 		byte preventMediumRemoval; //Are we preventing medium removal for removable disks(CD-ROM)?
 		byte allowDiskInsertion; //Allow a disk to be inserted?
 		byte ATAPI_caddyejected; //Caddy ejected? 0=Inserted, 1=Ejected, 2=Request insertion.
+		byte ATAPI_caddyinsertion_fast; //Fast automatic insertion and startup of the caddy?
+		byte ATAPI_diskchangependingspeed; //The latched speed of disk change pending, to be automatically cleared!
 		byte MediumChangeRequested; //Is the user requesting the drive to be ejected?
 		uint_32 ATAPI_LBA; //ATAPI LBA storage!
 		uint_32 ATAPI_lastLBA; //ATAPI last LBA storage!
@@ -4435,6 +4443,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			if (ATA[channel].Drive[drive].ATAPI_caddyejected == 1) //Caddy is ejected?
 			{
 				ATA[channel].Drive[drive].ATAPI_caddyejected = 2; //Request the caddy to be inserted again!
+				ATA[channel].Drive[drive].ATAPI_caddyinsertion_fast = 1; //Fast insertion!
 			}
 			break;
 		default:
@@ -5691,19 +5700,40 @@ for (counter = 0; counter < sizeinwords; ++counter) //Step words!
 //Internal use only:
 void ATAPI_insertCD(int disk, byte disk_channel, byte disk_drive)
 {
+	DOUBLE timeoutspeed;
 	if (ATA_allowDiskChange(disk, 1)) //Allow changing of said disk?
 	{
 		//Normal handling of automatic insertion after some time!
 		byte abortreason, additionalsensecode, ascq = 0;
+		byte fastinsertion;
 		//ATA_ERRORREGISTER_MEDIACHANGEDW(disk_channel,disk_drive,1); //We've changed media!
 		//Disable the IRQ for now to let the software know we've changed!
+		if (ATA[disk_channel].Drive[disk_drive].ATAPI_caddyejected == 2)
+		{
+			if (ATA[disk_channel].Drive[disk_drive].ATAPI_caddyinsertion_fast) //Fast insertion instead?
+			{
+				ATA[disk_channel].Drive[disk_drive].ATAPI_diskchangependingspeed = 1; //Fast speed of loading!
+			}
+			else
+			{
+				ATA[disk_channel].Drive[disk_drive].ATAPI_diskchangependingspeed = 0; //Slow speed of loading!
+			}
+		}
+		//Otherwise, use last provided speed to handle the disk insertion!
+
+		timeoutspeed = ATAPI_INSERTION_TIME; //Default timeout speed!
+		if (ATA[disk_channel].Drive[disk_drive].ATAPI_diskchangependingspeed) //Speed is immediate?
+		{
+			timeoutspeed = ATAPI_INSERTION_FASTTIME; //Fast insertion time!
+		}
+
 		if (!ATA[disk_channel].Drive[disk_drive].ATAPI_diskchangeTimeout) //Not already pending?
 		{
-			ATA[disk_channel].Drive[disk_drive].ATAPI_diskchangeTimeout = ATAPI_INSERTION_TIME; //New timer!
+			ATA[disk_channel].Drive[disk_drive].ATAPI_diskchangeTimeout = timeoutspeed; //New timer!
 		}
 		else
 		{
-			ATA[disk_channel].Drive[disk_drive].ATAPI_diskchangeTimeout += ATAPI_INSERTION_TIME; //Add to pending timing!
+			ATA[disk_channel].Drive[disk_drive].ATAPI_diskchangeTimeout += timeoutspeed; //Add to pending timing!
 		}
 		ATA[disk_channel].Drive[disk_drive].ATAPI_diskchangeDirection = ATAPI_DYNAMICLOADINGPROCESS; //Start the insertion mechanism!
 		ATA[disk_channel].Drive[disk_drive].PendingLoadingMode = LOAD_INSERT_CD; //Loading and inserting the CD is now starting!
@@ -5834,6 +5864,7 @@ byte ATAPI_insertcaddy(int disk)
 			else if (ATA[disk_channel].Drive[disk_drive].ATAPI_caddyejected!=3) //Already ejected and not already inserting?
 			{
 				ATA[disk_channel].Drive[disk_drive].ATAPI_caddyejected = 2; //Request to insert the caddy when running again!
+				ATA[disk_channel].Drive[disk_drive].ATAPI_caddyinsertion_fast = 1; //Fast insertion!
 				//Don't update any LEDs: the disk stays ejected until handled by the OS or hardware!
 				return 1; //OK!
 			}
