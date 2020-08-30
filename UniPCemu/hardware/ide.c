@@ -5437,7 +5437,7 @@ byte ATA_maskStatus(byte result)
 		switch (ATA[ATA_channel].Drive[ATA_slave].commandstatus)  //What command status?
 		{
 		case 0: //New command?
-			return (result&~0xC0); //BSY and DRDY off!
+			return (result&~0x40); //DRDY off!
 			break;
 		case 1: //DATA IN
 		case 2: //DATA OUT
