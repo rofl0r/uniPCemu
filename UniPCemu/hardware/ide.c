@@ -5688,6 +5688,7 @@ void ATAPI_insertCD(int disk, byte disk_channel, byte disk_drive)
 		ATA[disk_channel].Drive[disk_drive].ATAPI_diskchangeDirection = ATAPI_DYNAMICLOADINGPROCESS; //Start the insertion mechanism!
 		ATA[disk_channel].Drive[disk_drive].PendingLoadingMode = LOAD_INSERT_CD; //Loading and inserting the CD is now starting!
 		ATA[disk_channel].Drive[disk_drive].PendingSpinType = ATAPI_CDINSERTED; //We're firing an CD inserted event!
+		ATA[disk_channel].Drive[disk_drive].ATAPI_caddyejected = 3; //Inserting the disc. Becoming ready soon! Don't trigger this again!
 		ATA[disk_channel].Drive[disk_drive].ATAPI_diskChanged = 1; //Is the disc changed?
 		ATA[disk_channel].Drive[disk_drive].ATAPI_mediaChanged = 1; //Media has been changed(Microsoft way)?
 		ATA[disk_channel].Drive[disk_drive].ATAPI_mediaChanged2 = 1; //Media has been changed(Documented way)?
@@ -5810,10 +5811,15 @@ byte ATAPI_insertcaddy(int disk)
 			{
 				return 0; //Can't insert what's not ejected!
 			}
-			else //Already ejected?
+			else if (ATA[disk_channel].Drive[disk_drive].ATAPI_caddyejected!=3) //Already ejected and not already inserting?
 			{
 				ATA[disk_channel].Drive[disk_drive].ATAPI_caddyejected = 2; //Request to insert the caddy when running again!
 				//Don't update any LEDs: the disk stays ejected until handled by the OS or hardware!
+				return 1; //OK!
+			}
+			else if (ATA[disk_channel].Drive[disk_drive].ATAPI_caddyejected == 3) //Already ejected and not already inserting?
+			{
+				//Don't update any LEDs: the disk is already inserting!
 				return 1; //OK!
 			}
 		}
