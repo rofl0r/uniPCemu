@@ -1495,6 +1495,7 @@ void BIOS_LoadEjectCDROM1() //Load/Eject CD-ROM 1!
 byte BIOS_CDROM_commonejectedcaddy(int drive)
 {
 	byte ejectstatus;
+	ejectstatus = 0; //Default: not ejected!
 	lock(LOCK_MAINTHREAD);
 	if (CDROM_channel != 0xFF) //Has a channel?
 	{
