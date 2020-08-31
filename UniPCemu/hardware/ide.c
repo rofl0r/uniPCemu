@@ -71,7 +71,8 @@ enum
 {
 	ATAPI_SPINDOWN=0,
 	ATAPI_SPINUP=1,
-	ATAPI_CDINSERTED=2
+	ATAPI_CDINSERTED=2,
+	ATAPI_DONTSPIN=3
 };
 
 //Some timeouts for the spindown/spinup timing!
@@ -81,10 +82,10 @@ enum
 #define ATAPI_SPINUP_TIMEOUT 1000000000.0
 //Spinning down manually time
 #define ATAPI_SPINDOWNSTOP_TIMEOUT 1000000000.0
-//Immediate loading time for the tray to load by software (1 second to load the tray)!
-#define ATAPI_INSERTION_FASTTIME 1000000000.0
+//Immediate loading/ejecting time for the tray to load/eject by software (1 second to load the tray)!
+#define ATAPI_INSERTION_EJECTING_FASTTIME 1000000000.0
 //Loading time for manual load by a user (3 seconds to load a disc, 1 second to load the tray)!
-#define ATAPI_INSERTION_TIME 4000000000.0
+#define ATAPI_INSERTION_TIME 3000000000.0
 
 //What has happened during a ATAPI_DISKCHANGETIMEOUT?
 
@@ -297,7 +298,8 @@ enum {
 	LOAD_DISC_LOADING=3,		/* disc is "spinning up" */
 	LOAD_DISC_READIED=4,		/* disc just "became ready" */
 	LOAD_READY=5,
-	LOAD_SPINDOWN=6 /* disc is requested to spin down */
+	LOAD_SPINDOWN=6, /* disc is requested to spin down */
+	LOAD_EJECTING=7 /* disc is ejecting */
 };
 
 //Drive/Head register
@@ -770,6 +772,10 @@ void ATAPI_dynamicloadingprocess(byte channel, byte drive)
 	case ATAPI_CDINSERTED:
 		ATAPI_dynamicloadingprocess_CDinserted(channel,drive);
 		break;
+	case ATAPI_DONTSPIN: //Don't spin(ejected)?
+		//Don't do anything: this is when we're ejected!
+		ATA[channel].Drive[drive].ATAPI_diskchangeTimeout = (DOUBLE)0; //Stop the timeout, don't count anything more! We're fully ejected!
+		break;
 	default: //Unknown?
 		break;
 	}
@@ -891,6 +897,7 @@ byte ATAPI_common_spin_response(byte channel, byte drive, byte spinupdown, byte 
 		break;
 	case LOAD_NO_DISC:
 	case LOAD_INSERT_CD:
+	case LOAD_EJECTING: //Ejecting the disc?
 		ATAPI_SET_SENSE(channel,drive,0x02,0x3A,0x00); //Medium not present
 		return 0; //Abort the command!
 		break;
@@ -1359,6 +1366,17 @@ void handleATAPIcaddyeject(byte channel, byte drive)
 	ATA[channel].Drive[drive].allowDiskInsertion = 1; //Allow the disk to be inserted afterwards!
 	ATA[channel].Drive[drive].ATAPI_caddyejected = 1; //We're ejected!
 	EMU_setDiskBusy(ATA_Drives[channel][drive], 0 | (ATA[channel].Drive[drive].ATAPI_caddyejected << 1)); //We're not reading anymore!
+	if (!ATA[channel].Drive[drive].ATAPI_diskchangeTimeout) //Not already pending?
+	{
+		ATA[channel].Drive[drive].ATAPI_diskchangeTimeout = ATAPI_INSERTION_EJECTING_FASTTIME; //New timer!
+	}
+	else
+	{
+		ATA[channel].Drive[drive].ATAPI_diskchangeTimeout = ATAPI_INSERTION_EJECTING_FASTTIME; //Add to pending timing!
+	}
+	ATA[channel].Drive[drive].ATAPI_diskchangeDirection = ATAPI_DYNAMICLOADINGPROCESS; //Start the insertion mechanism!
+	ATA[channel].Drive[drive].PendingLoadingMode = LOAD_EJECTING; //Loading and inserting the CD is now starting!
+	ATA[channel].Drive[drive].PendingSpinType = ATAPI_DONTSPIN; //We're firing an don't spin event!
 }
 
 void updateATA(DOUBLE timepassed) //ATA timing!
@@ -3692,6 +3710,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 						ATA[channel].Drive[drive].data[2] = 0x70; //Closed and no disc
 						break;
 					case LOAD_INSERT_CD: //Door open and inserting/removing disc?
+					case LOAD_EJECTING: //Ejecting the disc tray?
 						ATA[channel].Drive[drive].data[2] = 0x71; //Door open
 						break;
 					}
@@ -4412,6 +4431,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			case LOAD_DISC_READIED: /* disc just "became ready" */
 				break; //Don't do anything!
 			case LOAD_SPINDOWN: /* disc is requested to spin down */
+			case LOAD_EJECTING: //Ejecting the disc?
 				//Don't stop the disc if it's already stopping to spin (NOP)!
 				break;
 			case LOAD_READY: /* Disc is ready to be read and spinning! */
@@ -5705,6 +5725,7 @@ for (counter = 0; counter < sizeinwords; ++counter) //Step words!
 //Internal use only:
 void ATAPI_insertCD(int disk, byte disk_channel, byte disk_drive)
 {
+	DOUBLE retractingtime;
 	DOUBLE timeoutspeed;
 	if (ATA_allowDiskChange(disk, 1)) //Allow changing of said disk?
 	{
@@ -5728,8 +5749,27 @@ void ATAPI_insertCD(int disk, byte disk_channel, byte disk_drive)
 		timeoutspeed = ATAPI_INSERTION_TIME; //Default timeout speed!
 		if (ATA[disk_channel].Drive[disk_drive].ATAPI_diskchangependingspeed) //Speed is immediate?
 		{
-			timeoutspeed = ATAPI_INSERTION_FASTTIME; //Fast insertion time!
+			timeoutspeed = (DOUBLE)0.0f; //Fast insertion time: immediate!
 		}
+
+		if (ATA[disk_channel].Drive[disk_drive].PendingLoadingMode == LOAD_EJECTING) //We were ejecting the disc currently?
+		{
+			retractingtime = MAX(ATA[disk_channel].Drive[disk_drive].ATAPI_diskchangeTimeout,(DOUBLE)0.0f); //How much time is left of the ejecting!
+			if (retractingtime != ATAPI_INSERTION_EJECTING_FASTTIME) //Already started ejecting?
+			{
+				retractingtime = ATAPI_INSERTION_EJECTING_FASTTIME - retractingtime; //How much time does it take to go from the ejecting state to the inserted state?
+			}
+			else //Take the full timing anyways!
+			{
+				retractingtime = ATAPI_INSERTION_EJECTING_FASTTIME; //How much time does it take to go from the ejecting state to the inserted state?
+			}
+		}
+		else //We don't know how far the tray is ejected, so assume fully ejected!
+		{
+			retractingtime = ATAPI_INSERTION_EJECTING_FASTTIME; //How much time does it take to go from the ejecting state to the inserted state?
+		}
+
+		timeoutspeed += retractingtime; //Take the time to load the tray into account!
 
 		if (!ATA[disk_channel].Drive[disk_drive].ATAPI_diskchangeTimeout) //Not already pending?
 		{
@@ -5739,6 +5779,7 @@ void ATAPI_insertCD(int disk, byte disk_channel, byte disk_drive)
 		{
 			ATA[disk_channel].Drive[disk_drive].ATAPI_diskchangeTimeout = timeoutspeed; //Add to pending timing!
 		}
+
 		ATA[disk_channel].Drive[disk_drive].ATAPI_diskchangeDirection = ATAPI_DYNAMICLOADINGPROCESS; //Start the insertion mechanism!
 		ATA[disk_channel].Drive[disk_drive].PendingLoadingMode = LOAD_INSERT_CD; //Loading and inserting the CD is now starting!
 		ATA[disk_channel].Drive[disk_drive].PendingSpinType = ATAPI_CDINSERTED; //We're firing an CD inserted event!
