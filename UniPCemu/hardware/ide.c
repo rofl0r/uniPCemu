@@ -848,6 +848,11 @@ void ATAPI_PendingExecuteCommand(byte channel, byte drive) //We're pending until
 
 byte ATAPI_common_spin_response(byte channel, byte drive, byte spinupdown, byte dowait)
 {
+	if (ATA[channel].Drive[drive].ATAPI_caddyejected == 1) //Caddy is ejected?
+	{
+		ATAPI_SET_SENSE(channel, drive, 0x02, 0x3A, 0x00); //Drive not ready. Initializing command required.
+		return 0; //Abort the command!
+	}
 	switch (ATA[channel].Drive[drive].PendingLoadingMode)
 	{
 	case LOAD_IDLE:
