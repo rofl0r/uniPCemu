@@ -1492,11 +1492,30 @@ void BIOS_LoadEjectCDROM1() //Load/Eject CD-ROM 1!
 	BIOS_Menu = 1; //Return to image menu!
 }
 
+byte BIOS_CDROM_commonejectedcaddy(int drive)
+{
+	byte ejectstatus;
+	lock(LOCK_MAINTHREAD);
+	if (CDROM_channel != 0xFF) //Has a channel?
+	{
+		if ((ejectstatus = ATA_caddyejected(CDROM1)) != 0) //Is the caddy ejected or pending to insert?
+		{
+			//Otherwise, it's requesting to be ejected, don't do anything!
+		}
+		else //Caddy is inserted?
+		{
+			ejectstatus = ATAPI_ejectcaddy(CDROM1); //Allowed to change? Double as the eject button!
+		}
+	}
+	unlock(LOCK_MAINTHREAD);
+	return ejectstatus; //Ejected or not?
+}
 
 void BIOS_cdrom0_selection() //CDROM0 selection menu!
 {
 	if (ATA_allowDiskChange(CDROM0,1)) //Allowed to change? Double as the eject button!
 	{
+		if (BIOS_CDROM_commonejectedcaddy(CDROM0)==0) goto finishcdrom0;
 		BIOS_Title("Mount First CD-ROM");
 		generateFileList(diskpath,"iso|cue",0,0); //Generate file list for all .img files!
 		EMU_locktext();
@@ -1521,6 +1540,7 @@ void BIOS_cdrom0_selection() //CDROM0 selection menu!
 			safestrcpy(BIOS_Settings.cdrom0,sizeof(BIOS_Settings.cdrom0),itemlist[file]); //Use this file!
 		}
 	}
+	finishcdrom0:
 	BIOS_Menu = 1; //Return to image menu!
 }
 
@@ -1584,6 +1604,7 @@ void BIOS_cdrom1_selection() //CDROM1 selection menu!
 {
 	if (ATA_allowDiskChange(CDROM1,1)) //Allowed to change? Double as the eject button!
 	{
+		if (BIOS_CDROM_commonejectedcaddy(CDROM1)==0) goto finishcdrom1;
 		BIOS_Title("Mount Second CD-ROM");
 		generateFileList(diskpath,"iso|cue",0,0); //Generate file list for all .img files!
 		EMU_locktext();
@@ -1608,6 +1629,7 @@ void BIOS_cdrom1_selection() //CDROM1 selection menu!
 			safestrcpy(BIOS_Settings.cdrom1,sizeof(BIOS_Settings.cdrom1),itemlist[file]); //Use this file!
 		}
 	}
+	finishcdrom1:
 	BIOS_Menu = 1; //Return to image menu!
 }
 
