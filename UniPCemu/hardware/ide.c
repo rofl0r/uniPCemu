@@ -5710,7 +5710,6 @@ void ATAPI_insertCD(int disk, byte disk_channel, byte disk_drive)
 	{
 		//Normal handling of automatic insertion after some time!
 		byte abortreason, additionalsensecode, ascq = 0;
-		byte fastinsertion;
 		//ATA_ERRORREGISTER_MEDIACHANGEDW(disk_channel,disk_drive,1); //We've changed media!
 		//Disable the IRQ for now to let the software know we've changed!
 		if (ATA[disk_channel].Drive[disk_drive].ATAPI_caddyejected == 2)
