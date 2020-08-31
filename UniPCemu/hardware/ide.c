@@ -786,7 +786,7 @@ void tickATADiskChange(byte channel, byte drive)
 				if (is_mounted(ATA_Drives[channel][drive])) //Are we mounted? Simulate a disk being inserted very soon!
 				{
 					ATA[channel].Drive[drive].ATAPI_diskchangeDirection = ATAPI_DISKCHANGEINSERTED; //We're unchanged from now on!
-					ATA[channel].Drive[drive].ATAPI_diskchangeTimeout += ATAPI_DISKCHANGETIMING; //Start timing to release!
+					ATA[channel].Drive[drive].ATAPI_diskchangeTimeout = ATAPI_DISKCHANGETIMING; //Start timing to release!
 				}
 				else //Finished?
 				{
@@ -796,7 +796,7 @@ void tickATADiskChange(byte channel, byte drive)
 			}
 			else //Command still pending? We still pend as well!
 			{
-				ATA[channel].Drive[drive].ATAPI_diskchangeTimeout += ATAPI_DISKCHANGETIMING; //Wait for availability!
+				ATA[channel].Drive[drive].ATAPI_diskchangeTimeout = ATAPI_DISKCHANGETIMING; //Wait for availability!
 			}
 			break;
 		case ATAPI_DISKCHANGEINSERTED: //Inserted? Tick inserted, finish!
@@ -807,7 +807,7 @@ void tickATADiskChange(byte channel, byte drive)
 			}
 			else //Command still pending? We still pend as well!
 			{
-				ATA[channel].Drive[drive].ATAPI_diskchangeTimeout += ATAPI_DISKCHANGETIMING; //Wait for availability!
+				ATA[channel].Drive[drive].ATAPI_diskchangeTimeout = ATAPI_DISKCHANGETIMING; //Wait for availability!
 			}
 			break;
 		case ATAPI_DYNAMICLOADINGPROCESS: //Dynamic loading process? Also triggered when a disk is inserted!
@@ -859,7 +859,7 @@ byte ATAPI_common_spin_response(byte channel, byte drive, byte spinupdown, byte 
 		if (spinupdown && (spinupdown!=2)) //To spin up and not a keep spinning operation?
 		{
 			ATA[channel].Drive[drive].PendingLoadingMode = LOAD_DISC_LOADING;
-			ATA[channel].Drive[drive].ATAPI_diskchangeTimeout += ATAPI_DISKCHANGETIMING; //Wait for availability!
+			ATA[channel].Drive[drive].ATAPI_diskchangeTimeout = ATAPI_DISKCHANGETIMING; //Wait for availability!
 			ATA[channel].Drive[drive].ATAPI_diskchangeDirection = ATAPI_DYNAMICLOADINGPROCESS; //We're unchanged from now on!
 			ATA[channel].Drive[drive].PendingSpinType = ATAPI_SPINUP; //We're spinning up!
 			goto applyDiscLoadingState; //We're reporting to load!
@@ -882,7 +882,7 @@ byte ATAPI_common_spin_response(byte channel, byte drive, byte spinupdown, byte 
 			}
 			else //Wait more!
 			{
-				ATA[channel].Drive[drive].ATAPI_diskchangeTimeout += ATAPI_SPINDOWN_TIMEOUT; //Wait for availability!
+				ATA[channel].Drive[drive].ATAPI_diskchangeTimeout = ATAPI_SPINDOWN_TIMEOUT; //Wait for availability!
 			}
 			ATA[channel].Drive[drive].ATAPI_diskchangeDirection = ATAPI_DYNAMICLOADINGPROCESS; //We're unchanged from now on!
 			ATA[channel].Drive[drive].PendingSpinType = ATAPI_SPINDOWN; //We're spinning down!
@@ -5737,7 +5737,7 @@ void ATAPI_insertCD(int disk, byte disk_channel, byte disk_drive)
 		}
 		else
 		{
-			ATA[disk_channel].Drive[disk_drive].ATAPI_diskchangeTimeout += timeoutspeed; //Add to pending timing!
+			ATA[disk_channel].Drive[disk_drive].ATAPI_diskchangeTimeout = timeoutspeed; //Add to pending timing!
 		}
 		ATA[disk_channel].Drive[disk_drive].ATAPI_diskchangeDirection = ATAPI_DYNAMICLOADINGPROCESS; //Start the insertion mechanism!
 		ATA[disk_channel].Drive[disk_drive].PendingLoadingMode = LOAD_INSERT_CD; //Loading and inserting the CD is now starting!
