@@ -1499,13 +1499,13 @@ byte BIOS_CDROM_commonejectedcaddy(int drive)
 	lock(LOCK_MAINTHREAD);
 	if (CDROM_channel != 0xFF) //Has a channel?
 	{
-		if ((ejectstatus = ATA_caddyejected(CDROM1)) != 0) //Is the caddy ejected or pending to insert?
+		if ((ejectstatus = ATA_caddyejected(drive)) != 0) //Is the caddy ejected or pending to insert?
 		{
 			//Otherwise, it's requesting to be ejected, don't do anything!
 		}
 		else //Caddy is inserted?
 		{
-			ejectstatus = ATAPI_ejectcaddy(CDROM1); //Allowed to change? Double as the eject button!
+			ejectstatus = ATAPI_ejectcaddy(drive); //Allowed to change? Double as the eject button!
 		}
 	}
 	unlock(LOCK_MAINTHREAD);
