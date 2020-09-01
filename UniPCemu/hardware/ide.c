@@ -39,7 +39,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 //#define TRADITIONALCHSTRANSLATION
 
 //Timeout for a reset! We're up to 300ms! Take a short while to be properly detected!
-#define ATA_RESET_TIMEOUT 10000.0
+#define ATA_RESET_TIMEOUT 300000000.0
 //Timing for drive select(documented as 400ns).
 #define ATA_DRIVESELECT_TIMEOUT 400.0
 //Timing to execute an ATAPI command
