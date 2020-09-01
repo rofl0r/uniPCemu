@@ -4627,9 +4627,17 @@ OPTINLINE void giveSignature(byte channel, byte drive)
 	{
 		giveATAPISignature(channel,drive); //We're a CD-ROM, give ATAPI signature!
 	}
-	else //Normal IDE harddrive(ATA-1)?
+	else if (ATA_Drives[channel][drive]) //Normal IDE harddrive(ATA-1)?
 	{
 		giveATASignature(channel,drive); //We're a harddisk, give ATA signature!
+	}
+	else //No drive?
+	{
+		ATA[channel].Drive[drive].PARAMETERS.sectorcount = 0x01;
+		ATA[channel].Drive[drive].PARAMETERS.cylinderhigh = 0xFF;
+		ATA[channel].Drive[drive].PARAMETERS.cylinderlow = 0xFF;
+		ATA[channel].Drive[drive].PARAMETERS.sectornumber = 0x01;
+		ATA[channel].Drive[drive].PARAMETERS.drivehead = 0x00;
 	}
 }
 
@@ -4638,9 +4646,23 @@ void ATA_reset(byte channel, byte slave)
 	byte fullslaveinfo;
 	fullslaveinfo = slave; //Complete slave info!
 	slave &= 0x7F; //Are we a master or slave!
-	ATA[channel].Drive[slave].ERRORREGISTER = 0x01; //No error, but being a reserved value of 1 usually!
 	if ((ATA_Drives[channel][slave]==0) || (ATA_Drives[channel][slave] >= CDROM0)) //CD-ROM style reset?
 	{
+		if (ATA_Drives[channel][slave] == 0) //Drive not present? NOP!
+		{
+			memset(&ATA[channel].Drive[slave].PARAMETERS, 0, sizeof(ATA[channel].Drive[slave].PARAMETERS)); //Clear the parameters for the OS to see!
+			ATA[channel].Drive[slave].STATUSREGISTER = 0x40; //Report ready, no error?
+			ATA[channel].Drive[slave].ERRORREGISTER = 0x01; //Clear the error register!
+			ATA[channel].Drive[slave].PARAMETERS.reportReady = 1; //Report ready?
+			ATA_DRIVEHEAD_HEADW(channel, slave, 0); //What head?
+			ATA_DRIVEHEAD_LBAMODE_2W(channel, slave, 0); //LBA mode?
+			ATA[channel].Drive[slave].PARAMETERS.drivehead |= 0xA0; //Always 1!
+			ATA[channel].Drive[slave].resetTiming = ATA_RESET_TIMEOUT; //How long to wait in reset!
+			//Don't fill in a signature: we're not a valid drive anyways!
+			giveSignature(channel, slave); //Give the signature!
+			return; //Don't perform anything on the drive!
+		}
+		ATA[channel].Drive[slave].ERRORREGISTER = 0x01; //No error, but being a reserved value of 1 usually!
 		if (fullslaveinfo & 0x80) //ATAPI reset?
 		{
 			ATA[channel].Drive[slave].PARAMETERS.reportReady = 0; //Report not ready now!
@@ -4649,6 +4671,7 @@ void ATA_reset(byte channel, byte slave)
 	}
 	else //ATA-style reset?
 	{
+		ATA[channel].Drive[slave].ERRORREGISTER = 0x01; //No error, but being a reserved value of 1 usually!
 		//Clear errors!
 		ATA_STATUSREGISTER_ERRORW(channel, slave, 0); //Error bit is reset when a new command is received, as defined in the documentation!
 		ATA[channel].Drive[slave].PARAMETERS.reportReady = 1; //Report ready now!
@@ -4705,7 +4728,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 
 		if (ATA_Drives[channel][1]==0) //No second drive?
 		{
-			ATA[channel].Drive[1].ERRORREGISTER = 0x0; //Not detected!
+			ATA[channel].Drive[1].ERRORREGISTER = 0x1; //Not detected!
 		}
 
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //Reset status!
@@ -5592,10 +5615,7 @@ byte inATA8(word port, byte *result)
 		ATA_updateStatus(ATA_channel); //Update the status register if needed!
 		ATA_removeIRQ(ATA_channel,ATA_activeDrive(ATA_channel)); //Acnowledge IRQ!
 		*result = ATA_maskStatus(ATA[ATA_channel].Drive[ATA_activeDrive(ATA_channel)].STATUSREGISTER); //Get status!
-		if (ATA_Drives[ATA_channel][ATA_activeDrive(ATA_channel)] == 0) //Invalid drive?
-		{
-			*result = 0; //Return 0 for invalid drives!
-		}
+		//Allow normal being ready for a command!
 		ATA_STATUSREGISTER_DRIVEWRITEFAULTW(ATA_channel,ATA_activeDrive(ATA_channel),0); //Reset write fault flag!
 #ifdef ATA_LOG
 		dolog("ATA", "Status register read: %02X %u.%u", *result, ATA_channel, ATA_activeDrive(ATA_channel));
