@@ -5615,6 +5615,10 @@ byte inATA8(word port, byte *result)
 		ATA_updateStatus(ATA_channel); //Update the status register if needed!
 		ATA_removeIRQ(ATA_channel,ATA_activeDrive(ATA_channel)); //Acnowledge IRQ!
 		*result = ATA_maskStatus(ATA[ATA_channel].Drive[ATA_activeDrive(ATA_channel)].STATUSREGISTER); //Get status!
+		if (!(ATA_Drives[ATA_channel][ATA_activeDrive(ATA_channel)])) //Invalid drive?
+		{
+			*result = 0x00; //Nothing to report, according to documentation!
+		}
 		//Allow normal being ready for a command!
 		ATA_STATUSREGISTER_DRIVEWRITEFAULTW(ATA_channel,ATA_activeDrive(ATA_channel),0); //Reset write fault flag!
 #ifdef ATA_LOG
