@@ -4692,6 +4692,10 @@ void ATA_reset(byte channel, byte slave)
 	{
 		ATA[channel].Drive[slave].multiplesectors = 0; //Disable multiple mode!
 		ATA[channel].Drive[slave].Enable8BitTransfers = 0; //Disable 8-bit transfers only!
+		if (ATA_Drives[channel][slave] >= CDROM0) //ATAPI drive?
+		{
+			ATAPI_disableMediaStatusNotification(channel, slave); //Disable media status notification on resetting defaults!
+		}
 	}
 	giveSignature(channel, slave); //Give the signature!
 	EMU_setDiskBusy(ATA_Drives[channel][slave], 0| (ATA[channel].Drive[slave].ATAPI_caddyejected << 1)); //We're not reading or writing anything anymore!
@@ -4700,6 +4704,13 @@ void ATA_reset(byte channel, byte slave)
 	ATA[channel].Drive[slave].resetTriggersIRQ = 0; //No IRQ on completion!
 	if (is_mounted(ATA_Drives[channel][slave]) && ATA_Drives[channel][slave] && (ATA_Drives[channel][slave] < CDROM0)) //Mounted as non-CD-ROM?
 		ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel, slave, 1); //Not seeking anymore, since we're ready to run!
+}
+
+void ATAPI_disableMediaStatusNotification(byte channel, byte drive)
+{
+	ATA[channel].Drive[drive].EnableMediaStatusNotification = 0; //Disable the status notification!
+	ATA[channel].Drive[drive].preventMediumRemoval &= ~1; //Leave us in an unlocked state!
+	ATA[channel].Drive[drive].allowDiskInsertion = 1; //Allow disk insertion always now?
 }
 
 OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a command!
@@ -5072,14 +5083,16 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 			break;
 		case 0x31: //Disable Media Status Notification
 			if ((ATA_Drives[channel][ATA_activeDrive(channel)] < CDROM0) || !ATA_Drives[channel][ATA_activeDrive(channel)]) goto invalidcommand; //HDD/invalid disk errors out!
-			ATA[channel].Drive[ATA_activeDrive(channel)].EnableMediaStatusNotification = 0; //Disable the status notification!
-			ATA[channel].Drive[ATA_activeDrive(channel)].preventMediumRemoval &= ~1; //Leave us in an unlocked state!
-			ATA[channel].Drive[ATA_activeDrive(channel)].allowDiskInsertion = 1; //Allow disk insertion always now?
+			ATAPI_disableMediaStatusNotification(channel, ATA_activeDrive(channel)); //Disable the media status notification!
 			break;
 		case 0x95: //Enable Media Status Notification
 			if ((ATA_Drives[channel][ATA_activeDrive(channel)] < CDROM0) || !ATA_Drives[channel][ATA_activeDrive(channel)]) goto invalidcommand; //HDD/invalid disk errors out!
 			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderlow = 0; //Version 0!
 			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh = (ATA[channel].Drive[ATA_activeDrive(channel)].EnableMediaStatusNotification?1:0); //Media Status Notification was enabled?
+			if (ATA[channel].Drive[ATA_activeDrive(channel)].EnableMediaStatusNotification) //Already enabled?
+			{
+				ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh |= 1; //Are we already enabled?
+			}
 			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh |= 2; //Are we lockable?
 			ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.cylinderhigh |= 4; //Can we physically eject the media, in other words: are we locking the media and leaving the ejection mechanism to the OS(only set when not under software control, e.g. lever of floppy disk drives)?
 			ATA[channel].Drive[ATA_activeDrive(channel)].EnableMediaStatusNotification = 1; //Enable the status notification(report medium change requests)!
