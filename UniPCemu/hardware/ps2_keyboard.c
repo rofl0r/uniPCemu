@@ -163,10 +163,11 @@ byte EMU_keyboard_handler(byte key, byte pressed, byte ctrlispressed, byte altis
 		if (!PS2_FIRSTPORTDISABLED(Controller8042)) //We're enabled?
 		{
 			int i; //Counter for key codes!
-			byte scancodeset, keypress_size, keyrelease_size, slashkey;
+			byte scancodeset, keypress_size, keyrelease_size, slashkey, numlockkey;
 			KEYBOARDENTRY *currentkey, *bonuskey=NULL;
 			scancodeset = Keyboard.scancodeset; //Get the current scancode set!
 			currentkey = &scancodesets[scancodeset][key]; //What key from what set to apply?
+			numlockkey = (key == EMU_keyboard_handler_nametoid("num")); //Is it a numlock key?
 			if (ctrlispressed && (key == EMU_keyboard_handler_nametoid("pause"))) //CTRL-BREAK instead?
 			{
 				if (CTRLBREAK[scancodeset].used) //Used as a replacement?
@@ -238,6 +239,13 @@ byte EMU_keyboard_handler(byte key, byte pressed, byte ctrlispressed, byte altis
 					for (i=0;i<currentkey->keypress_size;i++) //Process keypress!
 					{
 						give_keyboard_output(currentkey->keypress[i]); //Give control byte(s) of keypress!
+					}
+				}
+				if (is_XT) //XT machine doesn't have an interface to handle this by software, handle the LEDs ourselves, if required!
+				{
+					if (numlockkey) //Is it the num lock key?
+					{
+						Keyboard.LEDS ^= 2; //Toggle the num-lock LED manually!
 					}
 				}
 			}
