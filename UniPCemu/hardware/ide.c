@@ -4641,6 +4641,14 @@ OPTINLINE void giveSignature(byte channel, byte drive)
 	}
 }
 
+void ATAPI_disableMediaStatusNotification(byte channel, byte drive)
+{
+	ATA[channel].Drive[drive].EnableMediaStatusNotification = 0; //Disable the status notification!
+	ATA[channel].Drive[drive].preventMediumRemoval &= ~1; //Leave us in an unlocked state!
+	ATA[channel].Drive[drive].allowDiskInsertion = 1; //Allow disk insertion always now?
+	ATA[channel].Drive[drive].driveparams[86] &= ~0x10; //Media status notification has been disabled!
+}
+
 void ATA_reset(byte channel, byte slave)
 {
 	byte fullslaveinfo;
@@ -4704,13 +4712,6 @@ void ATA_reset(byte channel, byte slave)
 	ATA[channel].Drive[slave].resetTriggersIRQ = 0; //No IRQ on completion!
 	if (is_mounted(ATA_Drives[channel][slave]) && ATA_Drives[channel][slave] && (ATA_Drives[channel][slave] < CDROM0)) //Mounted as non-CD-ROM?
 		ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel, slave, 1); //Not seeking anymore, since we're ready to run!
-}
-
-void ATAPI_disableMediaStatusNotification(byte channel, byte drive)
-{
-	ATA[channel].Drive[drive].EnableMediaStatusNotification = 0; //Disable the status notification!
-	ATA[channel].Drive[drive].preventMediumRemoval &= ~1; //Leave us in an unlocked state!
-	ATA[channel].Drive[drive].allowDiskInsertion = 1; //Allow disk insertion always now?
 }
 
 OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a command!
@@ -5051,12 +5052,13 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 			{
 				ATAPI_MEDIASTATUS_WT_PT(channel, ATA_activeDrive(channel), 0); //Are we read-only!
 			}
-			ATA_IRQ(channel, ATA_activeDrive(channel), ATAPI_FINISHREADYTIMING, 0); //Raise IRQ!
+			ATA_IRQ(channel, ATA_activeDrive(channel), ATAPI_FINISHREADYTIMING, 1); //Raise IRQ!
 			ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0xFF; //Reset status: error command!
 		}
 		else if (ATA_Drives[channel][ATA_activeDrive(channel)]>=CDROM0) //CD-ROM drive?
 		{
 			ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //Reset status: No error to report, since there's nothing to report!
+			ATA_IRQ(channel, ATA_activeDrive(channel), ATAPI_FINISHREADYTIMING, 1); //Raise IRQ!
 		}
 		else //Invalid command?
 		{
@@ -5074,6 +5076,14 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 			break;
 		case 0x81: //Disable 8-bit data transfers!
 			ATA[channel].Drive[ATA_activeDrive(channel)].Enable8BitTransfers = 0; //Disable 8-bit transfers!
+			break;
+		case 0x03: //Set transfer mode!
+			if ((ATA_Drives[channel][ATA_activeDrive(channel)] < CDROM0) || !ATA_Drives[channel][ATA_activeDrive(channel)]) goto invalidcommand; //HDD/invalid disk errors out!
+			if (ATA[channel].Drive[ATA_activeDrive(channel)].PARAMETERS.sectorcount) //Invalid setting(only supporting default PIO)!
+			{
+				goto invalidcommand;
+			}
+			//Allow the default setting of 0:0(PIO Default Mode)! Don't store it!
 			break;
 		case 0x02: //Enable write cache!
 			//OK! Ignore!
@@ -5098,6 +5108,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 			ATA[channel].Drive[ATA_activeDrive(channel)].EnableMediaStatusNotification = 1; //Enable the status notification(report medium change requests)!
 			ATA[channel].Drive[ATA_activeDrive(channel)].preventMediumRemoval |= 1; //Prevent Medium Removal, to facilitate Medium Change Requests!
 			ATA[channel].Drive[ATA_activeDrive(channel)].allowDiskInsertion = !is_mounted(ATA_Drives[channel][ATA_activeDrive(channel)]); //Allow disk insertion?
+			ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[86] |= 0x10; //Media status notification has been enabled!
 			break;
 		case 0x66: //Soft Reset will not change feature selections to power-up defaults?
 			ATA[channel].Drive[ATA_activeDrive(channel)].resetSetsDefaults = 0; //Don't change to power-up defaults!
@@ -5114,6 +5125,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		}
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //Reset command status!
 		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER &= 0x10; //Reset data register, except DSC/Release!
+		ATA_IRQ(channel, ATA_activeDrive(channel), ATA_FINISHREADYTIMING(1.0), 1); //Raise IRQ!
 		break;
 	case 0x00: //NOP (ATAPI Mandatory)?
 		break;
@@ -5146,7 +5158,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 		ATA[channel].Drive[ATA_activeDrive(channel)].driveparams[59] = (ATA[channel].Drive[ATA_activeDrive(channel)].multiplesectors?0x100:0)|(ATA[channel].Drive[ATA_activeDrive(channel)].multiplesectors); //Current multiple sectors setting! Bit 8 is set when updated!
 		ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0; //Reset command status!
 		ATA[channel].Drive[ATA_activeDrive(channel)].STATUSREGISTER &= 0x10; //Reset data register!
-		ATA_IRQ(channel, ATA_activeDrive(channel), ATA_FINISHREADYTIMING(1.0), 0); //Raise IRQ!
+		ATA_IRQ(channel, ATA_activeDrive(channel), ATA_FINISHREADYTIMING(1.0), 1); //Raise IRQ!
 		break;
 	case 0xDC: //BIOS - post-boot?
 	case 0xDD: //BIOS - pre-boot?
@@ -5970,6 +5982,7 @@ byte ATAPI_insertcaddy(int disk)
 
 void ATA_DiskChanged(int disk)
 {
+	word wordbackup86;
 	byte cue_M, cue_S, cue_F, cue_startM, cue_startS, cue_startF, cue_endM, cue_endS, cue_endF;
 	char *cueimage;
 	char newserial[21]; //A serial to build!
@@ -6019,7 +6032,9 @@ void ATA_DiskChanged(int disk)
 	case CDROM0: //CDROM0 changed?
 	case CDROM1: //CDROM1 changed?
 		//Initialize the drive parameters!
+		wordbackup86 = ATA[disk_channel].Drive[disk_drive].driveparams[86]; //Backup to not clear!
 		memset(&ATA[disk_channel].Drive[disk_drive].driveparams, 0, sizeof(ATA[disk_channel].Drive[disk_drive].driveparams)); //Clear the information on the drive: it's non-existant!
+		ATA[disk_channel].Drive[disk_drive].driveparams[86] = wordbackup86; //Backup to not clear!
 		if (disk_mounted) //Do we even have this drive?
 		{
 			if ((cueimage = getCUEimage(disk))) //CUE image?
@@ -6101,6 +6116,7 @@ void ATA_DiskChanged(int disk)
 			ATA[disk_channel].Drive[disk_drive].driveparams[81] = 0x0017; //ATA/ATAPI-4 T13 1153D revision 17 on CD-ROM, ATA (ATA-1) X3T9.2 781D prior to revision 4 for hard disk(=1, but 0 due to ATA-1 specification not mentioning it).
 			ATA[disk_channel].Drive[disk_drive].driveparams[82] = ((1<<4)|(1<<9)|(1<<14)); //On CD-ROM, PACKET; DEVICE RESET; NOP is supported, ON hard disk, only NOP is supported.
 			ATA[disk_channel].Drive[disk_drive].driveparams[83] = (1<<4); //On CD-ROM, removable status notification feature set!
+			ATA[disk_channel].Drive[disk_drive].driveparams[85] = (1 << 4); //On CD-ROM, PACKET command feature is enabled!
 			ATA[disk_channel].Drive[disk_drive].driveparams[127] = 0x0001; //01 in bit 0-1 means that we're using the removable media Microsoft feature set.
 		}
 		ATA_updateCapacity(disk_channel,disk_drive); //Update the drive capacity!
