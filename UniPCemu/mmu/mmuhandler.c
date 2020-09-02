@@ -225,6 +225,12 @@ byte memory_datawrittensize = 1; //How many bytes have been written to memory du
 extern byte SMRAM_enabled; //SMRAM enabled?
 extern byte SMRAM_data; //SMRAM responds to data accesses?
 
+byte checkMemoryHoles(uint_32 realaddress, byte isread); //Prototype!
+
+byte index_readprecalcs[0x200]; //Read precalcs for index memory hole handling!
+byte index_writeprecalcs[0x200]; //Read precalcs for index memory hole handling!
+byte index_writeprecalcs[0x200]; //Read precalcs for index memory hole handling!
+
 //Handler for special MMU-based I/O, direct addresses used!
 OPTINLINE byte MMU_IO_writehandler(uint_32 offset, byte value)
 {
@@ -250,6 +256,13 @@ OPTINLINE byte MMU_IO_writehandler(uint_32 offset, byte value)
 				}
 			}
 			//Otherwise, map to PCI and not DRAM!
+		}
+		else if (likely(offset < MMU.maxsize)) //Probably mapped to memory?
+		{
+			if (likely((checkMemoryHoles(offset, 0))==0)) //Not a memory hole?
+			{
+				return 1; //normal memory access!
+			}
 		}
 	}
 	if (unlikely(BIOS_writehandler(offset, value))) return 0; //BIOS responded!
@@ -317,6 +330,13 @@ OPTINLINE byte MMU_IO_readhandler(uint_32 offset, byte index)
 				{
 					return 1; //normal memory access!
 				}
+			}
+		}
+		else if (likely(offset < MMU.maxsize)) //Probably mapped to memory?
+		{
+			if (likely((checkMemoryHoles(offset, index_readprecalcs[index])) == 0)) //Not a memory hole?
+			{
+				return 1; //normal memory access!
 			}
 		}
 	}
@@ -716,6 +736,11 @@ OPTINLINE byte applyMemoryHoles(uint_32 realaddress, byte isread)
 	return 0; //We're mapped!
 }
 
+byte checkMemoryHoles(uint_32 realaddress, byte isread)
+{
+	return applyMemoryHoles(realaddress, isread); //Passthrough!
+}
+
 extern byte specialdebugger; //Enable special debugger input?
 
 void MMU_updatemaxsize() //updated the maximum size!
@@ -834,8 +859,6 @@ void MMU_seti430fx()
 
 BUShandler bushandler = NULL; //Remember the last access?
 
-byte index_readprecalcs[0x200]; //Read precalcs for index memory hole handling!
-byte index_writeprecalcs[0x200]; //Read precalcs for index memory hole handling!
 byte emulateCompaqMMURegisters = 0; //Emulate Compaq MMU registers?
 
 //Direct memory access (for the entire emulator)
