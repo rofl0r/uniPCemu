@@ -232,7 +232,7 @@ byte index_writeprecalcs[0x200]; //Read precalcs for index memory hole handling!
 byte index_writeprecalcs[0x200]; //Read precalcs for index memory hole handling!
 
 //Handler for special MMU-based I/O, direct addresses used!
-OPTINLINE byte MMU_IO_writehandler(uint_32 offset, byte value)
+OPTINLINE byte MMU_IO_writehandler(uint_32 offset, byte value, word index)
 {
 	MMU_WHANDLER *list; //Current list item!
 	MMU_WHANDLER current; //Current handler!
@@ -259,7 +259,7 @@ OPTINLINE byte MMU_IO_writehandler(uint_32 offset, byte value)
 		}
 		else if (likely(offset < MMU.maxsize)) //Probably mapped to memory?
 		{
-			if (likely((checkMemoryHoles(offset, 0))==0)) //Not a memory hole?
+			if (likely((checkMemoryHoles(offset, index_writeprecalcs[index]))==0)) //Not a memory hole?
 			{
 				return 1; //normal memory access!
 			}
@@ -304,7 +304,7 @@ OPTINLINE byte MMU_IO_writehandler(uint_32 offset, byte value)
 uint_32 memory_dataaddr = 0; //The data address that's cached!
 uint_32 memory_dataread = 0;
 byte memory_datasize = 0; //The size of the data that has been read!
-OPTINLINE byte MMU_IO_readhandler(uint_32 offset, byte index)
+OPTINLINE byte MMU_IO_readhandler(uint_32 offset, word index)
 {
 	byte dataread;
 	MMU_RHANDLER *list; //Current list item!
@@ -1213,7 +1213,7 @@ byte MMUbuffer_pending = 0; //Anything pending?
 //Direct memory access with Memory mapped I/O (for the CPU).
 byte MMU_INTERNAL_directrb_realaddr(uint_32 realaddress, byte index) //Read without segment/offset translation&protection (from system/interrupt)!
 {
-	if (likely(MMU_IO_readhandler(realaddress, index))) //Normal memory address?
+	if (likely(MMU_IO_readhandler(realaddress, (word)index))) //Normal memory address?
 	{
 		if (unlikely(MMU_INTERNAL_directrb(realaddress, index, &memory_dataread))) //Read the data from memory (and port I/O)!		
 		{
@@ -1282,7 +1282,7 @@ void MMU_INTERNAL_directwb_realaddr(uint_32 realaddress, byte val, byte index) /
 		debugger_logmemoryaccess(1,realaddress,val,LOGMEMORYACCESS_DIRECT); //Log it!
 	}
 	if (MMU_ignorewrites) return; //Ignore all written data: protect memory integrity!
-	if (likely(MMU_IO_writehandler(realaddress, val))) //Normal memory access?
+	if (likely(MMU_IO_writehandler(realaddress, val, (word)index))) //Normal memory access?
 	{
 		MMU_INTERNAL_directwb(realaddress, val, index); //Set data in real memory!
 	}
