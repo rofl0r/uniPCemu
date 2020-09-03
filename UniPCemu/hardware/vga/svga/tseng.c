@@ -1201,6 +1201,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		//bit4=Horizontal retrace bit 8
 		tempdata = VGA->registers->CRTControllerRegisters.REGISTERS.STARTHORIZONTALRETRACEREGISTER;
 		tempdata |= ((et34k_tempreg & 0x10) << 4); //Add the new/changed bits!
+		tempdata += GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.ENDHORIZONTALRETRACEREGISTER,5,0x3); //Add skew!
 		//++tempdata; //One later!
 		VGA->precalcs.horizontalretracestartfinish = tempdata; //Finish on the next clock?
 		tempdata *= VGA->precalcs.characterwidth; //We're character units!

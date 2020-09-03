@@ -674,6 +674,7 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 		{
 			word hretracestart;
 			hretracestart = VGA->registers->CRTControllerRegisters.REGISTERS.STARTHORIZONTALRETRACEREGISTER;
+			hretracestart += GETBITS(VGA->registers->CRTControllerRegisters.REGISTERS.ENDHORIZONTALRETRACEREGISTER, 5, 0x3); //Add skew!
 			++hretracestart; //We start after this!
 			VGA->precalcs.horizontalretracestartfinish = (hretracestart + 1); //Finish on the next clock?
 			hretracestart *= VGA->precalcs.characterwidth; //We're character units!
