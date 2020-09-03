@@ -1209,6 +1209,7 @@ void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)
 		updateCRTC |= VGA->precalcs.horizontalretracestart != tempdata; //To be updated?
 		VGA->precalcs.horizontalretracestart = tempdata; //Save the new data!
 		tempdata = VGA->precalcs.horizontalretracestartfinish; //When to finish?
+		++tempdata; //The next clock is when we finish!
 		tempdata *= VGA->precalcs.characterwidth; //We're character units!
 		tempdata <<= et34kdata->doublehorizontaltimings; //Double the horizontal timings if needed!
 		updateCRTC |= VGA->precalcs.horizontalretracestartfinish != tempdata; //To be updated?
