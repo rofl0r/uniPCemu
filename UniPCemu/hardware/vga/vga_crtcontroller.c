@@ -43,10 +43,12 @@ OPTINLINE word getHorizontalBlankingStart(VGA_Type *VGA)
 	return VGA->precalcs.horizontalblankingstart; //When to start blanking horizontally!
 }
 
+/*
 OPTINLINE word getHorizontalBlankingStartFinish(VGA_Type* VGA)
 {
 	return VGA->precalcs.horizontalblankingstartfinish; //When to start blanking horizontally!
 }
+*/
 
 OPTINLINE word getHorizontalBlankingEnd(VGA_Type *VGA)
 {
@@ -58,10 +60,12 @@ OPTINLINE word getHorizontalRetraceStart(VGA_Type *VGA) //When to start retracin
 	return VGA->precalcs.horizontalretracestart; //When to start vertical retrace!
 }
 
+/*
 OPTINLINE word getHorizontalRetraceStartFinish(VGA_Type* VGA) //When to start retracing (vblank)
 {
 	return VGA->precalcs.horizontalretracestartfinish; //When to start vertical retrace!
 }
+*/
 
 OPTINLINE word getHorizontalRetraceEnd(VGA_Type *VGA)
 {
