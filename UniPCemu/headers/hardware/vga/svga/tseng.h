@@ -197,5 +197,6 @@ typedef struct {
 void SVGA_Setup_TsengET4K(uint_32 VRAMSize);
 void set_clock_index_et4k(VGA_Type *VGA, byte index); //Used by the interrupt 10h handler to set the clock index directly!
 void set_clock_index_et3k(VGA_Type *VGA, byte index); //Used by the interrupt 10h handler to set the clock index directly!
+byte Tseng34k_doublecharacterclocks(VGA_Type * VGA); //Doubled character clocks width?
 
 #endif

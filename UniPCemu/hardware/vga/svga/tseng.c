@@ -835,6 +835,13 @@ void Tseng34k_init()
 
 extern byte VGAROM_mapping; //Default: all mapped in!
 
+byte Tseng34k_doublecharacterclocks(VGA_Type *VGA)
+{
+	if (!(((getActiveVGA()->enable_SVGA == 2) || (getActiveVGA()->enable_SVGA == 1)))) return 0; //Not ET3000/ET4000!
+	if (!et34k(VGA)) return 0; //Not registered?
+	return et34k(VGA)->doublehorizontaltimings; //Double the horizontal timings?
+}
+
 extern byte VGA_WriteMemoryMode, VGA_ReadMemoryMode; //Write/read memory modes used for accessing VRAM!
 //ET4K precalcs updating functionality.
 void Tseng34k_calcPrecalcs(void *useVGA, uint_32 whereupdated)

@@ -152,6 +152,7 @@ word get_display_x(VGA_Type *VGA, word x) //Horizontal check!
 	word signal;
 	signal = VGA_OVERSCAN; //Init to overscan!
 	word hchar = VGA->CRTC.charcolstatus[x<<1]; //What character?
+	hchar >>= Tseng34k_doublecharacterclocks(VGA); //Double the width of the character clocks, if required!
 	if (x>=getHorizontalTotal(VGA)) //HTotal?
 	{
 		signal |= VGA_SIGNAL_HTOTAL|VGA_SIGNAL_HSYNCRESET; //HTotal&Sync reset notify!
