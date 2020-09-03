@@ -25,6 +25,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/hardware/vga/vga_sequencer_textmode.h" //VGA Attribute controller!
 #include "headers/hardware/vga/vga_crtcontroller.h"
 #include "headers/hardware/vga/vga_cga_mda.h" //CGA/MDA timing support!
+#include "headers/hardware/vga/svga/tseng.h" //Double width character clock support!
 
 //Horizontal information!
 
