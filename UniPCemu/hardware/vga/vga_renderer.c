@@ -720,12 +720,45 @@ OPTINLINE void video_updateLightPen(VGA_Type *VGA, byte drawnto)
 }
 
 //Blank handler!
-void VGA_Blank_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
+void VGA_Blank_Activedisplay_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
 	if (hretrace) return; //Don't handle during horizontal retraces or top screen rendering!
+
+	if ((VGA->precalcs.effectiveDACmode & 4) == 4) //Not latching in 1 raising&lowering(by the attribute controller) clock(Not mode 2, but mode 1)?
+	{
+		//Latch a 8-bit pixel?
+
+		if ((++Sequencer->DACcounter) & ((4 >> attributeinfo->attributesize) - 1)) //To latch and not process yet? This is the least significant byte/bits of the counter!
+		{
+			return; //Skip this data: we only latch every two pixels!
+		}
+	}
+
 	drawPixel(VGA, RGB(0x00, 0x00, 0x00)); //Draw blank!
 	//drawPixel(VGA, RGB(0x00, 0xFF, 0x00)); //Draw blank green for debugging!
 	video_updateLightPen(VGA,0); //Update the light pen!
+	if ((++Sequencer->currentpixelclock & Sequencer->pixelclockdivider) == 0) //Are we to tick the CRTC pixel clock?
+	{
+		++VGA->CRTC.x; //Next x!
+	}
+}
+
+void VGA_Blank_Overscan_VGA(VGA_Type* VGA, SEQ_DATA* Sequencer, VGA_AttributeInfo* attributeinfo)
+{
+	if (hretrace) return; //Don't handle during horizontal retraces or top screen rendering!
+
+	if ((VGA->precalcs.effectiveDACmode & 4) == 4) //Not latching in 1 raising&lowering(by the attribute controller) clock(Not mode 2, but mode 1)?
+	{
+		//Latch a 8-bit pixel?
+		if ((++Sequencer->DACcounter) & ((4 >> attributeinfo->attributesize) - 1)) //To latch and not process yet? This is the least significant byte/bits of the counter!
+		{
+			return; //Skip this data: we only latch every two pixels!
+		}
+	}
+
+	drawPixel(VGA, RGB(0x00, 0x00, 0x00)); //Draw blank!
+	//drawPixel(VGA, RGB(0x00, 0xFF, 0x00)); //Draw blank green for debugging!
+	video_updateLightPen(VGA, 0); //Update the light pen!
 	if ((++Sequencer->currentpixelclock & Sequencer->pixelclockdivider) == 0) //Are we to tick the CRTC pixel clock?
 	{
 		++VGA->CRTC.x; //Next x!
@@ -840,6 +873,15 @@ void VGA_ActiveDisplay_noblanking_CGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_At
 void VGA_Overscan_noblanking_VGA(VGA_Type *VGA, SEQ_DATA *Sequencer, VGA_AttributeInfo *attributeinfo)
 {
 	if (hretrace) return; //Don't handle during horizontal retraces!
+
+	if ((VGA->precalcs.effectiveDACmode & 4) == 4) //Not latching in 1 raising&lowering(by the attribute controller) clock(Not mode 2, but mode 1)?
+	{
+		//Latch a 8-bit pixel?
+		if ((++Sequencer->DACcounter) & ((4 >> attributeinfo->attributesize) - 1)) //To latch and not process yet? This is the least significant byte/bits of the counter!
+		{
+			return; //Skip this data: we only latch every two pixels!
+		}
+	}
 	//Overscan!
 	/*
 	if (VGA->precalcs.AttributeController_16bitDAC==3) //16-bit color mode?
@@ -971,12 +1013,12 @@ void VGA_ActiveDisplay_Graphics_blanking(SEQ_DATA *Sequencer, VGA_Type *VGA)
 //Overscan handler!
 void VGA_Overscan(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
-	overscan_noblanking_handler(VGA,Sequencer,NULL); //Attribute info isn't used!
+	overscan_noblanking_handler(VGA,Sequencer, &currentattributeinfo);
 }
 
 void VGA_Overscan_blanking(SEQ_DATA *Sequencer, VGA_Type *VGA)
 {
-	overscan_blank_handler(VGA, Sequencer, NULL); //Attribute info isn't used!
+	overscan_blank_handler(VGA, Sequencer, &currentattributeinfo);
 }
 
 void updateCGAMDARenderer() //Update the renderer to use!
@@ -991,9 +1033,9 @@ void updateCGAMDARenderer() //Update the renderer to use!
 	else //VGA+ rendering mode?
 	{
 		activedisplay_noblanking_handler = &VGA_ActiveDisplay_noblanking_VGA; //Blank or active display!
-		activedisplay_blank_handler = &VGA_Blank_VGA; //Blank or active display!
+		activedisplay_blank_handler = &VGA_Blank_Activedisplay_VGA; //Blank or active display!
 		overscan_noblanking_handler = &VGA_Overscan_noblanking_VGA; //Attribute info isn't used!
-		overscan_blank_handler = &VGA_Blank_VGA; //Attribute info isn't used!
+		overscan_blank_handler = &VGA_Blank_Overscan_VGA; //Attribute info isn't used!
 	}
 }
 
