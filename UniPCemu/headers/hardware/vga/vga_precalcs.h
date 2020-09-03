@@ -104,8 +104,10 @@ typedef struct //Contains the precalculated values!
 	uint_32 horizontaldisplaystart;
 	uint_32 horizontaldisplayend;
 	uint_32 horizontalblankingstart;
+	uint_32 horizontalblankingstartfinish;
 	uint_32 horizontalblankingend;
 	uint_32 horizontalretracestart;
+	uint_32 horizontalretracestartfinish;
 	uint_32 horizontalretraceend;
 	uint_32 horizontaltotal;
 	

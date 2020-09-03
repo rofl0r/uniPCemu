@@ -43,6 +43,11 @@ OPTINLINE word getHorizontalBlankingStart(VGA_Type *VGA)
 	return VGA->precalcs.horizontalblankingstart; //When to start blanking horizontally!
 }
 
+OPTINLINE word getHorizontalBlankingStartFinish(VGA_Type* VGA)
+{
+	return VGA->precalcs.horizontalblankingstartfinish; //When to start blanking horizontally!
+}
+
 OPTINLINE word getHorizontalBlankingEnd(VGA_Type *VGA)
 {
 	return VGA->precalcs.horizontalblankingend; //When to stop blanking horizontally after starting!
@@ -51,6 +56,11 @@ OPTINLINE word getHorizontalBlankingEnd(VGA_Type *VGA)
 OPTINLINE word getHorizontalRetraceStart(VGA_Type *VGA) //When to start retracing (vblank)
 {
 	return VGA->precalcs.horizontalretracestart; //When to start vertical retrace!
+}
+
+OPTINLINE word getHorizontalRetraceStartFinish(VGA_Type* VGA) //When to start retracing (vblank)
+{
+	return VGA->precalcs.horizontalretracestartfinish; //When to start vertical retrace!
 }
 
 OPTINLINE word getHorizontalRetraceEnd(VGA_Type *VGA)
@@ -147,24 +157,28 @@ word get_display_x(VGA_Type *VGA, word x) //Horizontal check!
 		signal |= VGA_SIGNAL_HTOTAL|VGA_SIGNAL_HSYNCRESET; //HTotal&Sync reset notify!
 	}
 	//First, check vertical/horizontal retrace, blanking, overline!
-	if (x==getHorizontalRetraceStart(VGA)) //Might be retracing to pixel 0?
+	if ((x==getHorizontalRetraceStart(VGA)) /*&& (x<getHorizontalRetraceStartFinish(VGA))*/ ) //Might be retracing to pixel 0?
 	{
-		signal |= VGA_SIGNAL_HRETRACESTART; //Retracing: do nothing!
+		if (x == getHorizontalRetraceStart(VGA))
+		{
+			signal |= VGA_SIGNAL_HRETRACESTART; //Retracing: do nothing!
+		}
 	}
-	
-	if ((hchar&0x1F)==getHorizontalRetraceEnd(VGA)) //End of horizontal retrace?
+	else if ((hchar&0x1F)==getHorizontalRetraceEnd(VGA)) //End of horizontal retrace?
 	{
 		signal |= VGA_SIGNAL_HRETRACEEND; //End of horizontal retrace!
 	}
 	
 	//Not special: we're processing display! Priority: blanking, display, overscan!
 	
-	if (x==getHorizontalBlankingStart(VGA)) //Horizontal blanking start?
+	if ((x==getHorizontalBlankingStart(VGA)) /*&& (x<getHorizontalBlankingStartFinish(VGA))*/ ) //Horizontal blanking start?
 	{
-		signal |= VGA_SIGNAL_HBLANKSTART; //Blanking!
+		if (x == getHorizontalBlankingStart(VGA)) //Starting?
+		{
+			signal |= VGA_SIGNAL_HBLANKSTART; //Blanking!
+		}
 	}
-	
-	if ((hchar&0x3F)==getHorizontalBlankingEnd(VGA)) //We end blanking AFTER this character!
+	else if ((hchar&0x3F)==getHorizontalBlankingEnd(VGA)) //We end blanking AFTER this character!
 	{
 		signal |= VGA_SIGNAL_HBLANKEND; //End blanking!
 	}

@@ -643,12 +643,18 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			word hblankstart;
 			hblankstart = VGA->registers->CRTControllerRegisters.REGISTERS.STARTHORIZONTALBLANKINGREGISTER;
 			++hblankstart; //Start after this character!
+			VGA->precalcs.horizontalblankingstartfinish = hblankstart; //For calculating it's finish!
 			hblankstart *= VGA->precalcs.characterwidth;
 			//dolog("VGA","HBlankStart updated: %u",hblankstart);
 			//dolog("VGA","VTotal after: %u",VGA->precalcs.verticaltotal); //Log it!
 			if (VGA->precalcs.horizontalblankingstart != hblankstart) adjustVGASpeed(); //Update our speed!
 			updateCRTC |= (VGA->precalcs.horizontalblankingstart != hblankstart); //Update!
 			VGA->precalcs.horizontalblankingstart = hblankstart; //Load!
+			hblankstart = VGA->precalcs.horizontalblankingstartfinish;
+			++hblankstart; //End after this character!
+			hblankstart *= VGA->precalcs.characterwidth;
+			updateCRTC |= (VGA->precalcs.horizontalblankingstartfinish != hblankstart); //Update!
+			VGA->precalcs.horizontalblankingstartfinish = hblankstart; //Load!
 		}
 
 		if (CRTUpdatedCharwidth || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x3)) || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x5))) //Updated?
@@ -669,12 +675,17 @@ void VGA_calcprecalcs(void *useVGA, uint_32 whereupdated) //Calculate them, wher
 			word hretracestart;
 			hretracestart = VGA->registers->CRTControllerRegisters.REGISTERS.STARTHORIZONTALRETRACEREGISTER;
 			++hretracestart; //We start after this!
+			VGA->precalcs.horizontalretracestartfinish = (hretracestart + 1); //Finish on the next clock?
 			hretracestart *= VGA->precalcs.characterwidth; //We're character units!
 			//dolog("VGA","HRetStart updated: %u",hretracestart);
 			//dolog("VGA","VTotal after: %u",VGA->precalcs.verticaltotal); //Log it!
 			if (VGA->precalcs.horizontalretracestart != hretracestart) adjustVGASpeed(); //Update our speed!
 			updateCRTC |= (VGA->precalcs.horizontalretracestart != hretracestart); //Update!
 			VGA->precalcs.horizontalretracestart = hretracestart; //Load!
+			hretracestart = VGA->precalcs.horizontalretracestartfinish; //When to finish?
+			hretracestart *= VGA->precalcs.characterwidth; //We're character units!
+			updateCRTC |= VGA->precalcs.horizontalretracestartfinish != hretracestart; //To be updated?
+			VGA->precalcs.horizontalretracestartfinish = hretracestart; //Load!
 		}
 		
 		if (CRTUpdatedCharwidth || (whereupdated==(WHEREUPDATED_CRTCONTROLLER|0x5))) 
