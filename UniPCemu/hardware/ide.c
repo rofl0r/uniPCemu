@@ -6117,6 +6117,7 @@ void ATA_DiskChanged(int disk)
 			ATA[disk_channel].Drive[disk_drive].driveparams[82] = ((1<<4)|(1<<9)|(1<<14)); //On CD-ROM, PACKET; DEVICE RESET; NOP is supported, ON hard disk, only NOP is supported. This word is valid(bit 14 set, bit 15 cleared.)
 			ATA[disk_channel].Drive[disk_drive].driveparams[83] = (1<<4)|(1<<14); //On CD-ROM, removable status notification feature set!
 			ATA[disk_channel].Drive[disk_drive].driveparams[85] = (1 << 4); //On CD-ROM, PACKET command feature is enabled!
+			ATA[disk_channel].Drive[disk_drive].driveparams[87] = (1 << 14); //On CD-ROM, PACKET command feature isn't default!
 			ATA[disk_channel].Drive[disk_drive].driveparams[127] = 0x0001; //01 in bit 0-1 means that we're using the removable media Microsoft feature set.
 		}
 		ATA_updateCapacity(disk_channel,disk_drive); //Update the drive capacity!
