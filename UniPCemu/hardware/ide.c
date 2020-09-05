@@ -2345,6 +2345,7 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 	int_64 cue_trackskip, cue_trackskip2, cue_postgapskip;
 	uint_32 reqLBA;
 	uint_32 disk_size = ATA[channel].Drive[drive].ATAPI_disksize; //The size of the disk in sectors!
+	ascq = 0; //Init!
 	if (ATA[channel].Drive[drive].commandstatus == 1) //We're reading already?
 	{
 		if (!--ATA[channel].Drive[drive].datasize) //Finished?
@@ -3564,13 +3565,14 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 	ATAPI_aborted = 0; //Init aborted status!
 	byte abortreason = 5; //Error cause is no disk inserted? Default to 5&additional sense code 0x20 for invalid command.
 	byte additionalsensecode = 0; //Invalid command operation code.
-	byte ascq = 0; //extra code!
+	byte ascq; //extra code!
 	byte isvalidpage = 0; //Valid page?
 	uint_32 packet_datapos;
 	byte i;
 	uint_32 disk_size,LBA;
 	disk_size = ATA[channel].Drive[drive].ATAPI_disksize; //Disk size in 4096 byte sectors!
 	ATA_STATUSREGISTER_DRIVESEEKCOMPLETEW(channel, drive, 0); //No service(when enabled), nor drive seek complete!
+	ascq = 0; //Default!
 	switch (ATA[channel].Drive[drive].ATAPI_PACKET[0]) //What command?
 	{
 	case 0x00: //TEST UNIT READY(Mandatory)?
