@@ -4452,6 +4452,8 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			case LOAD_DISC_READIED: /* disc just "became ready" */
 				break; //Don't do anything!
 			case LOAD_SPINDOWN: /* disc is requested to spin down */
+				ATAPI_PendingExecuteCommand(channel, drive); //Start pending again four our wait time execution!
+				return; //Wait for the drive to become idle first!
 			case LOAD_EJECTING: //Ejecting the disc?
 				//Don't stop the disc if it's already stopping to spin (NOP)!
 				break;
@@ -4460,12 +4462,19 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 				ATA[channel].Drive[drive].PendingSpinType = ATAPI_SPINDOWN; //Spin down!
 				ATA[channel].Drive[drive].ATAPI_diskchangeTimeout = ATAPI_SPINDOWNSTOP_TIMEOUT; //Timeout to spinup complete!
 				ATA[channel].Drive[drive].ATAPI_diskchangeDirection = ATAPI_DYNAMICLOADINGPROCESS; //We're unchanged from now on!
+				ATAPI_PendingExecuteCommand(channel, drive); //Start pending again four our wait time execution!
+				return;
 			}
 			break;
 		case 1: //Start the disc and read the TOC?
-			if (ATAPI_common_spin_response(channel, drive, 1, 0) == 1) //Spinning up?
+			if ((spinresponse = ATAPI_common_spin_response(channel, drive, 1, 1)) == 1) //Spinning up?
 			{
 				//OK! We're starting up or are started!
+			}
+			else if (spinresponse == 2) //Busy waiting?
+			{
+				ATAPI_PendingExecuteCommand(channel, drive); //Start pending again four our wait time execution!
+				return;
 			}
 			else //Report error!
 			{
@@ -4474,9 +4483,42 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			}
 			break;
 		case 2: //Eject the disc if possible?
+			if (ATA[channel].Drive[drive].PendingLoadingMode == LOAD_EJECTING) //Busy ejecting?
+			{
+				goto handleBusyEjecting;
+			}
 			if (ATA_allowDiskChange(ATA_Drives[channel][drive],2)) //Do we allow the disc to be changed? Stop spinning if spinning!
 			{
-				handleATAPIcaddyeject(channel, drive); //Handle the ejection of the caddy!
+				switch (ATA[channel].Drive[drive].PendingLoadingMode)
+				{
+				case LOAD_SPINDOWN: /* disc is requested to spin down */
+					ATAPI_PendingExecuteCommand(channel, drive); //Start pending again four our wait time execution!
+					return; //Wait for the drive to become idle first!
+					break;
+				case LOAD_IDLE: /* disc is stationary, not spinning */
+				case LOAD_NO_DISC: /* caddy inserted, not spinning, no disc */
+				case LOAD_DISC_LOADING: /* disc is "spinning up" */
+				case LOAD_DISC_READIED: /* disc just "became ready" */
+				case LOAD_READY: /* Disc is ready to be read and spinning! */
+					//What to do with the different loading modes?
+					handleATAPIcaddyeject(channel, drive); //Handle the ejection of the caddy!
+					ATAPI_PendingExecuteCommand(channel, drive); //Start pending again four our wait time execution!
+					return;
+					break; //Don't do anything!
+				case LOAD_EJECTING: //Ejecting the disc?
+					handleBusyEjecting: //Handle when busy ejecting!
+					if ((ATA[channel].Drive[drive].ATAPI_diskchangeTimeout != (DOUBLE)0) &&
+						(ATA[channel].Drive[drive].ATAPI_diskchangeDirection == ATAPI_DYNAMICLOADINGPROCESS)
+						) //Still ejecting?
+					{
+						ATAPI_PendingExecuteCommand(channel, drive); //Start pending again four our wait time execution!
+						return;
+					}
+					break;
+				case LOAD_INSERT_CD: /* user is "inserting" the CD */
+					//Don't eject the disc if it's already ejected (NOP)!
+					break;
+				}
 			}
 			else //Not allowed to change?
 			{
@@ -4491,6 +4533,16 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			{
 				ATA[channel].Drive[drive].ATAPI_caddyejected = 2; //Request the caddy to be inserted again!
 				ATA[channel].Drive[drive].ATAPI_caddyinsertion_fast = 1; //Fast insertion!
+			}
+			if (ATA[channel].Drive[drive].ATAPI_caddyejected == 2) //Still ejected and waiting to be inserted?
+			{
+				ATAPI_PendingExecuteCommand(channel, drive); //Start pending again four our wait time execution!
+				return;
+			}
+			else if (ATA[channel].Drive[drive].PendingLoadingMode == LOAD_INSERT_CD) //Still loading the CD-ROM into the drive?
+			{
+				ATAPI_PendingExecuteCommand(channel, drive); //Start pending again four our wait time execution!
+				return;
 			}
 			break;
 		default:
