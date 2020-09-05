@@ -856,7 +856,7 @@ byte ATAPI_common_spin_response(byte channel, byte drive, byte spinupdown, byte 
 {
 	if (ATA[channel].Drive[drive].ATAPI_caddyejected == 1) //Caddy is ejected?
 	{
-		ATAPI_SET_SENSE(channel, drive, 0x02, 0x3A, 0x00); //Drive not ready. Initializing command required.
+		ATAPI_SET_SENSE(channel, drive, 0x02, 0x3A, 0x02); //Drive not ready. Tray open.
 		return 0; //Abort the command!
 	}
 	switch (ATA[channel].Drive[drive].PendingLoadingMode)
@@ -896,9 +896,12 @@ byte ATAPI_common_spin_response(byte channel, byte drive, byte spinupdown, byte 
 		}
 		break;
 	case LOAD_NO_DISC:
+		ATAPI_SET_SENSE(channel, drive, 0x02, 0x3A, 0x01); //Medium not present - Tray closed
+		return 0; //Abort the command!
+		break;
 	case LOAD_INSERT_CD:
 	case LOAD_EJECTING: //Ejecting the disc?
-		ATAPI_SET_SENSE(channel,drive,0x02,0x3A,0x00); //Medium not present
+		ATAPI_SET_SENSE(channel,drive,0x02,0x3A,0x02); //Medium not present - Tray open
 		return 0; //Abort the command!
 		break;
 	case LOAD_DISC_LOADING:
@@ -2328,6 +2331,7 @@ byte ATAPI_aborted=0;
 
 OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sector set up!
 {
+	byte ascq;
 	uint_32 skipPregap; //To skip pregap!
 	byte spinresponse;
 	byte abortreason, additionalsensecode;
@@ -2558,6 +2562,7 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 					//Fill the Request Sense standard data with ILLEGAL MODE FOR THIS TRACK!
 					abortreason = SENSE_ILLEGAL_REQUEST; //Illegal request:
 					additionalsensecode = ASC_ILLEGAL_MODE_FOR_THIS_TRACK_OR_INCOMPATIBLE_MEDIUM; //Illegal mode or incompatible medium!
+					ascq = 0;
 
 					ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
 					ATA[channel].Drive[drive].commandstatus = 0xFF; //Move to error mode!
@@ -2566,7 +2571,7 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 					ATAPI_SENSEPACKET_SENSEKEYW(channel, drive,abortreason); //Reason of the error
 					ATAPI_SENSEPACKET_RESERVED2W(channel, drive, 0); //Reserved field!
 					ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel, drive,additionalsensecode); //Extended reason code
-					ATAPI_SENSEPACKET_ASCQW(channel, drive, 0); //ASCQ code!
+					ATAPI_SENSEPACKET_ASCQW(channel, drive, ascq); //ASCQ code!
 					if (ATA[channel].Drive[drive].expectedReadDataType==0xFF) //Set ILI bit for read sector(nn)?
 					{
 						ATAPI_SENSEPACKET_ILIW(channel, drive,1); //ILI bit set!
@@ -2603,6 +2608,7 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 		//Fill the Request Sense standard data with ILLEGAL MODE FOR THIS TRACK!
 		abortreason = SENSE_ILLEGAL_REQUEST; //Illegal request:
 		additionalsensecode = ASC_LOGICAL_BLOCK_OOR; //Illegal mode or incompatible medium!
+		ascq = 0;
 #ifdef ATA_LOG
 		dolog("ATA", "Read Sector out of range:%u,%u=%08X/%08X!", channel, drive, ATA[channel].Drive[drive].ATAPI_LBA, disk_size);
 #endif
@@ -2614,7 +2620,7 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 		ATAPI_SENSEPACKET_SENSEKEYW(channel, drive, abortreason); //Reason of the error
 		ATAPI_SENSEPACKET_RESERVED2W(channel, drive, 0); //Reserved field!
 		ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel, drive, additionalsensecode); //Extended reason code
-		ATAPI_SENSEPACKET_ASCQW(channel, drive, 0); //ASCQ code!
+		ATAPI_SENSEPACKET_ASCQW(channel, drive, ascq); //ASCQ code!
 		if (ATA[channel].Drive[drive].expectedReadDataType == 0xFF) //Set ILI bit for read sector(nn)?
 		{
 			ATAPI_SENSEPACKET_ILIW(channel, drive, 1); //ILI bit set!
@@ -2664,17 +2670,19 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 	}
 
 	if (!(is_mounted(ATA_Drives[channel][drive])&&ATA[channel].Drive[drive].diskInserted)) { //Error out if not present!
+		ascq = 0;
 		//Handle like an invalid command!
 		EMU_setDiskBusy(ATA_Drives[channel][drive], 0| (ATA[channel].Drive[drive].ATAPI_caddyejected << 1)); //We're doing nothing!
 		ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
 		ATA[channel].Drive[drive].commandstatus = 0xFF; //Move to error mode!
+		ascq = (ATA[channel].Drive[drive].ATAPI_caddyejected?0x02:0x01);
 		ATAPI_giveresultsize(channel,drive,0,1); //No result size!
 		ATA[channel].Drive[drive].ERRORREGISTER = /*4|*/(SENSE_NOT_READY<<4); //Reset error register! This also contains a copy of the Sense Key!
 		ATAPI_SENSEPACKET_SENSEKEYW(channel,drive,SENSE_NOT_READY); //Reason of the error
 		ATAPI_SENSEPACKET_RESERVED2W(channel, drive, 0); //Reserved field!
 		ATAPI_SENSEPACKET_ILIW(channel, drive,0); //ILI bit cleared!
 		ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel,drive,ASC_MEDIUM_NOT_PRESENT); //Extended reason code
-		ATAPI_SENSEPACKET_ASCQW(channel, drive, 0); //ASCQ code!
+		ATAPI_SENSEPACKET_ASCQW(channel, drive, ascq); //ASCQ code!
 		ATAPI_SENSEPACKET_ERRORCODEW(channel,drive,0x70); //Default error code?
 		ATAPI_SENSEPACKET_ADDITIONALSENSELENGTHW(channel,drive,8); //Additional Sense Length = 8?
 		ATAPI_SENSEPACKET_INFORMATION0W(channel,drive,0); //No info!
@@ -2715,6 +2723,7 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 		//ATA_ERRORREGISTER_IDMARKNOTFOUNDW(channel,drive,1); //Not found!
 		abortreason = SENSE_ILLEGAL_REQUEST; //Illegal request:
 		additionalsensecode = ASC_ILLEGAL_MODE_FOR_THIS_TRACK_OR_INCOMPATIBLE_MEDIUM; //Illegal mode or incompatible medium!
+		ascq = 0;
 
 		ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
 		ATA[channel].Drive[drive].commandstatus = 0xFF; //Move to error mode!
@@ -2723,7 +2732,7 @@ OPTINLINE byte ATAPI_readsector(byte channel, byte drive) //Read the current sec
 		ATAPI_SENSEPACKET_SENSEKEYW(channel, drive, abortreason); //Reason of the error
 		ATAPI_SENSEPACKET_RESERVED2W(channel, drive, 0); //Reserved field!
 		ATAPI_SENSEPACKET_ADDITIONALSENSECODEW(channel, drive, additionalsensecode); //Extended reason code
-		ATAPI_SENSEPACKET_ASCQW(channel, drive, 0); //ASCQ code!
+		ATAPI_SENSEPACKET_ASCQW(channel, drive, ascq); //ASCQ code!
 		if (ATA[channel].Drive[drive].expectedReadDataType == 0xFF) //Set ILI bit for read sector(nn)?
 		{
 			ATAPI_SENSEPACKET_ILIW(channel, drive, (additionalsensecode==ASC_ILLEGAL_MODE_FOR_THIS_TRACK_OR_INCOMPATIBLE_MEDIUM) ? 1:0); //ILI bit set!
@@ -3567,7 +3576,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 	case 0x00: //TEST UNIT READY(Mandatory)?
 		if ((spinresponse = ATAPI_common_spin_response(channel,drive,0,0))==1) //Common response OK?
 		{
-			if (!(is_mounted(ATA_Drives[channel][drive])&&ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
+			if (!(is_mounted(ATA_Drives[channel][drive]) && ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; ascq = (ATA[channel].Drive[drive].ATAPI_caddyejected ? 0x02 : 0x01); goto ATAPI_invalidcommand; } //Error out if not present!
 			//Valid disk loaded?
 			ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
 			ATA[channel].Drive[drive].commandstatus = 0; //OK!
@@ -3585,7 +3594,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		}
 		break;
 	case 0x03: //REQUEST SENSE(Mandatory)?
-		//if (!is_mounted(ATA_Drives[channel][drive])) { abortreason = 2;additionalsensecode = 0x3A;goto ATAPI_invalidcommand; } //Error out if not present!
+		//if (!is_mounted(ATA_Drives[channel][drive])) { abortreason = 2;additionalsensecode = 0x3A;ascq=(ATA[channel].Drive[drive].ATAPI_caddyejected?0x02:0x01);goto ATAPI_invalidcommand; } //Error out if not present!
 		//Byte 4 = allocation length
 		ATA[channel].Drive[drive].datapos = 0; //Start of data!
 		ATA[channel].Drive[drive].datablock = MIN(ATA[channel].Drive[drive].ATAPI_PACKET[4],sizeof(ATA[channel].Drive[drive].SensePacket)); //Size of a block to transfer!
@@ -3752,6 +3761,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 					case CDROM_PAGECONTROL_SAVED: //Currently saved values?
 						abortreason = SENSE_ILLEGAL_REQUEST; //Illegal!
 						additionalsensecode = ASC_SAVING_PARAMETERS_NOT_SUPPORTED; //Not supported!
+						ascq = 0;
 						goto ATAPI_invalidcommand; //Saved data isn't supported!
 						break;
 					default:
@@ -3787,7 +3797,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 	case 0xBE: //Read CD command(mandatory)?
 		if ((spinresponse = ATAPI_common_spin_response(channel, drive, 1, 1))==1)
 		{
-			if (!(is_mounted(ATA_Drives[channel][drive]) && ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
+			if (!(is_mounted(ATA_Drives[channel][drive]) && ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; ascq = (ATA[channel].Drive[drive].ATAPI_caddyejected ? 0x02 : 0x01); goto ATAPI_invalidcommand; } //Error out if not present!
 			LBA = (((((ATA[channel].Drive[drive].ATAPI_PACKET[2] << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[3]) << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[4]) << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[5]; //The LBA address!
 			ATA[channel].Drive[drive].datasize = ATA[channel].Drive[drive].ATAPI_PACKET[8] | ATA[channel].Drive[drive].ATAPI_PACKET[7] | ATA[channel].Drive[drive].ATAPI_PACKET[6]; //The amount of sectors to transfer!
 			transfer_req = ATA[channel].Drive[drive].ATAPI_PACKET[9]; //Requested type of packets!
@@ -3804,7 +3814,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			{
 				if (!getCUEimage(ATA_Drives[channel][drive])) //Not a CUE image?
 				{
-					if ((LBA > disk_size) || ((LBA + MIN(ATA[channel].Drive[drive].datasize, 1) - 1) > disk_size)) { abortreason = SENSE_ILLEGAL_REQUEST; additionalsensecode = ASC_LOGICAL_BLOCK_OOR; goto ATAPI_invalidcommand; } //Error out when invalid sector!
+					if ((LBA > disk_size) || ((LBA + MIN(ATA[channel].Drive[drive].datasize, 1) - 1) > disk_size)) { abortreason = SENSE_ILLEGAL_REQUEST; additionalsensecode = ASC_LOGICAL_BLOCK_OOR; ascq = 0; goto ATAPI_invalidcommand; } //Error out when invalid sector!
 				}
 
 				ATA[channel].Drive[drive].datapos = 0; //Start at the beginning properly!
@@ -3827,6 +3837,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 				default: //Unknown request?
 					abortreason = SENSE_ILLEGAL_REQUEST; //Error category!
 					additionalsensecode = ASC_INV_FIELD_IN_CMD_PACKET; //Invalid Field in command packet!
+					ascq = 0;
 					ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
 					ATAPI_giveresultsize(channel,drive, 0, 0); //Result size!
 					goto ATAPI_invalidcommand;
@@ -3846,7 +3857,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 	case 0xB9: //Read CD MSF (mandatory)?
 		if ((spinresponse = ATAPI_common_spin_response(channel, drive, 1, 1))==1)
 		{
-			if (!(is_mounted(ATA_Drives[channel][drive]) && ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
+			if (!(is_mounted(ATA_Drives[channel][drive]) && ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; ascq = (ATA[channel].Drive[drive].ATAPI_caddyejected ? 0x02 : 0x01); goto ATAPI_invalidcommand; } //Error out if not present!
 			LBA = MSF2LBAbin(ATA[channel].Drive[drive].ATAPI_PACKET[3], ATA[channel].Drive[drive].ATAPI_PACKET[4], ATA[channel].Drive[drive].ATAPI_PACKET[5]); //The LBA address!
 			endLBA = MSF2LBAbin(ATA[channel].Drive[drive].ATAPI_PACKET[6], ATA[channel].Drive[drive].ATAPI_PACKET[7], ATA[channel].Drive[drive].ATAPI_PACKET[8]); //The LBA address!
 
@@ -3856,6 +3867,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 				{
 					abortreason = SENSE_ILLEGAL_REQUEST; //Error category!
 					additionalsensecode = ASC_LOGICAL_BLOCK_OOR; //Invalid Field in command packet!
+					ascq = 0;
 					goto ATAPI_invalidcommand;
 				}
 			}
@@ -3878,7 +3890,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 
 				if (!getCUEimage(ATA_Drives[channel][drive])) //Not a CUE image?
 				{
-					if ((LBA > disk_size) || ((LBA + MIN(ATA[channel].Drive[drive].datasize, 1) - 1) > disk_size)) { abortreason = SENSE_ILLEGAL_REQUEST; additionalsensecode = ASC_LOGICAL_BLOCK_OOR; goto ATAPI_invalidcommand; } //Error out when invalid sector!
+					if ((LBA > disk_size) || ((LBA + MIN(ATA[channel].Drive[drive].datasize, 1) - 1) > disk_size)) { abortreason = SENSE_ILLEGAL_REQUEST; additionalsensecode = ASC_LOGICAL_BLOCK_OOR; ascq = 0; goto ATAPI_invalidcommand; } //Error out when invalid sector!
 				}
 
 				ATA[channel].Drive[drive].expectedReadDataType = ((ATA[channel].Drive[drive].ATAPI_PACKET[1] & 0x1C) >> 2); //What type of sector are we expecting?
@@ -3897,6 +3909,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 				default: //Unknown request?
 					abortreason = SENSE_ILLEGAL_REQUEST; //Error category!
 					additionalsensecode = ASC_INV_FIELD_IN_CMD_PACKET; //Invalid Field in command packet!
+					ascq = 0;
 					goto ATAPI_invalidcommand;
 				}
 			}
@@ -3914,7 +3927,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 	case 0x44: //Read header (mandatory)?
 		if ((spinresponse = ATAPI_common_spin_response(channel, drive, 1, 1))==1)
 		{
-			if (!(is_mounted(ATA_Drives[channel][drive]) && ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
+			if (!(is_mounted(ATA_Drives[channel][drive]) && ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; ascq = (ATA[channel].Drive[drive].ATAPI_caddyejected ? 0x02 : 0x01); goto ATAPI_invalidcommand; } //Error out if not present!
 
 			LBA = (((((ATA[channel].Drive[drive].ATAPI_PACKET[2] << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[3]) << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[4]) << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[5]; //The LBA address!
 			alloc_length = (ATA[channel].Drive[drive].ATAPI_PACKET[7] << 8) | (ATA[channel].Drive[drive].ATAPI_PACKET[8]); //Allocated length!
@@ -3922,7 +3935,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 
 			if (!getCUEimage(ATA_Drives[channel][drive])) //Not a CUE image?
 			{
-				if (LBA > disk_size) { abortreason = SENSE_ILLEGAL_REQUEST; additionalsensecode = ASC_LOGICAL_BLOCK_OOR; goto ATAPI_invalidcommand; } //Error out when invalid sector!
+				if (LBA > disk_size) { abortreason = SENSE_ILLEGAL_REQUEST; additionalsensecode = ASC_LOGICAL_BLOCK_OOR; ascq = 0; goto ATAPI_invalidcommand; } //Error out when invalid sector!
 			}
 
 			//Now, build the packet!
@@ -3973,7 +3986,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			//track_number = ATA[channel].Drive[drive].ATAPI_PACKET[6]; //Track number
 			alloc_length = (ATA[channel].Drive[drive].ATAPI_PACKET[7]<<8)|ATA[channel].Drive[drive].ATAPI_PACKET[8]; //Allocation length!
 			ret_len = 4;
-			if (!(is_mounted(ATA_Drives[channel][drive])&&ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
+			if (!(is_mounted(ATA_Drives[channel][drive]) && ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; ascq = (ATA[channel].Drive[drive].ATAPI_caddyejected ? 0x02 : 0x01); goto ATAPI_invalidcommand; } //Error out if not present!
 			memset(&ATA[channel].Drive[drive].data,0,24); //Clear any and all data we might be using!
 			ATA[channel].Drive[drive].data[0] = 0;
 			ATA[channel].Drive[drive].data[1] = ATA[channel].Drive[drive].AUDIO_PLAYER.effectiveplaystatus; //Effective play status!
@@ -4061,6 +4074,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 				{
 					abortreason = SENSE_ILLEGAL_REQUEST; //Error category!
 					additionalsensecode = ASC_INV_FIELD_IN_CMD_PACKET; //Invalid Field in command packet!
+					ascq = 0;
 					goto ATAPI_invalidcommand;
 				}
 			}
@@ -4088,7 +4102,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 	case 0x43: //Read TOC (mandatory)?
 		if ((spinresponse = ATAPI_common_spin_response(channel,drive,1,1))==1)
 		{
-			if (!(is_mounted(ATA_Drives[channel][drive])&&ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
+			if (!(is_mounted(ATA_Drives[channel][drive]) && ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; ascq = (ATA[channel].Drive[drive].ATAPI_caddyejected ? 0x02 : 0x01); goto ATAPI_invalidcommand; } //Error out if not present!
 			MSF = (ATA[channel].Drive[drive].ATAPI_PACKET[1]>>1)&1;
 			starting_track = ATA[channel].Drive[drive].ATAPI_PACKET[6]; //Starting track!
 			alloc_length = (ATA[channel].Drive[drive].ATAPI_PACKET[7]<<8)|(ATA[channel].Drive[drive].ATAPI_PACKET[8]); //Allocated length!
@@ -4114,6 +4128,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 				invalidTOCrequest:
 				abortreason = SENSE_ILLEGAL_REQUEST; //Error category!
 				additionalsensecode = ASC_INV_FIELD_IN_CMD_PACKET; //Invalid Field in command packet!
+				ascq = 0;
 				goto ATAPI_invalidcommand;
 			}
 		}
@@ -4131,7 +4146,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		if ((spinresponse = ATAPI_common_spin_response(channel,drive,1,1))==1)
 		{
 			//Clear sense data
-			if (!(is_mounted(ATA_Drives[channel][drive])&&ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
+			if (!(is_mounted(ATA_Drives[channel][drive]) && ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; ascq = (ATA[channel].Drive[drive].ATAPI_caddyejected ? 0x02 : 0x01); goto ATAPI_invalidcommand; } //Error out if not present!
 			//[9]=Amount of sectors, [2-5]=LBA address, LBA mid/high=2048.
 			LBA = (((((ATA[channel].Drive[drive].ATAPI_PACKET[2] << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[3]) << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[4]) << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[5]; //The LBA address!
 
@@ -4183,6 +4198,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 					illegalseekaddress:
 						abortreason = SENSE_ILLEGAL_REQUEST;
 						additionalsensecode = ASC_LOGICAL_BLOCK_OOR;
+						ascq = 0;
 						goto ATAPI_invalidcommand;
 					}
 			} //Error out when invalid sector!
@@ -4212,7 +4228,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 	/* Audio support */
 	case 0x4E: //Stop play/scan (Mandatory)?
 		//Simply ignore the command for now, as audio is unsupported?
-		if (!(is_mounted(ATA_Drives[channel][drive])&&ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
+		if (!(is_mounted(ATA_Drives[channel][drive]) && ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; ascq = (ATA[channel].Drive[drive].ATAPI_caddyejected ? 0x02 : 0x01); goto ATAPI_invalidcommand; } //Error out if not present!
 
 		//Issuing this command while scanning makes the play command continue. Issuing this command while paused shall stop the play command.
 		if (ATA[channel].Drive[drive].AUDIO_PLAYER.status == PLAYER_PAUSED) //Paused?
@@ -4234,12 +4250,13 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 
 		abortreason = SENSE_ILLEGAL_REQUEST; //Illegal request:
 		additionalsensecode = ASC_ILLEGAL_OPCODE; //Illegal opcode!
+		ascq = 0;
 
 		goto ATAPI_invalidcommand; //See https://www.kernel.org/doc/htmldocs/libata/ataExceptions.html
 		#endif
 		if ((spinresponse = ATAPI_common_spin_response(channel, drive, 1, 1)) == 1)
 		{
-			if (!(is_mounted(ATA_Drives[channel][drive]) && ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
+			if (!(is_mounted(ATA_Drives[channel][drive]) && ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; ascq = (ATA[channel].Drive[drive].ATAPI_caddyejected ? 0x02 : 0x01); goto ATAPI_invalidcommand; } //Error out if not present!
 			if (ATA[channel].Drive[drive].ATAPI_PACKET[8] & 1) //Resume?
 			{
 				//Resume if paused, otherwise, NOP!
@@ -4285,12 +4302,13 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 
 		abortreason = SENSE_ILLEGAL_REQUEST; //Illegal request:
 		additionalsensecode = ASC_ILLEGAL_OPCODE; //Illegal opcode!
+		ascq = 0;
 
 		goto ATAPI_invalidcommand; //See https://www.kernel.org/doc/htmldocs/libata/ataExceptions.html
 		#endif
 		if ((spinresponse = ATAPI_common_spin_response(channel, drive, 1, 1)) == 1)
 		{
-			if (!(is_mounted(ATA_Drives[channel][drive]) && ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
+			if (!(is_mounted(ATA_Drives[channel][drive]) && ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; ascq = (ATA[channel].Drive[drive].ATAPI_caddyejected ? 0x02 : 0x01); goto ATAPI_invalidcommand; } //Error out if not present!
 
 			LBA = ((((((ATA[channel].Drive[drive].ATAPI_PACKET[2] << 8) | (ATA[channel].Drive[drive].ATAPI_PACKET[3])) << 8) | (ATA[channel].Drive[drive].ATAPI_PACKET[4])) << 8) | (ATA[channel].Drive[drive].ATAPI_PACKET[5])); //Starting LBA address!
 			alloc_length = ((ATA[channel].Drive[drive].ATAPI_PACKET[7] << 8) | (ATA[channel].Drive[drive].ATAPI_PACKET[8])); //Amount of frames to play (0 is valid, which means end MSF = start MSF)!
@@ -4350,12 +4368,13 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 
 		abortreason = SENSE_ILLEGAL_REQUEST; //Illegal request:
 		additionalsensecode = ASC_ILLEGAL_OPCODE; //Illegal opcode!
+		ascq = 0;
 
 		goto ATAPI_invalidcommand; //See https://www.kernel.org/doc/htmldocs/libata/ataExceptions.html
 		#endif
 		if ((spinresponse = ATAPI_common_spin_response(channel, drive, 1, 1)) == 1)
 		{
-			if (!(is_mounted(ATA_Drives[channel][drive]) && ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
+			if (!(is_mounted(ATA_Drives[channel][drive]) && ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; ascq = (ATA[channel].Drive[drive].ATAPI_caddyejected ? 0x02 : 0x01); goto ATAPI_invalidcommand; } //Error out if not present!
 			startM = ATA[channel].Drive[drive].ATAPI_PACKET[3]; //Start M!
 			startS = ATA[channel].Drive[drive].ATAPI_PACKET[4]; //Start S!
 			startF = ATA[channel].Drive[drive].ATAPI_PACKET[5]; //Start F!
@@ -4461,6 +4480,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 			{
 				abortreason = SENSE_NOT_READY; //Not ready!
 				additionalsensecode = 0x53; //Media removal prevented!
+				ascq = 0;
 				goto ATAPI_invalidcommand; //Not ready, media removal prevented!
 			}
 			break;
@@ -4483,7 +4503,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 	case 0xA8: //Read sectors (12) command(Mandatory)!
 		if ((spinresponse = ATAPI_common_spin_response(channel,drive,1,1))==1)
 		{
-			if (!(is_mounted(ATA_Drives[channel][drive])&&ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
+			if (!(is_mounted(ATA_Drives[channel][drive]) && ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; ascq = (ATA[channel].Drive[drive].ATAPI_caddyejected ? 0x02 : 0x01); goto ATAPI_invalidcommand; } //Error out if not present!
 			//[9]=Amount of sectors, [2-5]=LBA address, LBA mid/high=2048.
 			LBA = (((((ATA[channel].Drive[drive].ATAPI_PACKET[2]<<8) | ATA[channel].Drive[drive].ATAPI_PACKET[3])<<8)| ATA[channel].Drive[drive].ATAPI_PACKET[4]) << 8)| ATA[channel].Drive[drive].ATAPI_PACKET[5]; //The LBA address!
 			ATA[channel].Drive[drive].datasize = (ATA[channel].Drive[drive].ATAPI_PACKET[7]<<8)|(ATA[channel].Drive[drive].ATAPI_PACKET[8]); //How many sectors to transfer
@@ -4494,7 +4514,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 
 			if (!getCUEimage(ATA_Drives[channel][drive])) //Not a CUE image?
 			{
-				if ((LBA > disk_size) || ((LBA + MIN(ATA[channel].Drive[drive].datasize, 1) - 1) > disk_size)) { abortreason = SENSE_ILLEGAL_REQUEST; additionalsensecode = ASC_LOGICAL_BLOCK_OOR; goto ATAPI_invalidcommand; } //Error out when invalid sector!
+				if ((LBA > disk_size) || ((LBA + MIN(ATA[channel].Drive[drive].datasize, 1) - 1) > disk_size)) { abortreason = SENSE_ILLEGAL_REQUEST; additionalsensecode = ASC_LOGICAL_BLOCK_OOR; ascq = 0; goto ATAPI_invalidcommand; } //Error out when invalid sector!
 			}
 		
 			ATA[channel].Drive[drive].datapos = 0; //Start of data!
@@ -4520,7 +4540,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 	case 0x25: //Read CD-ROM capacity(Mandatory)?
 		if ((spinresponse = ATAPI_common_spin_response(channel, drive, 1, 1))==1)
 		{
-			if (!(is_mounted(ATA_Drives[channel][drive]) && ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; goto ATAPI_invalidcommand; } //Error out if not present!
+			if (!(is_mounted(ATA_Drives[channel][drive]) && ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; ascq = (ATA[channel].Drive[drive].ATAPI_caddyejected ? 0x02 : 0x01); goto ATAPI_invalidcommand; } //Error out if not present!
 			ATA[channel].Drive[drive].datapos = 0; //Start of data!
 			ATA[channel].Drive[drive].datablock = 8; //Size of a block of information to transfer!
 			ATA[channel].Drive[drive].datasize = 1; //Number of blocks of information to transfer!
@@ -4572,6 +4592,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 
 		abortreason = SENSE_ILLEGAL_REQUEST; //Illegal request:
 		additionalsensecode = ASC_ILLEGAL_OPCODE; //Illegal opcode!
+		ascq = 0;
 
 		ATAPI_invalidcommand: //See https://www.kernel.org/doc/htmldocs/libata/ataExceptions.html
 		ATA[channel].Drive[drive].ATAPI_processingPACKET = 3; //Result phase!
@@ -5844,6 +5865,7 @@ void ATAPI_insertCD(int disk, byte disk_channel, byte disk_drive)
 			ATA[disk_channel].activedrive = disk_drive; //Make us active! Unknown how real hardware handles this(for interrupts)!
 			abortreason = SENSE_UNIT_ATTENTION;
 			additionalsensecode = ASC_MEDIUM_MAY_HAVE_CHANGED;
+			ascq = 0;
 			ATA[disk_channel].Drive[disk_drive].ATAPI_processingPACKET = 3; //Result phase!
 			ATA[disk_channel].Drive[disk_drive].commandstatus = 0xFF; //Move to error mode!
 			ATA[disk_channel].activedrive = disk_drive; //Make us active!
