@@ -563,15 +563,15 @@ void updateCMOS(DOUBLE timepassed)
 	if (RTC_timetick) //Are we enabled?
 	{
 		RTC_timeleft -= timepassed; //Time left?
+		if (likely((CMOS.DATA.DATA80.info.STATUSREGISTERA & 0x80) == 0)) //Less than 244uS left to tick can be checked(set the UIP bit when this happens)?
+		{
+			if (unlikely(RTC_timeleft <= 244000.0f)) //244uS left before a tick starts? Most of the time this isn't used!
+			{
+				CMOS.DATA.DATA80.info.STATUSREGISTERA |= 0x80; //Update starts in 244uS!
+			}
+		}
 		if (RTC_timepassed >= RTC_timetick) //Enough to tick?
 		{
-			if (likely((CMOS.DATA.DATA80.info.STATUSREGISTERA & 0x80) == 0)) //Less than 244uS left to tick can be checked(set the UIP bit when this happens)?
-			{
-				if (unlikely(RTC_timeleft <= 244000.0f)) //244uS left before a tick starts? Most of the time this isn't used!
-				{
-					CMOS.DATA.DATA80.info.STATUSREGISTERA |= 0x80; //Update starts in 244uS!
-				}
-			}
 			for (;RTC_timepassed>=RTC_timetick;) //Still enough to tick?
 			{
 				RTC_timepassed -= RTC_timetick; //Ticked once!
