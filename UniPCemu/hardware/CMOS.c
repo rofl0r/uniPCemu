@@ -398,7 +398,7 @@ OPTINLINE void CMOS_encodetime(accuratetime *curtime) //Encode time into the cur
 {
 	accuratetime oldtime;
 	CMOS_decodetime(&oldtime);
-	UniverasalTimeOfDay timevalnew,timevalold;
+	UniversalTimeOfDay timevalnew,timevalold;
 	if (accuratetimetoepoch(curtime, &timevalnew)) //New time gotten?
 	{
 		if (accuratetimetoepoch(&oldtime, &timevalold)) //Old time gotten?
