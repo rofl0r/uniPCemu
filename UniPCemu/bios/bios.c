@@ -1447,7 +1447,7 @@ int BIOS_SaveData() //Save BIOS settings!
 	safestrcat(video_comment, sizeof(video_comment), "VRAM: Ammount of VRAM installed, in bytes\n");
 	safestrcat(video_comment, sizeof(video_comment), "synchronization: 0=Old synchronization depending on host, 1=Synchronize depending on host, 2=Full CPU synchronization\n");
 	safestrcat(video_comment, sizeof(video_comment), "directplot: 0=Disabled, 1=Automatic, 2=Forced\n");
-	safestrcat(video_comment, sizeof(video_comment), "aspectratio: 0=Fullscreen stretching, 1=Keep the same, 2=Force 4:3(VGA), 3=Force CGA, 4=Force 4:3(SVGA 768p), 5=Force 4:3(SVGA 1080p), 6=Force 4K\n");
+	safestrcat(video_comment, sizeof(video_comment), "aspectratio: 0=Fullscreen stretching, 1=Keep the same, 2=Force 4:3(VGA), 3=Force CGA, 4=Force 4:3(SVGA 768p), 5=Force 4:3(SVGA 1080p), 6=Force 4K, 7=Force 4:3(SVGA 4K)\n");
 	safestrcat(video_comment, sizeof(video_comment), "bwmonitor: 0=Color, 1=B/W monitor: white, 2=B/W monitor: green, 3=B/W monitor: amber\n");
 	safestrcat(video_comment, sizeof(video_comment), "showframerate: 0=Disabled, otherwise Enabled");
 	char *video_commentused = NULL;
