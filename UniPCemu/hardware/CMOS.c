@@ -393,8 +393,23 @@ OPTINLINE void CMOS_decodetime(accuratetime *curtime) //Decode time into the cur
 	curtime->us = (curtime->s100*10000)+(curtime->s10000*100); //The same as above, make sure we match!
 }
 
+DOUBLE RTC_timeleft = 0.0;
 OPTINLINE void CMOS_encodetime(accuratetime *curtime) //Encode time into the current time!
 {
+	accuratetime oldtime;
+	CMOS_decodetime(&oldtime);
+	UniverasalTimeOfDay timevalnew,timevalold;
+	if (accuratetimetoepoch(curtime, &timevalnew)) //New time gotten?
+	{
+		if (accuratetimetoepoch(&oldtime, &timevalold)) //Old time gotten?
+		{
+			if (timevalold.tv_sec!=timevalnew.tv_sec) //Second changed?
+			{
+				RTC_timeleft = 244000.0f; //How much is left to time! Time 244uS!
+				CMOS.DATA.DATA80.info.STATUSREGISTERA |= 0x80; //Update now in progress, set the bit until we're past 244uS.
+			}
+		}
+	}
 	if (CMOS.DATA.centuryisbinary==0) CMOS.DATA.DATA80.data[0x32] = encodeBCD8((curtime->year/100)%100,0); //Encode when possible!
 	//else CMOS.DATA.DATA80.data[0x32] = ((curtime->year/100)&0xFF); //The century with safety wrapping!
 	CMOS.DATA.DATA80.info.RTC_Year = encodeBCD8(curtime->year%100,0);
@@ -540,7 +555,6 @@ void CMOS_updateActualTime()
 	}
 }
 
-DOUBLE RTC_timeleft = 0.0;
 void RTC_updateDateTime() //Called at 32kHz!
 {
 	//Update the time itself at the highest frequency of 32kHz!
@@ -550,7 +564,6 @@ void RTC_updateDateTime() //Called at 32kHz!
 
 	if (((CMOS.DATA.DATA80.info.STATUSREGISTERB&SRB_ENABLECYCLEUPDATE)==0) && (dcc!=DIVIDERCHAIN_RESET)) //We're allowed to update the time(divider chain isn't reset too)?
 	{
-		CMOS.DATA.DATA80.info.STATUSREGISTERA &= ~0x80; //Update now in progress, clear the bit until we're past 244uS.
 		CMOS_updateActualTime(); //Update the current actual time!
 	}
 	RTC_Handler(lastsecond); //Handle anything that the RTC has to handle!
@@ -563,11 +576,12 @@ void updateCMOS(DOUBLE timepassed)
 	if (RTC_timetick) //Are we enabled?
 	{
 		RTC_timeleft -= timepassed; //Time left?
-		if (likely((CMOS.DATA.DATA80.info.STATUSREGISTERA & 0x80) == 0)) //Less than 244uS left to tick can be checked(set the UIP bit when this happens)?
+		if (likely(CMOS.DATA.DATA80.info.STATUSREGISTERA & 0x80)) //Less than 244uS left to tick can be checked(set the UIP bit when this happens)?
 		{
-			if (unlikely(RTC_timeleft <= 244000.0f)) //244uS left before a tick starts? Most of the time this isn't used!
+			if (unlikely(RTC_timeleft <= 0.0f)) //244uS left before a tick starts? Most of the time this isn't used!
 			{
-				CMOS.DATA.DATA80.info.STATUSREGISTERA |= 0x80; //Update starts in 244uS!
+				CMOS.DATA.DATA80.info.STATUSREGISTERA &= ~0x80; //Update ends in 244uS!
+				RTC_timeleft = 0.0f; //Finished!
 			}
 		}
 		if (RTC_timepassed >= RTC_timetick) //Enough to tick?
@@ -575,7 +589,6 @@ void updateCMOS(DOUBLE timepassed)
 			for (;RTC_timepassed>=RTC_timetick;) //Still enough to tick?
 			{
 				RTC_timepassed -= RTC_timetick; //Ticked once!
-				RTC_timeleft = RTC_timetick; //How much is left to time!
 				RTC_updateDateTime(); //Call our timed handler!
 			}
 		}
@@ -681,7 +694,8 @@ void CMOS_cleartimedata(CMOSDATA* CMOS)
 	CMOS->DATA80.info.RTC_Minutes = 0;
 	CMOS->DATA80.info.RTC_Seconds = 0;
 	CMOS->DATA80.info.RTC_DayOfWeek = 0; //The day of the week!
-	CMOS->DATA80.info.STATUSREGISTERA &= ~0x80; //Clear update in progress, as emulation starts with a update!
+	CMOS->DATA80.info.STATUSREGISTERA |= 0x80; //Set update in progress, as emulation starts with a update!
+	RTC_timeleft = 244000.0f; //How much is left to time! Time 244uS!
 	CMOS->s100 = 0; //The 100th seconds!
 	CMOS->s10000 = 0; //The 10000th seconds!
 }
