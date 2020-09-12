@@ -168,10 +168,12 @@ OPTINLINE float ADSR_delay(ADSR *adsr, float scale, int_64 play_counter, byte su
 	return ADSR_attack(adsr,scale,play_counter,sustaining,release_velocity); //Passthrough!
 }
 
-void ADSR_init(float sampleRate, float scale, byte velocity, ADSR *adsr, RIFFHEADER *soundfont, word instrumentptrAmount, word ibag, uint_32 preset, word pbag, word delayLookup, word attackLookup, word holdLookup, word decayLookup, word sustainLookup, word releaseLookup, byte keynum, word keynumToEnvHoldLookup, word keynumToEnvDecayLookup) //Initialise an ADSR!
+void ADSR_init(void *voice, float sampleRate, float scale, byte velocity, ADSR *adsr, RIFFHEADER *soundfont, word instrumentptrAmount, word ibag, uint_32 preset, word pbag, word delayLookup, word attackLookup, word holdLookup, word decayLookup, word sustainLookup, word releaseLookup, byte keynum, word keynumToEnvHoldLookup, word keynumToEnvDecayLookup) //Initialise an ADSR!
 {
 	sfGenList applypgen;
 	sfInstGenList applyigen;
+	MIDIDEVICE_VOICE* thevoice;
+	thevoice = (MIDIDEVICE_VOICE*)voice; //The voice to use!
 
 //Volume envelope information!
 	int_32 delaysetting, attack, hold, decay, sustain, release; //All lengths!
@@ -199,6 +201,9 @@ void ADSR_init(float sampleRate, float scale, byte velocity, ADSR *adsr, RIFFHEA
 		}
 	}
 
+	delaysetting += getSFInstrumentmodulator(thevoice, delayLookup, 1, 0.0f, 0.0f); //Delay modulation!
+	delaysetting += getSFPresetmodulator(thevoice, delayLookup, 1, 0.0f, 0.0f); //Delay modulation!
+
 	//Attack
 	attack = -12000; //Default!
 	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptrAmount, ibag, attackLookup, &applyigen))
@@ -216,6 +221,9 @@ void ADSR_init(float sampleRate, float scale, byte velocity, ADSR *adsr, RIFFHEA
 			attack = LE16S(applypgen.genAmount.shAmount); //Apply!
 		}
 	}
+
+	attack += getSFInstrumentmodulator(thevoice, attackLookup, 1, 0.0f, 0.0f); //Attack modulation!
+	attack += getSFPresetmodulator(thevoice, attackLookup, 1, 0.0f, 0.0f); //Attack modulation!
 
 	//Hold
 	hold = -12000; //Default!
@@ -235,6 +243,9 @@ void ADSR_init(float sampleRate, float scale, byte velocity, ADSR *adsr, RIFFHEA
 		}
 	}
 
+	hold += getSFInstrumentmodulator(thevoice, holdLookup, 1, 0.0f, 0.0f); //Hold modulation!
+	hold += getSFPresetmodulator(thevoice, holdLookup, 1, 0.0f, 0.0f); //Hold modulation!
+
 	//Hold factor
 	holdenvfactor = 0; //Default!
 	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptrAmount, ibag, keynumToEnvHoldLookup, &applyigen))
@@ -252,6 +263,9 @@ void ADSR_init(float sampleRate, float scale, byte velocity, ADSR *adsr, RIFFHEA
 			holdenvfactor = LE16S(applypgen.genAmount.shAmount); //Apply!
 		}
 	}
+
+	holdenvfactor += getSFInstrumentmodulator(thevoice, keynumToEnvHoldLookup, 1, 0.0f, 0.0f); //Hold modulation!
+	holdenvfactor += getSFPresetmodulator(thevoice, keynumToEnvHoldLookup, 1, 0.0f, 0.0f); //Hold modulation!
 
 	//Decay
 	decay = -12000; //Default!
@@ -271,6 +285,9 @@ void ADSR_init(float sampleRate, float scale, byte velocity, ADSR *adsr, RIFFHEA
 		}
 	}
 
+	decay += getSFInstrumentmodulator(thevoice, decayLookup, 1, 0.0f, 0.0f); //Hold modulation!
+	decay += getSFPresetmodulator(thevoice, decayLookup, 1, 0.0f, 0.0f); //Hold modulation!
+
 	//Decay factor
 	decayenvfactor = 0; //Default!
 	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptrAmount, ibag, keynumToEnvDecayLookup, &applyigen))
@@ -288,6 +305,9 @@ void ADSR_init(float sampleRate, float scale, byte velocity, ADSR *adsr, RIFFHEA
 			decayenvfactor = LE16S(applypgen.genAmount.shAmount); //Apply!
 		}
 	}
+
+	decayenvfactor += getSFInstrumentmodulator(thevoice, keynumToEnvDecayLookup, 1, 0.0f, 0.0f); //Hold modulation!
+	decayenvfactor += getSFPresetmodulator(thevoice, keynumToEnvDecayLookup, 1, 0.0f, 0.0f); //Hold modulation!
 
 	//Sustain (dB)
 	sustain = 0; //Default!
@@ -307,6 +327,9 @@ void ADSR_init(float sampleRate, float scale, byte velocity, ADSR *adsr, RIFFHEA
 		}
 	}
 
+	sustain += getSFInstrumentmodulator(thevoice, sustainLookup, 1, 0.0f, 0.0f); //Hold modulation!
+	sustain += getSFPresetmodulator(thevoice, sustainLookup, 1, 0.0f, 0.0f); //Hold modulation!
+
 	//Release
 	release = -12000; //Default!
 	if (lookupSFInstrumentGenGlobal(soundfont, instrumentptrAmount, ibag, releaseLookup, &applyigen))
@@ -324,6 +347,9 @@ void ADSR_init(float sampleRate, float scale, byte velocity, ADSR *adsr, RIFFHEA
 			release = LE16S(applypgen.genAmount.shAmount); //Apply!
 		}
 	}
+
+	release += getSFInstrumentmodulator(thevoice, releaseLookup, 1, 0.0f, 0.0f); //Hold modulation!
+	release += getSFPresetmodulator(thevoice, releaseLookup, 1, 0.0f, 0.0f); //Hold modulation!
 
 	//Now, calculate the length of each interval, in samples.
 	if (cents2samplesfactord((DOUBLE)delaysetting) < 0.0002f) //0.0001 sec?

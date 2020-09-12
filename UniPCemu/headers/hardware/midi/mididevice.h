@@ -204,4 +204,7 @@ void done_MIDIDEVICE(); //Finish our midi device!
 
 byte directMIDISupported(); //Direct MIDI supported on the compiled platform?
 
+float getSFInstrumentmodulator(MIDIDEVICE_VOICE* voice, word destination, byte applySrcAmt, float min, float max);
+float getSFPresetmodulator(MIDIDEVICE_VOICE* voice, word destination, byte applySrcAmt, float min, float max);
+
 #endif

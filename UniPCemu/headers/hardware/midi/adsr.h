@@ -51,6 +51,6 @@ typedef struct
 	byte attackstarted, holdstarted, decaystarted, sustainstarted, releasestarted, released; //Are these phases started/finished?
 } ADSR; //An ADSR's data!
 
-void ADSR_init(float sampleRate, float scale, byte velocity, ADSR *adsr, RIFFHEADER *soundfont, word instrumentptrAmount, word ibag, uint_32 preset, word pbag, word delayLookup, word attackLookup, word holdLookup, word decayLookup, word sustainLookup, word releaseLookup, byte keynum, word keynumToEnvHoldLookup, word keynumToEnvDecayLookup); //Initialise an ADSR!
+void ADSR_init(void *voice, float sampleRate, float scale, byte velocity, ADSR *adsr, RIFFHEADER *soundfont, word instrumentptrAmount, word ibag, uint_32 preset, word pbag, word delayLookup, word attackLookup, word holdLookup, word decayLookup, word sustainLookup, word releaseLookup, byte keynum, word keynumToEnvHoldLookup, word keynumToEnvDecayLookup); //Initialise an ADSR!
 float ADSR_tick(ADSR *adsr, float scale, int_64 play_counter, byte sustain, float noteon_velocity, byte releasevelocity); //Tick an ADSR!
 #endif
