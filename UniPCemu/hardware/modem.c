@@ -2051,6 +2051,7 @@ void modem_executeCommand() //Execute the currently loaded AT command, if it's v
 					{
 					case 3: //Firmware version!
 						modem_responseString((byte *)&firmwareversion[0], (1 | 2 | 4)); //Full response!
+						break;
 					case 4: //Hardware information!
 						modem_responseString((byte *)&hardwareinformation[0], (1 | 2 | 4)); //Full response!
 						break;
