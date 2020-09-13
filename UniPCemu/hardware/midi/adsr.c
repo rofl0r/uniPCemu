@@ -432,7 +432,7 @@ void ADSR_init(void *voice, float sampleRate, float scale, byte velocity, ADSR *
 			float temp;
 			temp = scale; //Full volume!
 			temp -= sustainfactor; //Change to sustain factor difference!
-			temp /= decayfactor; //Calculate the new decay time needed to change to the sustain factor!
+			temp /= decaylength; //Calculate the new decay time needed to change to the sustain factor!
 			decaylength = (uint_32)temp; //Load the calculated decay time!
 		}
 	}
