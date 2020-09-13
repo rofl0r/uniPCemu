@@ -352,7 +352,7 @@ void ADSR_init(void *voice, float sampleRate, float scale, byte velocity, ADSR *
 	release += getSFPresetmodulator(thevoice, releaseLookup, 1, 0.0f, 0.0f); //Hold modulation!
 
 	//Now, calculate the length of each interval, in samples.
-	if (cents2samplesfactord((DOUBLE)delaysetting) < 0.0002f) //0.0001 sec?
+	if (cents2samplesfactord((DOUBLE)delaysetting) < 0.001f) //0.0001 sec?
 	{
 		delaylength = 0; //No delay!
 	}
@@ -360,7 +360,7 @@ void ADSR_init(void *voice, float sampleRate, float scale, byte velocity, ADSR *
 	{
 		delaylength = (uint_32)(sampleRate*cents2samplesfactord((DOUBLE)delaysetting)); //Calculate the ammount of samples!
 	}
-	if (cents2samplesfactord((DOUBLE)attack) < 0.0002f) //0.0001 sec?
+	if (cents2samplesfactord((DOUBLE)attack) < 0.001f) //0.0001 sec?
 	{
 		attacklength = 0; //No attack!
 	}
@@ -368,7 +368,7 @@ void ADSR_init(void *voice, float sampleRate, float scale, byte velocity, ADSR *
 	{
 		attacklength = (uint_32)(sampleRate*cents2samplesfactord((DOUBLE)attack)); //Calculate the ammount of samples!
 	}
-	if (cents2samplesfactord((DOUBLE)hold) < 0.0002f) //0.0001 sec?
+	if (cents2samplesfactord((DOUBLE)hold) < 0.001f) //0.0001 sec?
 	{
 		holdlength = 0; //No hold!
 	}
@@ -378,7 +378,7 @@ void ADSR_init(void *voice, float sampleRate, float scale, byte velocity, ADSR *
 	}
 	holdlength = (uint_32)(holdlength*cents2samplesfactord((DOUBLE)(holdenvfactor*relKeynum))); //Apply key number!
 
-	if (cents2samplesfactord((DOUBLE)decay) < 0.0002f) //0.0001 sec?
+	if (cents2samplesfactord((DOUBLE)decay) < 0.001f) //0.0001 sec?
 	{
 		decaylength = 0; //No decay!
 	}
@@ -392,7 +392,7 @@ void ADSR_init(void *voice, float sampleRate, float scale, byte velocity, ADSR *
 	sustainfactor = ((float)(1000-sustain)); //We're on a rate of 1000cB attenuation, normalized!
 	sustainfactor *= (scale / 1000.0f); //Use the scale instead!
 
-	if (cents2samplesfactord((DOUBLE)release) < 0.0002f) //0.0001 sec?
+	if (cents2samplesfactord((DOUBLE)release) < 0.001f) //0.0001 sec?
 	{
 		releaselength = 0; //No release!
 	}
@@ -458,6 +458,8 @@ void ADSR_init(void *voice, float sampleRate, float scale, byte velocity, ADSR *
 	adsr->holdend = adsr->hold + adsr->attackend;
 	adsr->decayend = adsr->decay + adsr->holdend;
 	adsr->active = ADSR_DELAY; //We're starting with a delay!
+
+	adsr->attackstarted = adsr->holdstarted = adsr->decaystarted = adsr->sustainstarted = adsr->releasestarted = adsr->released = 0; //Nothing is started yet!
 }
 
 typedef void (*MIDI_STATE)(ADSR *adsr, int_64 play_counter, byte sustaining, byte release_velocity); //ADSR event handlers!
