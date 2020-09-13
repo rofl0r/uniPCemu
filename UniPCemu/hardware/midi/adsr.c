@@ -87,7 +87,7 @@ OPTINLINE float ADSR_decay(ADSR *adsr, float scale, int_64 play_counter, byte su
 {
 	float result;
 	adsr->active = ADSR_DECAY; //We're decaying!
-	if ((!sustaining) && (!(adsr->releasestarted && (adsr->releasestart<play_counter)))) //Finished playing?
+	if ((!sustaining) && (!(adsr->releasestarted && (adsr->releasestart<=play_counter)))) //Finished playing?
 	{
 		return enterRelease(adsr,scale, play_counter, release_velocity, scale - (adsr->decayfactor*(play_counter - adsr->decaystart))); //Enter the release phase!
 	}
@@ -111,7 +111,7 @@ OPTINLINE float ADSR_decay(ADSR *adsr, float scale, int_64 play_counter, byte su
 OPTINLINE float ADSR_hold(ADSR *adsr, float scale, int_64 play_counter, byte sustaining, byte release_velocity)
 {
 	adsr->active = ADSR_HOLD; //We're holding!
-	if (!sustaining && (!(adsr->releasestarted && (adsr->releasestart<play_counter)))) //Finished playing?
+	if ((!sustaining) && (!(adsr->releasestarted && (adsr->releasestart<=play_counter)))) //Finished playing?
 	{
 		return enterRelease(adsr,scale,play_counter, release_velocity,scale); //Enter the release phase!
 	}
@@ -132,7 +132,7 @@ OPTINLINE float ADSR_attack(ADSR *adsr, float scale, int_64 play_counter, byte s
 {
 	float result;
 	adsr->active = ADSR_ATTACK; //We're attacking!
-	if (!sustaining && !(adsr->releasestarted && (adsr->releasestart<play_counter))) //Finished playing?
+	if ((!sustaining) && !(adsr->releasestarted && (adsr->releasestart<=play_counter))) //Finished playing?
 	{
 		return enterRelease(adsr,scale, play_counter, release_velocity, (adsr->attackfactor*(play_counter - adsr->attackstart))); //Enter the release phase!
 	}
@@ -155,9 +155,13 @@ OPTINLINE float ADSR_attack(ADSR *adsr, float scale, int_64 play_counter, byte s
 
 OPTINLINE float ADSR_delay(ADSR *adsr, float scale, int_64 play_counter, byte sustaining, byte release_velocity)
 {
+	adsr->active = ADSR_DELAY; //We're starting with a delay!
+	if ((!sustaining) && !(adsr->releasestarted && (adsr->releasestart <= play_counter))) //Finished playing?
+	{
+		return enterRelease(adsr, scale, play_counter, release_velocity, (adsr->attackfactor * (play_counter - adsr->attackstart))); //Enter the release phase!
+	}
 	if (adsr->delay) //Gotten delay?
 	{
-		adsr->active = ADSR_DELAY; //We're starting with a delay!
 		if (adsr->delay > play_counter) return 0.0f; //Delay busy?
 	}
 	if (!adsr->attackstarted)
