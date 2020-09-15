@@ -207,4 +207,7 @@ byte directMIDISupported(); //Direct MIDI supported on the compiled platform?
 float getSFInstrumentmodulator(MIDIDEVICE_VOICE* voice, word destination, byte applySrcAmt, float min, float max);
 float getSFPresetmodulator(MIDIDEVICE_VOICE* voice, word destination, byte applySrcAmt, float min, float max);
 
+//val needs to be a normalized input! Performs a convex from 0 to 1!
+float MIDIconvex(float val);
+
 #endif

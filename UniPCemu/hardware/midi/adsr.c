@@ -129,19 +129,22 @@ OPTINLINE float ADSR_hold(ADSR *adsr, float scale, int_64 play_counter, byte sus
 	return ADSR_decay(adsr,scale, play_counter, sustaining, release_velocity); //Passthrough!
 }
 
+#define ATTACKFORMULA (adsr->attackfactor*(play_counter - adsr->attackstart))
+
+//Attack curve is convex!
 OPTINLINE float ADSR_attack(ADSR *adsr, float scale, int_64 play_counter, byte sustaining, byte release_velocity)
 {
 	float result;
 	adsr->active = ADSR_ATTACK; //We're attacking!
 	if ((!(sustaining | adsr->releasestarted)) || (adsr->releasestarted && (adsr->releasestart <= play_counter))) //Finished playing at this point?
 	{
-		return enterRelease(adsr,scale, play_counter, release_velocity, (adsr->attackfactor*(play_counter - adsr->attackstart))); //Enter the release phase!
+		return enterRelease(adsr,scale, play_counter, release_velocity, adsr->attackisconvex?(MIDIconvex((ATTACKFORMULA)*adsr->scalerev)*scale):(ATTACKFORMULA)); //Enter the release phase!
 	}
 	if (adsr->attack) //Gotten attack?
 	{
 		if (adsr->attackend > play_counter) //Attack busy?
 		{
-			result = (adsr->attackfactor*(play_counter-adsr->attackstart)); //Apply factor!
+			result = adsr->attackisconvex?(MIDIconvex((ATTACKFORMULA)*adsr->scalerev)*scale):(ATTACKFORMULA); //Apply factor! Is convex can be applied too!
 			if (result < scale) return result; //Not full yet?
 		}
 	}
@@ -173,7 +176,7 @@ OPTINLINE float ADSR_delay(ADSR *adsr, float scale, int_64 play_counter, byte su
 	return ADSR_attack(adsr,scale,play_counter,sustaining,release_velocity); //Passthrough!
 }
 
-void ADSR_init(void *voice, float sampleRate, float scale, byte velocity, ADSR *adsr, RIFFHEADER *soundfont, word instrumentptrAmount, word ibag, uint_32 preset, word pbag, word delayLookup, word attackLookup, word holdLookup, word decayLookup, word sustainLookup, word releaseLookup, byte keynum, word keynumToEnvHoldLookup, word keynumToEnvDecayLookup) //Initialise an ADSR!
+void ADSR_init(void *voice, float sampleRate, float scale, byte velocity, ADSR *adsr, RIFFHEADER *soundfont, word instrumentptrAmount, word ibag, uint_32 preset, word pbag, word delayLookup, word attackLookup, byte attackisconvex, word holdLookup, word decayLookup, word sustainLookup, word releaseLookup, byte keynum, word keynumToEnvHoldLookup, word keynumToEnvDecayLookup) //Initialise an ADSR!
 {
 	sfGenList applypgen;
 	sfInstGenList applyigen;
@@ -451,12 +454,14 @@ void ADSR_init(void *voice, float sampleRate, float scale, byte velocity, ADSR *
 	adsr->delay = delaylength; //Delay
 	adsr->attack = attacklength; //Attack
 	adsr->attackfactor = attackfactor;
+	adsr->attackisconvex = attackisconvex; //Attack has convex curve?
 	adsr->hold = holdlength; //Hold
 	adsr->decay = decaylength; //Decay
 	adsr->decayfactor = decayfactor;
 	adsr->sustain = sustain; //Sustain
 	adsr->sustainfactor = sustainfactor; //Sustain %
 	adsr->release = releaselength; //Release
+	adsr->scalerev = (scale!=0.0f)?(1.0f/scale):scale; //Divide by scale!
 
 	//Finally calculate the actual values needed!
 	adsr->attackend = adsr->attack + adsr->delay;
