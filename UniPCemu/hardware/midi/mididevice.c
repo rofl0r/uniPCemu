@@ -2116,7 +2116,7 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 					MIDI_channels[currentchannel].ContinuousControllers[firstparam] = (current->buffer[1] & 0x7F); //Specify the CC itself!
 					unlockMPURenderer(); //Unlock the audio!
 					break;
-				case 0x43: //Sostenuto (on/off)
+				case 0x42: //Sostenuto (on/off)
 					#ifdef MIDI_LOG
 						dolog("MPU", "MIDIDEVICE:  Channel %u; Sostenuto: %02X=%u", currentchannel, current->buffer[1],(current->buffer[1]&MIDI_CONTROLLER_ON)?1:0); //Log it!
 					#endif
