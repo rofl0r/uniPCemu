@@ -179,6 +179,7 @@ OPTINLINE void reset_MIDIDEVICE() //Reset the MIDI device for usage!
 		MIDI_channels[channel].RPNmode = 0; //No (N)RPN selected!
 		MIDI_channels[channel].pitchbendsensitivitysemitones = 2; //2 semitones of ...
 		MIDI_channels[channel].pitchbendsensitivitycents = 0; //... default pitch bend?
+		MIDI_channels[channel].sostenuto = 0; //No sostenuto yet!
 		MIDI_channels[channel++].mode = MIDIDEVICE_DEFAULTMODE; //Use the default mode!
 	}
 	MIDI_channels[MIDI_DRUMCHANNEL].bank = MIDI_channels[MIDI_DRUMCHANNEL].activebank = 0x80; //We're locked to a drum set!
@@ -378,7 +379,7 @@ void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float sampler
 	{
 		if (samplepos >= voice->endloopaddressoffset) //Past/at the end of the loop!
 		{
-			if ((loopflags & 0xC2) == 0x82) //We're depressed, depress action is allowed (not holding) and looping until depressed?
+			if ((loopflags & 0xD2) == 0x82) //We're depressed, depress action is allowed (not holding) and looping until depressed?
 			{
 				if (!voice->has_finallooppos) //No final loop position set yet?
 				{
@@ -547,8 +548,8 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 			chorusreverbsamplepos = voice->play_counter; //Load the current play counter!
 			totaldelay = voice->chorusdelay[currentchorusreverb]; //Load the total delay!
 			chorusreverbsamplepos -= (int_64)totaldelay; //Apply specified chorus&reverb delay!
-			VolumeEnvelope = 1000.0f-(ADSR_tick(VolumeADSR,1000.0f,chorusreverbsamplepos,((voice->currentloopflags & 0xC0) != 0x80),voice->note->noteon_velocity, voice->note->noteoff_velocity)); //Apply Volume Envelope, converted to attenuation!
-			ModulationEnvelope = (ADSR_tick(ModulationADSR,1.0f,chorusreverbsamplepos,((voice->currentloopflags & 0xC0) != 0x80),voice->note->noteon_velocity, voice->note->noteoff_velocity)); //Apply Modulation Envelope, converted to attenuation!
+			VolumeEnvelope = 1000.0f-(ADSR_tick(VolumeADSR,1000.0f,chorusreverbsamplepos,((voice->currentloopflags & 0xD0) != 0x80),voice->note->noteon_velocity, voice->note->noteoff_velocity)); //Apply Volume Envelope, converted to attenuation!
+			ModulationEnvelope = (ADSR_tick(ModulationADSR,1.0f,chorusreverbsamplepos,((voice->currentloopflags & 0xD0) != 0x80),voice->note->noteon_velocity, voice->note->noteoff_velocity)); //Apply Modulation Envelope, converted to attenuation!
 			MIDIDEVICE_getsample(chorusreverbsamplepos, totaldelay, samplerate, voice->effectivesamplespeedup, voice, VolumeEnvelope, ModulationEnvelope, currentchorusreverb, voice->chorusvol[currentchorusreverb], currentchorusreverb, &lchannel, &rchannel); //Get the sample from the MIDI device, with only the chorus effect!
 		} while (++currentchorusreverb<CHORUSSIZE); //Chorus loop.
 
@@ -1922,6 +1923,42 @@ void updateMIDImodulators(byte channel)
 	}
 }
 
+void startMIDIsostenuto(byte channel)
+{
+	word voicenr;
+	MIDIDEVICE_VOICE* voice;
+	voicenr = 0; //First voice!
+	for (; voicenr < MIDI_TOTALVOICES; ++voicenr) //Find a used voice!
+	{
+		voice = &activevoices[voicenr]; //The voice!
+		if (voice->VolumeEnvelope.active) //Active?
+		{
+			if (voice->channel == &MIDI_channels[channel]) //The requested channel?
+			{
+				voice->currentloopflags |= 0x10; //Set sostenuto!
+			}
+		}
+	}
+}
+
+void stopMIDIsostenuto(byte channel)
+{
+	word voicenr;
+	MIDIDEVICE_VOICE* voice;
+	voicenr = 0; //First voice!
+	for (; voicenr < MIDI_TOTALVOICES; ++voicenr) //Find a used voice!
+	{
+		voice = &activevoices[voicenr]; //The voice!
+		if (voice->VolumeEnvelope.active) //Active?
+		{
+			if (voice->channel == &MIDI_channels[channel]) //The requested channel?
+			{
+				voice->currentloopflags &= ~0x10; //Clear sostenuto!
+			}
+		}
+	}
+}
+
 OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI command!
 {
 	//First, our variables!
@@ -2073,6 +2110,24 @@ OPTINLINE void MIDIDEVICE_execMIDI(MIDIPTR current) //Execute the current MIDI c
 					#endif
 					lockMPURenderer(); //Lock the audio!
 					MIDI_channels[currentchannel].sustain = (current->buffer[1]&MIDI_CONTROLLER_ON)?1:0; //Sustain?
+					MIDI_channels[currentchannel].ContinuousControllers[firstparam] = (current->buffer[1] & 0x7F); //Specify the CC itself!
+					unlockMPURenderer(); //Unlock the audio!
+					break;
+				case 0x43: //Sostenuto (on/off)
+					#ifdef MIDI_LOG
+						dolog("MPU", "MIDIDEVICE:  Channel %u; Sostenuto: %02X=%u", currentchannel, current->buffer[1],(current->buffer[1]&MIDI_CONTROLLER_ON)?1:0); //Log it!
+					#endif
+					lockMPURenderer(); //Lock the audio!
+					if ((MIDI_channels[currentchannel].sostenuto==0) && ((current->buffer[1]&MIDI_CONTROLLER_ON))) //Turned on?
+					{
+						MIDI_channels[currentchannel].sostenuto = 1; //Turned on now!
+						startMIDIsostenuto(currentchannel); //Start sostenuto for all running voices!
+					}
+					else if (MIDI_channels[currentchannel].sostenuto && ((current->buffer[1]&MIDI_CONTROLLER_ON)==0)) //Turned off?
+					{
+						MIDI_channels[currentchannel].sostenuto = 0; //Turned off now!
+						stopMIDIsostenuto(currentchannel); //Stop sostenuto for all running voices!
+					}
 					MIDI_channels[currentchannel].ContinuousControllers[firstparam] = (current->buffer[1] & 0x7F); //Specify the CC itself!
 					unlockMPURenderer(); //Unlock the audio!
 					break;

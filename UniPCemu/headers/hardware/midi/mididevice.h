@@ -102,6 +102,7 @@ typedef struct
 	uint_32 NRPNnumbercounter; //NRPN number counter!
 	byte pitchbendsensitivitysemitones;
 	byte pitchbendsensitivitycents;
+	byte sostenuto; //Sostenuto is activated?
 } MIDIDEVICE_CHANNEL;
 
 typedef struct
