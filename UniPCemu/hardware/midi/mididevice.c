@@ -1129,6 +1129,7 @@ void MIDI_muteExclusiveClass(uint_32 exclusiveclass, MIDIDEVICE_VOICE *newvoice)
 				samenr = ((ptrnum)newvoice-(ptrnum)&activevoices[0])/sizeof(activevoices[0]);
 				if ( ((samenr/MIDI_NOTEVOICES)!=(voicenr/MIDI_NOTEVOICES)) //Different voice?
 							|| ((voicenr>samenr) && ((samenr/MIDI_NOTEVOICES)==(voicenr/MIDI_NOTEVOICES))) //Same voice that's unhandled?
+					)
 				#endif
 				{
 					if (voice->preset==newvoice->preset) //Soundfont 2.04 8.1.2 says for same preset only!

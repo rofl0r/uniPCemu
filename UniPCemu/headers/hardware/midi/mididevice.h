@@ -103,7 +103,6 @@ typedef struct
 	byte pitchbendsensitivitysemitones;
 	byte pitchbendsensitivitycents;
 	byte sostenuto; //Sostenuto is activated?
-	uint_32 exclusiveclass; //The exclusive class if non-zero!
 } MIDIDEVICE_CHANNEL;
 
 typedef struct
@@ -194,6 +193,7 @@ typedef struct
 	float last_initialattenuation; //Last initial attenuation!
 	float last_volumeenvelope; //Last volume envelope!
 	float last_attenuation; //Last attenuation!
+	uint_32 exclusiveclass; //The exclusive class if non-zero!
 } MIDIDEVICE_VOICE;
 
 void MIDIDEVICE_tickActiveSense(); //Tick the Active Sense (MIDI) line with any command/data!
