@@ -103,6 +103,7 @@ typedef struct
 	byte pitchbendsensitivitysemitones;
 	byte pitchbendsensitivitycents;
 	byte sostenuto; //Sostenuto is activated?
+	uint_32 exclusiveclass; //The exclusive class if non-zero!
 } MIDIDEVICE_CHANNEL;
 
 typedef struct

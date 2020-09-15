@@ -1111,6 +1111,37 @@ void updateSampleSpeed(MIDIDEVICE_VOICE* voice)
 	voice->effectivesamplespeedup = cents; //Load the default speedup we need for our tone!
 }
 
+void MIDI_muteExclusiveClass(uint_32 exclusiveclass, MIDIDEVICE_VOICE *newvoice)
+{
+	word voicenr;
+	MIDIDEVICE_VOICE* voice;
+	word samenr;
+	voicenr = 0; //First voice!
+	for (; voicenr < MIDI_TOTALVOICES; ++voicenr) //Find a used voice!
+	{
+		voice = &activevoices[voicenr]; //The voice!
+		if (voice->active) //Active?
+		{
+			if (voice->exclusiveclass==exclusiveclass) //Matched exclusive class?
+			{
+				#if MIDI_NOTEVOICES!=1
+				//Ignore same voice that's starting!
+				samenr = ((ptrnum)newvoice-(ptrnum)&activevoices[0])/sizeof(activevoices[0]);
+				if ( ((samenr/MIDI_NOTEVOICES)!=(voicenr/MIDI_NOTEVOICES)) //Different voice?
+							|| ((voicenr>samenr) && ((samenr/MIDI_NOTEVOICES)==(voicenr/MIDI_NOTEVOICES))) //Same voice that's unhandled?
+				#endif
+				{
+					if (voice->preset==newvoice->preset) //Soundfont 2.04 8.1.2 says for same preset only!
+					{
+						//Terminate it ASAP!
+						voice->active = 0; //Immediately deallocate!
+					}
+				}
+			}
+		}
+	}
+}
+
 //result: 0=Finished not renderable, -1=Requires empty channel(voice stealing?), 1=Allocated, -2=Can't render, request next voice.
 OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel, byte request_note, byte voicenumber)
 {
@@ -1125,6 +1156,7 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 	word voicecounter;
 	byte purposebackup;
 	byte activeloopflags;
+	uint_32 exclusiveclass;
 
 	MIDIDEVICE_CHANNEL *channel;
 	MIDIDEVICE_NOTE *note;
@@ -1378,7 +1410,7 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 	//Preset and instrument lookups!
 	voice->preset = preset; //Preset!
 	voice->pbag = pbag; //PBag!
-	voice->instrumentptr = LE16(instrumentptr.genAmount.wAmount); //Instrumenrt!
+	voice->instrumentptr = LE16(instrumentptr.genAmount.wAmount); //Instrument!
 	voice->ibag = ibag; //IBag!
 
 	voice->play_counter = 0; //Reset play counter!
@@ -1388,6 +1420,20 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 		//Initialize all monotone counters!
 		voice->monotonecounter[chorusreverbdepth] = 0;
 		voice->monotonecounter_diff[chorusreverbdepth] = 0.0f;
+	}
+
+	//Check for exclusive class now!
+	exclusiveclass = voice->exclusiveclass = 0; //Default: no exclusive class!
+	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, exclusiveClass, &applyigen))
+	{
+		exclusiveclass = LE16(applyigen.genAmount.shAmount); //Apply!
+		if (exclusiveclass) //Non-zero? Mute other instruments!
+		{
+			//Mute first!
+			MIDI_muteExclusiveClass(exclusiveclass,voice); //Mute other voices!
+			//Now, set the exclusive class!
+			voice->exclusiveclass = exclusiveclass; //To mute us by other voices, if needed!
+		}
 	}
 
 	effectivevelocity = note->noteon_velocity; //What velocity to use?
