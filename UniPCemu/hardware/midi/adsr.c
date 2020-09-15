@@ -38,7 +38,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 
 //ADSR itself:
 
-OPTINLINE float ADSR_release(ADSR *adsr, float scale, int_64 play_counter, byte sustaining, byte release_velocity)
+OPTINLINE float ADSR_release(ADSR *adsr, int_64 play_counter, byte sustaining, byte release_velocity)
 {
 	adsr->active = ADSR_RELEASE; //We're releasing!
 	if (adsr->release && adsr->releasefactor && adsr->releaselevel) //Gotten release and a factor to apply?
@@ -56,7 +56,7 @@ OPTINLINE float ADSR_release(ADSR *adsr, float scale, int_64 play_counter, byte 
 	return 0.0f; //Nothing to sound!
 }
 
-OPTINLINE float enterRelease(ADSR *adsr, float scale, int_64 play_counter, byte release_velocity, float releaselevel)
+OPTINLINE float enterRelease(ADSR *adsr, int_64 play_counter, byte release_velocity, float releaselevel)
 {
 	//Calculate the release information
 	if (!adsr->releasestarted)
@@ -72,31 +72,31 @@ OPTINLINE float enterRelease(ADSR *adsr, float scale, int_64 play_counter, byte 
 		adsr->releaselevel = releaselevel; //The level at this point!
 		adsr->releasestarted = 1; //We've started!
 	}
-	return ADSR_release(adsr,scale, play_counter, 0, release_velocity); //Passthrough!
+	return ADSR_release(adsr,play_counter, 0, release_velocity); //Passthrough!
 }
 
-OPTINLINE float ADSR_sustain(ADSR *adsr, float scale, int_64 play_counter, byte sustaining, byte release_velocity)
+OPTINLINE float ADSR_sustain(ADSR *adsr, int_64 play_counter, byte sustaining, byte release_velocity)
 {
 	adsr->active = ADSR_SUSTAIN; //We're sustaining!
 	if ((!(sustaining | adsr->releasestarted)) || (adsr->releasestarted && (adsr->releasestart <= play_counter))) //Finished playing at this point?
-		return enterRelease(adsr, scale, play_counter, release_velocity, adsr->sustainfactor); //Enter the release phase!
+		return enterRelease(adsr, play_counter, release_velocity, adsr->sustainfactor); //Enter the release phase!
 
 	return adsr->sustainfactor; //Disable our voice when not sustaining anymore or sustain is unsupported!
 }
 
-OPTINLINE float ADSR_decay(ADSR *adsr, float scale, int_64 play_counter, byte sustaining, byte release_velocity)
+OPTINLINE float ADSR_decay(ADSR *adsr, int_64 play_counter, byte sustaining, byte release_velocity)
 {
 	float result;
 	adsr->active = ADSR_DECAY; //We're decaying!
 	if ((!(sustaining | adsr->releasestarted)) || (adsr->releasestarted && (adsr->releasestart <= play_counter))) //Finished playing at this point?
 	{
-		return enterRelease(adsr,scale, play_counter, release_velocity, scale - (adsr->decayfactor*(play_counter - adsr->decaystart))); //Enter the release phase!
+		return enterRelease(adsr,play_counter, release_velocity, 1.0f - (adsr->decayfactor*(play_counter - adsr->decaystart))); //Enter the release phase!
 	}
 	if (adsr->decay) //Gotten decay?
 	{
 		if (adsr->decayend > play_counter) //Decay busy?
 		{
-			result = scale - (adsr->decayfactor*(play_counter - adsr->decaystart)); //Apply factor!
+			result = 1.0f - (adsr->decayfactor*(play_counter - adsr->decaystart)); //Apply factor!
 			if (result>adsr->sustainfactor) return result; //Decay busy!
 		}
 	}
@@ -106,19 +106,19 @@ OPTINLINE float ADSR_decay(ADSR *adsr, float scale, int_64 play_counter, byte su
 		adsr->sustainstart = play_counter; //Start of the attack phase!
 		adsr->sustainstarted = 1; //We've started!
 	}
-	return ADSR_sustain(adsr,scale,play_counter, sustaining, release_velocity); //Passthrough!
+	return ADSR_sustain(adsr,play_counter, sustaining, release_velocity); //Passthrough!
 }
 
-OPTINLINE float ADSR_hold(ADSR *adsr, float scale, int_64 play_counter, byte sustaining, byte release_velocity)
+OPTINLINE float ADSR_hold(ADSR *adsr, int_64 play_counter, byte sustaining, byte release_velocity)
 {
 	adsr->active = ADSR_HOLD; //We're holding!
 	if ((!(sustaining | adsr->releasestarted)) || (adsr->releasestarted && (adsr->releasestart <= play_counter))) //Finished playing at this point?
 	{
-		return enterRelease(adsr,scale,play_counter, release_velocity,scale); //Enter the release phase!
+		return enterRelease(adsr,play_counter, release_velocity,1.0f); //Enter the release phase!
 	}
 	if (adsr->hold) //Gotten hold?
 	{
-		if (adsr->holdend > play_counter) return scale; //Hold busy?
+		if (adsr->holdend > play_counter) return 1.0f; //Hold busy?
 	}
 	//Hold expired?
 	if (!adsr->decaystarted)
@@ -126,26 +126,26 @@ OPTINLINE float ADSR_hold(ADSR *adsr, float scale, int_64 play_counter, byte sus
 		adsr->decaystart = play_counter; //Start of the attack phase!
 		adsr->decaystarted = 1; //We've started!
 	}
-	return ADSR_decay(adsr,scale, play_counter, sustaining, release_velocity); //Passthrough!
+	return ADSR_decay(adsr, play_counter, sustaining, release_velocity); //Passthrough!
 }
 
 #define ATTACKFORMULA (adsr->attackfactor*(play_counter - adsr->attackstart))
 
 //Attack curve is convex!
-OPTINLINE float ADSR_attack(ADSR *adsr, float scale, int_64 play_counter, byte sustaining, byte release_velocity)
+OPTINLINE float ADSR_attack(ADSR *adsr, int_64 play_counter, byte sustaining, byte release_velocity)
 {
 	float result;
 	adsr->active = ADSR_ATTACK; //We're attacking!
 	if ((!(sustaining | adsr->releasestarted)) || (adsr->releasestarted && (adsr->releasestart <= play_counter))) //Finished playing at this point?
 	{
-		return enterRelease(adsr,scale, play_counter, release_velocity, adsr->attackisconvex?(MIDIconvex((ATTACKFORMULA)*adsr->scalerev)*scale):(ATTACKFORMULA)); //Enter the release phase!
+		return enterRelease(adsr, play_counter, release_velocity, adsr->attackisconvex?MIDIconvex((ATTACKFORMULA)):(ATTACKFORMULA)); //Enter the release phase!
 	}
 	if (adsr->attack) //Gotten attack?
 	{
 		if (adsr->attackend > play_counter) //Attack busy?
 		{
-			result = adsr->attackisconvex?(MIDIconvex((ATTACKFORMULA)*adsr->scalerev)*scale):(ATTACKFORMULA); //Apply factor! Is convex can be applied too!
-			if (result < scale) return result; //Not full yet?
+			result = adsr->attackisconvex?MIDIconvex(ATTACKFORMULA):(ATTACKFORMULA); //Apply factor! Is convex can be applied too!
+			if (result < 1.0f) return result; //Not full yet?
 		}
 	}
 	//Attack expired?
@@ -154,15 +154,15 @@ OPTINLINE float ADSR_attack(ADSR *adsr, float scale, int_64 play_counter, byte s
 		adsr->holdstart = play_counter; //Start of the attack phase!
 		adsr->holdstarted = 1; //We've started!
 	}
-	return ADSR_hold(adsr,scale, play_counter, sustaining, release_velocity); //Passthrough!
+	return ADSR_hold(adsr, play_counter, sustaining, release_velocity); //Passthrough!
 }
 
-OPTINLINE float ADSR_delay(ADSR *adsr, float scale, int_64 play_counter, byte sustaining, byte release_velocity)
+OPTINLINE float ADSR_delay(ADSR *adsr, int_64 play_counter, byte sustaining, byte release_velocity)
 {
 	adsr->active = ADSR_DELAY; //We're starting with a delay!
 	if ((!(sustaining | adsr->releasestarted)) || (adsr->releasestarted && (adsr->releasestart <= play_counter))) //Finished playing at this point?
 	{
-		return enterRelease(adsr, scale, play_counter, release_velocity, (adsr->attackfactor * (play_counter - adsr->attackstart))); //Enter the release phase!
+		return enterRelease(adsr, play_counter, release_velocity, (adsr->attackfactor * (play_counter - adsr->attackstart))); //Enter the release phase!
 	}
 	if (adsr->delay) //Gotten delay?
 	{
@@ -173,10 +173,10 @@ OPTINLINE float ADSR_delay(ADSR *adsr, float scale, int_64 play_counter, byte su
 		adsr->attackstart = play_counter; //Start of the attack phase!
 		adsr->attackstarted = 1; //We've started!
 	}
-	return ADSR_attack(adsr,scale,play_counter,sustaining,release_velocity); //Passthrough!
+	return ADSR_attack(adsr,play_counter,sustaining,release_velocity); //Passthrough!
 }
 
-void ADSR_init(void *voice, float sampleRate, float scale, byte velocity, ADSR *adsr, RIFFHEADER *soundfont, word instrumentptrAmount, word ibag, uint_32 preset, word pbag, word delayLookup, word attackLookup, byte attackisconvex, word holdLookup, word decayLookup, word sustainLookup, word releaseLookup, byte keynum, word keynumToEnvHoldLookup, word keynumToEnvDecayLookup) //Initialise an ADSR!
+void ADSR_init(void *voice, float sampleRate, byte velocity, ADSR *adsr, RIFFHEADER *soundfont, word instrumentptrAmount, word ibag, uint_32 preset, word pbag, word delayLookup, word attackLookup, byte attackisconvex, word holdLookup, word decayLookup, word sustainLookup, word releaseLookup, byte keynum, word keynumToEnvHoldLookup, word keynumToEnvDecayLookup) //Initialise an ADSR!
 {
 	sfGenList applypgen;
 	sfInstGenList applyigen;
@@ -398,7 +398,7 @@ void ADSR_init(void *voice, float sampleRate, float scale, byte velocity, ADSR *
 
 	if (sustain > 1000) sustain = 1000; //Limit of 1000cB!
 	sustainfactor = ((float)(1000-sustain)); //We're on a rate of 1000cB attenuation, normalized!
-	sustainfactor *= (scale / 1000.0f); //Use the scale instead!
+	sustainfactor *= 0.001f; //Normalized!
 
 	if (cents2samplesfactord((DOUBLE)release) < 0.001f) //0.0001 sec?
 	{
@@ -414,7 +414,7 @@ void ADSR_init(void *voice, float sampleRate, float scale, byte velocity, ADSR *
 	//Attack!
 	if (attacklength) //Gotten attack?
 	{
-		attackfactor = scale;
+		attackfactor = 1.0f;
 		attackfactor /= attacklength; //Equal steps from 0 to 1.0f!
 		if (!attackfactor)
 		{
@@ -429,7 +429,7 @@ void ADSR_init(void *voice, float sampleRate, float scale, byte velocity, ADSR *
 	//Decay
 	if (decaylength) //Gotten decay?
 	{
-		decayfactor = scale; //From full!
+		decayfactor = 1.0f; //From full!
 		decayfactor /= decaylength; //Equal steps from 1.0f to 0.0f!
 		if (!decayfactor) //No decay?
 		{
@@ -438,7 +438,7 @@ void ADSR_init(void *voice, float sampleRate, float scale, byte velocity, ADSR *
 		else
 		{
 			float temp;
-			temp = scale; //Full volume!
+			temp = 1.0f; //Full volume!
 			temp -= sustainfactor; //Change to sustain factor difference!
 			temp /= decaylength; //Calculate the new decay time needed to change to the sustain factor!
 			decayfactor = temp; //Load the calculated decay time!
@@ -461,7 +461,6 @@ void ADSR_init(void *voice, float sampleRate, float scale, byte velocity, ADSR *
 	adsr->sustain = sustain; //Sustain
 	adsr->sustainfactor = sustainfactor; //Sustain %
 	adsr->release = releaselength; //Release
-	adsr->scalerev = (scale!=0.0f)?(1.0f/scale):scale; //Divide by scale!
 
 	//Finally calculate the actual values needed!
 	adsr->attackend = adsr->attack + adsr->delay;
@@ -474,7 +473,7 @@ void ADSR_init(void *voice, float sampleRate, float scale, byte velocity, ADSR *
 
 typedef void (*MIDI_STATE)(ADSR *adsr, int_64 play_counter, byte sustaining, byte release_velocity); //ADSR event handlers!
 
-float ADSR_tick(ADSR *adsr, float scale, int_64 samplecounter, byte sustaining, float noteon_velocity, byte release_velocity) //Tick an ADSR!
+float ADSR_tick(ADSR *adsr, int_64 samplecounter, byte sustaining, float noteon_velocity, byte release_velocity) //Tick an ADSR!
 {
 	float result = 0.0f; //The result to apply!
 	if (samplecounter < 0) return 0.0f; //Do not use invalid positions!
@@ -484,27 +483,27 @@ float ADSR_tick(ADSR *adsr, float scale, int_64 samplecounter, byte sustaining, 
 	}
 	else if (adsr->releasestarted && (samplecounter >= adsr->releasestart))
 	{
-		result = ADSR_release(adsr, scale, samplecounter, sustaining, release_velocity); //Release phase!
+		result = ADSR_release(adsr, samplecounter, sustaining, release_velocity); //Release phase!
 	}
 	else if (adsr->sustainstarted && (samplecounter >= adsr->sustainstart))
 	{
-		result = ADSR_sustain(adsr, scale, samplecounter, sustaining, release_velocity); //Sustain phase!
+		result = ADSR_sustain(adsr, samplecounter, sustaining, release_velocity); //Sustain phase!
 	}
 	else if (adsr->decaystarted && (samplecounter >= adsr->decaystart))
 	{
-		result = ADSR_decay(adsr, scale, samplecounter, sustaining, release_velocity); //Decay phase!
+		result = ADSR_decay(adsr, samplecounter, sustaining, release_velocity); //Decay phase!
 	}
 	else if (adsr->holdstarted && (samplecounter >= adsr->holdstart))
 	{
-		result = ADSR_hold(adsr, scale, samplecounter, sustaining, release_velocity); //Hold phase!
+		result = ADSR_hold(adsr, samplecounter, sustaining, release_velocity); //Hold phase!
 	}
 	else if (adsr->attackstarted && (samplecounter >= adsr->attackstart))
 	{
-		result = ADSR_attack(adsr, scale, samplecounter, sustaining, release_velocity); //Attack phase!
+		result = ADSR_attack(adsr, samplecounter, sustaining, release_velocity); //Attack phase!
 	}
 	else //Delay phase?
 	{
-		result = ADSR_delay(adsr, scale, samplecounter, sustaining, release_velocity); //Delay phase!
+		result = ADSR_delay(adsr, samplecounter, sustaining, release_velocity); //Delay phase!
 	}
 	return result; 
 }

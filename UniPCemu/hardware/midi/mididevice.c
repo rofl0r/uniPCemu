@@ -280,6 +280,7 @@ Combine attenuation values with each other to a new single scale.
 */
 OPTINLINE float combineAttenuation(MIDIDEVICE_VOICE* voice, float initialAttenuation, float volumeEnvelope)
 {
+	float attenuation;
 	//First, clip!
 
 	if ((voice->last_initialattenuation == initialAttenuation) && (voice->last_volumeenvelope == volumeEnvelope)) //Unchanged?
@@ -289,12 +290,12 @@ OPTINLINE float combineAttenuation(MIDIDEVICE_VOICE* voice, float initialAttenua
 	voice->last_initialattenuation = initialAttenuation; //Last!
 	voice->last_volumeenvelope = volumeEnvelope; //Last!
 
-	if (initialAttenuation > 2880.0f) initialAttenuation = 2880.0f; //Limit to max!
-	if (initialAttenuation < 0.0f) initialAttenuation = 0.0f; //Limit to min!
-	if (volumeEnvelope > 1000.0f) volumeEnvelope = 1000.0f; //Limit to max!
-	if (volumeEnvelope < 0.0f) volumeEnvelope = 0.0f; //Limit to min!
+	attenuation = initialAttenuation + (volumeEnvelope * 960.0f); //What is the attenuation!
+
+	if (attenuation > 1440.0f) attenuation = 1440.0f; //Limit to max!
+	if (attenuation < 0.0f) attenuation = 0.0f; //Limit to min!
 	//Now, combine! Normalize, convert to gain(in relative Bels), combine, convert to attenuation and apply the new scale for the attenuate function.
-	return (voice->last_attenuation = MIDIattenuate(initialAttenuation + (volumeEnvelope*0.96))); //Volume needs to be converted to a 960cB range!
+	return (voice->last_attenuation = MIDIattenuate(attenuation)); //Volume needs to be converted to a 960cB range!
 }
 
 void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float samplerate, int_32 samplespeedup, MIDIDEVICE_VOICE *voice, float Volume, float Modulation, byte chorus, float chorusvol, byte filterindex, int_32 *lchannelres, int_32 *rchannelres) //Get a sample from an MIDI note!
@@ -548,8 +549,8 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 			chorusreverbsamplepos = voice->play_counter; //Load the current play counter!
 			totaldelay = voice->chorusdelay[currentchorusreverb]; //Load the total delay!
 			chorusreverbsamplepos -= (int_64)totaldelay; //Apply specified chorus&reverb delay!
-			VolumeEnvelope = 1000.0f-(ADSR_tick(VolumeADSR,1000.0f,chorusreverbsamplepos,((voice->currentloopflags & 0xD0) != 0x80),voice->note->noteon_velocity, voice->note->noteoff_velocity)); //Apply Volume Envelope, converted to attenuation!
-			ModulationEnvelope = (ADSR_tick(ModulationADSR,1.0f,chorusreverbsamplepos,((voice->currentloopflags & 0xD0) != 0x80),voice->note->noteon_velocity, voice->note->noteoff_velocity)); //Apply Modulation Envelope, converted to attenuation!
+			VolumeEnvelope = 1.0f-(ADSR_tick(VolumeADSR,chorusreverbsamplepos,((voice->currentloopflags & 0xD0) != 0x80),voice->note->noteon_velocity, voice->note->noteoff_velocity)); //Apply Volume Envelope, converted to attenuation!
+			ModulationEnvelope = (ADSR_tick(ModulationADSR,chorusreverbsamplepos,((voice->currentloopflags & 0xD0) != 0x80),voice->note->noteon_velocity, voice->note->noteoff_velocity)); //Apply Modulation Envelope, converted to attenuation!
 			MIDIDEVICE_getsample(chorusreverbsamplepos, totaldelay, samplerate, voice->effectivesamplespeedup, voice, VolumeEnvelope, ModulationEnvelope, currentchorusreverb, voice->chorusvol[currentchorusreverb], currentchorusreverb, &lchannel, &rchannel); //Get the sample from the MIDI device, with only the chorus effect!
 		} while (++currentchorusreverb<CHORUSSIZE); //Chorus loop.
 
@@ -1623,8 +1624,8 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 	voice->bank = channel->activebank;
 
 	//Final adjustments and set active!
-	ADSR_init(voice, (float)voice->sample.dwSampleRate, 1000.0f, effectivevelocity, &voice->VolumeEnvelope, soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, preset, pbag, delayVolEnv, attackVolEnv, 0, holdVolEnv, decayVolEnv, sustainVolEnv, releaseVolEnv, effectivenote, keynumToVolEnvHold, keynumToVolEnvDecay); //Initialise our Volume Envelope for use!
-	ADSR_init(voice, (float)voice->sample.dwSampleRate, 1.0f, effectivevelocity, &voice->ModulationEnvelope, soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, preset, pbag, delayModEnv, attackModEnv, 1, holdModEnv, decayModEnv, sustainModEnv, releaseModEnv, effectivenote, keynumToModEnvHold, keynumToModEnvDecay); //Initialise our Modulation Envelope for use!
+	ADSR_init(voice, (float)voice->sample.dwSampleRate, effectivevelocity, &voice->VolumeEnvelope, soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, preset, pbag, delayVolEnv, attackVolEnv, 0, holdVolEnv, decayVolEnv, sustainVolEnv, releaseVolEnv, effectivenote, keynumToVolEnvHold, keynumToVolEnvDecay); //Initialise our Volume Envelope for use!
+	ADSR_init(voice, (float)voice->sample.dwSampleRate, effectivevelocity, &voice->ModulationEnvelope, soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, preset, pbag, delayModEnv, attackModEnv, 1, holdModEnv, decayModEnv, sustainModEnv, releaseModEnv, effectivenote, keynumToModEnvHold, keynumToModEnvDecay); //Initialise our Modulation Envelope for use!
 
 	#ifdef MIDI_LOCKSTART
 	unlock(voice->locknumber); //Unlock us!
