@@ -1837,7 +1837,7 @@ OPTINLINE void MIDIDEVICE_noteOn(byte selectedchannel, byte channel, byte note, 
 						currentranking = 0; //Start with no ranking!
 						if (activevoices[voiceactive].VolumeEnvelope.active == ADSR_IDLE) currentranking -= 4000; //Idle gets priority to be stolen!
 						else if (activevoices[voiceactive].VolumeEnvelope.active == ADSR_RELEASE) currentranking -= 2000; //Release gets priority to be stolen!
-						if (activevoices[voiceactive].channel->sustain) currentranking -= 1000; //Lower when sustained!
+						if (activevoices[voiceactive].channel->sustain | (activevoices[voiceactive].currentloopflags&0x10)) currentranking -= 1000; //Lower when sustained or sostenuto!
 						float volume;
 						volume = combineAttenuation(&activevoices[voiceactive],activevoices[voiceactive].effectiveAttenuation, activevoices[voiceactive].CurrentVolumeEnvelope); //Load the ADSR volume!
 						if (activevoices[voiceactive].lvolume > activevoices[voice].rvolume) //More left volume?
