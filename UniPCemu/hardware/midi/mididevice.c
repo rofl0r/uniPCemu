@@ -1935,7 +1935,10 @@ void startMIDIsostenuto(byte channel)
 		{
 			if (voice->channel == &MIDI_channels[channel]) //The requested channel?
 			{
-				voice->currentloopflags |= 0x10; //Set sostenuto!
+				if (((voice->currentloopflags&0xD0)!=0x80) && (voice->VolumeEnvelope.active!=ADSR_RELEASE)) //Still pressed and not releasing?
+				{
+					voice->currentloopflags |= 0x10; //Set sostenuto!
+				}
 			}
 		}
 	}
