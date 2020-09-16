@@ -69,7 +69,7 @@ byte direct_midi = 0; //Enable direct MIDI synthesis?
 #define MIDIDEVICE_DEFAULTMODE MIDIDEVICE_POLY
 
 //Reverb delay in seconds (originally 250ms(19MB), now 50ms(960384 bytes of buffers))
-#define REVERB_DELAY 0.05f
+#define REVERB_DELAY 0.00265f
 
 //Chorus delay in seconds (5ms)
 #define CHORUS_DELAY 0.005f
