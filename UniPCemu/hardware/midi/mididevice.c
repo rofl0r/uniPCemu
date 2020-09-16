@@ -561,6 +561,11 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 			chorusreverbsamplepos -= (int_64)totaldelay; //Apply specified chorus&reverb delay!
 			VolumeEnvelope = 1.0f-(ADSR_tick(VolumeADSR,chorusreverbsamplepos,((voice->currentloopflags & 0xD0) != 0x80),voice->note->noteon_velocity, voice->note->noteoff_velocity)); //Apply Volume Envelope, converted to attenuation!
 			ModulationEnvelope = (ADSR_tick(ModulationADSR,chorusreverbsamplepos,((voice->currentloopflags & 0xD0) != 0x80),voice->note->noteon_velocity, voice->note->noteoff_velocity)); //Apply Modulation Envelope, converted to attenuation!
+			if (!currentchorusreverb) //The first?
+			{
+				voice->CurrentVolumeEnvelope = VolumeEnvelope; //Current volume!
+				voice->CurrentModulationEnvelope = ModulationEnvelope; //Current modulation!
+			}
 			MIDIDEVICE_getsample(chorusreverbsamplepos, totaldelay, samplerate, voice->effectivesamplespeedup, voice, VolumeEnvelope, ModulationEnvelope, currentchorusreverb, voice->chorusvol[currentchorusreverb], currentchorusreverb, &lchannel, &rchannel); //Get the sample from the MIDI device, with only the chorus effect!
 		} while (++currentchorusreverb<CHORUSSIZE); //Chorus loop.
 
@@ -627,9 +632,6 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 		++voice->play_counter; //Next sample!
 		++ubuf; //Prepare for the next sample!
 	} while (--numsamples); //Repeat while samples are left!
-
-	voice->CurrentVolumeEnvelope = VolumeEnvelope; //Current volume envelope updated!
-	voice->CurrentModulationEnvelope = ModulationEnvelope; //Current volume envelope updated!
 
 	#ifdef MIDI_LOCKSTART
 	unlock(voice->locknumber); //Lock us!
