@@ -317,7 +317,8 @@ void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float sampler
 	byte loopflags; //Flags used during looping!
 	static sword readsample = 0; //The sample retrieved!
 	int_32 modulationratiocents;
-	uint_32 tempbuffer;
+	uint_32 tempbuffer,tempbuffer2;
+	byte ok1,ok2;
 	int_32 modenv_pitchfactor;
 	float currentattenuation;
 	int_64 samplesskipped;
@@ -329,15 +330,14 @@ void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float sampler
 		writefifobuffer32(voice->effect_backtrace_samplespeedup,signed2unsigned32(samplespeedup)); //Log a history of this!
 		writefifobuffer32(voice->effect_backtrace_modenv_pitchfactor,signed2unsigned32(modenv_pitchfactor)); //Log a history of this!
 	}
-	else if (play_counter>=0) //Are we a running channel that needs reading back?
+	else if (likely(play_counter>=0)) //Are we a running channel that needs reading back?
 	{
-		if (readfifobuffer32_backtrace(voice->effect_backtrace_samplespeedup,&tempbuffer,totaldelay,voice->isfinalchannel_chorus[filterindex])) //Try to read from history! Only apply the value when not the originating channel!
+		ok1 = readfifobuffer32_backtrace(voice->effect_backtrace_samplespeedup,&tempbuffer,totaldelay,voice->isfinalchannel_chorus[filterindex])); //Try to read from history! Only apply the value when not the originating channel!
+		ok2 = readfifobuffer32_backtrace(voice->effect_backtrace_modenv_pitchfactor, &tempbuffer2, totaldelay, voice->isfinalchannel_chorus[filterindex])); //Try to read from history! Only apply the value when not the originating channel!
+		if (likely(ok1&&ok2)) //Both read?
 		{
 			samplespeedup = unsigned2signed32(tempbuffer); //Apply the sample speedup from that point in time! Not for the originating channel!
-		}
-		if (readfifobuffer32_backtrace(voice->effect_backtrace_modenv_pitchfactor, &tempbuffer, totaldelay, voice->isfinalchannel_chorus[filterindex])) //Try to read from history! Only apply the value when not the originating channel!
-		{
-			modenv_pitchfactor = unsigned2signed32(tempbuffer); //Apply the pitch factor from that point in time! Not for the originating channel!
+			modenv_pitchfactor = unsigned2signed32(tempbuffer2); //Apply the pitch factor from that point in time! Not for the originating channel!
 		}
 	}
 
