@@ -332,8 +332,8 @@ void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float sampler
 	}
 	else if (likely(play_counter>=0)) //Are we a running channel that needs reading back?
 	{
-		ok1 = readfifobuffer32_backtrace(voice->effect_backtrace_samplespeedup,&tempbuffer,totaldelay,voice->isfinalchannel_chorus[filterindex])); //Try to read from history! Only apply the value when not the originating channel!
-		ok2 = readfifobuffer32_backtrace(voice->effect_backtrace_modenv_pitchfactor, &tempbuffer2, totaldelay, voice->isfinalchannel_chorus[filterindex])); //Try to read from history! Only apply the value when not the originating channel!
+		ok1 = readfifobuffer32_backtrace(voice->effect_backtrace_samplespeedup,&tempbuffer,totaldelay,voice->isfinalchannel_chorus[filterindex]); //Try to read from history! Only apply the value when not the originating channel!
+		ok2 = readfifobuffer32_backtrace(voice->effect_backtrace_modenv_pitchfactor, &tempbuffer2, totaldelay, voice->isfinalchannel_chorus[filterindex]); //Try to read from history! Only apply the value when not the originating channel!
 		if (likely(ok1&&ok2)) //Both read?
 		{
 			samplespeedup = unsigned2signed32(tempbuffer); //Apply the sample speedup from that point in time! Not for the originating channel!
