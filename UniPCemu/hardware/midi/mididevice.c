@@ -271,6 +271,16 @@ OPTINLINE float MIDIattenuate(float value)
 	return (float)powf(10.0f, value / -200.0f); //Generate default attenuation!
 }
 
+float attenuationprecalcs[1441]; //Precalcs for attenuation!
+void calcAttenuationPrecalcs()
+{
+	word n;
+	for (n = 0; n < NUMITEMS(attenuationprecalcs); ++n)
+	{
+		attenuationprecalcs[n] = MIDIattenuate((float)n); //Precakc!
+	}
+}
+
 /*
 
 combineAttenuation:
@@ -295,7 +305,7 @@ OPTINLINE float combineAttenuation(MIDIDEVICE_VOICE* voice, float initialAttenua
 	if (attenuation > 1440.0f) attenuation = 1440.0f; //Limit to max!
 	if (attenuation < 0.0f) attenuation = 0.0f; //Limit to min!
 	//Now, combine! Normalize, convert to gain(in relative Bels), combine, convert to attenuation and apply the new scale for the attenuate function.
-	return (voice->last_attenuation = MIDIattenuate(attenuation)); //Volume needs to be converted to a 960cB range!
+	return (voice->last_attenuation = attenuationprecalcs[(word)(attenuation)]); //Volume needs to be converted to a 960cB range!
 }
 
 void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float samplerate, int_32 samplespeedup, MIDIDEVICE_VOICE *voice, float Volume, float Modulation, byte chorus, float chorusvol, byte filterindex, int_32 *lchannelres, int_32 *rchannelres) //Get a sample from an MIDI note!
@@ -2566,6 +2576,7 @@ byte init_MIDIDEVICE(char *filename, byte use_direct_MIDI) //Initialise MIDI dev
 	}
 
 	MIDIDEVICE_generateSinusTable(); //Make sure we can generate sinuses required!
+	calcAttenuationPrecalcs(); //Calculate attenuation!
 
 	//Load the soundfont?
 	soundfont = readSF(filename); //Read the soundfont, if available!
