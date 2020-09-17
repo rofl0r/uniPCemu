@@ -124,15 +124,14 @@ OPTINLINE void reset_MIDIDEVICE() //Reset the MIDI device for usage!
 	byte channel,chorusreverbdepth;
 	word notes;
 	byte purposebackup;
-	FIFOBUFFER *temp, *temp2, *chorus_backtrace[CHORUSSIZE];
+	FIFOBUFFER *temp, *chorus_backtrace[CHORUSSIZE];
 
 	lockMPURenderer();
 	memset(&MIDI_channels,0,sizeof(MIDI_channels)); //Clear our data!
 
 	for (channel=0;channel<NUMITEMS(activevoices);channel++) //Process all voices!
 	{
-		temp = activevoices[channel].effect_backtrace_samplespeedup; //Back-up the effect backtrace!
-		temp2 = activevoices[channel].effect_backtrace_modenv_pitchfactor; //Back-up the effect backtrace!
+		temp = activevoices[channel].effect_backtrace_samplespeedup_modenv_pitchfactor; //Back-up the effect backtrace!
 		for (chorusreverbdepth=0;chorusreverbdepth<CHORUSSIZE;++chorusreverbdepth)
 		{
 			chorus_backtrace[chorusreverbdepth] = activevoices[channel].effect_backtrace_chorus[chorusreverbdepth]; //Back-up!
@@ -144,8 +143,7 @@ OPTINLINE void reset_MIDIDEVICE() //Reset the MIDI device for usage!
 		{
 			activevoices[channel].effect_backtrace_chorus[chorusreverbdepth] = chorus_backtrace[chorusreverbdepth]; //Restore!
 		}
-		activevoices[channel].effect_backtrace_samplespeedup = temp; //Restore our buffer!
-		activevoices[channel].effect_backtrace_modenv_pitchfactor = temp2; //Restore our buffer!
+		activevoices[channel].effect_backtrace_samplespeedup_modenv_pitchfactor = temp; //Restore our buffer!
 		fifobuffer_clear(temp); //Clear our buffer!
 	}
 
@@ -318,7 +316,6 @@ void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float sampler
 	static sword readsample = 0; //The sample retrieved!
 	int_32 modulationratiocents;
 	uint_32 tempbuffer,tempbuffer2;
-	byte ok1,ok2;
 	int_32 modenv_pitchfactor;
 	float currentattenuation;
 	int_64 samplesskipped;
@@ -327,14 +324,11 @@ void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float sampler
 
 	if (filterindex==0) //Main channel? Log the current sample speedup!
 	{
-		writefifobuffer32(voice->effect_backtrace_samplespeedup,signed2unsigned32(samplespeedup)); //Log a history of this!
-		writefifobuffer32(voice->effect_backtrace_modenv_pitchfactor,signed2unsigned32(modenv_pitchfactor)); //Log a history of this!
+		writefifobuffer32_2u(voice->effect_backtrace_samplespeedup_modenv_pitchfactor,signed2unsigned32(samplespeedup),signed2unsigned32(modenv_pitchfactor)); //Log a history of this!
 	}
 	else if (likely(play_counter>=0)) //Are we a running channel that needs reading back?
 	{
-		ok1 = readfifobuffer32_backtrace(voice->effect_backtrace_samplespeedup,&tempbuffer,totaldelay,voice->isfinalchannel_chorus[filterindex]); //Try to read from history! Only apply the value when not the originating channel!
-		ok2 = readfifobuffer32_backtrace(voice->effect_backtrace_modenv_pitchfactor, &tempbuffer2, totaldelay, voice->isfinalchannel_chorus[filterindex]); //Try to read from history! Only apply the value when not the originating channel!
-		if (likely(ok1&&ok2)) //Both read?
+		if (likely(readfifobuffer32_backtrace_2u(voice->effect_backtrace_samplespeedup_modenv_pitchfactor,&tempbuffer,&tempbuffer2,totaldelay,voice->isfinalchannel_chorus[filterindex]))) //Try to read from history! Only apply the value when not the originating channel!
 		{
 			samplespeedup = unsigned2signed32(tempbuffer); //Apply the sample speedup from that point in time! Not for the originating channel!
 			modenv_pitchfactor = unsigned2signed32(tempbuffer2); //Apply the pitch factor from that point in time! Not for the originating channel!
@@ -1384,8 +1378,7 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 
 	//Initialize the requested voice!
 	//First, all our voice-specific variables and precalcs!
-	temp = voice->effect_backtrace_samplespeedup; //Back-up the effect backtrace!
-	temp2 = voice->effect_backtrace_modenv_pitchfactor; //Back-up the effect backtrace!
+	temp = voice->effect_backtrace_samplespeedup_modenv_pitchfactor; //Back-up the effect backtrace!
 	for (chorusreverbdepth = 0; chorusreverbdepth < CHORUSSIZE; ++chorusreverbdepth)
 	{
 		chorus_backtrace[chorusreverbdepth] = voice->effect_backtrace_chorus[chorusreverbdepth]; //Back-up!
@@ -1393,14 +1386,12 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 	purposebackup = voice->purpose;
 	memset(voice, 0, sizeof(*voice)); //Clear the entire channel!
 	voice->purpose = purposebackup;
-	voice->effect_backtrace_samplespeedup = temp; //Restore our buffer!
-	voice->effect_backtrace_modenv_pitchfactor = temp2; //Restore our buffer!
+	voice->effect_backtrace_samplespeedup_modenv_pitchfactor = temp; //Restore our buffer!
 	for (chorusreverbdepth = 0; chorusreverbdepth < CHORUSSIZE; ++chorusreverbdepth)
 	{
 		voice->effect_backtrace_chorus[chorusreverbdepth] = chorus_backtrace[chorusreverbdepth]; //Restore!
 	}
-	fifobuffer_clear(voice->effect_backtrace_samplespeedup); //Clear our history buffer!
-	fifobuffer_clear(voice->effect_backtrace_modenv_pitchfactor); //Clear our history buffer!
+	fifobuffer_clear(voice->effect_backtrace_samplespeedup_modenv_pitchfactor); //Clear our history buffer!
 #ifndef DISABLE_REVERB
 	for (chorusreverbdepth = 0; chorusreverbdepth < CHORUSSIZE; ++chorusreverbdepth) //Initialize all chorus histories!
 	{
@@ -2508,15 +2499,11 @@ void done_MIDIDEVICE() //Finish our midi device!
 	for (i=0;i<MIDI_TOTALVOICES;i++) //Assign all voices available!
 	{
 		removechannel(&MIDIDEVICE_renderer,&activevoices[i],0); //Remove the channel! Delay at 0.96ms for response speed!
-		if (activevoices[i].effect_backtrace_samplespeedup) //Used?
+		if (activevoices[i].effect_backtrace_samplespeedup_modenv_pitchfactor) //Used?
 		{
-			free_fifobuffer(&activevoices[i].effect_backtrace_samplespeedup); //Release the FIFO buffer containing the entire history!
+			free_fifobuffer(&activevoices[i].effect_backtrace_samplespeedup_modenv_pitchfactor); //Release the FIFO buffer containing the entire history!
 		}
-		if (activevoices[i].effect_backtrace_modenv_pitchfactor) //Used?
-		{
-			free_fifobuffer(&activevoices[i].effect_backtrace_modenv_pitchfactor); //Release the FIFO buffer containing the entire history!
-		}
-#ifndef DISABLE_REVERB
+		#ifndef DISABLE_REVERB
 		for (j=0;j<CHORUSSIZE;++j)
 		{
 			free_fifobuffer(&activevoices[i].effect_backtrace_chorus[j]); //Release the FIFO buffer containing the entire history!
@@ -2596,8 +2583,7 @@ byte init_MIDIDEVICE(char *filename, byte use_direct_MIDI) //Initialise MIDI dev
 		for (i=0;i<MIDI_TOTALVOICES;i++) //Assign all voices available!
 		{
 			activevoices[i].purpose = ((((__MIDI_NUMVOICES)-(i/MIDI_NOTEVOICES))-1) < MIDI_DRUMVOICES) ? 1 : 0; //Drum or melodic voice? Put the drum voices at the far end!
-			activevoices[i].effect_backtrace_samplespeedup = allocfifobuffer(((uint_32)((chorus_delay[CHORUSSIZE])*MAX_SAMPLERATE)+1)<<2,0); //Not locked FIFO buffer containing the entire history!
-			activevoices[i].effect_backtrace_modenv_pitchfactor = allocfifobuffer(((uint_32)((chorus_delay[CHORUSSIZE])*MAX_SAMPLERATE)+1)<<2,0); //Not locked FIFO buffer containing the entire history!
+			activevoices[i].effect_backtrace_samplespeedup_modenv_pitchfactor = allocfifobuffer(((uint_32)((chorus_delay[CHORUSSIZE])*MAX_SAMPLERATE)+1)<<3,0); //Not locked FIFO buffer containing the entire history!
 			#ifndef DISABLE_REVERB
 			for (j=0;j<CHORUSSIZE;++j) //All chorus backtrace channels!
 			{
