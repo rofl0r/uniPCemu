@@ -1173,7 +1173,7 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 	sfInst currentinstrument;
 	sfInstGenList sampleptr, applyigen;
 	sfSample sampleInfo;
-	FIFOBUFFER *temp, *temp2, *chorus_backtrace[CHORUSSIZE];
+	FIFOBUFFER *temp, *chorus_backtrace[CHORUSSIZE];
 	int_32 previousPBag, previousIBag;
 	static uint_64 starttime = 0; //Increasing start time counter (1 each note on)!
 
