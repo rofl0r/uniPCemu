@@ -124,6 +124,7 @@ OPTINLINE void reset_MIDIDEVICE() //Reset the MIDI device for usage!
 	byte channel,chorusreverbdepth;
 	word notes;
 	byte purposebackup;
+	byte allocatedbackup;
 	FIFOBUFFER *temp, *chorus_backtrace[CHORUSSIZE];
 
 	lockMPURenderer();
@@ -137,7 +138,9 @@ OPTINLINE void reset_MIDIDEVICE() //Reset the MIDI device for usage!
 			chorus_backtrace[chorusreverbdepth] = activevoices[channel].effect_backtrace_chorus[chorusreverbdepth]; //Back-up!
 		}
 		purposebackup = activevoices[channel].purpose;
+		allocatedbackup = activevoices[channel].allocated;
 		memset(&activevoices[channel],0,sizeof(activevoices[channel])); //Clear the entire channel!
+		activevoices[channel].allocated = allocatedbackup;
 		activevoices[channel].purpose = purposebackup;
 		for (chorusreverbdepth=0;chorusreverbdepth<CHORUSSIZE;++chorusreverbdepth)
 		{
@@ -1163,6 +1166,7 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 	byte effectivenotevelocitytemp;
 	word voicecounter;
 	byte purposebackup;
+	byte allocatedbackup;
 	byte activeloopflags;
 	uint_32 exclusiveclass;
 
@@ -1393,7 +1397,9 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 		chorus_backtrace[chorusreverbdepth] = voice->effect_backtrace_chorus[chorusreverbdepth]; //Back-up!
 	}
 	purposebackup = voice->purpose;
+	allocatedbackup = voice->allocated;
 	memset(voice, 0, sizeof(*voice)); //Clear the entire channel!
+	voice->allocated = allocatedbackup;
 	voice->purpose = purposebackup;
 	voice->effect_backtrace_samplespeedup_modenv_pitchfactor = temp; //Restore our buffer!
 	for (chorusreverbdepth = 0; chorusreverbdepth < CHORUSSIZE; ++chorusreverbdepth)
