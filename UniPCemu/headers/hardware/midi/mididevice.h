@@ -136,6 +136,7 @@ typedef struct
 	float CurrentModulationEnvelope; //Current modulation envelope!
 
 	int_32 modenv_pitchfactor; //How many cents to apply to the frequency of the sound?
+	byte allocated; //Allocated sound channel?
 
 	byte loadedinformation; //Information is loaded?
 	sfPresetHeader currentpreset;

@@ -1365,7 +1365,7 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 
 	//If we reach here, the voice is valid and needs to be properly allocated!
 
-	if (voice->active) //Already active? Needs voice stealing to work!
+	if ((voice->active) || (voice->allocated==0)) //Already active or unusable? Needs voice stealing to work!
 	{
 		#ifdef MIDI_LOCKSTART
 		unlock(voice->locknumber); //Lock us!
@@ -1374,6 +1374,15 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 		return -1; //Active voices can't be allocated! Request voice stealing or an available channel!
 	}
 
+	if (!setSampleRate(&MIDIDEVICE_renderer, voice, (float)LE16(voice->sample.dwSampleRate))) //Use this new samplerate!
+	{
+		//Unusable samplerate! Try next available voice!
+		#ifdef MIDI_LOCKSTART
+		unlock(voice->locknumber); //Lock us!
+		#endif
+		unlockMPURenderer(); //We're finished!
+		return -2; //No samples for this split! We can't render!		
+	}
 	note->pressure = 0; //Initialize the pressure for this note to none yet!
 
 	//Initialize the requested voice!
@@ -1630,13 +1639,13 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 	ADSR_init(voice, (float)voice->sample.dwSampleRate, effectivevelocity, &voice->VolumeEnvelope, soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, preset, pbag, delayVolEnv, attackVolEnv, 1, holdVolEnv, decayVolEnv, sustainVolEnv, releaseVolEnv, effectivenote, keynumToVolEnvHold, keynumToVolEnvDecay); //Initialise our Volume Envelope for use!
 	ADSR_init(voice, (float)voice->sample.dwSampleRate, effectivevelocity, &voice->ModulationEnvelope, soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, preset, pbag, delayModEnv, attackModEnv, 1, holdModEnv, decayModEnv, sustainModEnv, releaseModEnv, effectivenote, keynumToModEnvHold, keynumToModEnvDecay); //Initialise our Modulation Envelope for use!
 
+	voice->starttime = starttime++; //Take a new start time!
+	voice->active = 1; //Active!
+
 	#ifdef MIDI_LOCKSTART
 	unlock(voice->locknumber); //Unlock us!
 	#endif
 	unlockMPURenderer(); //We're finished!
-	setSampleRate(&MIDIDEVICE_renderer, voice, (float)LE16(voice->sample.dwSampleRate)); //Use this new samplerate!
-	voice->starttime = starttime++; //Take a new start time!
-	voice->active = 1; //Active!
 	return 1; //Run: we're active!
 }
 
@@ -1754,7 +1763,7 @@ OPTINLINE void MIDIDEVICE_noteOff(byte selectedchannel, byte channel, byte note,
 			#ifdef MIDI_LOCKSTART
 			lock(activevoices[i].locknumber); //Lock us!
 			#endif
-			if (activevoices[i].VolumeEnvelope.active) //Active note?
+			if (activevoices[i].VolumeEnvelope.active && activevoices[i].allocated) //Active note?
 			{
 				if ((activevoices[i].note->channel == channel) && (activevoices[i].note->note == note)) //Note found?
 				{
@@ -1882,7 +1891,7 @@ OPTINLINE void MIDIDEVICE_noteOn(byte selectedchannel, byte channel, byte note, 
 				//Unable to allocate? Perform ranking if it's active!
 				for (voiceactive = voice; voiceactive < (voice + voicelimit); ++voiceactive) //Check all subvoices!
 				{
-					if (activevoices[voiceactive].active) //Are we active and the first voice?
+					if (activevoices[voiceactive].active && activevoices[voiceactive].allocated) //Are we active and the first voice?
 					{
 						//Create ranking by scoring the voice!
 						currentranking = 0; //Start with no ranking!
@@ -1962,7 +1971,7 @@ void updateMIDImodulators(byte channel)
 	for (; voicenr < MIDI_TOTALVOICES; ++voicenr) //Find a used voice!
 	{
 		voice = &activevoices[voicenr]; //The voice!
-		if (voice->VolumeEnvelope.active) //Active?
+		if (voice->VolumeEnvelope.active && voice->allocated) //Active?
 		{
 			if (voice->channel == &MIDI_channels[channel]) //The requested channel?
 			{
@@ -1982,7 +1991,7 @@ void startMIDIsostenuto(byte channel)
 	for (; voicenr < MIDI_TOTALVOICES; ++voicenr) //Find a used voice!
 	{
 		voice = &activevoices[voicenr]; //The voice!
-		if (voice->VolumeEnvelope.active) //Active?
+		if (voice->VolumeEnvelope.active && voice->allocated) //Active?
 		{
 			if (voice->channel == &MIDI_channels[channel]) //The requested channel?
 			{
@@ -2003,7 +2012,7 @@ void stopMIDIsostenuto(byte channel)
 	for (; voicenr < MIDI_TOTALVOICES; ++voicenr) //Find a used voice!
 	{
 		voice = &activevoices[voicenr]; //The voice!
-		if (voice->VolumeEnvelope.active) //Active?
+		if (voice->VolumeEnvelope.active && voice->allocated) //Active?
 		{
 			if (voice->channel == &MIDI_channels[channel]) //The requested channel?
 			{
@@ -2590,7 +2599,7 @@ byte init_MIDIDEVICE(char *filename, byte use_direct_MIDI) //Initialise MIDI dev
 				activevoices[i].effect_backtrace_chorus[j] = allocfifobuffer(((uint_32)((reverb_delay[CHORUSSIZE])*MAX_SAMPLERATE)+1)<<3,0); //Not locked FIFO buffer containing the entire history!				
 			}
 			#endif
-			addchannel(&MIDIDEVICE_renderer,&activevoices[i],"MIDI Voice",44100.0f,__MIDI_SAMPLES,1,SMPL16S); //Add the channel! Delay at 0.96ms for response speed! 44100/(1000000/960)=42.336 samples/response!
+			activevoices[i].allocated = addchannel(&MIDIDEVICE_renderer,&activevoices[i],"MIDI Voice",44100.0f,__MIDI_SAMPLES,1,SMPL16S); //Add the channel! Delay at 0.96ms for response speed! 44100/(1000000/960)=42.336 samples/response!
 			setVolume(&MIDIDEVICE_renderer,&activevoices[i],MIDI_VOLUME); //We're at 40% volume!
 		}
 	}
