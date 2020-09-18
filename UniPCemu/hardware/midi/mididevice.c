@@ -251,6 +251,7 @@ Voice support
 #define SINUSTABLE_PERCISION_REVERSE ((1.0f/(2.0f*PI))*(1.0f/(SINUSTABLE_PERCISION_FLT)))
 
 int_32 chorussinustable[SINUSTABLE_PERCISION][2][2]; //10x percision steps of sinus! With 1.0 added always!
+float genericsinustable[SINUSTABLE_PERCISION]; //10x percision steps of sinus! With 1.0 added always!
 float sinustable_percision_reverse = 1.0f; //Reverse lookup!
 
 void MIDIDEVICE_generateSinusTable()
@@ -261,6 +262,7 @@ void MIDIDEVICE_generateSinusTable()
 	{
 		for (choruschannel=0;choruschannel<2;++choruschannel) //All channels!
 		{
+			genericsinustable[x] = sinf((float)(((float)x / SINUSTABLE_PERCISION_FLT)) * 2.0f * PI); //Raw sinus!
 			chorussinustable[x][choruschannel][0] = (int_32)((sinf((float)(((float)x/SINUSTABLE_PERCISION_FLT))*2.0f*PI)+1.0f)*choruscents[choruschannel]); //Generate sinus lookup table, negative!
 			chorussinustable[x][choruschannel][1] = (int_32)(chorussinustable[x][choruschannel][0]+1200.0f); //Generate sinus lookup table, with cents base added, negative!
 		}
@@ -270,6 +272,7 @@ void MIDIDEVICE_generateSinusTable()
 
 //Absolute to get the amount of degrees, converted to a -1.0 to 1.0 scale!
 #define MIDIDEVICE_chorussinf(value, choruschannel, add1200centsbase) chorussinustable[(uint_32)(value)][choruschannel][add1200centsbase]
+#define MIDIDEVICE_genericsinf(value) genericsinustable[(uint_32)(value)]
 
 //MIDIvolume: converts a value of the range of maxvalue to a linear volume factor using maxdB dB.
 OPTINLINE float MIDIattenuate(float value)
@@ -475,7 +478,7 @@ void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float sampler
 void MIDIDEVICE_calcLFOoutput(MIDIDEVICE_LFO* LFO)
 {
 	float rawoutput;
-	rawoutput = MIDIDEVICE_chorussinf(LFO->sinpos, 0, 0); //Raw output of the LFO!
+	rawoutput = MIDIDEVICE_genericsinf(LFO->sinpos); //Raw output of the LFO!
 	LFO->outputfiltercutoff = (float)LFO->tofiltercutoff*rawoutput; //Unbent sinus output for filter cutoff!
 	LFO->outputpitch = (float)LFO->topitch * rawoutput; //Unbent sinus output for pitch!
 	LFO->outputvolume = (float)LFO->tovolume * rawoutput; //Unbent sinus output for volume!
