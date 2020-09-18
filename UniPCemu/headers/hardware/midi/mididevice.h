@@ -107,6 +107,19 @@ typedef struct
 
 typedef struct
 {
+	int_64 delay; //We're delaying for n samples left?
+	float sinpos; //All current chorus sin positions, wrapping around the table limit!
+	float sinposstep; //The step of one sample in chorussinpos, wrapping around 
+	int_32 topitch; //To pitch!
+	int_32 tofiltercutoff; //To filter cutoff!
+	int_32 tovolume; //To volume!
+	float outputpitch; //The output value of the pitch!
+	float outputfiltercutoff; //The output value of the pitch!
+	float outputvolume; //The output value of the pitch!
+} MIDIDEVICE_LFO;
+
+typedef struct
+{
 	int_64 play_counter; //Current play position within the soundfont!
 	int_64 monotonecounter[CHORUSSIZE]; //Monotonic counter for positive only for each chorus channel!
 	float monotonecounter_diff[CHORUSSIZE]; //Diff counter for each chorus channel!
@@ -167,7 +180,12 @@ typedef struct
 	DOUBLE modulationratiosamples[CHORUSSIZE]; //Modulation ratio and it's samples rate for faster lookup on boundaries!
 	float lowpass_modulationratio[CHORUSSIZE], lowpass_modulationratiosamples[CHORUSSIZE]; //See modulation ratio, but for the low pass filter only!
 	FIFOBUFFER *effect_backtrace_samplespeedup_modenv_pitchfactor; //A backtrace of the sample speedup and pitch factor through time for each sample played in the main stream!
+	FIFOBUFFER* effect_backtrace_LFO1; //A backtrace of the sample speedup and pitch factor through time for each sample played in the main stream!
+	FIFOBUFFER* effect_backtrace_LFO2; //A backtrace of the sample speedup and pitch factor through time for each sample played in the main stream!
 	FIFOBUFFER *effect_backtrace_chorus[CHORUSSIZE]; //Chorus backtrace for reverb purpose, stereo!
+
+	MIDIDEVICE_LFO LFO[2];
+
 	uint_32 chorusdelay[CHORUSSIZE]; //Total delay for the chorus/reverb channel!
 	uint_32 reverbdelay[REVERBSIZE]; //Total delay for the chorus/reverb channel!
 	float chorusvol[CHORUSSIZE]; //Chorus/reverb volume!

@@ -125,7 +125,7 @@ OPTINLINE void reset_MIDIDEVICE() //Reset the MIDI device for usage!
 	word notes;
 	byte purposebackup;
 	byte allocatedbackup;
-	FIFOBUFFER *temp, *chorus_backtrace[CHORUSSIZE];
+	FIFOBUFFER *temp, *temp2, *temp3, *chorus_backtrace[CHORUSSIZE];
 
 	lockMPURenderer();
 	memset(&MIDI_channels,0,sizeof(MIDI_channels)); //Clear our data!
@@ -133,6 +133,8 @@ OPTINLINE void reset_MIDIDEVICE() //Reset the MIDI device for usage!
 	for (channel=0;channel<NUMITEMS(activevoices);channel++) //Process all voices!
 	{
 		temp = activevoices[channel].effect_backtrace_samplespeedup_modenv_pitchfactor; //Back-up the effect backtrace!
+		temp2 = activevoices[channel].effect_backtrace_LFO1; //Back-up the effect backtrace!
+		temp3 = activevoices[channel].effect_backtrace_LFO2; //Back-up the effect backtrace!
 		for (chorusreverbdepth=0;chorusreverbdepth<CHORUSSIZE;++chorusreverbdepth)
 		{
 			chorus_backtrace[chorusreverbdepth] = activevoices[channel].effect_backtrace_chorus[chorusreverbdepth]; //Back-up!
@@ -146,6 +148,8 @@ OPTINLINE void reset_MIDIDEVICE() //Reset the MIDI device for usage!
 		{
 			activevoices[channel].effect_backtrace_chorus[chorusreverbdepth] = chorus_backtrace[chorusreverbdepth]; //Restore!
 		}
+		activevoices[channel].effect_backtrace_LFO2 = temp3; //Restore our buffer!
+		activevoices[channel].effect_backtrace_LFO1 = temp2; //Restore our buffer!
 		activevoices[channel].effect_backtrace_samplespeedup_modenv_pitchfactor = temp; //Restore our buffer!
 		fifobuffer_clear(temp); //Clear our buffer!
 	}
@@ -195,7 +199,7 @@ Cents and DB conversion!
 
 //Low pass filters!
 
-OPTINLINE float modulateLowpass(MIDIDEVICE_VOICE *voice, float Modulation, byte filterindex)
+OPTINLINE float modulateLowpass(MIDIDEVICE_VOICE *voice, float Modulation, float LFOmodulation, byte filterindex)
 {
 	INLINEREGISTER float modulationratio;
 
@@ -203,6 +207,7 @@ OPTINLINE float modulateLowpass(MIDIDEVICE_VOICE *voice, float Modulation, byte 
 
 	//Now, translate the modulation ratio to samples, optimized!
 	modulationratio = floorf(modulationratio); //Round it down to get integer values to optimize!
+	modulationratio += floorf(LFOmodulation); //Apply the LFO modulation as well!
 	if (modulationratio!=voice->lowpass_modulationratio[filterindex]) //Different ratio?
 	{
 		voice->lowpass_modulationratio[filterindex] = modulationratio; //Update the last ratio!
@@ -216,11 +221,11 @@ OPTINLINE float modulateLowpass(MIDIDEVICE_VOICE *voice, float Modulation, byte 
 	return modulationratio; //Give the frequency to use for the low pass filter!
 }
 
-OPTINLINE void applyMIDILowpassFilter(MIDIDEVICE_VOICE *voice, float *currentsample, float Modulation, byte filterindex)
+OPTINLINE void applyMIDILowpassFilter(MIDIDEVICE_VOICE *voice, float *currentsample, float Modulation, float LFOmodulation, byte filterindex)
 {
 	float lowpassfilterfreq;
 	if (voice->lowpassfilter_freq==0) return; //No filter?
-	lowpassfilterfreq = modulateLowpass(voice,Modulation,filterindex); //Load the frequency to use for low-pass filtering!
+	lowpassfilterfreq = modulateLowpass(voice,Modulation,LFOmodulation,filterindex); //Load the frequency to use for low-pass filtering!
 	if (voice->lowpass_dirty[filterindex]) //Are we dirty? We need to update the low-pass filter, if so!
 	{		
 		updateSoundFilter(&voice->lowpassfilter[filterindex],0,lowpassfilterfreq,(float)LE32(voice->sample.dwSampleRate)); //Update the low-pass filter, when needed!
@@ -309,7 +314,7 @@ OPTINLINE float combineAttenuation(MIDIDEVICE_VOICE* voice, float initialAttenua
 	return (voice->last_attenuation = attenuationprecalcs[(word)(attenuation)]); //Volume needs to be converted to a 960cB range!
 }
 
-void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float samplerate, int_32 samplespeedup, MIDIDEVICE_VOICE *voice, float Volume, float Modulation, byte chorus, float chorusvol, byte filterindex, int_32 *lchannelres, int_32 *rchannelres) //Get a sample from an MIDI note!
+void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float samplerate, int_32 samplespeedup, MIDIDEVICE_VOICE *voice, float Volume, float Modulation, byte chorus, float chorusvol, byte filterindex, float LFOpitch, float LFOvolume, float LFOfiltercutoff, int_32 *lchannelres, int_32 *rchannelres) //Get a sample from an MIDI note!
 {
 	//Our current rendering routine:
 	INLINEREGISTER uint_32 temp;
@@ -319,6 +324,7 @@ void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float sampler
 	static sword readsample = 0; //The sample retrieved!
 	int_32 modulationratiocents;
 	uint_32 tempbuffer,tempbuffer2;
+	float tempbufferf, tempbufferf2;
 	int_32 modenv_pitchfactor;
 	float currentattenuation;
 	int_64 samplesskipped;
@@ -328,16 +334,26 @@ void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float sampler
 	if (filterindex==0) //Main channel? Log the current sample speedup!
 	{
 		writefifobuffer32_2u(voice->effect_backtrace_samplespeedup_modenv_pitchfactor,signed2unsigned32(samplespeedup),signed2unsigned32(modenv_pitchfactor)); //Log a history of this!
+		writefifobufferflt_2(voice->effect_backtrace_LFO1, LFOpitch, LFOvolume); //Log a history of this!
+		writefifobufferflt(voice->effect_backtrace_LFO2, LFOfiltercutoff); //Log a history of this!
 	}
-	else if (likely(play_counter>=0)) //Are we a running channel that needs reading back?
+	else if (likely(play_counter >= 0)) //Are we a running channel that needs reading back?
 	{
-		if (likely(readfifobuffer32_backtrace_2u(voice->effect_backtrace_samplespeedup_modenv_pitchfactor,&tempbuffer,&tempbuffer2,totaldelay,voice->isfinalchannel_chorus[filterindex]))) //Try to read from history! Only apply the value when not the originating channel!
+		if (likely(readfifobuffer32_backtrace_2u(voice->effect_backtrace_samplespeedup_modenv_pitchfactor, &tempbuffer, &tempbuffer2, totaldelay, voice->isfinalchannel_chorus[filterindex]))) //Try to read from history! Only apply the value when not the originating channel!
 		{
 			samplespeedup = unsigned2signed32(tempbuffer); //Apply the sample speedup from that point in time! Not for the originating channel!
 			modenv_pitchfactor = unsigned2signed32(tempbuffer2); //Apply the pitch factor from that point in time! Not for the originating channel!
 		}
+		if (likely(readfifobufferflt_backtrace_2(voice->effect_backtrace_LFO1, &tempbufferf, &tempbufferf2, totaldelay, voice->isfinalchannel_chorus[filterindex]))) //Try to read from history! Only apply the value when not the originating channel!
+		{
+			LFOpitch = tempbufferf; //Apply the same from that point in time! Not for the originating channel!
+			LFOvolume = tempbufferf2; //Apply the same from that point in time! Not for the originating channel!
+		}
+		if (likely(readfifobufferflt_backtrace(voice->effect_backtrace_LFO2, &tempbufferf, totaldelay, voice->isfinalchannel_chorus[filterindex]))) //Try to read from history! Only apply the value when not the originating channel!
+		{
+			LFOfiltercutoff = tempbufferf; //Apply the same from that point in time! Not for the originating channel!
+		}
 	}
-
 	if (unlikely(play_counter < 0)) //Invalid to lookup the position?
 	{
 	#ifndef DISABLE_REVERB
@@ -355,6 +371,8 @@ void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float sampler
 		voice->chorussinpos[filterindex] += voice->chorussinposstep; //Step by one sample rendered!
 		if (unlikely(voice->chorussinpos[filterindex] >= SINUSTABLE_PERCISION_FLT)) voice->chorussinpos[filterindex] -= SINUSTABLE_PERCISION_FLT; //Wrap around when needed(once per second)!
 	}
+
+	modulationratiocents += LFOpitch; //Apply the LFO inputs for affecting pitch!
 
 	modulationratiocents += (Modulation * voice->modenv_pitchfactor); //Apply pitch bend as well!
 	//Apply pitch bend to the current factor too!
@@ -426,8 +444,8 @@ void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float sampler
 		lchannel = (float)readsample; //Convert to floating point for our calculations!
 
 		//First, apply filters and current envelope!
-		applyMIDILowpassFilter(voice, &lchannel, Modulation, filterindex); //Low pass filter!
-		currentattenuation = combineAttenuation(voice,voice->effectiveAttenuation,Volume); //The volume of the samples including ADSR!
+		applyMIDILowpassFilter(voice, &lchannel, Modulation, LFOfiltercutoff, filterindex); //Low pass filter!
+		currentattenuation = combineAttenuation(voice,voice->effectiveAttenuation,Volume+LFOvolume); //The volume of the samples including ADSR!
 		currentattenuation *= chorusvol; //Apply chorus&reverb volume for this stream!
 		currentattenuation *= VOLUME; //Apply general volume!
 		lchannel *= currentattenuation; //Apply the current attenuation!
@@ -452,6 +470,21 @@ void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float sampler
 		writefifobufferflt_2(voice->effect_backtrace_chorus[filterindex],0.0f,0.0f); //Left/right channel output!
 	}
 	#endif
+}
+
+void MIDIDEVICE_calcLFOoutput(MIDIDEVICE_LFO* LFO)
+{
+	float rawoutput;
+	rawoutput = MIDIDEVICE_chorussinf(LFO->sinpos, 0, 0); //Raw output of the LFO!
+	LFO->outputfiltercutoff = (float)LFO->tofiltercutoff*rawoutput; //Unbent sinus output for filter cutoff!
+	LFO->outputpitch = (float)LFO->topitch * rawoutput; //Unbent sinus output for pitch!
+	LFO->outputvolume = (float)LFO->tovolume * rawoutput; //Unbent sinus output for volume!
+}
+
+void MIDIDEVICE_tickLFO(MIDIDEVICE_LFO* LFO)
+{
+	LFO->sinpos += LFO->sinposstep; //Step by one sample rendered!
+	if (unlikely(LFO->sinpos >= SINUSTABLE_PERCISION_FLT)) LFO->sinpos -= SINUSTABLE_PERCISION_FLT; //Wrap around when needed(once per second)!
 }
 
 byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata) //Sound output renderer!
@@ -551,6 +584,8 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 		lchannel = 0; //Reset left channel!
 		rchannel = 0; //Reset right channel!
 		currentchorusreverb=0; //Init to first chorus channel!
+		MIDIDEVICE_calcLFOoutput(&voice->LFO[0]); //Calculate the first LFO!
+		MIDIDEVICE_calcLFOoutput(&voice->LFO[1]); //Calculate the second LFO!
 		do //Process all chorus used(2 chorus channels)!
 		{
 			chorusreverbsamplepos = voice->play_counter; //Load the current play counter!
@@ -563,7 +598,7 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 				voice->CurrentVolumeEnvelope = VolumeEnvelope; //Current volume!
 				voice->CurrentModulationEnvelope = ModulationEnvelope; //Current modulation!
 			}
-			MIDIDEVICE_getsample(chorusreverbsamplepos, totaldelay, samplerate, voice->effectivesamplespeedup, voice, VolumeEnvelope, ModulationEnvelope, currentchorusreverb, voice->chorusvol[currentchorusreverb], currentchorusreverb, &lchannel, &rchannel); //Get the sample from the MIDI device, with only the chorus effect!
+			MIDIDEVICE_getsample(chorusreverbsamplepos, totaldelay, samplerate, voice->effectivesamplespeedup, voice, VolumeEnvelope, ModulationEnvelope, currentchorusreverb, voice->chorusvol[currentchorusreverb], currentchorusreverb, voice->LFO[0].outputpitch+voice->LFO[1].outputpitch, voice->LFO[0].outputvolume+voice->LFO[1].outputvolume, voice->LFO[0].outputfiltercutoff+voice->LFO[1].outputfiltercutoff, &lchannel, &rchannel); //Get the sample from the MIDI device, with only the chorus effect!
 		} while (++currentchorusreverb<CHORUSSIZE); //Chorus loop.
 
 		if (unlikely((VolumeADSR->active==ADSR_IDLE) && (voice->noteplaybackfinished==0))) //To finish note with chorus?
@@ -628,6 +663,8 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 		ubuf->r = rchannel; //Right sample!
 		++voice->play_counter; //Next sample!
 		++ubuf; //Prepare for the next sample!
+		MIDIDEVICE_tickLFO(&voice->LFO[0]); //Tick first LFO!
+		MIDIDEVICE_tickLFO(&voice->LFO[1]); //Tick the second LFO!
 	} while (--numsamples); //Repeat while samples are left!
 
 	#ifdef MIDI_LOCKSTART
@@ -1153,6 +1190,118 @@ void MIDI_muteExclusiveClass(uint_32 exclusiveclass, MIDIDEVICE_VOICE *newvoice)
 	}
 }
 
+//Initialize a LFO to use! Supply endOper when not using a certain output of the LFO!
+void MIDIDEVICE_initLFO(MIDIDEVICE_VOICE* voice, MIDIDEVICE_LFO* LFO, word delay, word frequency, word topitch, word tofiltercutoff, word tovolume)
+{
+	sfGenList applygen;
+	sfInstGenList applyigen;
+
+	float SINUS_BASE;
+	float effectivefrequency;
+	float effectivedelay;
+
+	int_32 input;
+	int_32 cents;
+
+	cents = 0; //Default: none!
+
+	//Frequency
+	if (lookupSFInstrumentGenGlobal(soundfont, voice->instrumentptr, voice->ibag, frequency, &applyigen))
+	{
+		cents = (int_32)LE16(applyigen.genAmount.shAmount); //How many! Apply to the cents!
+		if (lookupSFPresetGenGlobal(soundfont, voice->preset, voice->pbag, frequency, &applygen))
+		{
+			cents += (int_32)LE16(applygen.genAmount.shAmount); //How many! Apply to the cents!
+		}
+	}
+	else if (lookupSFPresetGenGlobal(soundfont, voice->preset, voice->pbag, frequency, &applygen))
+	{
+		cents = (int_32)LE16(applygen.genAmount.shAmount); //How many! Apply to the cents!
+	}
+
+	cents += getSFInstrumentmodulator(voice, coarseTune, 1, 0.0f, 0.0f);
+	cents += getSFPresetmodulator(voice, coarseTune, 1, 0.0f, 0.0f);
+
+	effectivefrequency = cents2samplesfactorf(cents); //Effective frequency to use!
+
+	SINUS_BASE = 2.0f * (float)PI * effectivefrequency; //MIDI Sinus Base for LFO effects!
+
+	//Delay
+	if (lookupSFInstrumentGenGlobal(soundfont, voice->instrumentptr, voice->ibag, frequency, &applyigen))
+	{
+		cents = (int_32)LE16(applyigen.genAmount.shAmount); //How many! Apply to the cents!
+		if (lookupSFPresetGenGlobal(soundfont, voice->preset, voice->pbag, frequency, &applygen))
+		{
+			cents += (int_32)LE16(applygen.genAmount.shAmount); //How many! Apply to the cents!
+		}
+	}
+	else if (lookupSFPresetGenGlobal(soundfont, voice->preset, voice->pbag, frequency, &applygen))
+	{
+		cents = (int_32)LE16(applygen.genAmount.shAmount); //How many! Apply to the cents!
+	}
+
+	cents += getSFInstrumentmodulator(voice, coarseTune, 1, 0.0f, 0.0f);
+	cents += getSFPresetmodulator(voice, coarseTune, 1, 0.0f, 0.0f);
+
+	effectivedelay = cents2samplesfactorf(cents); //Effective delay to use!
+
+	LFO->delay = (uint_32)((effectivedelay) * (float)LE16(voice->sample.dwSampleRate)); //Total delay to apply for this channel!
+	LFO->sinpos = fmodf((float)(effectivedelay) * SINUS_BASE, (2 * (float)PI)) * sinustable_percision_reverse; //Initialize the starting chorus sin position for the first sample!
+	LFO->sinposstep = SINUS_BASE * (1.0f / (float)LE32(voice->sample.dwSampleRate)) * sinustable_percision_reverse; //How much time to add to the chorus sinus after each sample
+
+	//Now, the basic sinus is setup!
+
+	//Lookup the affecting values!
+
+	//To pitch!
+	cents = 0; //Default: none!
+	if (lookupSFInstrumentGenGlobal(soundfont, voice->instrumentptr, voice->ibag, topitch, &applyigen))
+	{
+		cents = (int_32)LE16(applyigen.genAmount.shAmount); //How many! Apply to the cents!
+		if (lookupSFPresetGenGlobal(soundfont, voice->preset, voice->pbag, topitch, &applygen))
+		{
+			cents += (int_32)LE16(applygen.genAmount.shAmount); //How many! Apply to the cents!
+		}
+	}
+	else if (lookupSFPresetGenGlobal(soundfont, voice->preset, voice->pbag, topitch, &applygen))
+	{
+		cents = (int_32)LE16(applygen.genAmount.shAmount); //How many! Apply to the cents!
+	}
+	LFO->topitch = cents;
+
+	//To filter cutoff!
+	cents = 0; //Default: none!
+	if (lookupSFInstrumentGenGlobal(soundfont, voice->instrumentptr, voice->ibag, tofiltercutoff, &applyigen))
+	{
+		cents = (int_32)LE16(applyigen.genAmount.shAmount); //How many! Apply to the cents!
+		if (lookupSFPresetGenGlobal(soundfont, voice->preset, voice->pbag, tofiltercutoff, &applygen))
+		{
+			cents += (int_32)LE16(applygen.genAmount.shAmount); //How many! Apply to the cents!
+		}
+	}
+	else if (lookupSFPresetGenGlobal(soundfont, voice->preset, voice->pbag, tofiltercutoff, &applygen))
+	{
+		cents = (int_32)LE16(applygen.genAmount.shAmount); //How many! Apply to the cents!
+	}
+	LFO->tofiltercutoff = cents;
+
+	//To volume!
+	cents = 0; //Default: none!
+	if (lookupSFInstrumentGenGlobal(soundfont, voice->instrumentptr, voice->ibag, tovolume, &applyigen))
+	{
+		cents = (int_32)LE16(applyigen.genAmount.shAmount); //How many! Apply to the cents!
+		if (lookupSFPresetGenGlobal(soundfont, voice->preset, voice->pbag, tovolume, &applygen))
+		{
+			cents += (int_32)LE16(applygen.genAmount.shAmount); //How many! Apply to the cents!
+		}
+	}
+	else if (lookupSFPresetGenGlobal(soundfont, voice->preset, voice->pbag, tovolume, &applygen))
+	{
+		cents = (int_32)LE16(applygen.genAmount.shAmount); //How many! Apply to the cents!
+	}
+	LFO->tovolume = cents;
+}
+
 //result: 0=Finished not renderable, -1=Requires empty channel(voice stealing?), 1=Allocated, -2=Can't render, request next voice.
 OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channel, byte request_note, byte voicenumber)
 {
@@ -1177,7 +1326,7 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 	sfInst currentinstrument;
 	sfInstGenList sampleptr, applyigen;
 	sfSample sampleInfo;
-	FIFOBUFFER *temp, *chorus_backtrace[CHORUSSIZE];
+	FIFOBUFFER *temp, *temp2, *temp3, *chorus_backtrace[CHORUSSIZE];
 	int_32 previousPBag, previousIBag;
 	static uint_64 starttime = 0; //Increasing start time counter (1 each note on)!
 
@@ -1392,6 +1541,8 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 	//Initialize the requested voice!
 	//First, all our voice-specific variables and precalcs!
 	temp = voice->effect_backtrace_samplespeedup_modenv_pitchfactor; //Back-up the effect backtrace!
+	temp2 = voice->effect_backtrace_LFO1; //Back-up the effect backtrace!
+	temp3 = voice->effect_backtrace_LFO2; //Back-up the effect backtrace!
 	for (chorusreverbdepth = 0; chorusreverbdepth < CHORUSSIZE; ++chorusreverbdepth)
 	{
 		chorus_backtrace[chorusreverbdepth] = voice->effect_backtrace_chorus[chorusreverbdepth]; //Back-up!
@@ -1401,12 +1552,16 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 	memset(voice, 0, sizeof(*voice)); //Clear the entire channel!
 	voice->allocated = allocatedbackup;
 	voice->purpose = purposebackup;
+	voice->effect_backtrace_LFO2 = temp3; //Restore our buffer!
+	voice->effect_backtrace_LFO1 = temp2; //Restore our buffer!
 	voice->effect_backtrace_samplespeedup_modenv_pitchfactor = temp; //Restore our buffer!
 	for (chorusreverbdepth = 0; chorusreverbdepth < CHORUSSIZE; ++chorusreverbdepth)
 	{
 		voice->effect_backtrace_chorus[chorusreverbdepth] = chorus_backtrace[chorusreverbdepth]; //Restore!
 	}
 	fifobuffer_clear(voice->effect_backtrace_samplespeedup_modenv_pitchfactor); //Clear our history buffer!
+	fifobuffer_clear(voice->effect_backtrace_LFO1); //Clear our history buffer!
+	fifobuffer_clear(voice->effect_backtrace_LFO2); //Clear our history buffer!
 #ifndef DISABLE_REVERB
 	for (chorusreverbdepth = 0; chorusreverbdepth < CHORUSSIZE; ++chorusreverbdepth) //Initialize all chorus histories!
 	{
@@ -1588,6 +1743,9 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 		voice->modenv_pitchfactor = 0; //Apply no filter for frequency cutoff!
 	}
 
+	MIDIDEVICE_initLFO(voice, &voice->LFO[0], delayModLFO, freqModLFO, modLfoToPitch, modLfoToFilterFc, modLfoToVolume); //Initialize the Modulation LFO!
+	MIDIDEVICE_initLFO(voice, &voice->LFO[1], delayVibLFO, freqVibLFO, vibLfoToPitch, endOper, endOper); //Initialize the Vibration LFO!
+
 	//First, set all chorus data and delays!
 	for (chorusreverbdepth=0;chorusreverbdepth<CHORUSSIZE;++chorusreverbdepth)
 	{
@@ -1600,7 +1758,7 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 		voice->chorussinposstep = MIDI_CHORUS_SINUS_BASE*(1.0f/(float)LE32(voice->sample.dwSampleRate))*sinustable_percision_reverse; //How much time to add to the chorus sinus after each sample
 		voice->isfinalchannel_chorus[chorusreverbdepth] = (chorusreverbdepth==(CHORUSSIZE-1)); //Are we the final channel?
 		voice->lowpass_dirty[chorusreverbdepth] = 0; //We're not dirty anymore by default: we're loaded!
-		voice->last_lowpass[chorusreverbdepth] = modulateLowpass(voice,1.0f,(byte)chorusreverbdepth); //The current low-pass filter to use!
+		voice->last_lowpass[chorusreverbdepth] = modulateLowpass(voice,1.0f,0.0f,(byte)chorusreverbdepth); //The current low-pass filter to use!
 		initSoundFilter(&voice->lowpassfilter[chorusreverbdepth],0,voice->last_lowpass[chorusreverbdepth],(float)LE32(voice->sample.dwSampleRate)); //Apply a default low pass filter to use!
 		voice->lowpass_dirty[chorusreverbdepth] = 0; //We're not dirty anymore by default: we're loaded!
 	}
@@ -2518,7 +2676,15 @@ void done_MIDIDEVICE() //Finish our midi device!
 		{
 			free_fifobuffer(&activevoices[i].effect_backtrace_samplespeedup_modenv_pitchfactor); //Release the FIFO buffer containing the entire history!
 		}
-		#ifndef DISABLE_REVERB
+		if (activevoices[i].effect_backtrace_LFO1) //Used?
+		{
+			free_fifobuffer(&activevoices[i].effect_backtrace_LFO1); //Release the FIFO buffer containing the entire history!
+		}
+		if (activevoices[i].effect_backtrace_LFO2) //Used?
+		{
+			free_fifobuffer(&activevoices[i].effect_backtrace_LFO2); //Release the FIFO buffer containing the entire history!
+		}
+#ifndef DISABLE_REVERB
 		for (j=0;j<CHORUSSIZE;++j)
 		{
 			free_fifobuffer(&activevoices[i].effect_backtrace_chorus[j]); //Release the FIFO buffer containing the entire history!
@@ -2599,6 +2765,8 @@ byte init_MIDIDEVICE(char *filename, byte use_direct_MIDI) //Initialise MIDI dev
 		{
 			activevoices[i].purpose = ((((__MIDI_NUMVOICES)-(i/MIDI_NOTEVOICES))-1) < MIDI_DRUMVOICES) ? 1 : 0; //Drum or melodic voice? Put the drum voices at the far end!
 			activevoices[i].effect_backtrace_samplespeedup_modenv_pitchfactor = allocfifobuffer(((uint_32)((chorus_delay[CHORUSSIZE])*MAX_SAMPLERATE)+1)<<3,0); //Not locked FIFO buffer containing the entire history!
+			activevoices[i].effect_backtrace_LFO1 = allocfifobuffer(((uint_32)((chorus_delay[CHORUSSIZE]) * MAX_SAMPLERATE) + 1) << 3, 0); //Not locked FIFO buffer containing the entire history!
+			activevoices[i].effect_backtrace_LFO2 = allocfifobuffer(((uint_32)((chorus_delay[CHORUSSIZE]) * MAX_SAMPLERATE) + 1) << 2, 0); //Not locked FIFO buffer containing the entire history!
 			#ifndef DISABLE_REVERB
 			for (j=0;j<CHORUSSIZE;++j) //All chorus backtrace channels!
 			{
