@@ -505,6 +505,14 @@ void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float sampler
 void MIDIDEVICE_calcLFOoutput(MIDIDEVICE_LFO* LFO, byte type)
 {
 	float rawoutput;
+	if (LFO->delay) //Delay left?
+	{
+		--LFO->delay;
+		LFO->outputfiltercutoff = 0.0f; //No output!
+		LFO->outputpitch = 0.0f; //No output!
+		LFO->outputvolume = 0.0f; //No output!
+		return; //Don't update the LFO yet!
+	}
 	rawoutput = MIDIDEVICE_genericsinf(LFO->sinpos,type); //Raw output of the LFO!
 	LFO->outputfiltercutoff = (float)LFO->tofiltercutoff*rawoutput; //Unbent sinus output for filter cutoff!
 	LFO->outputpitch = (float)LFO->topitch * rawoutput; //Unbent sinus output for pitch!
