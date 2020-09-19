@@ -107,12 +107,16 @@ typedef struct
 
 typedef struct
 {
+	//Delay to not do anything yet!
 	int_64 delay; //We're delaying for n samples left?
+	//LFO generator itself
 	float sinpos; //All current chorus sin positions, wrapping around the table limit!
 	float sinposstep; //The step of one sample in chorussinpos, wrapping around 
+	//Output levels
 	int_32 topitch; //To pitch!
 	int_32 tofiltercutoff; //To filter cutoff!
 	int_32 tovolume; //To volume!
+	//Current outputs of the levels!
 	float outputpitch; //The output value of the pitch!
 	float outputfiltercutoff; //The output value of the pitch!
 	float outputvolume; //The output value of the pitch!
