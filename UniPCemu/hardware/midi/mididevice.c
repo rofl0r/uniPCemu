@@ -1241,7 +1241,6 @@ void MIDIDEVICE_initLFO(MIDIDEVICE_VOICE* voice, MIDIDEVICE_LFO* LFO, word thede
 	float effectivefrequency;
 	float effectivedelay;
 
-	int_32 input;
 	int_32 cents;
 
 	cents = 0; //Default: none!
