@@ -369,7 +369,7 @@ void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float sampler
 	{
 		modulationratiocents = MIDIDEVICE_chorussinf(voice->chorussinpos[filterindex], chorus, 0); //Pitch bend default!
 		voice->chorussinpos[filterindex] += voice->chorussinposstep; //Step by one sample rendered!
-		if (unlikely(voice->chorussinpos[filterindex] >= SINUSTABLE_PERCISION_FLT)) voice->chorussinpos[filterindex] -= SINUSTABLE_PERCISION_FLT; //Wrap around when needed(once per second)!
+		if (unlikely(voice->chorussinpos[filterindex] >= SINUSTABLE_PERCISION_FLT)) voice->chorussinpos[filterindex] = fmodf(voice->chorussinpos[filterindex],SINUSTABLE_PERCISION_FLT); //Wrap around when needed(once per second)!
 	}
 
 	modulationratiocents += LFOpitch; //Apply the LFO inputs for affecting pitch!
@@ -484,7 +484,7 @@ void MIDIDEVICE_calcLFOoutput(MIDIDEVICE_LFO* LFO)
 void MIDIDEVICE_tickLFO(MIDIDEVICE_LFO* LFO)
 {
 	LFO->sinpos += LFO->sinposstep; //Step by one sample rendered!
-	if (unlikely(LFO->sinpos >= SINUSTABLE_PERCISION_FLT)) LFO->sinpos -= SINUSTABLE_PERCISION_FLT; //Wrap around when needed(once per second)!
+	if (unlikely(LFO->sinpos >= SINUSTABLE_PERCISION_FLT)) LFO->sinpos = fmodf(LFO->sinpos,SINUSTABLE_PERCISION_FLT); //Wrap around when needed(once per second)!
 }
 
 byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata) //Sound output renderer!
