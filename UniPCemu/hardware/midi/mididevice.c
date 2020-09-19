@@ -475,7 +475,7 @@ void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float sampler
 
 		//First, apply filters and current envelope!
 		applyMIDILowpassFilter(voice, &lchannel, Modulation, LFOfiltercutoff, filterindex); //Low pass filter!
-		currentattenuation = combineAttenuation(voice,voice->effectiveAttenuation,Volume+LFOvolume); //The volume of the samples including ADSR!
+		currentattenuation = combineAttenuation(voice,voice->effectiveAttenuation+LFOvolume,Volume); //The volume of the samples including ADSR!
 		currentattenuation *= chorusvol; //Apply chorus&reverb volume for this stream!
 		currentattenuation *= VOLUME; //Apply general volume!
 		lchannel *= currentattenuation; //Apply the current attenuation!
