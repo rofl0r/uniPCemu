@@ -248,21 +248,48 @@ Voice support
 //How many steps to keep!
 #define SINUSTABLE_PERCISION 3600
 #define SINUSTABLE_PERCISION_FLT 3600.0f
-#define SINUSTABLE_PERCISION_REVERSE ((1.0f/(2.0f*PI))*(1.0f/(SINUSTABLE_PERCISION_FLT)))
+#define SINUSTABLE_PERCISION_REVERSE ((1.0f/(2.0f*PI))*3600.0f)
 
 int_32 chorussinustable[SINUSTABLE_PERCISION][2][2]; //10x percision steps of sinus! With 1.0 added always!
-float genericsinustable[SINUSTABLE_PERCISION]; //10x percision steps of sinus! With 1.0 added always!
+float genericsinustable[SINUSTABLE_PERCISION][2]; //10x percision steps of sinus! With 1.0 added always!
 float sinustable_percision_reverse = 1.0f; //Reverse lookup!
 
 void MIDIDEVICE_generateSinusTable()
 {
 	word x;
+	float y,z;
 	byte choruschannel;
 	for (x=0;x<NUMITEMS(chorussinustable);++x)
 	{
 		for (choruschannel=0;choruschannel<2;++choruschannel) //All channels!
 		{
-			genericsinustable[x] = sinf((float)(((float)x / SINUSTABLE_PERCISION_FLT)) * 2.0f * PI); //Raw sinus!
+			genericsinustable[x][0] = sinf((float)(((float)x / SINUSTABLE_PERCISION_FLT)) * 2.0f * PI); //Raw sinus!
+
+			z = (float)(x/SINUSTABLE_PERCISION_FLT); //Start point!
+			if (x >= (SINUSTABLE_PERCISION_FLT * 0.5)) //Negative?
+			{
+				y = -1.0f; //Negative!
+				z -= 0.5f; //Make us the first half!
+			}
+			else //Positive?
+			{
+				y = 1.0f; //Positive!
+			}
+
+			if (z >= 0.25) //Lowering?
+			{
+				z -= 0.25f; //Quarter!
+				genericsinustable[x][1] = (1.0f-(z*4.0f))*y;
+			}
+			else //Raising?
+			{
+				genericsinustable[x][1] = (z * 4.0f) * y;
+				if ((z == 0.0f) && (y == -1.0f)) //Negative zero?
+				{
+					genericsinustable[x][1] = 0.0f; //Just zero!
+				}
+			}
+
 			chorussinustable[x][choruschannel][0] = (int_32)((sinf((float)(((float)x/SINUSTABLE_PERCISION_FLT))*2.0f*PI)+1.0f)*choruscents[choruschannel]); //Generate sinus lookup table, negative!
 			chorussinustable[x][choruschannel][1] = (int_32)(chorussinustable[x][choruschannel][0]+1200.0f); //Generate sinus lookup table, with cents base added, negative!
 		}
@@ -272,7 +299,7 @@ void MIDIDEVICE_generateSinusTable()
 
 //Absolute to get the amount of degrees, converted to a -1.0 to 1.0 scale!
 #define MIDIDEVICE_chorussinf(value, choruschannel, add1200centsbase) chorussinustable[(uint_32)(value)][choruschannel][add1200centsbase]
-#define MIDIDEVICE_genericsinf(value) genericsinustable[(uint_32)(value)]
+#define MIDIDEVICE_genericsinf(value,type) genericsinustable[(uint_32)(value)][type]
 
 //MIDIvolume: converts a value of the range of maxvalue to a linear volume factor using maxdB dB.
 OPTINLINE float MIDIattenuate(float value)
@@ -475,10 +502,10 @@ void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float sampler
 	#endif
 }
 
-void MIDIDEVICE_calcLFOoutput(MIDIDEVICE_LFO* LFO)
+void MIDIDEVICE_calcLFOoutput(MIDIDEVICE_LFO* LFO, byte type)
 {
 	float rawoutput;
-	rawoutput = MIDIDEVICE_genericsinf(LFO->sinpos); //Raw output of the LFO!
+	rawoutput = MIDIDEVICE_genericsinf(LFO->sinpos,type); //Raw output of the LFO!
 	LFO->outputfiltercutoff = (float)LFO->tofiltercutoff*rawoutput; //Unbent sinus output for filter cutoff!
 	LFO->outputpitch = (float)LFO->topitch * rawoutput; //Unbent sinus output for pitch!
 	LFO->outputvolume = (float)LFO->tovolume * rawoutput; //Unbent sinus output for volume!
@@ -487,7 +514,10 @@ void MIDIDEVICE_calcLFOoutput(MIDIDEVICE_LFO* LFO)
 void MIDIDEVICE_tickLFO(MIDIDEVICE_LFO* LFO)
 {
 	LFO->sinpos += LFO->sinposstep; //Step by one sample rendered!
-	if (unlikely(LFO->sinpos >= SINUSTABLE_PERCISION_FLT)) LFO->sinpos = fmodf(LFO->sinpos,SINUSTABLE_PERCISION_FLT); //Wrap around when needed(once per second)!
+	if (unlikely(LFO->sinpos >= SINUSTABLE_PERCISION_FLT))
+	{
+		LFO->sinpos = fmodf(LFO->sinpos, SINUSTABLE_PERCISION_FLT); //Wrap around when needed(once per second)!
+	}
 }
 
 byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata) //Sound output renderer!
@@ -587,8 +617,8 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 		lchannel = 0; //Reset left channel!
 		rchannel = 0; //Reset right channel!
 		currentchorusreverb=0; //Init to first chorus channel!
-		MIDIDEVICE_calcLFOoutput(&voice->LFO[0]); //Calculate the first LFO!
-		MIDIDEVICE_calcLFOoutput(&voice->LFO[1]); //Calculate the second LFO!
+		MIDIDEVICE_calcLFOoutput(&voice->LFO[0],0); //Calculate the first LFO!
+		MIDIDEVICE_calcLFOoutput(&voice->LFO[1],1); //Calculate the second LFO!
 		do //Process all chorus used(2 chorus channels)!
 		{
 			chorusreverbsamplepos = voice->play_counter; //Load the current play counter!
@@ -1194,7 +1224,7 @@ void MIDI_muteExclusiveClass(uint_32 exclusiveclass, MIDIDEVICE_VOICE *newvoice)
 }
 
 //Initialize a LFO to use! Supply endOper when not using a certain output of the LFO!
-void MIDIDEVICE_initLFO(MIDIDEVICE_VOICE* voice, MIDIDEVICE_LFO* LFO, word delay, word frequency, word topitch, word tofiltercutoff, word tovolume)
+void MIDIDEVICE_initLFO(MIDIDEVICE_VOICE* voice, MIDIDEVICE_LFO* LFO, word thedelay, word frequency, word topitch, word tofiltercutoff, word tovolume)
 {
 	sfGenList applygen;
 	sfInstGenList applyigen;
@@ -1222,35 +1252,38 @@ void MIDIDEVICE_initLFO(MIDIDEVICE_VOICE* voice, MIDIDEVICE_LFO* LFO, word delay
 		cents = (int_32)LE16(applygen.genAmount.shAmount); //How many! Apply to the cents!
 	}
 
-	cents += getSFInstrumentmodulator(voice, coarseTune, 1, 0.0f, 0.0f);
-	cents += getSFPresetmodulator(voice, coarseTune, 1, 0.0f, 0.0f);
+	cents += getSFInstrumentmodulator(voice, frequency, 1, 0.0f, 0.0f);
+	cents += getSFPresetmodulator(voice, frequency, 1, 0.0f, 0.0f);
 
-	effectivefrequency = cents2samplesfactorf(cents); //Effective frequency to use!
+	cents = LIMITRANGE(cents,-16000,4500);
+
+	effectivefrequency = 8.176f*cents2samplesfactorf(cents); //Effective frequency to use!
 
 	SINUS_BASE = 2.0f * (float)PI * effectivefrequency; //MIDI Sinus Base for LFO effects!
 
 	//Delay
-	if (lookupSFInstrumentGenGlobal(soundfont, voice->instrumentptr, voice->ibag, frequency, &applyigen))
+	cents = -12000;
+	if (lookupSFInstrumentGenGlobal(soundfont, voice->instrumentptr, voice->ibag, thedelay, &applyigen))
 	{
 		cents = (int_32)LE16(applyigen.genAmount.shAmount); //How many! Apply to the cents!
-		if (lookupSFPresetGenGlobal(soundfont, voice->preset, voice->pbag, frequency, &applygen))
+		if (lookupSFPresetGenGlobal(soundfont, voice->preset, voice->pbag, thedelay, &applygen))
 		{
 			cents += (int_32)LE16(applygen.genAmount.shAmount); //How many! Apply to the cents!
 		}
 	}
-	else if (lookupSFPresetGenGlobal(soundfont, voice->preset, voice->pbag, frequency, &applygen))
+	else if (lookupSFPresetGenGlobal(soundfont, voice->preset, voice->pbag, thedelay, &applygen))
 	{
 		cents = (int_32)LE16(applygen.genAmount.shAmount); //How many! Apply to the cents!
 	}
 
-	cents += getSFInstrumentmodulator(voice, coarseTune, 1, 0.0f, 0.0f);
-	cents += getSFPresetmodulator(voice, coarseTune, 1, 0.0f, 0.0f);
+	cents += getSFInstrumentmodulator(voice, thedelay, 1, 0.0f, 0.0f);
+	cents += getSFPresetmodulator(voice, thedelay, 1, 0.0f, 0.0f);
 
 	effectivedelay = cents2samplesfactorf(cents); //Effective delay to use!
 
 	LFO->delay = (uint_32)((effectivedelay) * (float)LE16(voice->sample.dwSampleRate)); //Total delay to apply for this channel!
-	LFO->sinpos = fmodf((float)(effectivedelay) * SINUS_BASE, (2 * (float)PI)) * sinustable_percision_reverse; //Initialize the starting chorus sin position for the first sample!
 	LFO->sinposstep = SINUS_BASE * (1.0f / (float)LE32(voice->sample.dwSampleRate)) * sinustable_percision_reverse; //How much time to add to the chorus sinus after each sample
+	LFO->sinpos = fmodf(fmodf((float)(-effectivedelay) * LFO->sinposstep, (2 * (float)PI))+(2 * (float)PI), (2 * (float)PI)) * sinustable_percision_reverse; //Initialize the starting chorus sin position for the first sample!
 
 	//Now, the basic sinus is setup!
 
@@ -1270,7 +1303,9 @@ void MIDIDEVICE_initLFO(MIDIDEVICE_VOICE* voice, MIDIDEVICE_LFO* LFO, word delay
 	{
 		cents = (int_32)LE16(applygen.genAmount.shAmount); //How many! Apply to the cents!
 	}
-	LFO->topitch = cents;
+	cents += getSFInstrumentmodulator(voice, topitch, 1, 0.0f, 0.0f);
+	cents += getSFPresetmodulator(voice, topitch, 1, 0.0f, 0.0f);
+	LFO->topitch = cents; //Cents
 
 	//To filter cutoff!
 	cents = 0; //Default: none!
@@ -1286,7 +1321,9 @@ void MIDIDEVICE_initLFO(MIDIDEVICE_VOICE* voice, MIDIDEVICE_LFO* LFO, word delay
 	{
 		cents = (int_32)LE16(applygen.genAmount.shAmount); //How many! Apply to the cents!
 	}
-	LFO->tofiltercutoff = cents;
+	cents += getSFInstrumentmodulator(voice, tofiltercutoff, 1, 0.0f, 0.0f);
+	cents += getSFPresetmodulator(voice, tofiltercutoff, 1, 0.0f, 0.0f);
+	LFO->tofiltercutoff = cents; //Cents
 
 	//To volume!
 	cents = 0; //Default: none!
@@ -1302,7 +1339,9 @@ void MIDIDEVICE_initLFO(MIDIDEVICE_VOICE* voice, MIDIDEVICE_LFO* LFO, word delay
 	{
 		cents = (int_32)LE16(applygen.genAmount.shAmount); //How many! Apply to the cents!
 	}
-	LFO->tovolume = cents;
+	cents += getSFInstrumentmodulator(voice, tovolume, 1, 0.0f, 0.0f);
+	cents += getSFPresetmodulator(voice, tovolume, 1, 0.0f, 0.0f);
+	LFO->tovolume = cents; //cB!
 }
 
 //result: 0=Finished not renderable, -1=Requires empty channel(voice stealing?), 1=Allocated, -2=Can't render, request next voice.
@@ -1757,8 +1796,8 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 		voice->lowpass_modulationratio[chorusreverbdepth] = 1200.0f; //Default ratio: no modulation!
 		voice->lowpass_modulationratiosamples[chorusreverbdepth] = voice->lowpassfilter_freq; //Default ratio: no modulation!
 		voice->chorusdelay[chorusreverbdepth] = (uint_32)((chorus_delay[chorusreverbdepth])*(float)LE16(voice->sample.dwSampleRate)); //Total delay to apply for this channel!
-		voice->chorussinpos[chorusreverbdepth] = fmodf((float)voice->chorusdelay[chorusreverbdepth]*MIDI_CHORUS_SINUS_BASE,(2*(float)PI))*sinustable_percision_reverse; //Initialize the starting chorus sin position for the first sample!
-		voice->chorussinposstep = MIDI_CHORUS_SINUS_BASE*(1.0f/(float)LE32(voice->sample.dwSampleRate))*sinustable_percision_reverse; //How much time to add to the chorus sinus after each sample
+		voice->chorussinposstep = MIDI_CHORUS_SINUS_BASE * (1.0f / (float)LE32(voice->sample.dwSampleRate)) * sinustable_percision_reverse; //How much time to add to the chorus sinus after each sample
+		voice->chorussinpos[chorusreverbdepth] = fmodf(fmodf((float)(-(chorus_delay[chorusreverbdepth]*(float)LE16(voice->sample.dwSampleRate))) * voice->chorussinposstep, (2 * (float)PI)) + (2 * (float)PI), (2 * (float)PI)) * sinustable_percision_reverse; //Initialize the starting chorus sin position for the first sample!
 		voice->isfinalchannel_chorus[chorusreverbdepth] = (chorusreverbdepth==(CHORUSSIZE-1)); //Are we the final channel?
 		voice->lowpass_dirty[chorusreverbdepth] = 0; //We're not dirty anymore by default: we're loaded!
 		voice->last_lowpass[chorusreverbdepth] = modulateLowpass(voice,1.0f,0.0f,(byte)chorusreverbdepth); //The current low-pass filter to use!
