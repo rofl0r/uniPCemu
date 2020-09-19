@@ -207,7 +207,7 @@ OPTINLINE float modulateLowpass(MIDIDEVICE_VOICE *voice, float Modulation, float
 
 	//Now, translate the modulation ratio to samples, optimized!
 	modulationratio = floorf(modulationratio); //Round it down to get integer values to optimize!
-	modulationratio += floorf(LFOmodulation); //Apply the LFO modulation as well!
+	modulationratio += LFOmodulation; //Apply the LFO modulation as well!
 	if (modulationratio!=voice->lowpass_modulationratio[filterindex]) //Different ratio?
 	{
 		voice->lowpass_modulationratio[filterindex] = modulationratio; //Update the last ratio!
