@@ -46,13 +46,13 @@ Indexes:
 */
 
 byte PIQSizes[2][NUMCPUS] = { //0=16/32-bit bus, 1=Reduced(8-bit/16-bit) bus when available!
-								{6,6,6,16,32,64},
-								{4,4,6,16,32,64} //Only 8088/80188 supported in 8-bit bus!
+								{6,6,6,16,32,64,64},
+								{4,4,6,16,32,64,64} //Only 8088/80188 supported in 8-bit bus!
 							}; //The PIQ buffer sizes! Pentium has two 64-byte queues. Apply settings for both 8-bit bus(8088/80188) and 16/32-bit bus (other CPUs)!
 
 byte BUSmasks[2][NUMCPUS] = { //0=16/32-bit bus, 1=Reduced bus when available!
-								{1,1,1,3,3,7},
-								{0,0,1,1,3,7} //Only 8088/80188 supported an 8-bit bus! Only 80386 supports a 16-bit bus reduction.
+								{1,1,1,3,3,7,7},
+								{0,0,1,1,3,7,7} //Only 8088/80188 supported an 8-bit bus! Only 80386 supports a 16-bit bus reduction.
 							}; //The BUS sizes, expressed in masks on data (d)words for memory accesses. Apply settings for both 8-bit bus(8088/80188) and 16/32-bit bus (other CPUs)!
 
 //Structure: opcode_jmptbl[whatcpu][opcode][addresssize]
