@@ -5142,7 +5142,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 			ATAPI_MEDIASTATUS_MCR(channel, ATA_activeDrive(channel), ATA[channel].Drive[ATA_activeDrive(channel)].MediumChangeRequested); //Media change requests is handled by a combination of this module and the disk manager(which sets it on requests from the user)?
 			ATAPI_MEDIASTATUS_MC(channel, ATA_activeDrive(channel), ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_mediaChanged); //Disk has been ejected/inserted?
 			ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_mediaChanged = 0; //Only set this when the disk has actually changed(inserted/removed). Afterwards, clear it on next calls.
-			ATA[ATA_activeDrive(channel)].Drive[ATA_activeDrive(channel)].MediumChangeRequested = 0; //Requesting the medium to change is only reported once!
+			ATA[channel].Drive[ATA_activeDrive(channel)].MediumChangeRequested = 0; //Requesting the medium to change is only reported once!
 			if (is_mounted(drive)) //Drive inserted?
 			{
 				ATAPI_MEDIASTATUS_WT_PT(channel, ATA_activeDrive(channel), drivereadonly(drive)); //Are we read-only!
