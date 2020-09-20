@@ -601,7 +601,7 @@ void i430fx_hardreset()
 }
 
 extern uint_32 PCI_address; //What address register is currently set?
-extern BIU_type BIU[NUMCPUS]; //BIU definition!
+extern BIU_type BIU[MAXCPUS]; //BIU definition!
 void i430fx_writeaddr(byte index, byte *value) //Written an address?
 {
 	if (index == 1) //Written bit 2 of register CF9h?

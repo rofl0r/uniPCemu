@@ -68,7 +68,7 @@ void PORT_OUT_B(word port, byte b)
 	}
 }
 
-extern BIU_type BIU[NUMCPUS]; //BIU!
+extern BIU_type BIU[MAXCPUS]; //BIU!
 
 word PORT_IN_W(word port) //IN result,port
 {
