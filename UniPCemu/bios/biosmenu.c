@@ -1514,9 +1514,9 @@ byte BIOS_CDROM_commonejectedcaddy(int drive)
 
 void BIOS_cdrom0_selection() //CDROM0 selection menu!
 {
+	if (BIOS_CDROM_commonejectedcaddy(CDROM0) == 0) goto finishcdrom0;
 	if (ATA_allowDiskChange(CDROM0,1)) //Allowed to change? Double as the eject button!
 	{
-		if (BIOS_CDROM_commonejectedcaddy(CDROM0)==0) goto finishcdrom0;
 		BIOS_Title("Mount First CD-ROM");
 		generateFileList(diskpath,"iso|cue",0,0); //Generate file list for all .img files!
 		EMU_locktext();
@@ -1603,9 +1603,9 @@ void BIOS_ejectdisk(int disk) //Eject an ejectable disk?
 
 void BIOS_cdrom1_selection() //CDROM1 selection menu!
 {
+	if (BIOS_CDROM_commonejectedcaddy(CDROM1) == 0) goto finishcdrom1;
 	if (ATA_allowDiskChange(CDROM1,1)) //Allowed to change? Double as the eject button!
 	{
-		if (BIOS_CDROM_commonejectedcaddy(CDROM1)==0) goto finishcdrom1;
 		BIOS_Title("Mount Second CD-ROM");
 		generateFileList(diskpath,"iso|cue",0,0); //Generate file list for all .img files!
 		EMU_locktext();
