@@ -73,6 +73,7 @@ PC SPEAKER
 #define SPEAKER_LOWPASS ((((float)SPEAKER_RATE)/2.0f)/16.0f)
 //Speaker volume during filtering! Take half to prevent overflow!
 #define SPEAKER_LOWPASSVOLUME 0.5f
+#define SPEAKER_HIGHPASS 18.2f
 
 //Precise timing rate!
 //The clock speed of the PIT (14.31818MHz divided by 12)!
@@ -118,6 +119,7 @@ uint_32 time_ticktiming; //Current timing, in 14MHz ticks!
 
 PITTick PIT1Ticker = NULL; //The PIT1 ticker, if connected!
 SOUNDDOUBLEBUFFER pcspeaker_soundbuffer; //Output buffers for rendering!
+HIGHLOWPASSFILTER pcspeaker_soundbufferfilter; //The high-pass filter to use!
 
 typedef struct
 {
@@ -527,6 +529,7 @@ void tickPIT(DOUBLE timepassed, uint_32 MHZ14passed) //Ticks all PIT timers avai
 					//We're applying the low pass filter for the speaker!
 					applySoundFilter(&PCSpeakerFilter, &speaker_currentsample);
 				#endif
+					applySoundFilter(&pcspeaker_soundbufferfilter, &speaker_currentsample); //Filter using the high-pass filter!
 				#ifdef SPEAKER_LOGDUTY
 					writeWAVMonoSample(speakerlogduty,(short)speaker_currentsample); //Log the mono sample to the WAV file, converted as needed!
 				#endif
@@ -574,6 +577,7 @@ void initSpeakers(byte soundspeaker)
 #endif
 	}
 	initSoundFilter(&PCSpeakerFilter,0,(float)SPEAKER_LOWPASS, (float)TIME_RATE); //Initialize our low-pass filter to use!
+	initSoundFilter(&pcspeaker_soundbufferfilter, 1, (float)SPEAKER_HIGHPASS, (float)TIME_RATE); //Initialize our low-pass filter to use!
 }
 
 void doneSpeakers()
