@@ -893,7 +893,7 @@ void CPU_initLookupTables(); //Initialize the CPU timing lookup tables! Prototyp
 extern byte is_XT; //Are we an XT?
 
 uint_32 effectivecpuaddresspins = 0xFFFFFFFF;
-uint_32 cpuaddresspins[12] = { //Bit0=XT, Bit1+=CPU
+uint_32 cpuaddresspins[14] = { //Bit0=XT, Bit1+=CPU
 							0xFFFFF, //8086 AT+
 							0xFFFFF, //8086 XT
 							0xFFFFF, //80186 AT+
@@ -906,7 +906,9 @@ uint_32 cpuaddresspins[12] = { //Bit0=XT, Bit1+=CPU
 							0xFFFFFFFF, //80486 XT
 							0xFFFFFFFF, //80586 AT+
 							0xFFFFFFFF, //80586 XT
-							}; //CPU address wrapping lookup table!
+							0xFFFFFFFF, //80686 AT+
+							0xFFFFFFFF, //80686 XT
+}; //CPU address wrapping lookup table!
 
 void resetCPU(byte isInit) //Initialises the currently selected CPU!
 {
