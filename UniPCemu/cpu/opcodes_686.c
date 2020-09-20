@@ -56,6 +56,12 @@ void CPU686_CPUID()
 			REG_EDX = 0x813E; //Just VME, Debugging Extensions, Page Size Extensions, TSC, MSR, CMPXCHG8, CMOV(but not FCMOV, since the NPU feature bit(bit 0) isn't set) have been implemented!
 			REG_ECX = 0x00000000; //No features!
 			break;
+		case 0x02: //Cache and TLB information
+			REG_EAX = 0x01; //Only report 4KB pages!
+			REG_EBX = 0; //Not reporting!
+			REG_ECX = 0; //Not reporting!
+			REG_EDX = 0; //Not reporting!
+			break;
 		default: //Unknown parameter?
 			break;
 		}
