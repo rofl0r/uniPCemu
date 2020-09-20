@@ -4802,6 +4802,7 @@ void ATA_reset(byte channel, byte slave)
 		if (ATA_Drives[channel][slave] >= CDROM0) //ATAPI drive?
 		{
 			ATAPI_disableMediaStatusNotification(channel, slave); //Disable media status notification on resetting defaults!
+			ATA[channel].Drive[slave].MediumChangeRequested = 0; //Disable any pending medium changes!
 		}
 	}
 	giveSignature(channel, slave); //Give the signature!
@@ -5138,7 +5139,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 			ATAPI_MEDIASTATUS_RSRVD2(channel, ATA_activeDrive(channel), 0); //Reserved!
 			ATAPI_MEDIASTATUS_RSRVD3(channel, ATA_activeDrive(channel), 0); //Reserved!
 			ATAPI_MEDIASTATUS_RSRVD4(channel, ATA_activeDrive(channel), 0); //Reserved!
-			ATAPI_MEDIASTATUS_NOMED(channel, ATA_activeDrive(channel), is_mounted(drive) ? 0 : 1); //No media?
+			ATAPI_MEDIASTATUS_NOMED(channel, ATA_activeDrive(channel), (is_mounted(drive) && (ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_caddyejected==0)) ? 0 : 1); //No media?
 			ATAPI_MEDIASTATUS_MCR(channel, ATA_activeDrive(channel), ATA[channel].Drive[ATA_activeDrive(channel)].MediumChangeRequested); //Media change requests is handled by a combination of this module and the disk manager(which sets it on requests from the user)?
 			ATAPI_MEDIASTATUS_MC(channel, ATA_activeDrive(channel), ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_mediaChanged); //Disk has been ejected/inserted?
 			ATA[channel].Drive[ATA_activeDrive(channel)].ATAPI_mediaChanged = 0; //Only set this when the disk has actually changed(inserted/removed). Afterwards, clear it on next calls.
@@ -6058,16 +6059,16 @@ byte ATAPI_insertcaddy(int disk)
 			}
 			else if (ATA[disk_channel].Drive[disk_drive].ATAPI_caddyejected!=3) //Already ejected and not already inserting?
 			{
-				ATA[disk_channel].Drive[disk_drive].MediumChangeRequested = 1; //We're requesting the medium to change!
-				if (ATA_allowDiskChange(disk, 1)) //Request to be ejected immediately? We're not handled by software?
+				//ATA[disk_channel].Drive[disk_drive].MediumChangeRequested = 1; //We're requesting the medium to change!
+				//if (ATA_allowDiskChange(disk, 1)) //Request to be ejected immediately? We're not handled by software?
 				{
-					ATA[disk_channel].Drive[disk_drive].MediumChangeRequested = 0; //We're not requesting the medium to change!
+					//ATA[disk_channel].Drive[disk_drive].MediumChangeRequested = 0; //We're not requesting the medium to change!
 					ATA[disk_channel].Drive[disk_drive].ATAPI_caddyejected = 2; //Request to insert the caddy when running again!
 					ATA[disk_channel].Drive[disk_drive].ATAPI_caddyinsertion_fast = 1; //Fast insertion!
 					//Don't update any LEDs: the disk stays ejected until handled by the OS or hardware!
 					return 1; //OK!
 				}
-				return 0; //Couldn't insert caddy!
+				//return 0; //Couldn't insert caddy!
 			}
 			else if (ATA[disk_channel].Drive[disk_drive].ATAPI_caddyejected == 3) //Already ejected and not already inserting?
 			{
