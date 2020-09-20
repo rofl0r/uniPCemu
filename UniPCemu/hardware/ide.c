@@ -5875,7 +5875,7 @@ void ATAPI_insertCD(int disk, byte disk_channel, byte disk_drive)
 {
 	DOUBLE retractingtime;
 	DOUBLE timeoutspeed;
-	if (ATA_allowDiskChange(disk, 1)) //Allow changing of said disk?
+	//if (ATA_allowDiskChange(disk, 1)) //Allow changing of said disk?
 	{
 		//Normal handling of automatic insertion after some time!
 		byte abortreason, additionalsensecode, ascq = 0;
@@ -6057,10 +6057,16 @@ byte ATAPI_insertcaddy(int disk)
 			}
 			else if (ATA[disk_channel].Drive[disk_drive].ATAPI_caddyejected!=3) //Already ejected and not already inserting?
 			{
-				ATA[disk_channel].Drive[disk_drive].ATAPI_caddyejected = 2; //Request to insert the caddy when running again!
-				ATA[disk_channel].Drive[disk_drive].ATAPI_caddyinsertion_fast = 1; //Fast insertion!
-				//Don't update any LEDs: the disk stays ejected until handled by the OS or hardware!
-				return 1; //OK!
+				ATA[disk_channel].Drive[disk_drive].MediumChangeRequested = 1; //We're requesting the medium to change!
+				if (ATA_allowDiskChange(disk, 1)) //Request to be ejected immediately? We're not handled by software?
+				{
+					ATA[disk_channel].Drive[disk_drive].MediumChangeRequested = 0; //We're not requesting the medium to change!
+					ATA[disk_channel].Drive[disk_drive].ATAPI_caddyejected = 2; //Request to insert the caddy when running again!
+					ATA[disk_channel].Drive[disk_drive].ATAPI_caddyinsertion_fast = 1; //Fast insertion!
+					//Don't update any LEDs: the disk stays ejected until handled by the OS or hardware!
+					return 1; //OK!
+				}
+				return 0; //Couldn't insert caddy!
 			}
 			else if (ATA[disk_channel].Drive[disk_drive].ATAPI_caddyejected == 3) //Already ejected and not already inserting?
 			{
