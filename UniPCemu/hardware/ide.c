@@ -2823,6 +2823,11 @@ byte ATA_allowDiskChange(int disk, byte ejectRequested) //Are we allowing this d
 	disk_drive = ATA_DrivesReverse[disk_nr][1]; //The master/slave of the disk!
 	if ((ejectRequested==1) && (ATA[disk_channel].Drive[disk_drive].EnableMediaStatusNotification|(ATA[disk_channel].Drive[disk_drive].preventMediumRemoval&2))) //Requesting eject button from user while media status notification is enabled(the OS itself handes us) or locked by ATAPI?
 	{
+		if (ATA[disk_channel].Drive[disk_drive].ATAPI_caddyejected) //Caddy is ejected?
+		{
+			return 1; //Allow changing of the mounted media always!
+		}
+		//Caddy is inserted? Block us!
 		return 0; //Deny access to the mounted disk!
 	}
 	return (!(ATA[disk_channel].Drive[disk_drive].preventMediumRemoval && (ejectRequested!=2))) || (ATA[disk_channel].Drive[disk_drive].allowDiskInsertion || ATA[disk_channel].Drive[disk_drive].ATAPI_caddyejected); //Are we not preventing removal of this medium?
