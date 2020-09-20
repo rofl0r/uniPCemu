@@ -5152,6 +5152,7 @@ OPTINLINE void ATA_executeCommand(byte channel, byte command) //Execute a comman
 				ATAPI_MEDIASTATUS_WT_PT(channel, ATA_activeDrive(channel), 0); //Are we read-only!
 			}
 			ATA_IRQ(channel, ATA_activeDrive(channel), ATAPI_FINISHREADYTIMING, 1); //Raise IRQ!
+			ATA_STATUSREGISTER_ERRORW(channel, drive, 1); //Error bit is set to report our status!
 			ATA[channel].Drive[ATA_activeDrive(channel)].commandstatus = 0xFF; //Reset status: error command!
 		}
 		else if (ATA_Drives[channel][ATA_activeDrive(channel)]>=CDROM0) //CD-ROM drive?
