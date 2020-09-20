@@ -561,7 +561,7 @@ void initSpeakers(byte soundspeaker)
 	speaker_ticktiming = time_ticktiming = 0; //Initialise our timing!
 	if (enablespeaker)
 	{
-		addchannel(&speakerCallback, &PITchannels[2], "PC Speaker", SPEAKER_RATE, SPEAKER_BUFFER, 0, SMPL16S); //Add the speaker at the hardware rate, mono! Make sure our buffer responds every 2ms at least!
+		addchannel(&speakerCallback, &PITchannels[2], "PC Speaker", SPEAKER_RATE, SPEAKER_BUFFER, 0, SMPL16S,1); //Add the speaker at the hardware rate, mono! Make sure our buffer responds every 2ms at least!
 		setVolume(&speakerCallback, &PITchannels[2], SPEAKER_VOLUME); //What volume?
 
 #ifdef SPEAKER_LOGRAW

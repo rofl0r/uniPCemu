@@ -1426,7 +1426,7 @@ void initAdlib()
 	{
 		if (allocDoubleBufferedSound16(__ADLIB_SAMPLEBUFFERSIZE,&adlib_soundbuffer,0,usesamplerate)) //Valid buffer?
 		{
-			if (!addchannel(&adlib_soundGenerator,NULL,"Adlib",(float)usesamplerate,__ADLIB_SAMPLEBUFFERSIZE,0,SMPL16S)) //Start the sound emulation (mono) with automatic samples buffer?
+			if (!addchannel(&adlib_soundGenerator,NULL,"Adlib",(float)usesamplerate,__ADLIB_SAMPLEBUFFERSIZE,0,SMPL16S,1)) //Start the sound emulation (mono) with automatic samples buffer?
 			{
 				dolog("adlib","Error registering sound channel for output!");
 			}

@@ -6393,7 +6393,7 @@ void initATA()
 	{
 		if (allocDoubleBufferedSound32(__CDROM_SAMPLEBUFFERSIZE, &ATA[CDROM_channel].Drive[slave].AUDIO_PLAYER.soundbuffer, 0, 44100.0)) //Valid buffer?
 		{
-			if (!addchannel(&CDROM_soundGenerator, &ATA[CDROM_channel].Drive[slave].AUDIO_PLAYER.soundbuffer, "GameBlaster", (float)44100.0, __CDROM_SAMPLEBUFFERSIZE, 1, SMPL16S)) //Start the sound emulation (stereo) with automatic samples buffer?
+			if (!addchannel(&CDROM_soundGenerator, &ATA[CDROM_channel].Drive[slave].AUDIO_PLAYER.soundbuffer, "CDROMaudio", (float)44100.0, __CDROM_SAMPLEBUFFERSIZE, 1, SMPL16S,1)) //Start the sound emulation (stereo) with automatic samples buffer?
 			{
 				dolog("CDROM", "Error registering sound channel for output!");
 			}

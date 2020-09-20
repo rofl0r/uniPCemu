@@ -264,9 +264,9 @@ void initSoundsource() {
 
 	if (ssourcestream && allocDoubleBufferedSound8(__SSOURCE_DBLBUFFER,&ssource_soundbuffer,0,__SSOURCE_RATE) && allocDoubleBufferedSound16(__COVOX_DBLBUFFER,&covox_soundbuffer,0,__COVOX_RATE)) //Allocated buffers?
 	{
-		if (addchannel(&covox_output, NULL, "Covox Speech Thing", __COVOX_RATE, __COVOX_HWBUFFER, 1, SMPL8U)) //Covox channel added?
+		if (addchannel(&covox_output, NULL, "Covox Speech Thing", __COVOX_RATE, __COVOX_HWBUFFER, 1, SMPL8U,1)) //Covox channel added?
 		{
-			if (addchannel(&ssource_output, NULL, "Sound Source", __SSOURCE_RATE, __SSOURCE_HWBUFFER, 0, SMPL8U)) //Sound source channel added?
+			if (addchannel(&ssource_output, NULL, "Sound Source", __SSOURCE_RATE, __SSOURCE_HWBUFFER, 0, SMPL8U,1)) //Sound source channel added?
 			{
 				outbuffer = lastcontrol = 0; //Reset output buffer and last control!
 				ssource_setVolume(100.0f); //Default volume: 100%!
