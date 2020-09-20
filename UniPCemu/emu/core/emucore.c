@@ -915,6 +915,7 @@ void updateSpeedLimit()
 						setCPUCycles(26800); //Supported so far! Default cycles!
 						break;
 					case CPU_PENTIUM: //Pentium 100MHz?
+					case CPU_PENTIUMPRO: //Pentium 100MHz?
 						setCPUCycles(77000); //Supported so far! Default cycles!
 						break;
 					default: //Unknown?
