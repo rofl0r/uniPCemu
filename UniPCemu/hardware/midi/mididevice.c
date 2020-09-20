@@ -1232,6 +1232,107 @@ void MIDI_muteExclusiveClass(uint_32 exclusiveclass, MIDIDEVICE_VOICE *newvoice)
 }
 
 //Initialize a LFO to use! Supply endOper when not using a certain output of the LFO!
+void MIDIDEVICE_updateLFO(MIDIDEVICE_VOICE * voice, MIDIDEVICE_LFO * LFO)
+{
+	sfGenList applygen;
+	sfInstGenList applyigen;
+
+	float SINUS_BASE;
+	float effectivefrequency;
+	float effectivedelay;
+
+	int_32 cents;
+
+	cents = 0; //Default: none!
+
+	//Frequency
+	if (lookupSFInstrumentGenGlobal(soundfont, voice->instrumentptr, voice->ibag, LFO->sources.frequency, &applyigen))
+	{
+		cents = (int_32)LE16(applyigen.genAmount.shAmount); //How many! Apply to the cents!
+		if (lookupSFPresetGenGlobal(soundfont, voice->preset, voice->pbag, LFO->sources.frequency, &applygen))
+		{
+			cents += (int_32)LE16(applygen.genAmount.shAmount); //How many! Apply to the cents!
+		}
+	}
+	else if (lookupSFPresetGenGlobal(soundfont, voice->preset, voice->pbag, LFO->sources.frequency, &applygen))
+	{
+		cents = (int_32)LE16(applygen.genAmount.shAmount); //How many! Apply to the cents!
+	}
+
+	cents += getSFInstrumentmodulator(voice, LFO->sources.frequency, 1, 0.0f, 0.0f);
+	cents += getSFPresetmodulator(voice, LFO->sources.frequency, 1, 0.0f, 0.0f);
+
+	cents = LIMITRANGE(cents, -16000, 4500);
+
+	effectivefrequency = 8.176f * cents2samplesfactorf(cents); //Effective frequency to use!
+
+	SINUS_BASE = 2.0f * (float)PI * effectivefrequency; //MIDI Sinus Base for LFO effects!
+
+	//Don't update the delay, it's handled only once!
+
+	LFO->sinposstep = SINUS_BASE * (1.0f / (float)LE32(voice->sample.dwSampleRate)) * sinustable_percision_reverse; //How much time to add to the chorus sinus after each sample
+	//Continue the sinus from the current position, at the newly specified frequency!
+
+	//Now, the basic sinus is setup!
+
+	//Lookup the affecting values for the modulators!
+
+	//To pitch!
+	cents = 0; //Default: none!
+	if (lookupSFInstrumentGenGlobal(soundfont, voice->instrumentptr, voice->ibag, LFO->sources.topitch, &applyigen))
+	{
+		cents = (int_32)LE16(applyigen.genAmount.shAmount); //How many! Apply to the cents!
+		if (lookupSFPresetGenGlobal(soundfont, voice->preset, voice->pbag, LFO->sources.topitch, &applygen))
+		{
+			cents += (int_32)LE16(applygen.genAmount.shAmount); //How many! Apply to the cents!
+		}
+	}
+	else if (lookupSFPresetGenGlobal(soundfont, voice->preset, voice->pbag, LFO->sources.topitch, &applygen))
+	{
+		cents = (int_32)LE16(applygen.genAmount.shAmount); //How many! Apply to the cents!
+	}
+	cents += getSFInstrumentmodulator(voice, LFO->sources.topitch, 1, 0.0f, 0.0f);
+	cents += getSFPresetmodulator(voice, LFO->sources.topitch, 1, 0.0f, 0.0f);
+	LFO->topitch = cents; //Cents
+
+	//To filter cutoff!
+	cents = 0; //Default: none!
+	if (lookupSFInstrumentGenGlobal(soundfont, voice->instrumentptr, voice->ibag, LFO->sources.tofiltercutoff, &applyigen))
+	{
+		cents = (int_32)LE16(applyigen.genAmount.shAmount); //How many! Apply to the cents!
+		if (lookupSFPresetGenGlobal(soundfont, voice->preset, voice->pbag, LFO->sources.tofiltercutoff, &applygen))
+		{
+			cents += (int_32)LE16(applygen.genAmount.shAmount); //How many! Apply to the cents!
+		}
+	}
+	else if (lookupSFPresetGenGlobal(soundfont, voice->preset, voice->pbag, LFO->sources.tofiltercutoff, &applygen))
+	{
+		cents = (int_32)LE16(applygen.genAmount.shAmount); //How many! Apply to the cents!
+	}
+	cents += getSFInstrumentmodulator(voice, LFO->sources.tofiltercutoff, 1, 0.0f, 0.0f);
+	cents += getSFPresetmodulator(voice, LFO->sources.tofiltercutoff, 1, 0.0f, 0.0f);
+	LFO->tofiltercutoff = cents; //Cents
+
+	//To volume!
+	cents = 0; //Default: none!
+	if (lookupSFInstrumentGenGlobal(soundfont, voice->instrumentptr, voice->ibag, LFO->sources.tovolume, &applyigen))
+	{
+		cents = (int_32)LE16(applyigen.genAmount.shAmount); //How many! Apply to the cents!
+		if (lookupSFPresetGenGlobal(soundfont, voice->preset, voice->pbag, LFO->sources.tovolume, &applygen))
+		{
+			cents += (int_32)LE16(applygen.genAmount.shAmount); //How many! Apply to the cents!
+		}
+	}
+	else if (lookupSFPresetGenGlobal(soundfont, voice->preset, voice->pbag, LFO->sources.tovolume, &applygen))
+	{
+		cents = (int_32)LE16(applygen.genAmount.shAmount); //How many! Apply to the cents!
+	}
+	cents += getSFInstrumentmodulator(voice, LFO->sources.tovolume, 1, 0.0f, 0.0f);
+	cents += getSFPresetmodulator(voice, LFO->sources.tovolume, 1, 0.0f, 0.0f);
+	LFO->tovolume = cents; //cB!
+}
+
+//Initialize a LFO to use! Supply endOper when not using a certain output of the LFO!
 void MIDIDEVICE_initLFO(MIDIDEVICE_VOICE* voice, MIDIDEVICE_LFO* LFO, word thedelay, word frequency, word topitch, word tofiltercutoff, word tovolume)
 {
 	sfGenList applygen;
@@ -1242,6 +1343,13 @@ void MIDIDEVICE_initLFO(MIDIDEVICE_VOICE* voice, MIDIDEVICE_LFO* LFO, word thede
 	float effectivedelay;
 
 	int_32 cents;
+
+	//Setup the sources of the LFO to update during runtime!
+	LFO->sources.thedelay = thedelay;
+	LFO->sources.frequency = frequency;
+	LFO->sources.topitch = topitch;
+	LFO->sources.tofiltercutoff = tofiltercutoff;
+	LFO->sources.tovolume = tovolume;
 
 	cents = 0; //Default: none!
 
@@ -2191,6 +2299,8 @@ void updateMIDImodulators(byte channel)
 				calcAttenuationModulators(voice); //Calc the modulators!
 				updateSampleSpeed(voice); //Calc the pitch wheel!
 				updateModulatorPanningMod(voice); //Calc the panning modulators!
+				MIDIDEVICE_updateLFO(voice, &voice->LFO[0]); //Update the first LFO!
+				MIDIDEVICE_updateLFO(voice, &voice->LFO[1]); //Update the second LFO!
 			}
 		}
 	}

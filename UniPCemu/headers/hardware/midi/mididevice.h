@@ -120,6 +120,14 @@ typedef struct
 	float outputpitch; //The output value of the pitch!
 	float outputfiltercutoff; //The output value of the pitch!
 	float outputvolume; //The output value of the pitch!
+	struct
+	{
+		word thedelay;
+		word frequency;
+		word topitch;
+		word tofiltercutoff;
+		word tovolume;
+	} sources;
 } MIDIDEVICE_LFO;
 
 typedef struct
