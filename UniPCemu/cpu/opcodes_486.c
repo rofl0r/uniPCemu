@@ -27,6 +27,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/cpu/paging.h" //Paging support for clearing TLB!
 #include "headers/cpu/flags.h" //Flags support for adding!
 #include "headers/emu/debugger/debugger.h" //Debugger support!
+#include "headers/cpu/cpu_pmtimings.h" //Timing support!
 
 extern MODRM_PARAMS params; //For getting all params for the CPU!
 extern byte cpudebugger; //The debugging is on?
@@ -96,6 +97,10 @@ void CPU486_CPUID()
 		break;
 	default:
 		break;
+	}
+	if (CPU_apply286cycles() == 0) //No 80286+ cycles instead?
+	{
+		CPU[activeCPU].cycles_OP += 1; //Single cycle!
 	}
 }
 

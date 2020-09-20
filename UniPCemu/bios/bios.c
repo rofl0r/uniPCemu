@@ -1965,9 +1965,13 @@ void BIOS_ShowBIOS() //Shows mounted drives etc!
 	{
 		printmsg(0xF, "Installed CPU: Intel 80486\r\n"); //Emulated CPU!
 	}
-	else if (*(getarchemulated_CPU()) == CPU_PENTIUM) //80286?
+	else if (*(getarchemulated_CPU()) == CPU_PENTIUM) //80586?
 	{
 		printmsg(0xF, "Installed CPU: Intel Pentium(without FPU)\r\n"); //Emulated CPU!
+	}
+	else if (*(getarchemulated_CPU()) == CPU_PENTIUMPRO) //80686?
+	{
+		printmsg(0xF, "Installed CPU: Intel Pentium Pro(without FPU)\r\n"); //Emulated CPU!
 	}
 	else //Unknown CPU?
 	{

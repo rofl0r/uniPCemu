@@ -74,6 +74,10 @@ void CPU586_CPUID()
 	default:
 		break;
 	}
+	if (CPU_apply286cycles() == 0) //No 80286+ cycles instead?
+	{
+		CPU[activeCPU].cycles_OP += 1; //Single cycle!
+	}
 }
 
 void CPU586_OP0F30() //WRMSR

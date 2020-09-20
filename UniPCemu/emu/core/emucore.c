@@ -900,6 +900,7 @@ void updateSpeedLimit()
 			case CPU_80386: //386?
 			case CPU_80486: //486?
 			case CPU_PENTIUM: //586?
+			case CPU_PENTIUMPRO: //686?
 				if (useIPSclock) //Using the IPS clock?
 				{
 					switch (EMULATED_CPU) //What CPU, if supported!

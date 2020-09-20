@@ -2003,6 +2003,7 @@ void BIOS_InstalledCPUOption() //Manages the installed CPU!
 	safestrcpy(itemlist[CPU_80386],sizeof(itemlist[0]), "Intel 80386"); //Set filename from options!
 	safestrcpy(itemlist[CPU_80486],sizeof(itemlist[0]), "Intel 80486"); //Set filename from options!
 	safestrcpy(itemlist[CPU_PENTIUM],sizeof(itemlist[0]), "Intel Pentium(without FPU)"); //Set filename from options!
+	safestrcpy(itemlist[CPU_PENTIUMPRO], sizeof(itemlist[0]), "Intel Pentium Pro(without FPU)"); //Set filename from options!
 	int current = 0;
 	if (*(getarchemulated_CPU())==CPU_8086) //8086?
 	{
@@ -2027,6 +2028,10 @@ void BIOS_InstalledCPUOption() //Manages the installed CPU!
 	else if (*(getarchemulated_CPU()) == CPU_PENTIUM) //PENTIUM?
 	{
 		current = CPU_PENTIUM; //PENTIUM!
+	}
+	else if (*(getarchemulated_CPU()) == CPU_PENTIUMPRO) //PENTIUM?
+	{
+		current = CPU_PENTIUMPRO; //PENTIUM!
 	}
 	else //Unknown (default)?
 	{
@@ -2064,6 +2069,9 @@ void BIOS_InstalledCPUOption() //Manages the installed CPU!
 				break;
 			case CPU_PENTIUM: //PENTIUM?
 				*(getarchemulated_CPU()) = CPU_PENTIUM; //Use the PENTIUM!
+				break;
+			case CPU_PENTIUMPRO: //PENTIUM?
+				*(getarchemulated_CPU()) = CPU_PENTIUMPRO; //Use the PENTIUM PRO!
 				break;
 			default: //Unknown CPU?
 				*(getarchemulated_CPU()) = CPU_8086; //Use the 8086!
@@ -5514,6 +5522,9 @@ void BIOS_InitCPUText()
 		break;
 	case CPU_PENTIUM: //PENTIUM?
 		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Intel Pentium(without FPU)"); //Add installed CPU!
+		break;
+	case CPU_PENTIUMPRO: //PENTIUM PRO?
+		safestrcat(menuoptions[advancedoptions++], sizeof(menuoptions[0]), "Intel Pentium Pro(without FPU)"); //Add installed CPU!
 		break;
 	default:
 		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "<UNKNOWN. CHECK SETTINGS VERSION>"); //Add uninstalled CPU!
