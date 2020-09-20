@@ -1266,7 +1266,6 @@ void MIDIDEVICE_updateLFO(MIDIDEVICE_VOICE * voice, MIDIDEVICE_LFO * LFO)
 
 	float SINUS_BASE;
 	float effectivefrequency;
-	float effectivedelay;
 
 	int_32 cents;
 
