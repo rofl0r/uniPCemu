@@ -740,7 +740,7 @@ float MIDIconvex(float val)
 
 float getSFmodulator(byte isInstrumentMod, MIDIDEVICE_VOICE* voice, word destination, byte applySrcAmt, float min, float max); //Prototype for linking!
 
-float calcSFModSourceRaw(byte isInstrumentMod, byte isAmtSource, MIDIDEVICE_VOICE* voice, sfModList* mod, SFModulator oper)
+float calcSFModSourceRaw(byte isInstrumentMod, byte isAmtSource, MIDIDEVICE_VOICE* voice, sfModList* mod, SFModulator oper, float linkedval)
 {
 	float inputrange;
 	float i;
@@ -802,7 +802,19 @@ float calcSFModSourceRaw(byte isInstrumentMod, byte isAmtSource, MIDIDEVICE_VOIC
 
 	//Now, i is the value from the input, while inputrange is the range of the input!
 	i /= inputrange; //Normalized to 0.0 through 1.0!
+
+	i += linkedval; //Add the linked value, which is already normalized! This is an additive generator!
 	
+	//Clip the combined values to become a safe range!
+	if (i > 1.0f) //Output is outside of range? Clip!
+	{
+		i = 1.0f; //Positive clip!
+	}
+	else if (i <= 0.0f) //Negative clip?
+	{
+		i = 0.0f; //Negative clip!
+	}
+
 	//Now, apply type, polarity and direction!
 	type = ((oper >> 10) & 0x3F); //Type!
 	polarity = ((oper >> 9) & 1); //Polarity!
@@ -877,14 +889,14 @@ float calcSFModSourceRaw(byte isInstrumentMod, byte isAmtSource, MIDIDEVICE_VOIC
 }
 
 //Get one of the sources!
-float getSFModSource(byte isInstrumentMod, MIDIDEVICE_VOICE* voice, sfModList* mod)
+float getSFModSource(byte isInstrumentMod, MIDIDEVICE_VOICE* voice, sfModList* mod, float linkedval)
 {
-	return calcSFModSourceRaw(isInstrumentMod, 0, voice, mod, mod->sfModSrcOper); //TODO!
+	return calcSFModSourceRaw(isInstrumentMod, 0, voice, mod, mod->sfModSrcOper, linkedval); //TODO!
 }
 
 float getSFModAmtSource(byte isInstrumentMod, MIDIDEVICE_VOICE* voice, sfModList* mod)
 {
-	return calcSFModSourceRaw(isInstrumentMod, 1, voice, mod, mod->sfModAmtSrcOper); //TODO! Not supported yet!
+	return calcSFModSourceRaw(isInstrumentMod, 1, voice, mod, mod->sfModAmtSrcOper, 0.0f); //TODO! Not supported yet!
 }
 
 float sfModulatorTransform(sfModList* mod, float input)
@@ -894,7 +906,7 @@ float sfModulatorTransform(sfModList* mod, float input)
 
 float getSFmodulator(byte isInstrumentMod, MIDIDEVICE_VOICE *voice, word destination, byte applySrcAmt, float min, float max)
 {
-	byte modulatorSkip[0x20000]; //Skipping of modulators! Going both ways!
+	static byte modulatorSkip[0x20000]; //Skipping of modulators! Going both ways!
 	float result;
 	float tempresult;
 	int_32 index; //The index to check!
@@ -903,14 +915,15 @@ float getSFmodulator(byte isInstrumentMod, MIDIDEVICE_VOICE *voice, word destina
 	//byte originGlobal;
 	byte lookupResult;
 	int_32 foundindex;
+	word linkedentry;
+	float linkedentryval;
 	sfModList mod;
 	originMod = -1; //Default: no origin mod yet!
 	result = 0.0f; //Initialize the result!
-	if (!applySrcAmt) //Linked modulators?
+	if (applySrcAmt) //Destination of a generator?
 	{
-		return 0.0f; //Not supported yet!
+		memset(&modulatorSkip, 0, sizeof(modulatorSkip)); //Default: nothing skipped yet!
 	}
-	memset(&modulatorSkip, 0, sizeof(modulatorSkip)); //Default: nothing skipped yet!
 	for (;;) //Keep searching for new modulators!
 	{
 	processNextIndex:
@@ -924,11 +937,11 @@ float getSFmodulator(byte isInstrumentMod, MIDIDEVICE_VOICE *voice, word destina
 		foundindex = INT_MIN; //Default: no found index!
 		if (isInstrumentMod) //Instrument modulator?
 		{
-			lookupResult = lookupSFInstrumentModGlobal(soundfont, voice->instrumentptr, voice->ibag, destination, index, &isGlobal, &mod, &originMod, &foundindex);
+			lookupResult = lookupSFInstrumentModGlobal(soundfont, voice->instrumentptr, voice->ibag, destination, index, &isGlobal, &mod, &originMod, &foundindex,&linkedentry);
 		}
 		else //Preset modulator?
 		{
-			lookupResult = lookupSFPresetModGlobal(soundfont, voice->instrumentptr, voice->ibag, destination, index, &isGlobal, &mod, &originMod, &foundindex);
+			lookupResult = lookupSFPresetModGlobal(soundfont, voice->instrumentptr, voice->ibag, destination, index, &isGlobal, &mod, &originMod, &foundindex,&linkedentry);
 		}
 		if (foundindex!=INT_MIN) //Any valid Index found?
 		{
@@ -963,20 +976,34 @@ float getSFmodulator(byte isInstrumentMod, MIDIDEVICE_VOICE *voice, word destina
 			break;
 		case 1: //Found a valid modulator?
 			//Handle the modulator!
-			tempresult = sfModulatorTransform(&mod,(getSFModSource(isInstrumentMod, voice, &mod)*getSFModAmtSource(isInstrumentMod, voice, &mod))); //Source times Dest is added to the result!
-
-			if (applySrcAmt) //Apply source amount?
+			if (linkedentry & 0x8000) //Valid to link to another entry that might exist?
 			{
-				tempresult *= (float)mod.modAmount; //Affect the result by the modulator amount value!
+				linkedentryval = getSFmodulator(isInstrumentMod, voice, linkedentry, 0, 0.0f, 0.0f); //Retrieve a linked entry to sum, if any!
+				tempresult = sfModulatorTransform(&mod, (getSFModSource(isInstrumentMod, voice, &mod, linkedentryval) * getSFModAmtSource(isInstrumentMod, voice, &mod))); //Source times Dest is added to the result!
 			}
+			else //Not linkable?
+			{
+				tempresult = sfModulatorTransform(&mod, (getSFModSource(isInstrumentMod, voice, &mod, 0.0f) * getSFModAmtSource(isInstrumentMod, voice, &mod))); //Source times Dest is added to the result!
+			}
+
+			tempresult *= (float)mod.modAmount; //Affect the result by the modulator amount value!
 			if ((min != 0.0f) || (max != 0.0f)) //Limits specified?
 			{
 				if (tempresult > max) tempresult = max; //Limit!
 				if (tempresult < min) tempresult = min; //Limit!
 			}
-
-			//Add to the result!
-			result += tempresult;
+			if (!applySrcAmt) //Apply source amount to a modulator? Normalize again
+			{
+				if (mod.modAmount) //Valid to use?
+				{
+					result += tempresult*(1.0f/(float)mod.modAmount); //Normalized factor to apply!
+				}
+			}
+			else //Normal addition?
+			{
+				//Add to the result! Not normalized!
+				result += tempresult;
+			}
 
 			//Finish up this modulator!
 			modulatorSkip[(0x10000 + foundindex) & 0x1FFFF] = 1; //Skip this modulator in the future!

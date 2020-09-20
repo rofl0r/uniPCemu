@@ -1059,7 +1059,7 @@ result:
 	2: Found, but not applicable (skip this entry)!
 
 */
-byte lookupSFPresetMod(RIFFHEADER *sf, uint_32 preset, word PBag, SFModulator sfModDestOper, word index, sfModList *result, int_32 *originMod, int_32* foundindex)
+byte lookupSFPresetMod(RIFFHEADER *sf, uint_32 preset, word PBag, SFModulator sfModDestOper, word index, sfModList *result, int_32 *originMod, int_32* foundindex, word* resultindex)
 {
 	sfPresetHeader currentpreset;
 	word CurrentMod;
@@ -1073,6 +1073,7 @@ byte lookupSFPresetMod(RIFFHEADER *sf, uint_32 preset, word PBag, SFModulator sf
 	currentindex = 0; //First index to find!
 	found = 0; //Default: not found!
 	gotoriginatingmod = 0; //Default: not gotten yet!
+	*resultindex = 0; //Not gotten yet!
 	if (getSFPreset(sf,preset,&currentpreset)) //Retrieve the header!
 	{
 		if (isValidPreset(&currentpreset)) //Valid preset?
@@ -1118,6 +1119,10 @@ byte lookupSFPresetMod(RIFFHEADER *sf, uint_32 preset, word PBag, SFModulator sf
 												found = 1; //Found!
 												*foundindex = CurrentMod; //What index has been found!
 												memcpy(result, &mod, sizeof(*result)); //Set to last found!
+												if (CurrentMod < 0x8000) //Valid to use?
+												{
+													*resultindex = CurrentMod + 0x8000; //Found index!
+												}
 												if (*originMod == INT_MIN) //Not set yet?
 												{
 													*originMod = -CurrentMod; //Copy of the original modulator!
@@ -1247,7 +1252,7 @@ result:
 	2: Found, but not applicable (skip this entry)!
 
 */
-byte lookupSFInstrumentMod(RIFFHEADER *sf, word instrument, word IBag, SFModulator sfModDestOper, word index, sfModList *result, int_32* originMod, int_32* foundindex)
+byte lookupSFInstrumentMod(RIFFHEADER *sf, word instrument, word IBag, SFModulator sfModDestOper, word index, sfModList *result, int_32* originMod, int_32* foundindex, word* resultindex)
 {
 	sfInst currentinstrument;
 	word CurrentMod;
@@ -1298,6 +1303,8 @@ byte lookupSFInstrumentMod(RIFFHEADER *sf, word instrument, word IBag, SFModulat
 		}
 	}
 
+	*resultindex = 0; //No found index yet!
+
 	if (getSFInstrument(sf,instrument,&currentinstrument)) //Valid instrument?
 	{
 		if (isInstrumentBagNdx(sf,instrument,IBag)) //Process all PBags for our preset!
@@ -1341,6 +1348,10 @@ byte lookupSFInstrumentMod(RIFFHEADER *sf, word instrument, word IBag, SFModulat
 											found = 1; //Found!
 											memcpy(result, &mod, sizeof(*result)); //Set to last found!
 											*foundindex = CurrentMod; //What index has been found!
+											if (CurrentMod < 0x8000) //Valid to use?
+											{
+												*resultindex = CurrentMod + 0x8000; //Found index!
+											}
 											if (*originMod == INT_MIN) //Not set yet?
 											{
 												*originMod = -CurrentMod; //Copy of the original modulator!
@@ -1619,13 +1630,13 @@ byte lookupIBagByMIDIKey(RIFFHEADER *sf, word instrument, byte MIDIKey, byte MID
 
 //Global lookup support for supported entries!
 
-byte lookupSFPresetModGlobal(RIFFHEADER *sf, uint_32 preset, word PBag, SFModulator sfModDestOper, word index, byte *isGlobal, sfModList *result, int_32* originMod, int_32* foundindex)
+byte lookupSFPresetModGlobal(RIFFHEADER *sf, uint_32 preset, word PBag, SFModulator sfModDestOper, word index, byte *isGlobal, sfModList *result, int_32* originMod, int_32* foundindex, word* resultindex)
 {
 	byte tempresult;
 	sfPresetHeader currentpreset;
 	word GlobalPBag;
 	*isGlobal = 0; //Not global!
-	if ((tempresult = lookupSFPresetMod(sf,preset,PBag,sfModDestOper,index,result,originMod,foundindex))!=0) //Found normally?
+	if ((tempresult = lookupSFPresetMod(sf,preset,PBag,sfModDestOper,index,result,originMod,foundindex,resultindex))!=0) //Found normally?
 	{
 		return tempresult; //Found normally!
 	}
@@ -1636,7 +1647,7 @@ byte lookupSFPresetModGlobal(RIFFHEADER *sf, uint_32 preset, word PBag, SFModula
 		{
 			if (isGlobalPresetZone(sf,preset,GlobalPBag)) //Global zone?
 			{
-				if ((tempresult = lookupSFPresetMod(sf,preset,GlobalPBag,sfModDestOper,index,result,originMod,foundindex))) //Global found?
+				if ((tempresult = lookupSFPresetMod(sf,preset,GlobalPBag,sfModDestOper,index,result,originMod,foundindex,resultindex))) //Global found?
 				{
 					*isGlobal = 1; //Changed to global if not before!
 					return tempresult; //Global found!
@@ -1672,13 +1683,13 @@ byte lookupSFPresetGenGlobal(RIFFHEADER *sf, word preset, word PBag, SFGenerator
 	return 0; //Not found at all!
 }
 
-byte lookupSFInstrumentModGlobal(RIFFHEADER *sf, uint_32 instrument, word IBag, SFModulator sfModDestOper, word index, byte *isGlobal, sfModList *result, int_32* originMod, int_32 *foundindex)
+byte lookupSFInstrumentModGlobal(RIFFHEADER *sf, uint_32 instrument, word IBag, SFModulator sfModDestOper, word index, byte *isGlobal, sfModList *result, int_32* originMod, int_32 *foundindex, word* resultindex)
 {
 	sfInst currentinstrument;
 	word GlobalIBag;
 	byte tempresult;
 	*isGlobal = 0; //Not global!
-	if ((tempresult = lookupSFInstrumentMod(sf,instrument,IBag,sfModDestOper,index,result,originMod,foundindex))!=0) //Found normally?
+	if ((tempresult = lookupSFInstrumentMod(sf,instrument,IBag,sfModDestOper,index,result,originMod,foundindex,resultindex))!=0) //Found normally?
 	{
 		return tempresult; //Found normally!
 	}
@@ -1689,7 +1700,7 @@ byte lookupSFInstrumentModGlobal(RIFFHEADER *sf, uint_32 instrument, word IBag, 
 		{
 			if (isGlobalPresetZone(sf,instrument,GlobalIBag)) //Global zone?
 			{
-				if ((tempresult = lookupSFInstrumentMod(sf,instrument,GlobalIBag,sfModDestOper,index,result,originMod,foundindex))!=0) //Global found?
+				if ((tempresult = lookupSFInstrumentMod(sf,instrument,GlobalIBag,sfModDestOper,index,result,originMod,foundindex,resultindex))!=0) //Global found?
 				{
 					*isGlobal = 1; //Global!
 					return tempresult; //Global found!

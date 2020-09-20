@@ -473,8 +473,8 @@ result:
 
 */
 
-byte lookupSFPresetMod(RIFFHEADER *sf, uint_32 preset, word PBag, SFModulator sfModDestOper, word index, sfModList *result, int_32* originMod, int_32* foundindex);
-byte lookupSFInstrumentMod(RIFFHEADER *sf, word instrument, word IBag, SFModulator sfModDestOper, word index, sfModList *result, int_32* originMod, int_32* foundindex);
+byte lookupSFPresetMod(RIFFHEADER *sf, uint_32 preset, word PBag, SFModulator sfModDestOper, word index, sfModList *result, int_32* originMod, int_32* foundindex, word *resultindex);
+byte lookupSFInstrumentMod(RIFFHEADER *sf, word instrument, word IBag, SFModulator sfModDestOper, word index, sfModList *result, int_32* originMod, int_32* foundindex, word *resultindex);
 
 //Lookup a generator from preset
 byte lookupSFPresetGen(RIFFHEADER* sf, uint_32 preset, word PBag, SFGenerator sfGenOper, sfGenList* result);
@@ -497,8 +497,8 @@ result:
 	See lookupSFPresetMod/lookupSFInstrumentMod
 
 */
-byte lookupSFPresetModGlobal(RIFFHEADER *sf, uint_32 preset, word PBag, SFModulator sfModDestOper, word index, byte* isGlobal, sfModList *result, int_32* originMod, int_32* foundindex);
-byte lookupSFInstrumentModGlobal(RIFFHEADER *sf, uint_32 instrument, word IBag, SFModulator sfModDestOper, word index, byte* isGlobal, sfModList *result, int_32* originMod, int_32* foundindex);
+byte lookupSFPresetModGlobal(RIFFHEADER *sf, uint_32 preset, word PBag, SFModulator sfModDestOper, word index, byte* isGlobal, sfModList *result, int_32* originMod, int_32* foundindex, word *resultindex);
+byte lookupSFInstrumentModGlobal(RIFFHEADER *sf, uint_32 instrument, word IBag, SFModulator sfModDestOper, word index, byte* isGlobal, sfModList *result, int_32* originMod, int_32* foundindex, word *resultindex);
 
 byte lookupSFPresetGenGlobal(RIFFHEADER* sf, word preset, word PBag, SFGenerator sfGenOper, sfGenList* result);
 byte lookupSFInstrumentGenGlobal(RIFFHEADER* sf, word instrument, word IBag, SFGenerator sfGenOper, sfInstGenList* result);
