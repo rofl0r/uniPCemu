@@ -1063,7 +1063,7 @@ void updateModulatorPanningMod(MIDIDEVICE_VOICE* voice)
 
 void updateMIDILowpassFilter(MIDIDEVICE_VOICE* voice)
 {
-	sword cents;
+	float cents;
 	sfGenList applygen;
 	sfInstGenList applyigen;
 
@@ -1071,7 +1071,7 @@ void updateMIDILowpassFilter(MIDIDEVICE_VOICE* voice)
 	cents = 13500; //Default!
 	if (lookupSFInstrumentGenGlobal(soundfont, voice->instrumentptr, voice->ibag, initialFilterFc, &applyigen)) //Filter enabled?
 	{
-		cents = LE16(applyigen.genAmount.shAmount);
+		cents = (float)LE16(applyigen.genAmount.shAmount);
 		if (lookupSFPresetGenGlobal(soundfont, voice->preset, voice->pbag, initialFilterFc, &applygen))
 		{
 			cents += (float)LE16(applygen.genAmount.shAmount); //How many semitones! Apply to the cents: 1 semitone = 100 cents!
@@ -1092,7 +1092,7 @@ void updateMIDILowpassFilter(MIDIDEVICE_VOICE* voice)
 	cents = 0; //Default!
 	if (lookupSFInstrumentGenGlobal(soundfont, voice->instrumentptr, voice->ibag, modEnvToFilterFc, &applyigen)) //Filter enabled?
 	{
-		cents = LE16(applyigen.genAmount.shAmount);
+		cents = (float)LE16(applyigen.genAmount.shAmount);
 		if (lookupSFPresetGenGlobal(soundfont, voice->preset, voice->pbag, modEnvToFilterFc, &applygen))
 		{
 			cents += (float)LE16(applygen.genAmount.shAmount); //How many semitones! Apply to the cents: 1 semitone = 100 cents!
@@ -1112,7 +1112,7 @@ void updateMIDILowpassFilter(MIDIDEVICE_VOICE* voice)
 	cents = 0; //Default!
 	if (lookupSFInstrumentGenGlobal(soundfont, voice->instrumentptr, voice->ibag, modEnvToPitch, &applyigen)) //Filter enabled?
 	{
-		cents = LE16(applyigen.genAmount.shAmount);
+		cents = (float)LE16(applyigen.genAmount.shAmount);
 		if (lookupSFPresetGenGlobal(soundfont, voice->preset, voice->pbag, modEnvToPitch, &applygen))
 		{
 			cents += (float)LE16(applygen.genAmount.shAmount); //How many semitones! Apply to the cents: 1 semitone = 100 cents!
@@ -1126,7 +1126,7 @@ void updateMIDILowpassFilter(MIDIDEVICE_VOICE* voice)
 	cents += getSFInstrumentmodulator(voice, modEnvToPitch, 1, 0.0f, 1000.0f); //Get the initial attenuation modulators!
 	cents += getSFPresetmodulator(voice, modEnvToPitch, 1, 0.0f, 1000.0f); //Get the initial attenuation modulators!
 
-	voice->modenv_pitchfactor = cents; //Apply!
+	voice->modenv_pitchfactor = (int_32)cents; //Apply!
 }
 
 void updateChorusMod(MIDIDEVICE_VOICE* voice)
