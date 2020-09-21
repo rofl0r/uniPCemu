@@ -194,7 +194,8 @@ typedef struct
 	FIFOBUFFER *effect_backtrace_samplespeedup_modenv_pitchfactor; //A backtrace of the sample speedup and pitch factor through time for each sample played in the main stream!
 	FIFOBUFFER* effect_backtrace_LFO1; //A backtrace of the sample speedup and pitch factor through time for each sample played in the main stream!
 	FIFOBUFFER* effect_backtrace_LFO2; //A backtrace of the sample speedup and pitch factor through time for each sample played in the main stream!
-	FIFOBUFFER *effect_backtrace_chorus[CHORUSSIZE]; //Chorus backtrace for reverb purpose, stereo!
+	FIFOBUFFER* effect_backtrace_lowpassfilter_modenvfactor; //low pass backtrace for reverb purpose, stereo!
+	FIFOBUFFER* effect_backtrace_chorus[CHORUSSIZE]; //Chorus backtrace for reverb purpose, stereo!
 
 	MIDIDEVICE_LFO LFO[2];
 
