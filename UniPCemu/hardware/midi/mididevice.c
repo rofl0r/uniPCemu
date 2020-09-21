@@ -809,11 +809,10 @@ float calcSFModSourceRaw(byte isInstrumentMod, byte isAmtSource, MIDIDEVICE_VOIC
 		}
 	}
 
+	i += linkedval; //Add the linked value, which is not normalized! This is an additive generator!
 	//Now, i is the value from the input, while inputrange is the range of the input!
 	i /= inputrange; //Normalized to 0.0 through 1.0!
 
-	i += linkedval; //Add the linked value, which is already normalized! This is an additive generator!
-	
 	//Clip the combined values to become a safe range!
 	if (i > 1.0f) //Output is outside of range? Clip!
 	{
