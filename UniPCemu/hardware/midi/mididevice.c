@@ -153,7 +153,6 @@ OPTINLINE void reset_MIDIDEVICE() //Reset the MIDI device for usage!
 		activevoices[channel].effect_backtrace_LFO2 = temp3; //Restore our buffer!
 		activevoices[channel].effect_backtrace_LFO1 = temp2; //Restore our buffer!
 		activevoices[channel].effect_backtrace_samplespeedup_modenv_pitchfactor = temp; //Restore our buffer!
-		fifobuffer_clear(temp); //Clear our buffer!
 	}
 
 	for (channel=0;channel<0x10;)
