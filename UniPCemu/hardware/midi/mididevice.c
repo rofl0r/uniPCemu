@@ -528,7 +528,7 @@ void MIDIDEVICE_calcLFOoutput(MIDIDEVICE_LFO* LFO, byte type)
 	LFO->outputvolume = (float)LFO->tovolume * rawoutput; //Unbent sinus output for volume!
 }
 
-void MIDIDEVICE_tickLFO(MIDIDEVICE_LFO* LFO)
+OPTINLINE void MIDIDEVICE_tickLFO(MIDIDEVICE_LFO* LFO)
 {
 	LFO->sinpos += LFO->sinposstep; //Step by one sample rendered!
 	if (unlikely(LFO->sinpos >= SINUSTABLE_PERCISION_FLT))
