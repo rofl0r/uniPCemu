@@ -928,7 +928,7 @@ float getSFmodulator(byte isInstrumentMod, MIDIDEVICE_VOICE *voice, word destina
 	sfModList mod;
 	originMod = -1; //Default: no origin mod yet!
 	result = 0.0f; //Initialize the result!
-	if (applySrcAmt) //Destination of a generator?
+	if (applySrcAmt==1) //Destination of a generator?
 	{
 		memset(&modulatorSkip, 0, sizeof(modulatorSkip)); //Default: nothing skipped yet!
 	}
@@ -986,7 +986,7 @@ float getSFmodulator(byte isInstrumentMod, MIDIDEVICE_VOICE *voice, word destina
 			//Handle the modulator!
 			if (linkedentry & 0x8000) //Valid to link to another entry that might exist?
 			{
-				linkedentryval = getSFmodulator(isInstrumentMod, voice, linkedentry, 0, 0.0f, 0.0f); //Retrieve a linked entry to sum, if any!
+				linkedentryval = getSFmodulator(isInstrumentMod, voice, linkedentry, 2, 0.0f, 0.0f); //Retrieve a linked entry to sum, if any!
 				tempresult = sfModulatorTransform(&mod, (getSFModSource(isInstrumentMod, voice, &mod, linkedentryval) * getSFModAmtSource(isInstrumentMod, voice, &mod))); //Source times Dest is added to the result!
 			}
 			else //Not linkable?
