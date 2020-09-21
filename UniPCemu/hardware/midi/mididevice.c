@@ -983,6 +983,8 @@ float getSFmodulator(byte isInstrumentMod, MIDIDEVICE_VOICE *voice, word destina
 			//Next index to process?
 			break;
 		case 1: //Found a valid modulator?
+			//Finish up this modulator!
+			modulatorSkip[(0x10000 + foundindex) & 0x1FFFF] = 1; //Skip this modulator in the future!
 			//Handle the modulator!
 			if (linkedentry & 0x8000) //Valid to link to another entry that might exist?
 			{
@@ -1012,9 +1014,6 @@ float getSFmodulator(byte isInstrumentMod, MIDIDEVICE_VOICE *voice, word destina
 				//Add to the result! Not normalized!
 				result += tempresult;
 			}
-
-			//Finish up this modulator!
-			modulatorSkip[(0x10000 + foundindex) & 0x1FFFF] = 1; //Skip this modulator in the future!
 			break;
 		case 2: //Needs next?
 			modulatorSkip[(0x10000 + foundindex) & 0x1FFFF] = 1; //Skip this modulator in the future!
