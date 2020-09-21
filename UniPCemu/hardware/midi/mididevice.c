@@ -169,6 +169,7 @@ OPTINLINE void reset_MIDIDEVICE() //Reset the MIDI device for usage!
 
 			++notes; //Next note!
 		}
+		memset(&MIDI_channels[channel].ContinuousControllers,0,sizeof(MIDI_channels[0].ContinuousControllers)); //Reset unused!
 		MIDI_channels[channel].bank = MIDI_channels[channel].activebank = 0; //Reset!
 		MIDI_channels[channel].control = 0; //First instrument!
 		MIDI_channels[channel].pitch = 0x2000; //Centered pitch = Default pitch!
