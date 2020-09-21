@@ -795,7 +795,7 @@ float calcSFModSourceRaw(byte isInstrumentMod, byte isAmtSource, MIDIDEVICE_VOIC
 		case 127: //Link?
 			if (isAmtSource) //Not supported?
 			{
-				if (isLinked==0) //Not linked? Ignore it!
+				if (islinked==0) //Not linked? Ignore it!
 				{
 					return 1.0f; //Ignore it!
 				}
@@ -806,7 +806,7 @@ float calcSFModSourceRaw(byte isInstrumentMod, byte isAmtSource, MIDIDEVICE_VOIC
 			}
 			else //Primary source?
 			{
-				if (isLinked==0) //Not linked? Ignore it!
+				if (islinked==0) //Not linked? Ignore it!
 				{
 					return 1.0f; //Ignore it!
 				}
