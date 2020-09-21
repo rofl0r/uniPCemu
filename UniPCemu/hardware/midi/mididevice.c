@@ -754,10 +754,7 @@ float calcSFModSourceRaw(byte isInstrumentMod, byte isAmtSource, MIDIDEVICE_VOIC
 	float inputrange;
 	float i;
 	byte type, polarity, direction;
-	if (oper == 0) //Not affecting?
-	{
-		return 1.0f; //Not affecting the result!
-	}
+
 	if (oper & 0x80) //CC is the source when C is set?
 	{
 		i = (float)voice->channel->ContinuousControllers[oper & 0x7F]; //The CC!
@@ -768,7 +765,9 @@ float calcSFModSourceRaw(byte isInstrumentMod, byte isAmtSource, MIDIDEVICE_VOIC
 		switch (oper & 0x7F) //What MIDI information is selected?
 		{
 		case 0: //No controller?
-			return 1.0f; //Output is considered 1!
+			i = 127.0f; //Output is considered 1!
+			inputrange = (float)0x7F; //The range!
+			break;
 		case 2: //Note-on velocity?
 			i = (float)(voice->effectivevelocity); //Effective velocity!
 			inputrange = (float)0x7F; //The range!
@@ -796,11 +795,17 @@ float calcSFModSourceRaw(byte isInstrumentMod, byte isAmtSource, MIDIDEVICE_VOIC
 		case 127: //Link?
 			if (isAmtSource) //Not supported?
 			{
-				return 1.0f; //Consider no controller?
+				//Give the result of another modulator?
+				i = 127.0f;
+				inputrange = (float)0x7F; //The range!
+				//Act as x1.0!
 			}
-			//Give the result of another modulator?
-			i = 127.0f;
-			inputrange = (float)0x7F; //The range!
+			else //Primary source?
+			{
+				//Fill the result of another modulator?
+				i = 0.0f; //Fill with parameter or none!
+				inputrange = (float)0x7F; //The range!
+			}
 			break;
 		default: //Unknown source?
 			i = 0.0f; //Unknown!
