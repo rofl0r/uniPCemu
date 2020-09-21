@@ -800,7 +800,7 @@ float calcSFModSourceRaw(byte isInstrumentMod, byte isAmtSource, MIDIDEVICE_VOIC
 					return 1.0f; //Ignore it!
 				}
 				//Give the result of another modulator?
-				i = 0.0f;
+				i = 127.0f;
 				inputrange = (float)0x7F; //The range!
 				//Act as x1.0!
 			}
@@ -1002,7 +1002,7 @@ float getSFmodulator(byte isInstrumentMod, MIDIDEVICE_VOICE *voice, word destina
 			if (linkedentry & 0x8000) //Valid to link to another entry that might exist?
 			{
 				linkedentryval = getSFmodulator(isInstrumentMod, voice, linkedentry, 2, 0.0f, 0.0f); //Retrieve a linked entry to sum, if any!
-				tempresult = sfModulatorTransform(&mod, (getSFModSource(isInstrumentMod, voice, &mod, linkedentryval, 1) * getSFModAmtSource(isInstrumentMod, voice, &mod, 0.0f, 1))); //Source times Dest is added to the result!
+				tempresult = sfModulatorTransform(&mod, (getSFModSource(isInstrumentMod, voice, &mod, linkedentryval, 1) * getSFModAmtSource(isInstrumentMod, voice, &mod, 0.0f, 0))); //Source times Dest is added to the result!
 			}
 			else //Not linkable?
 			{
