@@ -37,7 +37,7 @@ void CPU686_CPUID()
 {
 	switch (EMULATED_CPU)
 	{
-	case CPU_PENTIUM: //PENTIUM PRO(686)?
+	case CPU_PENTIUMPRO: //PENTIUM PRO(686)?
 		switch (REG_EAX)
 		{
 		case 0x00: //Highest function parameter!
