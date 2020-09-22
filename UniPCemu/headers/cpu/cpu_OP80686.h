@@ -35,6 +35,8 @@ void CPU686_OP0FNOP_32(); //HINT_NOP r/m32
 void CPU686_OP0F1F_16(); //HINT_NOP /1-7 r/m16
 void CPU686_OP0F1F_32(); //HINT_NOP /1-7 r/m32
 
+void CPU686_OP0F33(); //RDPMC
+
 //CMOVcc instructions
 
 //16-bit
