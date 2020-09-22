@@ -1052,12 +1052,12 @@ void loadBIOSCMOS(CMOSDATA *CMOS, char *section, INI_FILE *i)
 	CMOS->floppy1_nodisk_type = (byte)get_private_profile_uint64(section, "floppy1_nodisk_type", 0, i);
 	if (CMOS->floppy1_nodisk_type >= NUMFLOPPYGEOMETRIES) CMOS->floppy1_nodisk_type = 0; //Default if invalid!
 
-	CMOS->emulated_CPU = (byte)get_private_profile_uint64(section, "cpu", BIOS_Settings.emulated_CPU, i);
-	CMOS->DataBusSize = (byte)get_private_profile_uint64(section, "databussize", BIOS_Settings.DataBusSize, i); //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+	CMOS->emulated_CPU = LIMITRANGE((byte)get_private_profile_uint64(section, "cpu", BIOS_Settings.emulated_CPU, i),0,NUMCPUS-1); //Limited CPU range!
+	CMOS->DataBusSize = LIMITRANGE((byte)get_private_profile_uint64(section, "databussize", BIOS_Settings.DataBusSize, i),0,1); //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
 	CMOS->CPUspeed = (uint_32)get_private_profile_uint64(section, "cpuspeed", BIOS_Settings.CPUSpeed, i);
 	CMOS->TurboCPUspeed = (uint_32)get_private_profile_uint64(section, "turbocpuspeed", BIOS_Settings.TurboCPUSpeed, i);
-	CMOS->useTurboCPUSpeed = (byte)get_private_profile_uint64(section, "useturbocpuspeed", BIOS_Settings.useTurboSpeed, i); //Are we to use Turbo CPU speed?
-	CMOS->clockingmode = (byte)get_private_profile_uint64(section, "clockingmode", BIOS_Settings.clockingmode, i); //Are we using the IPS clock?
+	CMOS->useTurboCPUSpeed = LIMITRANGE((byte)get_private_profile_uint64(section, "useturbocpuspeed", BIOS_Settings.useTurboSpeed, i),0,1); //Are we to use Turbo CPU speed?
+	CMOS->clockingmode = LIMITRANGE((byte)get_private_profile_uint64(section, "clockingmode", BIOS_Settings.clockingmode, i),0,1); //Are we using the IPS clock?
 
 	for (index=0;index<NUMITEMS(CMOS->DATA80.data);++index) //Process extra RAM data!
 	{
@@ -1111,28 +1111,28 @@ void BIOS_LoadData() //Load BIOS settings!
 
 	//General
 	BIOS_Settings.version = (byte)get_private_profile_uint64("general", "version", BIOS_VERSION, inifile);
-	BIOS_Settings.firstrun = (byte)get_private_profile_uint64("general", "firstrun", 1, inifile); //Is this the first run of this BIOS?
+	BIOS_Settings.firstrun = (byte)get_private_profile_uint64("general", "firstrun", 1, inifile)?1:0; //Is this the first run of this BIOS?
 	BIOS_Settings.BIOSmenu_font = (byte)get_private_profile_uint64("general", "settingsmenufont", 0, inifile); //The selected font for the BIOS menu!
 	BIOS_Settings.backgroundpolicy = (byte)get_private_profile_uint64("general", "backgroundpolicy", DEFAULT_BACKGROUNDPOLICY, inifile); //The selected font for the BIOS menu!
 
 	//Machine
 	BIOS_Settings.emulated_CPU = (word)get_private_profile_uint64("machine", "cpu", DEFAULT_CPU, inifile);
 	BIOS_Settings.DataBusSize = (byte)get_private_profile_uint64("machine", "databussize", 0, inifile); //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
-	BIOS_Settings.architecture = (byte)get_private_profile_uint64("machine", "architecture", ARCHITECTURE_XT, inifile); //Are we using the XT/AT/PS/2 architecture?
+	BIOS_Settings.architecture = LIMITRANGE((byte)get_private_profile_uint64("machine", "architecture", ARCHITECTURE_XT, inifile),ARCHITECTURE_XT,ARCHITECTURE_i430fx); //Are we using the XT/AT/PS/2 architecture?
 	BIOS_Settings.executionmode = (byte)get_private_profile_uint64("machine", "executionmode", DEFAULT_EXECUTIONMODE, inifile); //What mode to execute in during runtime?
 	BIOS_Settings.CPUSpeed = (uint_32)get_private_profile_uint64("machine", "cpuspeed", 0, inifile);
 	BIOS_Settings.ShowCPUSpeed = (byte)get_private_profile_uint64("machine", "showcpuspeed", 0, inifile); //Show the relative CPU speed together with the framerate?
 	BIOS_Settings.TurboCPUSpeed = (uint_32)get_private_profile_uint64("machine", "turbocpuspeed", 0, inifile);
-	BIOS_Settings.useTurboSpeed = (byte)get_private_profile_uint64("machine", "useturbocpuspeed", 0, inifile); //Are we to use Turbo CPU speed?
+	BIOS_Settings.useTurboSpeed = LIMITRANGE((byte)get_private_profile_uint64("machine", "useturbocpuspeed", 0, inifile),0,1); //Are we to use Turbo CPU speed?
 	BIOS_Settings.clockingmode = (byte)get_private_profile_uint64("machine", "clockingmode", DEFAULT_CLOCKINGMODE, inifile); //Are we using the IPS clock?
 	BIOS_Settings.BIOSROMmode = (byte)get_private_profile_uint64("machine", "BIOSROMmode", DEFAULT_BIOSROMMODE, inifile); //BIOS ROM mode.
-	BIOS_Settings.InboardInitialWaitstates = (byte)get_private_profile_uint64("machine", "inboardinitialwaitstates", DEFAULT_INBOARDINITIALWAITSTATES, inifile); //Inboard 386 initial delay used?
+	BIOS_Settings.InboardInitialWaitstates = LIMITRANGE((byte)get_private_profile_uint64("machine", "inboardinitialwaitstates", DEFAULT_INBOARDINITIALWAITSTATES, inifile),0,1); //Inboard 386 initial delay used?
 
 	//Debugger
 	BIOS_Settings.debugmode = (byte)get_private_profile_uint64("debugger", "debugmode", DEFAULT_DEBUGMODE, inifile);
 	BIOS_Settings.debugger_log = (byte)get_private_profile_uint64("debugger", "debuggerlog", DEFAULT_DEBUGGERLOG, inifile);
 	BIOS_Settings.debugger_logstates = (byte)get_private_profile_uint64("debugger", "logstates", DEFAULT_DEBUGGERSTATELOG, inifile); //Are we logging states? 1=Log states, 0=Don't log states!
-	BIOS_Settings.debugger_logregisters = (byte)get_private_profile_uint64("debugger", "logregisters", DEFAULT_DEBUGGERREGISTERSLOG, inifile); //Are we logging states? 1=Log states, 0=Don't log states!
+	BIOS_Settings.debugger_logregisters = LIMITRANGE((byte)get_private_profile_uint64("debugger", "logregisters", DEFAULT_DEBUGGERREGISTERSLOG, inifile),0,1); //Are we logging states? 1=Log states, 0=Don't log states!
 	BIOS_Settings.breakpoint[0] = get_private_profile_uint64("debugger", "breakpoint", 0, inifile); //The used breakpoint segment:offset and mode!
 	BIOS_Settings.breakpoint[1] = get_private_profile_uint64("debugger", "breakpoint2", 0, inifile); //The used breakpoint segment:offset and mode!
 	BIOS_Settings.breakpoint[2] = get_private_profile_uint64("debugger", "breakpoint3", 0, inifile); //The used breakpoint segment:offset and mode!
@@ -1140,7 +1140,7 @@ void BIOS_LoadData() //Load BIOS settings!
 	BIOS_Settings.breakpoint[4] = get_private_profile_uint64("debugger", "breakpoint5", 0, inifile); //The used breakpoint segment:offset and mode!
 	BIOS_Settings.taskBreakpoint = get_private_profile_uint64("debugger", "taskbreakpoint", 0, inifile); //The used breakpoint segment:offset and mode!
 	BIOS_Settings.CR3breakpoint = get_private_profile_uint64("debugger", "CR3breakpoint", 0, inifile); //The used breakpoint segment:offset and mode!
-	BIOS_Settings.diagnosticsportoutput_breakpoint = (sword)get_private_profile_int64("debugger", "diagnosticsport_breakpoint", DEFAULT_DIAGNOSTICSPORTOUTPUT_BREAKPOINT, inifile); //Use a diagnostics port breakpoint?
+	BIOS_Settings.diagnosticsportoutput_breakpoint = LIMITRANGE((sword)get_private_profile_int64("debugger", "diagnosticsport_breakpoint", DEFAULT_DIAGNOSTICSPORTOUTPUT_BREAKPOINT, inifile),-1,0xFF); //Use a diagnostics port breakpoint?
 	BIOS_Settings.diagnosticsportoutput_timeout = (uint_32)get_private_profile_uint64("debugger", "diagnosticsport_timeout", DEFAULT_DIAGNOSTICSPORTOUTPUT_TIMEOUT, inifile); //Breakpoint timeout used!
 	BIOS_Settings.advancedlog = (byte)get_private_profile_uint64("debugger", "advancedlog", DEFAULT_ADVANCEDLOG, inifile); //The selected font for the BIOS menu!
 
@@ -1152,21 +1152,21 @@ void BIOS_LoadData() //Load BIOS settings!
 	BIOS_Settings.GPU_AllowDirectPlot = (byte)get_private_profile_uint64("video", "directplot", DEFAULT_DIRECTPLOT, inifile); //Allow VGA Direct Plot: 1 for automatic 1:1 mapping, 0 for always dynamic, 2 for force 1:1 mapping?
 	BIOS_Settings.aspectratio = (byte)get_private_profile_uint64("video", "aspectratio", DEFAULT_ASPECTRATIO, inifile); //The aspect ratio to use?
 	BIOS_Settings.bwmonitor = (byte)get_private_profile_uint64("video", "bwmonitor", DEFAULT_BWMONITOR, inifile); //Are we a b/w monitor?
-	BIOS_Settings.ShowFramerate = (byte)get_private_profile_uint64("video", "showframerate", DEFAULT_FRAMERATE, inifile); //Show the frame rate?
+	BIOS_Settings.ShowFramerate = LIMITRANGE((byte)get_private_profile_uint64("video", "showframerate", DEFAULT_FRAMERATE, inifile),0,1); //Show the frame rate?
 
 	//Sound
-	BIOS_Settings.usePCSpeaker = (byte)get_private_profile_uint64("sound", "speaker", 1, inifile); //Emulate PC Speaker sound?
-	BIOS_Settings.useAdlib = (byte)get_private_profile_uint64("sound", "adlib", 1, inifile); //Emulate Adlib?
-	BIOS_Settings.useLPTDAC = (byte)get_private_profile_uint64("sound", "LPTDAC", 1, inifile); //Emulate Covox/Disney Sound Source?
+	BIOS_Settings.usePCSpeaker = LIMITRANGE((byte)get_private_profile_uint64("sound", "speaker", 1, inifile),0,1); //Emulate PC Speaker sound?
+	BIOS_Settings.useAdlib = LIMITRANGE((byte)get_private_profile_uint64("sound", "adlib", 1, inifile),0,1); //Emulate Adlib?
+	BIOS_Settings.useLPTDAC = LIMITRANGE((byte)get_private_profile_uint64("sound", "LPTDAC", 1, inifile),0,1); //Emulate Covox/Disney Sound Source?
 	get_private_profile_string("sound", "soundfont", "", &BIOS_Settings.SoundFont[0], sizeof(BIOS_Settings.SoundFont), inifile); //Read entry!
-	BIOS_Settings.useDirectMIDI = (byte)get_private_profile_uint64("sound", "directmidi", DEFAULT_DIRECTMIDIMODE, inifile); //Use Direct MIDI synthesis by using a passthrough to the OS?
-	BIOS_Settings.useGameBlaster = (byte)get_private_profile_uint64("sound", "gameblaster", 1, inifile); //Emulate Game Blaster?
+	BIOS_Settings.useDirectMIDI = LIMITRANGE((byte)get_private_profile_uint64("sound", "directmidi", DEFAULT_DIRECTMIDIMODE, inifile),0,1); //Use Direct MIDI synthesis by using a passthrough to the OS?
+	BIOS_Settings.useGameBlaster = LIMITRANGE((byte)get_private_profile_uint64("sound", "gameblaster", 1, inifile),0,1); //Emulate Game Blaster?
 	BIOS_Settings.GameBlaster_Volume = (uint_32)get_private_profile_uint64("sound", "gameblaster_volume", 100, inifile); //The Game Blaster volume knob!
 	BIOS_Settings.useSoundBlaster = (byte)get_private_profile_uint64("sound", "soundblaster", DEFAULT_SOUNDBLASTER, inifile); //Emulate Sound Blaster?
 	BIOS_Settings.SoundSource_Volume = (uint_32)get_private_profile_uint64("sound", "soundsource_volume", DEFAULT_SSOURCEVOL, inifile); //The sound source volume knob!
 
 	//Modem
-	BIOS_Settings.modemlistenport = (word)get_private_profile_uint64("modem", "listenport", DEFAULT_MODEMLISTENPORT, inifile); //Modem listen port!
+	BIOS_Settings.modemlistenport = LIMITRANGE((word)get_private_profile_uint64("modem", "listenport", DEFAULT_MODEMLISTENPORT, inifile),0,0xFFFF); //Modem listen port!
 	for (c = 0; c < NUMITEMS(BIOS_Settings.phonebook); ++c) //Process all phonebook entries!
 	{
 		snprintf(phonebookentry, sizeof(phonebookentry), "phonebook%u", c); //The entry to use!
@@ -1234,10 +1234,10 @@ void BIOS_LoadData() //Load BIOS settings!
 	BIOS_Settings.input_settings.specialcolor = (byte)get_private_profile_uint64("input","keyboard_specialcolor",0xFF,inifile);
 	BIOS_Settings.input_settings.specialbordercolor = (byte)get_private_profile_uint64("input","keyboard_specialbordercolor",0xFF,inifile);
 	BIOS_Settings.input_settings.specialactivecolor = (byte)get_private_profile_uint64("input","keyboard_specialactivecolor",0xFF,inifile);
-	BIOS_Settings.input_settings.DirectInput_remap_RCTRL_to_LWIN = (byte)get_private_profile_uint64("input","DirectInput_remap_RCTRL_to_LWIN",0,inifile); //Remap RCTRL to LWIN in Direct Input?
-	BIOS_Settings.input_settings.DirectInput_remap_accentgrave_to_tab = (byte)get_private_profile_uint64("input","DirectInput_remap_accentgrave_to_tab",0,inifile); //Remap Accent Grave to Tab during LALT?
-	BIOS_Settings.input_settings.DirectInput_remap_NUM0_to_Delete = (byte)get_private_profile_uint64("input", "DirectInput_remap_NUM0_to_Delete", 0, inifile); //Remap NUM0 to Delete?
-	BIOS_Settings.input_settings.DirectInput_Disable_RALT = (byte)get_private_profile_uint64("input","DirectInput_disable_RALT",0,inifile); //Disable RALT?
+	BIOS_Settings.input_settings.DirectInput_remap_RCTRL_to_LWIN = LIMITRANGE((byte)get_private_profile_uint64("input","DirectInput_remap_RCTRL_to_LWIN",0,inifile),0,1); //Remap RCTRL to LWIN in Direct Input?
+	BIOS_Settings.input_settings.DirectInput_remap_accentgrave_to_tab = LIMITRANGE((byte)get_private_profile_uint64("input","DirectInput_remap_accentgrave_to_tab",0,inifile),0,1); //Remap Accent Grave to Tab during LALT?
+	BIOS_Settings.input_settings.DirectInput_remap_NUM0_to_Delete = LIMITRANGE((byte)get_private_profile_uint64("input", "DirectInput_remap_NUM0_to_Delete", 0, inifile),0,1); //Remap NUM0 to Delete?
+	BIOS_Settings.input_settings.DirectInput_Disable_RALT = LIMITRANGE((byte)get_private_profile_uint64("input","DirectInput_disable_RALT",0,inifile),0,1); //Disable RALT?
 	for (c=0;c<6;++c) //Validate colors and set default colors when invalid!
 	{
 		if (BIOS_Settings.input_settings.colors[c]>0xF) keyboard_loadDefaultColor((byte)c); //Set default color when invalid!
