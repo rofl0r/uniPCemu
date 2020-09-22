@@ -194,7 +194,7 @@ void CPU_CPUID()
 			REG_EAX |= (5 << 4); //Model: P5(what we're approximating, without FPU). Maybe should be 0(Nx586) instead of 1(P5), since we're not emulating a FPU.
 			REG_EAX |= (1 << 0); //Processor stepping: Pentium pro(7)!
 			REG_EBX = 0; //Unknown, leave zeroed!
-			REG_EDX = 0x813E; //Just VME, Debugging Extensions, Page Size Extensions, TSC, MSR, CMPXCHG8, CMOV(but not FCMOV, since the NPU feature bit(bit 0) isn't set) have been implemented!
+			REG_EDX = 0x893E; //Just VME, Debugging Extensions, Page Size Extensions, TSC, MSR, CMPXCHG8, SYSENTER/SYSEXIT, CMOV(but not FCMOV, since the NPU feature bit(bit 0) isn't set) have been implemented!
 			REG_ECX = 0x00000000; //No features!
 			break;
 		}
