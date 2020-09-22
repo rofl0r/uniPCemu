@@ -23,8 +23,6 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 
 #include "headers/cpu/cpu.h" //CPU support!
 
-void CPU686_CPUID(); //CPUID
-
 void CPU80686_OP0F0D_16(); //NOP r/m16
 void CPU80686_OP0F0D_32(); //NOP r/m32
 

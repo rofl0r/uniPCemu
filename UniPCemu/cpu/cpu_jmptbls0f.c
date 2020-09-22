@@ -1309,7 +1309,7 @@ Handler opcode0F_jmptbl[NUM0FEXTS][256][2] =   //Our standard internal standard 
 		//0xA0:
 		{ NULL, NULL }, //A0h:
 		{ NULL, NULL }, //A1h:
-		{ CPU686_CPUID, NULL }, //A2h:
+		{ NULL, NULL }, //A2h:
 		{ NULL, NULL }, //A3h:
 		{ NULL, NULL }, //A4h:
 		{ NULL, NULL }, //A5h:
