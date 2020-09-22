@@ -901,6 +901,7 @@ void updateSpeedLimit()
 			case CPU_80486: //486?
 			case CPU_PENTIUM: //586?
 			case CPU_PENTIUMPRO: //686?
+			case CPU_PENTIUM2: //786?
 				if (useIPSclock) //Using the IPS clock?
 				{
 					switch (EMULATED_CPU) //What CPU, if supported!
@@ -915,7 +916,8 @@ void updateSpeedLimit()
 						setCPUCycles(26800); //Supported so far! Default cycles!
 						break;
 					case CPU_PENTIUM: //Pentium 100MHz?
-					case CPU_PENTIUMPRO: //Pentium 100MHz?
+					case CPU_PENTIUMPRO: //Pentium Pro 100MHz?
+					case CPU_PENTIUM2: //Pentium II 100MHz?
 						setCPUCycles(77000); //Supported so far! Default cycles!
 						break;
 					default: //Unknown?

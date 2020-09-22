@@ -109,7 +109,7 @@ void *MMU_ptr(sword segdesc, word segment, uint_32 offset, byte forreading, uint
 	return MMU_directptr(realaddr, size); //Direct pointer!
 }
 
-uint_32 addresswrapping[14] = { //-NEC V20/V30 wraps offset arround 64kB? NEC V20/V30 allows 1 byte more in word operations! index: Bit0=Address 0x10000, Bit1+=Emulated CPU
+uint_32 addresswrapping[16] = { //-NEC V20/V30 wraps offset arround 64kB? NEC V20/V30 allows 1 byte more in word operations! index: Bit0=Address 0x10000, Bit1+=Emulated CPU
 							0xFFFF, //8086
 							0xFFFF, //8086 0x10000
 							0xFFFF, //80186
@@ -123,7 +123,9 @@ uint_32 addresswrapping[14] = { //-NEC V20/V30 wraps offset arround 64kB? NEC V2
 							0xFFFFFFFF, //80586+
 							0xFFFFFFFF, //80586+
 							0xFFFFFFFF, //80686+
-							0xFFFFFFFF //80686+
+							0xFFFFFFFF, //80686+
+							0xFFFFFFFF, //80786+
+							0xFFFFFFFF //80786+
 }; //Address wrapping lookup table!
 
 //Some prototypes for definition!

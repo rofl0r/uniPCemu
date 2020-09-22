@@ -597,6 +597,9 @@
     <ClCompile Include="cpu\opcodes_686.c">
       <Filter>Source Files\cpu</Filter>
     </ClCompile>
+    <ClCompile Include="cpu\opcodes_786.c">
+      <Filter>Source Files\cpu</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="headers\header_dosbox.h">
@@ -1050,6 +1053,9 @@
       <Filter>Header Files\hardware</Filter>
     </ClInclude>
     <ClInclude Include="headers\cpu\cpu_OP80686.h">
+      <Filter>Header Files\cpu</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\cpu\cpu_OP80786.h">
       <Filter>Header Files\cpu</Filter>
     </ClInclude>
   </ItemGroup>

@@ -137,6 +137,8 @@ OBJS += cpu/opcodes_486.o
 OBJS += cpu/opcodes_586.o
 #Opcodes for CPU 80686 (Pentium Pro)
 OBJS += cpu/opcodes_686.o
+#Opcodes for CPU 80786 (Pentium II)
+OBJS += cpu/opcodes_786.o
 #Opcodes: unknown opcodes and rest handler functions (386 0x0F, unknown opcode handler for 386&8086)
 OBJS += cpu/unkop.o
 #Now the jumptables for all CPUs!

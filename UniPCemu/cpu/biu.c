@@ -554,7 +554,7 @@ OPTINLINE void CPU_fillPIQ() //Fill the PIQ until it's full!
 }
 
 extern byte CPU_MMU_checkrights_cause; //What cause?
-byte instructionlimit[5] = {10,15,15,15,15}; //What is the maximum instruction length in bytes?
+byte instructionlimit[6] = {10,15,15,15,15,15}; //What is the maximum instruction length in bytes?
 void BIU_dosboxTick()
 {
 	uint_32 BIUsize, BIUsize2;

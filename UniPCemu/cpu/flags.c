@@ -363,6 +363,7 @@ void CPU_filterflags()
 		break;
 	case CPU_PENTIUM:
 	case CPU_PENTIUMPRO:
+	case CPU_PENTIUM2:
 		//Allow all bits to be set, except the one needed from the 80386+ identification(bit 15=0)!
 		if (getcpumode() == CPU_MODE_REAL) //Real mode?
 		{

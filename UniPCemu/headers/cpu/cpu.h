@@ -34,8 +34,8 @@ extern BIOS_Settings_TYPE BIOS_Settings; //BIOS Settings (required for determini
 #define MAXCPUS 1
 
 //Number of currently supported CPUs & opcode 0F extensions.
-#define NUMCPUS 7
-#define NUM0FEXTS 5
+#define NUMCPUS 8
+#define NUM0FEXTS 6
 //What CPU is emulated?
 #define CPU_8086 0
 #define CPU_NECV30 1
@@ -43,6 +43,7 @@ extern BIOS_Settings_TYPE BIOS_Settings; //BIOS Settings (required for determini
 #define CPU_80386 3
 #define CPU_80486 4
 #define CPU_PENTIUMPRO 6
+#define CPU_PENTIUM2 7
 #define CPU_PENTIUM 5
 
 //How many modes are there in the CPU? Currently 2: 16-bit and 32-bit modes!

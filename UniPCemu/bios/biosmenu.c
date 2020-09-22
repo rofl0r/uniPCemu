@@ -1992,8 +1992,8 @@ void BIOS_InstalledCPUOption() //Manages the installed CPU!
 	GPU_EMU_printscreen(0,4,"Installed CPU: "); //Show selection init!
 	EMU_unlocktext();
 	int i = 0; //Counter!
-	numlist = 7; //Amount of CPU types!
-	for (i=0; i<7; i++) //Process options!
+	numlist = 8; //Amount of CPU types!
+	for (i=0; i<8; i++) //Process options!
 	{
 		memset(&itemlist[i][0],0,sizeof(itemlist[i])); //Reset!
 	}
@@ -2004,6 +2004,7 @@ void BIOS_InstalledCPUOption() //Manages the installed CPU!
 	safestrcpy(itemlist[CPU_80486],sizeof(itemlist[0]), "Intel 80486"); //Set filename from options!
 	safestrcpy(itemlist[CPU_PENTIUM],sizeof(itemlist[0]), "Intel Pentium(without FPU)"); //Set filename from options!
 	safestrcpy(itemlist[CPU_PENTIUMPRO], sizeof(itemlist[0]), "Intel Pentium Pro(without FPU)"); //Set filename from options!
+	safestrcpy(itemlist[CPU_PENTIUM2], sizeof(itemlist[0]), "Intel Pentium II(without FPU)"); //Set filename from options!
 	int current = 0;
 	if (*(getarchemulated_CPU())==CPU_8086) //8086?
 	{
@@ -2032,6 +2033,10 @@ void BIOS_InstalledCPUOption() //Manages the installed CPU!
 	else if (*(getarchemulated_CPU()) == CPU_PENTIUMPRO) //PENTIUM?
 	{
 		current = CPU_PENTIUMPRO; //PENTIUM!
+	}
+	else if (*(getarchemulated_CPU()) == CPU_PENTIUM2) //PENTIUM?
+	{
+		current = CPU_PENTIUM2; //PENTIUM!
 	}
 	else //Unknown (default)?
 	{
@@ -2072,6 +2077,9 @@ void BIOS_InstalledCPUOption() //Manages the installed CPU!
 				break;
 			case CPU_PENTIUMPRO: //PENTIUM?
 				*(getarchemulated_CPU()) = CPU_PENTIUMPRO; //Use the PENTIUM PRO!
+				break;
+			case CPU_PENTIUM2: //PENTIUM?
+				*(getarchemulated_CPU()) = CPU_PENTIUM2; //Use the PENTIUM II!
 				break;
 			default: //Unknown CPU?
 				*(getarchemulated_CPU()) = CPU_8086; //Use the 8086!
@@ -5525,6 +5533,9 @@ void BIOS_InitCPUText()
 		break;
 	case CPU_PENTIUMPRO: //PENTIUM PRO?
 		safestrcat(menuoptions[advancedoptions++], sizeof(menuoptions[0]), "Intel Pentium Pro(without FPU)"); //Add installed CPU!
+		break;
+	case CPU_PENTIUM2: //PENTIUM II?
+		safestrcat(menuoptions[advancedoptions++], sizeof(menuoptions[0]), "Intel Pentium II(without FPU)"); //Add installed CPU!
 		break;
 	default:
 		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "<UNKNOWN. CHECK SETTINGS VERSION>"); //Add uninstalled CPU!
