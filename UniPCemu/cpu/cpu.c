@@ -185,8 +185,8 @@ void CPU_CPUID()
 		case CPU_PENTIUM2: //Pentium 2?
 			REG_EAX = (0 << 0xC); //Type: 00b=Primary processor
 			REG_EAX |= (6 << 8); //Family: Pentium Pro(what we're identifying as), Nx586(what we're effectively emulating), Cx6x86, K5/K6, C6, mP6
-			REG_EAX |= (3 << 4); //Model: Pentium II(3, what we're approximating, without FPU). Maybe should be 0(Nx586) instead of 1(P5), since we're not emulating a FPU.
-			REG_EAX |= (4 << 0); //Processor stepping: Pentium II(4)!
+			REG_EAX |= (5 << 4); //Model: Pentium II(5, what we're approximating, without FPU). Maybe should be 0(Nx586) instead of 1(P5), since we're not emulating a FPU.
+			REG_EAX |= (1 << 0); //Processor stepping: Pentium II(1)!
 			REG_EBX = 0; //Unknown, leave zeroed!
 			break;
 		}
