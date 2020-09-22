@@ -3806,7 +3806,7 @@ void ATAPI_executeCommand(byte channel, byte drive) //Prototype for ATAPI execut
 		{
 			if (!(is_mounted(ATA_Drives[channel][drive]) && ATA[channel].Drive[drive].diskInserted)) { abortreason = SENSE_NOT_READY; additionalsensecode = ASC_MEDIUM_NOT_PRESENT; ascq = (ATA[channel].Drive[drive].ATAPI_caddyejected ? 0x02 : 0x01); goto ATAPI_invalidcommand; } //Error out if not present!
 			LBA = (((((ATA[channel].Drive[drive].ATAPI_PACKET[2] << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[3]) << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[4]) << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[5]; //The LBA address!
-			ATA[channel].Drive[drive].datasize = ATA[channel].Drive[drive].ATAPI_PACKET[8] | ATA[channel].Drive[drive].ATAPI_PACKET[7] | ATA[channel].Drive[drive].ATAPI_PACKET[6]; //The amount of sectors to transfer!
+			ATA[channel].Drive[drive].datasize = (((ATA[channel].Drive[drive].ATAPI_PACKET[6] << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[7]) << 8) | ATA[channel].Drive[drive].ATAPI_PACKET[8]; //The amount of sectors to transfer!
 			transfer_req = ATA[channel].Drive[drive].ATAPI_PACKET[9]; //Requested type of packets!
 			if (!ATA[channel].Drive[drive].datasize) //Nothing to transfer?
 			{
