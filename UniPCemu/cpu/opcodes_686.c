@@ -156,6 +156,25 @@ void CPU686_OP0F1F_32()
 	}
 }
 
+void CPU686_OP0F33()
+{
+	if (unlikely(cpudebugger)) //Debugger on?
+	{
+		modrm_generateInstructionTEXT("RDPMC", 32, 0, PARAM_NONE);
+	}
+	if (((CPU[activeCPU].registers->CR4&0x100)==0) && getCPL() && (getcpumode()!=CPU_MODE_REAL))
+	{
+		THROWDESCGP(0, 0, 0); //#GP(0)!
+		return;
+	}
+	//Check ECX for validity?
+	if (1) //Always invalid?
+	{
+		THROWDESCGP(0, 0, 0); //#GP(0)!
+		return;
+	}
+}
+
 //CMOVcc instructions
 
 //SETCC instructions
