@@ -25,6 +25,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/cpu/cpu_pmtimings.h" //Timing support!
 #include "headers/cpu/easyregs.h" //Easy register support!
 #include "headers/cpu/protection.h" //Protection support!
+#include "headers/cpu/biu.h" //condflushPIQ support!
 
 MODRM_PARAMS params; //For getting all params for the CPU!
 extern byte cpudebugger; //The debugging is on?
@@ -65,6 +66,7 @@ void CPU786_OP0F30() //WRMSR
 		validbitslo = ~0; //All bits are valid!
 		break;
 	default:
+		validbitslo = 0; //Not supported?
 		break;
 	}
 	
