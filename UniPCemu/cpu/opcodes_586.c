@@ -78,11 +78,11 @@ void CPU586_OP0F30() //WRMSR
 	}
 }
 
-void CPU586_OP0F31() //RSTDC
+void CPU586_OP0F31() //RDTSC
 {
 	if (unlikely(cpudebugger)) //Debugger on?
 	{
-		modrm_generateInstructionTEXT("RSTDC", 0, 0, PARAM_NONE);
+		modrm_generateInstructionTEXT("RDTSC", 0, 0, PARAM_NONE);
 	}
 	if (getCPL() && (CPU[activeCPU].registers->CR4 & 4) && (getcpumode()!=CPU_MODE_REAL)) //Time-stamp disable set and not PL0?
 	{
