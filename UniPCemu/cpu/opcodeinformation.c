@@ -6787,7 +6787,7 @@ CPU_OpcodeInformation CPUOpcodeInformation0F[NUMCPUS-CPU_80286][2][0x100] = { //
 			{ 0,1,0,0,0,0,0,0x01 }, //0A
 			{ 0,1,1,0,0,0,0,0x01 }, //0B
 			{ 0,0,0,0,0,0,1,0x04 }, //0C
-			{ 1,1,1,0,0,1,0,0x00 }, //0D NOP r/m16 (Pentium Pro+)
+			{ 0,1,1,0,0,1,0,0x00 }, //0D NOP r/m16 (Pentium Pro+)
 			{ 0,0,0,0,0,0,0,0x08 }, //0E PUSH CS
 			{ 0,0,0,0,0,0,0,0x10 }, //0F POP CS
 			{ 0,1,0,0,1,0,0,0x01 }, //10 ADC
