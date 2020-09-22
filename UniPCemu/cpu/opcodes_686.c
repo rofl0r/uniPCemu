@@ -24,6 +24,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/cpu/cpu_OP80386.h" //32-bit support!
 #include "headers/cpu/cpu_pmtimings.h" //Timing support!
 #include "headers/cpu/easyregs.h" //Easy register support!
+#include "headers/cpu/protection.h" //CPL support!
 
 MODRM_PARAMS params; //For getting all params for the CPU!
 extern byte cpudebugger; //The debugging is on?
