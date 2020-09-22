@@ -38,6 +38,7 @@ extern int_32 modrm_addoffset; //Add this offset to ModR/M reads!
 //Modr/m support, used when reg=NULL and custommem==0
 extern byte MODRM_src0; //What destination operand in our modr/m? (1/2)
 extern byte MODRM_src1; //What source operand in our modr/m? (2/2)
+extern byte cpudebugger; //The debugging is on?
 
 OPTINLINE byte CPU80586_instructionstepPOPtimeout(word base)
 {
@@ -55,6 +56,10 @@ void CPU586_CPUID()
 
 void CPU586_OP0F30() //WRMSR
 {
+	if (unlikely(cpudebugger)) //Debugger on?
+	{
+		modrm_generateInstructionTEXT("WRMSR", 0, 0, PARAM_NONE);
+	}
 	//MSR #ECX = EDX::EAX
 	if (getCPL() && (getcpumode() != CPU_MODE_REAL)) //Invalid privilege?
 	{
@@ -75,6 +80,10 @@ void CPU586_OP0F30() //WRMSR
 
 void CPU586_OP0F31() //RSTDC
 {
+	if (unlikely(cpudebugger)) //Debugger on?
+	{
+		modrm_generateInstructionTEXT("RSTDC", 0, 0, PARAM_NONE);
+	}
 	if (getCPL() && (CPU[activeCPU].registers->CR4 & 4) && (getcpumode()!=CPU_MODE_REAL)) //Time-stamp disable set and not PL0?
 	{
 		THROWDESCGP(0, 0, 0); //#GP(0)!
@@ -86,6 +95,10 @@ void CPU586_OP0F31() //RSTDC
 
 void CPU586_OP0F32() //RDMSR
 {
+	if (unlikely(cpudebugger)) //Debugger on?
+	{
+		modrm_generateInstructionTEXT("RDMSR", 0, 0, PARAM_NONE);
+	}
 	if (getCPL() && (getcpumode() != CPU_MODE_REAL)) //Invalid privilege?
 	{
 		THROWDESCGP(0,0,0); //#GP(0)!
@@ -109,6 +122,12 @@ void CPU586_OP0FC7() //CMPXCHG8B r/m32
 		CPU_unkOP(); //#UD for reg not being 1!
 		return;
 	}
+
+	if (unlikely(cpudebugger)) //Debugger on?
+	{
+		modrm_generateInstructionTEXT("CMPXCHG8B", 32, 0, PARAM_MODRM_0);
+	}
+
 	modrm_addoffset = 0; //Low dword
 	if (modrm_check32(&params, MODRM_src0, 1 | 0x40)) return;
 	modrm_addoffset = 4; //High dword

@@ -168,6 +168,7 @@ void CPU486_OP0F09() //WBINVD?
 void CPU486_OP0FB0()
 {
 	byte temp;
+	modrm_generateInstructionTEXT("CMPXCHG", 8, 0, PARAM_MODRM_0_ACCUM_1);
 	if (modrm_check8(&params,MODRM_src0,1)) return;
 	temp = modrm_read8(&params,MODRM_src0);
 	if (REG_AL==temp)
@@ -185,6 +186,7 @@ void CPU486_OP0FB0()
 void CPU486_OP0FB1_16()
 {
 	word temp;
+	modrm_generateInstructionTEXT("CMPXCHG", 16, 0, PARAM_MODRM_0_ACCUM_1);
 	if (modrm_check16(&params,MODRM_src0,1|0x40)) return;
 	if (modrm_check16(&params,MODRM_src0,1|0xA0)) return;
 	temp = modrm_read16(&params,MODRM_src0);
@@ -204,6 +206,7 @@ void CPU486_OP0FB1_16()
 void CPU486_OP0FB1_32()
 {
 	uint_32 temp;
+	modrm_generateInstructionTEXT("CMPXCHG", 32, 0, PARAM_MODRM_0_ACCUM_1);
 	if (modrm_check32(&params,MODRM_src0,1|0x40)) return;
 	if (modrm_check32(&params,MODRM_src0,1|0xA0)) return;
 	temp = modrm_read32(&params,MODRM_src0);

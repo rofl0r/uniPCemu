@@ -21,4 +21,9 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #ifndef CPU_OP80786_H
 #define CPU_OP80786_H
 
+void CPU786_OP0F30(); //WRMSR
+void CPU786_OP0F32(); //RDMSR
+void CPU786_OP0F34(); //SYSENTER
+void CPU786_OP0F35(); //SYSEXIT
+
 #endif

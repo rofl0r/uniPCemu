@@ -386,6 +386,7 @@ void modrm_generateInstructionTEXT(char *instruction, byte debuggersize, uint_32
 			case PARAM_MODRM_0: //Param1 only?
 			case PARAM_MODRM_1: //Param2 only?
 			case PARAM_MODRM_01: //param1,param2
+			case PARAM_MODRM_0_ACCUM_1: //0,accumulator,1?
 			case PARAM_MODRM_01_IMM8: //param1,param2,imm8
 			case PARAM_MODRM_01_CL: //param1,param2,CL
 			case PARAM_MODRM_10: //param2,param1
@@ -424,6 +425,24 @@ void modrm_generateInstructionTEXT(char *instruction, byte debuggersize, uint_32
 			case PARAM_MODRM2: //Param2 only?
 				safestrcat(result,sizeof(result)," %s"); //1 param!
 				debugger_setcommand(result,modrm_param2);
+				break;
+			case PARAM_MODRM_0_ACCUM_1: //0,accumulator,1?
+				switch (debuggersize)
+				{
+				case 8:
+					safestrcat(result, sizeof(result), " %s,AL,%s"); //2 params!
+					break;
+				case 16:
+					safestrcat(result, sizeof(result), " %s,AX,%s"); //2 params!
+					break;
+				case 32:
+					safestrcat(result, sizeof(result), " %s,EAX,%s"); //2 params!
+					break;
+				default: //None?
+					//Don't use modr/m!
+					break;
+				}
+				debugger_setcommand(result, modrm_param1, modrm_param2);
 				break;
 			case PARAM_MODRM_01:
 			case PARAM_MODRM12: //param1,param2

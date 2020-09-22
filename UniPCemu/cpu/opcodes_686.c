@@ -33,7 +33,7 @@ extern byte thereg; //For function number!
 extern byte MODRM_src0; //What source is our modr/m? (1/2)
 extern byte MODRM_src1; //What source is our modr/m? (1/2)
 
-void CPU80686_OP0F0D_16()
+void CPU686_OP0F0D_16()
 {
 	if (unlikely(cpudebugger)) //Debugger on?
 	{
@@ -46,7 +46,7 @@ void CPU80686_OP0F0D_16()
 	}
 }
 
-void CPU80686_OP0F0D_32()
+void CPU686_OP0F0D_32()
 {
 	if (unlikely(cpudebugger)) //Debugger on?
 	{
@@ -58,7 +58,7 @@ void CPU80686_OP0F0D_32()
 	}
 }
 
-void CPU80686_OP0F18_16()
+void CPU686_OP0F18_16()
 {
 	if (unlikely(cpudebugger))
 	{
@@ -78,7 +78,7 @@ void CPU80686_OP0F18_16()
 	}
 }
 
-void CPU80686_OP0F18_32()
+void CPU686_OP0F18_32()
 {
 	if (unlikely(cpudebugger))
 	{
@@ -98,19 +98,19 @@ void CPU80686_OP0F18_32()
 	}
 }
 
-void CPU80686_OP0FNOP_16()
+void CPU686_OP0FNOP_16()
 {
 	modrm_debugger16(&params, MODRM_src0, MODRM_src1); //Get src!
 	modrm_generateInstructionTEXT("HINT_NOP", 16, 0, PARAM_MODRM_0);
 }
 
-void CPU80686_OP0FNOP_32()
+void CPU686_OP0FNOP_32()
 {
 	modrm_debugger32(&params, MODRM_src0, MODRM_src1); //Get src!
 	modrm_generateInstructionTEXT("HINT_NOP", 32, 0, PARAM_MODRM_0);
 }
 
-void CPU80686_OP0F1F_16()
+void CPU686_OP0F1F_16()
 {
 	if (unlikely(cpudebugger))
 	{
@@ -133,7 +133,7 @@ void CPU80686_OP0F1F_16()
 	}
 }
 
-void CPU80686_OP0F1F_32()
+void CPU686_OP0F1F_32()
 {
 	if (unlikely(cpudebugger))
 	{
@@ -187,7 +187,7 @@ G: (!FLAG_ZF && (FLAG_SF==FLAG_OF))
 
 //16-bit
 
-void CPU80686_OP0F40_16()
+void CPU686_OP0F40_16()
 {
 	modrm_generateInstructionTEXT("CMOVO", 16, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
@@ -202,7 +202,7 @@ void CPU80686_OP0F40_16()
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVO r/m16
-void CPU80686_OP0F41_16()
+void CPU686_OP0F41_16()
 {
 	modrm_generateInstructionTEXT("CMOVNO", 16, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
@@ -217,7 +217,7 @@ void CPU80686_OP0F41_16()
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVNO r/m16
-void CPU80686_OP0F42_16()
+void CPU686_OP0F42_16()
 {
 	modrm_generateInstructionTEXT("CMOVC", 16, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
@@ -233,7 +233,7 @@ void CPU80686_OP0F42_16()
 	if (CPU8086_instructionstepwritemodrmb(0, FLAG_CF, MODRM_src0)) return;
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVC r/m16
-void CPU80686_OP0F43_16()
+void CPU686_OP0F43_16()
 {
 	modrm_generateInstructionTEXT("CMOVNC", 16, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
@@ -248,7 +248,7 @@ void CPU80686_OP0F43_16()
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVAE r/m16
-void CPU80686_OP0F44_16()
+void CPU686_OP0F44_16()
 {
 	modrm_generateInstructionTEXT("CMOVZ", 16, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
@@ -263,7 +263,7 @@ void CPU80686_OP0F44_16()
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVE r/m16
-void CPU80686_OP0F45_16()
+void CPU686_OP0F45_16()
 {
 	modrm_generateInstructionTEXT("CMOVNZ", 16, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
@@ -278,7 +278,7 @@ void CPU80686_OP0F45_16()
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVNE r/m16
-void CPU80686_OP0F46_16()
+void CPU686_OP0F46_16()
 {
 	modrm_generateInstructionTEXT("CMOVBE", 16, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
@@ -293,7 +293,7 @@ void CPU80686_OP0F46_16()
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVNA r/m16
-void CPU80686_OP0F47_16()
+void CPU686_OP0F47_16()
 {
 	modrm_generateInstructionTEXT("CMOVNBE", 16, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
@@ -308,7 +308,7 @@ void CPU80686_OP0F47_16()
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVA r/m16
-void CPU80686_OP0F48_16()
+void CPU686_OP0F48_16()
 {
 	modrm_generateInstructionTEXT("CMOVS", 16, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
@@ -323,7 +323,7 @@ void CPU80686_OP0F48_16()
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVS r/m16
-void CPU80686_OP0F49_16()
+void CPU686_OP0F49_16()
 {
 	modrm_generateInstructionTEXT("CMOVNS", 16, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
@@ -338,7 +338,7 @@ void CPU80686_OP0F49_16()
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVNS r/m16
-void CPU80686_OP0F4A_16()
+void CPU686_OP0F4A_16()
 {
 	modrm_generateInstructionTEXT("CMOVP", 16, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
@@ -353,7 +353,7 @@ void CPU80686_OP0F4A_16()
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVP r/m16
-void CPU80686_OP0F4B_16()
+void CPU686_OP0F4B_16()
 {
 	modrm_generateInstructionTEXT("CMOVNP", 16, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
@@ -368,7 +368,7 @@ void CPU80686_OP0F4B_16()
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVNP r/m16
-void CPU80686_OP0F4C_16()
+void CPU686_OP0F4C_16()
 {
 	modrm_generateInstructionTEXT("CMOVL", 16, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
@@ -383,7 +383,7 @@ void CPU80686_OP0F4C_16()
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVL r/m16
-void CPU80686_OP0F4D_16()
+void CPU686_OP0F4D_16()
 {
 	modrm_generateInstructionTEXT("CMOVGE", 16, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
@@ -398,7 +398,7 @@ void CPU80686_OP0F4D_16()
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVGE r/m16
-void CPU80686_OP0F4E_16()
+void CPU686_OP0F4E_16()
 {
 	modrm_generateInstructionTEXT("CMOVLE", 16, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
@@ -413,7 +413,7 @@ void CPU80686_OP0F4E_16()
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVLE r/m16
-void CPU80686_OP0F4F_16()
+void CPU686_OP0F4F_16()
 {
 	modrm_generateInstructionTEXT("CMOVG", 16, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
@@ -431,7 +431,7 @@ void CPU80686_OP0F4F_16()
 
 //32-bit
 
-void CPU80686_OP0F40_32()
+void CPU686_OP0F40_32()
 {
 	modrm_generateInstructionTEXT("CMOVO", 32, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
@@ -446,7 +446,7 @@ void CPU80686_OP0F40_32()
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVO r/m32
-void CPU80686_OP0F41_32()
+void CPU686_OP0F41_32()
 {
 	modrm_generateInstructionTEXT("CMOVNO", 32, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
@@ -461,7 +461,7 @@ void CPU80686_OP0F41_32()
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVNO r/m32
-void CPU80686_OP0F42_32()
+void CPU686_OP0F42_32()
 {
 	modrm_generateInstructionTEXT("CMOVC", 32, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
@@ -477,7 +477,7 @@ void CPU80686_OP0F42_32()
 	if (CPU8086_instructionstepwritemodrmb(0, FLAG_CF, MODRM_src0)) return;
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVC r/m32
-void CPU80686_OP0F43_32()
+void CPU686_OP0F43_32()
 {
 	modrm_generateInstructionTEXT("CMOVNC", 32, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
@@ -492,7 +492,7 @@ void CPU80686_OP0F43_32()
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVAE r/m32
-void CPU80686_OP0F44_32()
+void CPU686_OP0F44_32()
 {
 	modrm_generateInstructionTEXT("CMOVZ", 32, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
@@ -507,7 +507,7 @@ void CPU80686_OP0F44_32()
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVE r/m32
-void CPU80686_OP0F45_32()
+void CPU686_OP0F45_32()
 {
 	modrm_generateInstructionTEXT("CMOVNZ", 32, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
@@ -522,7 +522,7 @@ void CPU80686_OP0F45_32()
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVNE r/m32
-void CPU80686_OP0F46_32()
+void CPU686_OP0F46_32()
 {
 	modrm_generateInstructionTEXT("CMOVBE", 32, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
@@ -537,7 +537,7 @@ void CPU80686_OP0F46_32()
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVNA r/m32
-void CPU80686_OP0F47_32()
+void CPU686_OP0F47_32()
 {
 	modrm_generateInstructionTEXT("CMOVNBE", 32, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
@@ -552,7 +552,7 @@ void CPU80686_OP0F47_32()
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVA r/m32
-void CPU80686_OP0F48_32()
+void CPU686_OP0F48_32()
 {
 	modrm_generateInstructionTEXT("CMOVS", 32, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
@@ -567,7 +567,7 @@ void CPU80686_OP0F48_32()
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVS r/m32
-void CPU80686_OP0F49_32()
+void CPU686_OP0F49_32()
 {
 	modrm_generateInstructionTEXT("CMOVNS", 32, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
@@ -582,7 +582,7 @@ void CPU80686_OP0F49_32()
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVNS r/m32
-void CPU80686_OP0F4A_32()
+void CPU686_OP0F4A_32()
 {
 	modrm_generateInstructionTEXT("CMOVP", 32, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
@@ -597,7 +597,7 @@ void CPU80686_OP0F4A_32()
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVP r/m32
-void CPU80686_OP0F4B_32()
+void CPU686_OP0F4B_32()
 {
 	modrm_generateInstructionTEXT("CMOVNP", 32, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
@@ -612,7 +612,7 @@ void CPU80686_OP0F4B_32()
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVNP r/m32
-void CPU80686_OP0F4C_32()
+void CPU686_OP0F4C_32()
 {
 	modrm_generateInstructionTEXT("CMOVL", 32, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
@@ -627,7 +627,7 @@ void CPU80686_OP0F4C_32()
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVL r/m32
-void CPU80686_OP0F4D_32()
+void CPU686_OP0F4D_32()
 {
 	modrm_generateInstructionTEXT("CMOVGE", 32, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
@@ -642,7 +642,7 @@ void CPU80686_OP0F4D_32()
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVGE r/m32
-void CPU80686_OP0F4E_32()
+void CPU686_OP0F4E_32()
 {
 	modrm_generateInstructionTEXT("CMOVLE", 32, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
@@ -657,7 +657,7 @@ void CPU80686_OP0F4E_32()
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVLE r/m32
-void CPU80686_OP0F4F_32()
+void CPU686_OP0F4F_32()
 {
 	modrm_generateInstructionTEXT("CMOVG", 32, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))

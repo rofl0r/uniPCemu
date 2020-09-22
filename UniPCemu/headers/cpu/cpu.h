@@ -84,6 +84,7 @@ extern BIOS_Settings_TYPE BIOS_Settings; //BIOS Settings (required for determini
 #define PARAM_IMM32_PARAM 22
 
 //Specifics based on the information table:
+#define PARAM_MODRM_0_ACCUM_1 23
 #define PARAM_MODRM_01 14
 #define PARAM_MODRM_10 15
 #define PARAM_MODRM_01_IMM8 16
@@ -722,6 +723,12 @@ typedef struct PACKED
 } DTR_PTR;
 #include "headers/endpacked.h" //End of packed type!
 
+typedef struct
+{
+	uint_32 lo; //Low dword!
+	uint_32 hi; //High dword!
+} CPUMSR;
+
 typedef struct //The registers!
 {
 	//First, the General Purpose registers!
@@ -779,6 +786,11 @@ typedef struct //The registers!
 //Tables:
 	DTR_PTR GDTR; //GDTR pointer (48-bits) Global Descriptor Table Register
 	DTR_PTR IDTR; //IDTR pointer (48-bits) Interrupt Descriptor Table Register
+
+	//MSR registers (Pentium II and up)
+	CPUMSR IA32_SYSENTER_CS;
+	CPUMSR IA32_SYSENTER_ESP;
+	CPUMSR IA32_SYSENTER_EIP;
 } CPU_registers; //Registers
 
 //Protected mode enable
