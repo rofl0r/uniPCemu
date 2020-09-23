@@ -82,10 +82,30 @@ void CPU_initMSRnumbers()
 	MSRnumbers[0x1B] = ++MSRstorage; //MSR xxh!
 	MSRnumbers[0x2A] = ++MSRstorage; //MSR xxh!
 	MSRnumbers[0x79] = ++MSRstorage; //MSR xxh!
+	if (EMULATED_CPU >= CPU_PENTIUM2) //Pentium II MSRs!
+	{
+		MSRnumbers[0x88] = ++MSRstorage; //MSR xxh!
+		MSRnumbers[0x89] = ++MSRstorage; //MSR xxh!
+		MSRnumbers[0x8A] = ++MSRstorage; //MSR xxh!
+	}
 	MSRnumbers[0x8B] = ++MSRstorage; //MSR xxh!
 	MSRnumbers[0xC1] = ++MSRstorage; //MSR xxh!
 	MSRnumbers[0xC2] = ++MSRstorage; //MSR xxh!
 	MSRnumbers[0xFE] = ++MSRstorage; //MSR xxh!
+
+	if (EMULATED_CPU >= CPU_PENTIUM2) //Pentium II MSRs!
+	{
+		MSRnumbers[0x88] = ++MSRstorage; //MSR xxh!
+		MSRnumbers[0x89] = ++MSRstorage; //MSR xxh!
+		MSRnumbers[0x8A] = ++MSRstorage; //MSR xxh!
+		MSRnumbers[0x116] = ++MSRstorage; //MSR xxh!
+		MSRnumbers[0x118] = ++MSRstorage; //MSR xxh!
+		MSRnumbers[0x119] = ++MSRstorage; //MSR xxh!
+		MSRnumbers[0x11A] = ++MSRstorage; //MSR xxh!
+		MSRnumbers[0x11B] = ++MSRstorage; //MSR xxh!
+		MSRnumbers[0x11E] = ++MSRstorage; //MSR xxh!
+	}
+	//Remainder of the MSRs!
 	MSRnumbers[0x179] = ++MSRstorage; //MSR xxh!
 	MSRnumbers[0x17A] = ++MSRstorage; //MSR xxh!
 	MSRnumbers[0x17B] = ++MSRstorage; //MSR xxh!
@@ -156,6 +176,17 @@ void CPU_initMSRs()
 	MSRmaskhigh[MSRnumbers[0x40D] - 1] = MSRmaskhigh[MSRnumbers[0x401] - 1]; //MC1_STATUS mask
 	MSRmasklow[MSRnumbers[0x411] - 1] = MSRmasklow[MSRnumbers[0x401] - 1]; //MC1_STATUS mask
 	MSRmaskhigh[MSRnumbers[0x411] - 1] = MSRmaskhigh[MSRnumbers[0x401] - 1]; //MC1_STATUS mask
+
+	if (EMULATED_CPU >= CPU_PENTIUM2) //Pentium 2 has additional MSRs?
+	{
+		MSRmasklow[MSRnumbers[0x116] - 1] = ~0x7; //BBL_CR_ADDR mask
+		MSRmaskhigh[MSRnumbers[0x116] - 1] = 0; //BBL_CR_ADDR mask
+		MSRmasklow[MSRnumbers[0x119] - 1] = 0x1F|(0x3<<5)|(0x3<<8)|(0x3<<10)|(0x3<<12)|(1<<16)|(1<<18); //BBL_CR_CTL mask
+		MSRmaskhigh[MSRnumbers[0x119] - 1] = 0; //BBL_CR_CTL mask
+		MSRmasklow[MSRnumbers[0x11E] - 1] = 0x7FFFF|(0xF<<20)|(1<<25); //BBL_CR_CTL3 mask
+		MSRmaskhigh[MSRnumbers[0x11E] - 1] = 0; //BBL_CR_CTL3 mask
+		MSRmaskwritelow_readonly[MSRnumbers[0x11E] - 1] = (0xF<<9)|(1<<23)|(1<<25); //Readonly bits!
+	}
 }
 
 //CPU timings information
