@@ -1303,8 +1303,11 @@ OPTINLINE byte coreHandler()
 		if (unlikely(MHZ14passed)) //14MHz to be ticked?
 		{
 			MHZ14passed_ns = MHZ14passed*MHZ14tick; //Actual ns ticked!
-			updateDMA(MHZ14passed,0); //Update the DMA timer!
-			if (likely((CPU[activeCPU].halt&0x10)==0)) tickPIT(MHZ14passed_ns,MHZ14passed); //Tick the PIT as much as we need to keep us in sync when running!
+			if (likely((CPU[activeCPU].halt & 0x10) == 0))
+			{
+				updateDMA(MHZ14passed, 0); //Update the DMA timer!
+				tickPIT(MHZ14passed_ns, MHZ14passed); //Tick the PIT as much as we need to keep us in sync when running!
+			}
 			if (useAdlib) updateAdlib(MHZ14passed); //Tick the adlib timer if needed!
 			updateMouse(MHZ14passed_ns); //Tick the mouse timer if needed!
 			stepDROPlayer(MHZ14passed_ns); //DRO player playback, if any!
@@ -1312,7 +1315,10 @@ OPTINLINE byte coreHandler()
 			updatePS2Keyboard(MHZ14passed_ns); //Tick the PS/2 keyboard timer, if needed!
 			updatePS2Mouse(MHZ14passed_ns); //Tick the PS/2 mouse timer, if needed!
 			update8042(MHZ14passed_ns); //Tick the PS/2 mouse timer, if needed!
-			updateCMOS(MHZ14passed_ns); //Tick the CMOS, if needed!
+			if (likely((CPU[activeCPU].halt & 0x10) == 0))
+			{
+				updateCMOS(MHZ14passed_ns); //Tick the CMOS, if needed!
+			}
 			updateFloppy(MHZ14passed_ns); //Update the floppy!
 			updateMPUTimer(MHZ14passed_ns); //Update the MPU timing!
 			if (useGameBlaster && ((CPU[activeCPU].halt&0x10)==0)) updateGameBlaster(MHZ14passed_ns,MHZ14passed); //Tick the Game Blaster timer if needed and running!
