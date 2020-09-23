@@ -214,7 +214,7 @@ OPTINLINE float modulateLowpass(MIDIDEVICE_VOICE *voice, float Modulation, float
 	{
 		voice->lowpass_modulationratio[filterindex] = modulationratio; //Update the last ratio!
 		modulationratio = voice->lowpass_modulationratiosamples[filterindex] = cents2samplesfactorf(modulationratio)*voice->lowpassfilter_freq; //Calculate the pitch bend and modulation ratio to apply!
-		voice->lowpass_dirty[filterindex] = 1; //We're a dirty low-pass filter!
+		voice->lowpass_dirty[filterindex] = 3; //We're a dirty low-pass filter!
 	}
 	else
 	{
@@ -223,17 +223,17 @@ OPTINLINE float modulateLowpass(MIDIDEVICE_VOICE *voice, float Modulation, float
 	return modulationratio; //Give the frequency to use for the low pass filter!
 }
 
-OPTINLINE void applyMIDILowpassFilter(MIDIDEVICE_VOICE *voice, float *currentsample, float Modulation, float LFOmodulation, float lowpassfilter_modenvfactor, byte filterindex)
+OPTINLINE void applyMIDILowpassFilter(MIDIDEVICE_VOICE *voice, byte rchannel, float *currentsample, float Modulation, float LFOmodulation, float lowpassfilter_modenvfactor, byte filterindex)
 {
 	float lowpassfilterfreq;
 	if (voice->lowpassfilter_freq==0) return; //No filter?
 	lowpassfilterfreq = modulateLowpass(voice,Modulation,LFOmodulation,lowpassfilter_modenvfactor,filterindex); //Load the frequency to use for low-pass filtering!
-	if (voice->lowpass_dirty[filterindex]) //Are we dirty? We need to update the low-pass filter, if so!
+	if (voice->lowpass_dirty[filterindex]&(1<<rchannel)) //Are we dirty? We need to update the low-pass filter, if so!
 	{		
-		updateSoundFilter(&voice->lowpassfilter[filterindex],0,lowpassfilterfreq,(float)LE32(voice->sample.dwSampleRate)); //Update the low-pass filter, when needed!
-		voice->lowpass_dirty[filterindex] = 0; //We're not dirty anymore!
+		updateSoundFilter(&voice->lowpassfilter[filterindex][rchannel],0,lowpassfilterfreq,(float)LE32(voice->sample[1].dwSampleRate)); //Update the low-pass filter, when needed!
+		voice->lowpass_dirty[filterindex] &= ~(1<<rchannel); //We're not dirty anymore!
 	}
-	applySoundFilter(&voice->lowpassfilter[filterindex], currentsample); //Apply a low pass filter!
+	applySoundFilter(&voice->lowpassfilter[filterindex][rchannel], currentsample); //Apply a low pass filter!
 }
 
 OPTINLINE void applyMIDIReverbFilter(MIDIDEVICE_VOICE *voice, float *currentsample, byte filterindex)
@@ -350,10 +350,10 @@ void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float sampler
 {
 	//Our current rendering routine:
 	INLINEREGISTER uint_32 temp;
-	INLINEREGISTER int_64 samplepos;
+	INLINEREGISTER int_64 samplepos[2];
 	float lchannel, rchannel; //Both channels to use!
-	byte loopflags; //Flags used during looping!
-	static sword readsample = 0; //The sample retrieved!
+	byte loopflags[2]; //Flags used during looping!
+	static sword readsample[2]= {0,0}; //The sample retrieved!
 	int_32 modulationratiocents;
 	uint_32 tempbuffer,tempbuffer2;
 	float tempbufferf, tempbufferf2;
@@ -424,73 +424,117 @@ void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float sampler
 		voice->modulationratiosamples[filterindex] = cents2samplesfactord((DOUBLE)modulationratiocents); //Calculate the pitch bend and modulation ratio to apply!
 	}
 
-	samplepos = voice->monotonecounter[filterindex]; //Monotone counter!
+	samplepos[0] = samplepos[1] = voice->monotonecounter[filterindex]; //Monotone counter!
 	voice->monotonecounter_diff[filterindex] += (voice->modulationratiosamples[filterindex]); //Apply the pitch bend and other modulation data to the sample to retrieve!
 	samplesskipped = (int_64)voice->monotonecounter_diff[filterindex]; //Load the samples skipped!
 	voice->monotonecounter_diff[filterindex] -= (float)samplesskipped; //Remainder!
 	voice->monotonecounter[filterindex] += samplesskipped; //Skipped this amount of samples ahead!
 
 	//Now, calculate the start offset to start looping!
-	samplepos += voice->startaddressoffset; //The start of the sample!
+	samplepos[0] += voice->startaddressoffset[0]; //The start of the sample!
+	samplepos[1] += voice->startaddressoffset[1]; //The start of the sample!
 
-	//First: apply looping!
-	loopflags = voice->currentloopflags;
-	if (voice->has_finallooppos && (play_counter >= voice->finallooppos)) //Executing final loop?
+	//First: apply looping! Left!
+	loopflags[0] = voice->currentloopflags[0];
+
+	if (voice->has_finallooppos[0] && (play_counter >= voice->finallooppos[0])) //Executing final loop?
 	{
-		samplepos -= voice->finallooppos; //Take the relative offset to the start of the final loop!
-		samplepos += voice->finallooppos_playcounter; //Add the relative offset to the start of our data of the final loop!
+		samplepos[0] -= voice->finallooppos[0]; //Take the relative offset to the start of the final loop!
+		samplepos[0] += voice->finallooppos_playcounter[0]; //Add the relative offset to the start of our data of the final loop!
 	}
-	else if (loopflags & 1) //Currently looping and active?
+	else if (loopflags[0] & 1) //Currently looping and active?
 	{
-		if (samplepos >= voice->endloopaddressoffset) //Past/at the end of the loop!
+		if (samplepos[0] >= voice->endloopaddressoffset[0]) //Past/at the end of the loop!
 		{
-			if ((loopflags & 0xD2) == 0x82) //We're depressed, depress action is allowed (not holding) and looping until depressed?
+			if ((loopflags[0] & 0xD2) == 0x82) //We're depressed, depress action is allowed (not holding) and looping until depressed?
 			{
-				if (!voice->has_finallooppos) //No final loop position set yet?
+				if (!voice->has_finallooppos[0]) //No final loop position set yet?
 				{
-					voice->currentloopflags &= ~0x80; //Clear depress bit!
+					voice->currentloopflags[0] &= ~0x80; //Clear depress bit!
 					//Loop for the last time!
-					voice->finallooppos = samplepos; //Our new position for our final execution till the end!
-					voice->has_finallooppos = 1; //We have a final loop position set!
+					voice->finallooppos[0] = samplepos[0]; //Our new position for our final execution till the end!
+					voice->has_finallooppos[0] = 1; //We have a final loop position set!
 					loopflags |= 0x20; //We're to update our final loop start!
 				}
 			}
 
 			//Loop according to loop data!
-			temp = voice->startloopaddressoffset; //The actual start of the loop!
+			temp = voice->startloopaddressoffset[0]; //The actual start of the loop!
 			//Loop the data!
-			samplepos -= temp; //Take the ammount past the start of the loop!
-			samplepos %= voice->loopsize; //Loop past startloop by endloop!
-			samplepos += temp; //The destination position within the loop!
+			samplepos[0] -= temp; //Take the ammount past the start of the loop!
+			samplepos[0] %= voice->loopsize[0]; //Loop past startloop by endloop!
+			samplepos[0] += temp; //The destination position within the loop!
 			//Check for depress special actions!
 			if (loopflags&0x20) //Extra information needed for the final loop?
 			{
-				voice->finallooppos_playcounter = samplepos; //The start position within the loop to use at this point in time!
+				voice->finallooppos_playcounter[0] = samplepos[0]; //The start position within the loop to use at this point in time!
+			}
+		}
+	}
+
+	//First: apply looping! Right!
+	loopflags[1] = voice->currentloopflags[1];
+
+	if (voice->has_finallooppos[1] && (play_counter >= voice->finallooppos[1])) //Executing final loop?
+	{
+		samplepos[1] -= voice->finallooppos[1]; //Take the relative offset to the start of the final loop!
+		samplepos[1] += voice->finallooppos_playcounter[1]; //Add the relative offset to the start of our data of the final loop!
+	}
+	else if (loopflags[1] & 1) //Currently looping and active?
+	{
+		if (samplepos[1] >= voice->endloopaddressoffset[1]) //Past/at the end of the loop!
+		{
+			if ((loopflags[1] & 0xD2) == 0x82) //We're depressed, depress action is allowed (not holding) and looping until depressed?
+			{
+				if (!voice->has_finallooppos[1]) //No final loop position set yet?
+				{
+					voice->currentloopflags[1] &= ~0x80; //Clear depress bit!
+					//Loop for the last time!
+					voice->finallooppos[1] = samplepos[1]; //Our new position for our final execution till the end!
+					voice->has_finallooppos[1] = 1; //We have a final loop position set!
+					loopflags |= 0x20; //We're to update our final loop start!
+				}
+			}
+
+			//Loop according to loop data!
+			temp = voice->startloopaddressoffset[1]; //The actual start of the loop!
+			//Loop the data!
+			samplepos[1] -= temp; //Take the ammount past the start of the loop!
+			samplepos[1] %= voice->loopsize[1]; //Loop past startloop by endloop!
+			samplepos[1] += temp; //The destination position within the loop!
+			//Check for depress special actions!
+			if (loopflags&0x20) //Extra information needed for the final loop?
+			{
+				voice->finallooppos_playcounter[1] = samplepos[1]; //The start position within the loop to use at this point in time!
 			}
 		}
 	}
 
 	//Next, apply finish!
-	loopflags = (samplepos >= voice->endaddressoffset); //Expired or not started yet?
+	loopflags = (samplepos[0] >= voice->endaddressoffset[0]) | ((samplepos[1] >= voice->endaddressoffset[1])); //Expired or not started yet?
 	#ifndef DISABLE_REVERB
-	if (loopflags) goto finishedsample;
+	if (loopflags==3) goto finishedsample;
 	#else
-	if (loopflags) goto return;
+	if (loopflags==3) goto return;
 	#endif
 
-	if (likely(getSFSample16(soundfont, (uint_32)samplepos, &readsample))) //Sample found?
+	if (likely(
+			(getSFSample16(soundfont, (uint_32)samplepos[0], &readsample[0]))|(loopflags&1)) //Left sample?
+			(getSFSample16(soundfont, (uint_32)samplepos[1], &readsample[1]))|(loopflags&2)) //Right sample?
+			) //Sample found?
 	{
-		lchannel = (float)readsample; //Convert to floating point for our calculations!
+		lchannel = (float)readsample[0]; //Convert to floating point for our calculations!
+		rchannel = (float)readsample[1]; //Convert to floating point for our calculations!
 
 		//First, apply filters and current envelope!
-		applyMIDILowpassFilter(voice, &lchannel, Modulation, LFOfiltercutoff, lowpassfilter_modenvfactor, filterindex); //Low pass filter!
+		applyMIDILowpassFilter(voice, 0, &lchannel, Modulation, LFOfiltercutoff, lowpassfilter_modenvfactor, filterindex); //Low pass filter!
+		applyMIDILowpassFilter(voice, 0, &rchannel, Modulation, LFOfiltercutoff, lowpassfilter_modenvfactor, filterindex); //Low pass filter!
 		currentattenuation = combineAttenuation(voice,voice->effectiveAttenuation+LFOvolume,Volume); //The volume of the samples including ADSR!
 		currentattenuation *= chorusvol; //Apply chorus&reverb volume for this stream!
 		currentattenuation *= VOLUME; //Apply general volume!
 		lchannel *= currentattenuation; //Apply the current attenuation!
 		//Now the sample is ready for output into the actual final volume!
 
-		rchannel = lchannel; //Load into both channels!
 		//Now, apply panning!
 		lchannel *= voice->lvolume; //Apply left panning, also according to the CC!
 		rchannel *= voice->rvolume; //Apply right panning, also according to the CC!
@@ -1580,14 +1624,14 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 	word pbag, ibag, chorusreverbdepth;
 	float panningtemp, attenuation, tempattenuation, lvolume, rvolume;
 	sword rootMIDITone;
-	uint_32 preset, startaddressoffset, endaddressoffset, startloopaddressoffset, endloopaddressoffset, loopsize;
+	uint_32 preset, startaddressoffset[2], endaddressoffset[2], startloopaddressoffset[2], endloopaddressoffset[2], loopsize[2];
 	byte effectivenote; //Effective note we're playing!
 	byte effectivevelocity; //Effective velocity we're playing!
 	byte effectivenotevelocitytemp;
 	word voicecounter;
 	byte purposebackup;
 	byte allocatedbackup;
-	byte activeloopflags;
+	byte activeloopflags[2];
 	uint_32 exclusiveclass;
 
 	MIDIDEVICE_CHANNEL *channel;
@@ -1596,7 +1640,7 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 	sfGenList instrumentptr, applygen;
 	sfInst currentinstrument;
 	sfInstGenList sampleptr, applyigen;
-	sfSample sampleInfo;
+	sfSample sampleInfo[2];
 	FIFOBUFFER *temp, *temp2, *temp3, *temp4, *chorus_backtrace[CHORUSSIZE];
 	int_32 previousPBag, previousIBag;
 	static uint_64 starttime = 0; //Increasing start time counter (1 each note on)!
@@ -1696,8 +1740,9 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 		return -2; //No samples for this split! We can't render!
 	}
 
-	if (!getSFSampleInformation(soundfont, LE16(sampleptr.genAmount.wAmount), &sampleInfo)) //Load the used sample information!
+	if (!getSFSampleInformation(soundfont, LE16(sampleptr.genAmount.wAmount), &sampleInfo[0])) //Load the used sample information!
 	{
+		invalidsampleinfo:
 #ifdef MIDI_LOCKSTART
 		unlock(voice->locknumber); //Lock us!
 #endif
@@ -1705,62 +1750,99 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 		return -2; //No samples for this split! We can't render!
 	}
 
+	switch (sampleInfo[0].sfSampleType) //What sample type?
+	{
+	case monoSample:
+		memcpy(&sampleInfo[1],&sampleInfo[0],sizeof(sampleInfo)); //Duplicate left/right channel from 1 source!
+		break;
+	case leftSample:
+		if (!getSFSampleInformation(soundfont, LE16(sampleptr.genAmount.wAmount), &sampleInfo[1])) //Load the used sample information!
+		{
+			goto invalidsampleinfo;
+		}
+		break;
+	case rightSample:
+		memcpy(&sampleInfo[1],&sampleInfo[0],sizeof(sampleInfo)); //Duplicate left/right channel from 1 source!
+		if (!getSFSampleInformation(soundfont, LE16(sampleptr.genAmount.wAmount), &sampleInfo[0])) //Load the used sample information!
+		{
+			goto invalidsampleinfo;
+		}
+		break;
+	default:
+		goto invalidsampleinfo;
+		break;
+	}
+	
+	//For now, assume mono samples!
+
 	//Determine the adjusting offsets!
 
 	//Fist, init to defaults!
-	startaddressoffset = LE32(sampleInfo.dwStart);
-	endaddressoffset = LE32(sampleInfo.dwEnd);
-	startloopaddressoffset = LE32(sampleInfo.dwStartloop);
-	endloopaddressoffset = LE32(sampleInfo.dwEndloop);
+	startaddressoffset[0] = LE32(sampleInfo[0].dwStart);
+	startaddressoffset[1] = LE32(sampleInfo[1].dwStart);
+	endaddressoffset[0] = LE32(sampleInfo[0].dwEnd);
+	endaddressoffset[1] = LE32(sampleInfo[1].dwEnd);
+	startloopaddressoffset[0] = LE32(sampleInfo[0].dwStartloop);
+	startloopaddressoffset[1] = LE32(sampleInfo[1].dwStartloop);
+	endloopaddressoffset[0] = LE32(sampleInfo[0].dwEndloop);
+	endloopaddressoffset[1] = LE32(sampleInfo[1].dwEndloop);
 
 	//Next, apply generators!
 	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, startAddrsOffset, &applyigen))
 	{
-		startaddressoffset += LE16(applyigen.genAmount.shAmount); //Apply!
+		startaddressoffset[0] += LE16(applyigen.genAmount.shAmount); //Apply!
+		startaddressoffset[1] += LE16(applyigen.genAmount.shAmount); //Apply!
 	}
 	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, startAddrsCoarseOffset, &applyigen))
 	{
-		startaddressoffset += (LE16(applyigen.genAmount.shAmount) << 15); //Apply!
+		startaddressoffset[0] += (LE16(applyigen.genAmount.shAmount) << 15); //Apply!
+		startaddressoffset[1] += (LE16(applyigen.genAmount.shAmount) << 15); //Apply!
 	}
 
 	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, endAddrsOffset, &applyigen))
 	{
-		endaddressoffset += LE16(applyigen.genAmount.shAmount); //Apply!
+		endaddressoffset[0] += LE16(applyigen.genAmount.shAmount); //Apply!
+		endaddressoffset[1] += LE16(applyigen.genAmount.shAmount); //Apply!
 	}
 	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, endAddrsCoarseOffset, &applyigen))
 	{
-		endaddressoffset += (LE16(applyigen.genAmount.shAmount) << 15); //Apply!
+		endaddressoffset[0] += (LE16(applyigen.genAmount.shAmount) << 15); //Apply!
+		endaddressoffset[1] += (LE16(applyigen.genAmount.shAmount) << 15); //Apply!
 	}
 
 	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, startloopAddrsOffset, &applyigen))
 	{
-		startloopaddressoffset += LE16(applyigen.genAmount.shAmount); //Apply!
+		startloopaddressoffset[0] += LE16(applyigen.genAmount.shAmount); //Apply!
+		startloopaddressoffset[1] += LE16(applyigen.genAmount.shAmount); //Apply!
 	}
 	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, startloopAddrsCoarseOffset, &applyigen))
 	{
-		startloopaddressoffset += (LE16(applyigen.genAmount.shAmount) << 15); //Apply!
+		startloopaddressoffset[0] += (LE16(applyigen.genAmount.shAmount) << 15); //Apply!
+		startloopaddressoffset[1] += (LE16(applyigen.genAmount.shAmount) << 15); //Apply!
 	}
 
 	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, endloopAddrsOffset, &applyigen))
 	{
-		endloopaddressoffset += LE16(applyigen.genAmount.shAmount); //Apply!
+		endloopaddressoffset[0] += LE16(applyigen.genAmount.shAmount); //Apply!
+		endloopaddressoffset[1] += LE16(applyigen.genAmount.shAmount); //Apply!
 	}
 	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, endloopAddrsCoarseOffset, &applyigen))
 	{
-		endloopaddressoffset += (LE16(applyigen.genAmount.shAmount) << 15); //Apply!
+		endloopaddressoffset[0] += (LE16(applyigen.genAmount.shAmount) << 15); //Apply!
+		endloopaddressoffset[1] += (LE16(applyigen.genAmount.shAmount) << 15); //Apply!
 	}
 
 	//Apply loop flags!
-	activeloopflags = 0; //Default: no looping!
+	activeloopflags[0] = activeloopflags[1] = 0; //Default: no looping!
 	if (lookupSFInstrumentGenGlobal(soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, sampleModes, &applyigen)) //Gotten looping?
 	{
 		switch (LE16(applyigen.genAmount.wAmount)) //What loop?
 		{
 		case GEN_SAMPLEMODES_LOOP: //Always loop?
-			activeloopflags = 1; //Always loop!
+			activeloopflags[0] = activeloopflags[1] = 1; //Always loop!
 			break;
 		case GEN_SAMPLEMODES_LOOPUNTILDEPRESSDONE: //Loop until depressed!
-			activeloopflags = 3; //Loop until depressed!
+			activeloopflags[0] = activeloopflags[1] = 3; //Loop until depressed!
 			break;
 		case GEN_SAMPLEMODES_NOLOOP: //No loop?
 		case GEN_SAMPLEMODES_NOLOOP2: //No loop?
@@ -1773,10 +1855,12 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 	//Check the offsets against the available samples first, before starting to allocate a voice?
 	//Return -2 if so(can't render voice)!
 
-	loopsize = endloopaddressoffset; //End of the loop!
-	loopsize -= startloopaddressoffset; //Size of the loop!
+	loopsize[0] = endloopaddressoffset[0]; //End of the loop!
+	loopsize[0] -= startloopaddressoffset[0]; //Size of the loop!
+	loopsize[1] = endloopaddressoffset[1]; //End of the loop!
+	loopsize[1] -= startloopaddressoffset[1]; //Size of the loop!
 
-	if ((loopsize==0) && activeloopflags) //Invalid loop to render?
+	if (((loopsize[0]==0) && activeloopflags[0])||((loopsize[1]==0) && activeloopflags[1])) //Invalid loop to render?
 	{
 #ifdef MIDI_LOCKSTART
 		unlock(voice->locknumber); //Lock us!
@@ -1798,7 +1882,7 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 		return -1; //Active voices can't be allocated! Request voice stealing or an available channel!
 	}
 
-	if (!setSampleRate(&MIDIDEVICE_renderer, voice, (float)LE16(voice->sample.dwSampleRate))) //Use this new samplerate!
+	if (!setSampleRate(&MIDIDEVICE_renderer, voice, (float)LE16(sampleInfo[1].dwSampleRate))) //Use this new samplerate!
 	{
 		//Unusable samplerate! Try next available voice!
 		#ifdef MIDI_LOCKSTART
@@ -1843,11 +1927,13 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 	}
 	#endif
 
-	memcpy(&voice->sample, &sampleInfo, sizeof(sampleInfo)); //Load the active sample info to become active for the allocated voice!
+	memcpy(&voice->sample[0], &sampleInfo[0], sizeof(sampleInfo[0])); //Load the active sample info to become active for the allocated voice!
+	memcpy(&voice->sample[1], &sampleInfo[1], sizeof(sampleInfo[0])); //Load the active sample info to become active for the allocated voice!
 	memcpy(&voice->currentpreset, &currentpreset, sizeof(currentpreset)); //Load the active sample info to become active for the allocated voice!
 	memcpy(&voice->currentinstrument, &currentinstrument, sizeof(currentinstrument)); //Load the active sample info to become active for the allocated voice!
 
-	voice->loopsize = loopsize; //Save the loop size!
+	voice->loopsize[0] = loopsize[0]; //Save the loop size!
+	voice->loopsize[1] = loopsize[1]; //Save the loop size!
 
 	//Now, determine the actual note to be turned on!
 	voice->channel = channel; //What channel!
@@ -1911,13 +1997,18 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 	voice->effectivevelocity = effectivevelocity;
 
 	//Save our info calculated!
-	voice->startaddressoffset = startaddressoffset;
-	voice->endaddressoffset = endaddressoffset;
-	voice->startloopaddressoffset = startloopaddressoffset;
-	voice->endloopaddressoffset = endloopaddressoffset;
+	voice->startaddressoffset[0] = startaddressoffset[0];
+	voice->startaddressoffset[1] = startaddressoffset[1];
+	voice->endaddressoffset[0] = endaddressoffset[0];
+	voice->endaddressoffset[1] = endaddressoffset[1];
+	voice->startloopaddressoffset[0] = startloopaddressoffset[0];
+	voice->startloopaddressoffset[1] = startloopaddressoffset[1];
+	voice->endloopaddressoffset[0] = endloopaddressoffset[0];
+	voice->endloopaddressoffset[1] = endloopaddressoffset[1];
 
 	//Determine the loop size!
-	voice->loopsize = loopsize; //Save the loop size!
+	voice->loopsize[0] = loopsize[0]; //Save the loop size!
+	voice->loopsize[1] = loopsize[1]; //Save the loop size!
 
 	//Now, calculate the speedup according to the note applied!
 
@@ -2045,7 +2136,8 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 	voice->CurrentModulationEnvelope = 0.0f; //Default: nothing yet, so no modulation!
 
 	//Apply loop flags!
-	voice->currentloopflags = activeloopflags; //Looping setting!
+	voice->currentloopflags[0] = activeloopflags[0]; //Looping setting!
+	voice->currentloopflags[1] = activeloopflags[1]; //Looping setting!
 
 	//Save our instrument we're playing!
 	voice->instrument = channel->program;

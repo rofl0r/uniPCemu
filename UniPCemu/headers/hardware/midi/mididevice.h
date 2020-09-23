@@ -135,14 +135,14 @@ typedef struct
 	int_64 play_counter; //Current play position within the soundfont!
 	int_64 monotonecounter[CHORUSSIZE]; //Monotonic counter for positive only for each chorus channel!
 	float monotonecounter_diff[CHORUSSIZE]; //Diff counter for each chorus channel!
-	uint_32 loopsize; //The size of a loop!
-	int_64 finallooppos; //Final loop position!
-	int_64 finallooppos_playcounter; //Play counter at the final loop position we've calculated!
+	uint_32 loopsize[2]; //The size of a loop!
+	int_64 finallooppos[2]; //Final loop position!
+	int_64 finallooppos_playcounter[2]; //Play counter at the final loop position we've calculated!
 	//Patches to the sample offsets, calculated before generating sound!
-	uint_32 startaddressoffset;
-	uint_32 startloopaddressoffset;
-	uint_32 endaddressoffset;
-	uint_32 endloopaddressoffset;
+	uint_32 startaddressoffset[2];
+	uint_32 startloopaddressoffset[2];
+	uint_32 endaddressoffset[2];
+	uint_32 endloopaddressoffset[2];
 	uint_32 finishnoteleft; //Time left since finish of note itself!
 
 	//Stuff for voice stealing
@@ -165,13 +165,13 @@ typedef struct
 	byte loadedinformation; //Information is loaded?
 	sfPresetHeader currentpreset;
 	sfInst currentinstrument;
-	sfSample sample; //The sample to be played back!
+	sfSample sample[2]; //The sample to be played back! Stereo!
 	ADSR VolumeEnvelope; //The volume envelope!
 	ADSR ModulationEnvelope; //The modulation envelope!
 
-	byte currentloopflags; //What loopflags are active?
+	byte currentloopflags[2]; //What loopflags are active? Stereo!
 	byte request_off; //Are we to be turned off? Start the release phase when enabled!
-	byte has_finallooppos; //Do we have a final loop position?
+	byte has_finallooppos[2]; //Do we have a final loop position? Stereo!
 
 	byte purpose; //0=Normal voice, 1=Drum channel!
 	word bank; //What bank are we playing from?
@@ -208,9 +208,9 @@ typedef struct
 	byte isfinalchannel_chorus[CHORUSSIZE]; //Are we the final channel to process for the current sample?
 	byte isfinalchannel_reverb[REVERBSIZE]; //Are we the final channel to process for the current sample?
 	HIGHLOWPASSFILTER reverbfilter[CHORUSREVERBSIZE*2]; //Reverb filters, stereo!
-	HIGHLOWPASSFILTER lowpassfilter[CHORUSSIZE]; //Each channel has it's own low-pass filter!
-	float last_lowpass[CHORUSSIZE]; //Last lowpass frequency used!
-	byte lowpass_dirty[CHORUSSIZE]; //Are we to update the low-pass filter?
+	HIGHLOWPASSFILTER lowpassfilter[CHORUSSIZE][2]; //Each channel has it's own low-pass filter! Stereo!
+	float last_lowpass[CHORUSSIZE]; //Last lowpass frequency used! Stereo!
+	byte lowpass_dirty[CHORUSSIZE]; //Are we to update the low-pass filter? Stereo bits 0=left, bit2=right!
 	byte effectivenote; //Effective note!
 	byte effectivevelocity; //Effective velocity!
 	//Pointers to used lists!
