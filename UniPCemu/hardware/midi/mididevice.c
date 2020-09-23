@@ -537,6 +537,7 @@ void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float sampler
 		currentattenuation *= chorusvol; //Apply chorus&reverb volume for this stream!
 		currentattenuation *= VOLUME; //Apply general volume!
 		lchannel *= currentattenuation; //Apply the current attenuation!
+		rchannel *= currentattenuation; //Apply the current attenuation!
 		//Now the sample is ready for output into the actual final volume!
 
 		//Now, apply panning!
