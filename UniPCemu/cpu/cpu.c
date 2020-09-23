@@ -79,6 +79,10 @@ void CPU_initMSRnumbers()
 	MSRnumbers[0] = ++MSRstorage; //MSR xxh!
 	MSRnumbers[1] = ++MSRstorage; //MSR xxh!
 	MSRnumbers[0x10] = ++MSRstorage; //MSR xxh!
+	if (EMULATED_CPU >= CPU_PENTIUM2) //Pentium II MSRs!
+	{
+		MSRnumbers[0x17] = ++MSRstorage; //MSR xxh! Unknown MSR! Undocumented?
+	}
 	MSRnumbers[0x1B] = ++MSRstorage; //MSR xxh!
 	MSRnumbers[0x2A] = ++MSRstorage; //MSR xxh!
 	MSRnumbers[0x79] = ++MSRstorage; //MSR xxh!

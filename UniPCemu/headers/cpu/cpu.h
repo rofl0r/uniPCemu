@@ -790,7 +790,7 @@ typedef struct //The registers!
 	DTR_PTR GDTR; //GDTR pointer (48-bits) Global Descriptor Table Register
 	DTR_PTR IDTR; //IDTR pointer (48-bits) Interrupt Descriptor Table Register
 
-	CPUMSR genericMSR[0x59]; //Generic, unnamed MSR containers!
+	CPUMSR genericMSR[0x5A]; //Generic, unnamed MSR containers!
 
 	//MSR registers (Pentium II and up)
 	CPUMSR IA32_SYSENTER_CS;
