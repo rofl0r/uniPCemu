@@ -64,6 +64,100 @@ byte cpudebugger; //To debug the CPU?
 
 CPU_type CPU[MAXCPUS]; //The CPU data itself!
 
+uint_32 MSRstorage; //How much storage is used?
+uint_32 MSRnumbers[MAPPEDMSRS]; //All possible MSR numbers!
+uint_32 MSRmasklow[MAPPEDMSRS]; //Low mask!
+uint_32 MSRmaskhigh[MAPPEDMSRS]; //High mask!
+uint_32 MSRmaskwritelow_readonly[MAPPEDMSRS]; //Low mask for writes changing data erroring out!
+uint_32 MSRmaskwritehigh_readonly[MAPPEDMSRS]; //High mask for writes changing data erroring out!
+
+void CPU_initMSRnumbers()
+{
+	uint_32 MSRcounter;
+	memset(&MSRnumbers, 0, sizeof(MSRnumbers)); //Default to unmapped!
+	MSRstorage = 0; //Default: first entry!
+	MSRnumbers[0] = ++MSRstorage; //MSR xxh!
+	MSRnumbers[1] = ++MSRstorage; //MSR xxh!
+	MSRnumbers[0x10] = ++MSRstorage; //MSR xxh!
+	MSRnumbers[0x1B] = ++MSRstorage; //MSR xxh!
+	MSRnumbers[0x2A] = ++MSRstorage; //MSR xxh!
+	MSRnumbers[0x79] = ++MSRstorage; //MSR xxh!
+	MSRnumbers[0x8B] = ++MSRstorage; //MSR xxh!
+	MSRnumbers[0xC1] = ++MSRstorage; //MSR xxh!
+	MSRnumbers[0xC2] = ++MSRstorage; //MSR xxh!
+	MSRnumbers[0xFE] = ++MSRstorage; //MSR xxh!
+	MSRnumbers[0x179] = ++MSRstorage; //MSR xxh!
+	MSRnumbers[0x17A] = ++MSRstorage; //MSR xxh!
+	MSRnumbers[0x17B] = ++MSRstorage; //MSR xxh!
+	MSRnumbers[0x186] = ++MSRstorage; //MSR xxh!
+	MSRnumbers[0x187] = ++MSRstorage; //MSR xxh!
+	MSRnumbers[0x1D9] = ++MSRstorage; //MSR xxh!
+	MSRnumbers[0x1DB] = ++MSRstorage; //MSR xxh!
+	MSRnumbers[0x1DC] = ++MSRstorage; //MSR xxh!
+	MSRnumbers[0x1DD] = ++MSRstorage; //MSR xxh!
+	MSRnumbers[0x1DE] = ++MSRstorage; //MSR xxh!
+	MSRnumbers[0x1E0] = ++MSRstorage; //MSR xxh!
+	for (MSRcounter = 0; MSRcounter < 0x10; ++MSRcounter)
+	{
+		MSRnumbers[0x200+MSRcounter] = ++MSRstorage; //MSR xxh!
+	}
+	MSRnumbers[0x250] = ++MSRstorage; //MSR xxh!
+	MSRnumbers[0x258] = ++MSRstorage; //MSR xxh!
+	MSRnumbers[0x259] = ++MSRstorage; //MSR xxh!
+	for (MSRcounter = 0; MSRcounter < 0x8; ++MSRcounter)
+	{
+		MSRnumbers[0x268+MSRcounter] = ++MSRstorage; //MSR xxh!
+	}
+	MSRnumbers[0x2FF] = ++MSRstorage; //MSR xxh!
+	for (MSRcounter = 0; MSRcounter < 0x8; ++MSRcounter)
+	{
+		MSRnumbers[0x268] = ++MSRstorage; //MSR xxh!
+	}
+	for (MSRcounter = 0; MSRcounter < 0x14; ++MSRcounter)
+	{
+		MSRnumbers[0x400+MSRcounter] = ++MSRstorage; //MSR xxh!
+	}
+}
+
+void CPU_initMSRs()
+{
+	CPU_initMSRnumbers(); //Initialize the number mapping!
+	if (MSRstorage > NUMITEMS(CPU[activeCPU].registers->genericMSR)) //Too many items?
+	{
+		raiseError("cpu","Too many MSRs allocated! Amount: %i, limit: %i",MSRstorage, NUMITEMS(CPU[activeCPU].registers->genericMSR)); //Log it!
+		return; //Abort!
+	}
+	memset(&MSRmasklow, ~0, sizeof(MSRmasklow)); //Allow all bits!
+	memset(&MSRmaskhigh, ~0, sizeof(MSRmaskhigh)); //Allow all bits!
+	memset(&MSRmaskwritelow_readonly, 0, sizeof(MSRmaskwritelow_readonly)); //No read-only bits!
+	memset(&MSRmaskwritehigh_readonly, 0, sizeof(MSRmaskwritehigh_readonly)); //No read-only bits!
+	MSRmasklow[MSRnumbers[0x1B] - 1] = 0xF0; //APICBASE mask
+	MSRmaskhigh[MSRnumbers[0x1B] - 1] = 0; //APICBASE mask
+	MSRmasklow[MSRnumbers[0x2A] - 1] = 0x1F | (0x1F << 6) | (0xF << 10) | (3<<16) | (3<<20) | (7<<22); //EBL_CR_POWERON
+	MSRmaskhigh[MSRnumbers[0x2A] - 1] = 0; //EBL_CR_POWERON
+	MSRmaskwritelow_readonly[MSRnumbers[0x2A] - 1] = MSRmasklow[MSRnumbers[0x2A] - 1]&~(0x1F|(3<<6)); //They're all readonly, except the first 6 bits that are defined!
+	MSRmasklow[MSRnumbers[0x186] - 1] = ~0x200000; //EVNTSEL0 mask
+	MSRmaskhigh[MSRnumbers[0x186] - 1] = 0; //EVNTSEL0 mask
+	MSRmasklow[MSRnumbers[0x186] - 1] = ~0x600000; //EVNTSEL1 mask
+	MSRmaskhigh[MSRnumbers[0x186] - 1] = 0; //EVNTSEL1 mask
+	MSRmasklow[MSRnumbers[0x1D9] - 1] = (0x3<<8)|0x7F; //DEBUGCTLMSR mask
+	MSRmaskhigh[MSRnumbers[0x1D9] - 1] = 0; //DEBUGCTLMSR mask
+	MSRmasklow[MSRnumbers[0x1E0] - 1] = 2; //ROB_CR_BKUPTMPDR6 mask
+	MSRmaskhigh[MSRnumbers[0x1E0] - 1] = 0; //ROB_CR_BKUPTMPDR mask
+	MSRmasklow[MSRnumbers[0x2FF] - 1] = 0x3|(3<<10); //MTRRdefType mask
+	MSRmaskhigh[MSRnumbers[0x2FF] - 1] = 0; //MTRRdefType mask
+	MSRmasklow[MSRnumbers[0x401] - 1] = ~0; //MC0_STATUS mask
+	MSRmaskhigh[MSRnumbers[0x401] - 1] = 0; //MC0_STATUS mask
+	MSRmasklow[MSRnumbers[0x405] - 1] = MSRmasklow[MSRnumbers[0x401] - 1]; //MC1_STATUS mask
+	MSRmaskhigh[MSRnumbers[0x405] - 1] = MSRmaskhigh[MSRnumbers[0x401] - 1]; //MC1_STATUS mask
+	MSRmasklow[MSRnumbers[0x409] - 1] = MSRmasklow[MSRnumbers[0x401] - 1]; //MC1_STATUS mask
+	MSRmaskhigh[MSRnumbers[0x409] - 1] = MSRmaskhigh[MSRnumbers[0x401] - 1]; //MC1_STATUS mask
+	MSRmasklow[MSRnumbers[0x40D] - 1] = MSRmasklow[MSRnumbers[0x401] - 1]; //MC1_STATUS mask
+	MSRmaskhigh[MSRnumbers[0x40D] - 1] = MSRmaskhigh[MSRnumbers[0x401] - 1]; //MC1_STATUS mask
+	MSRmasklow[MSRnumbers[0x411] - 1] = MSRmasklow[MSRnumbers[0x401] - 1]; //MC1_STATUS mask
+	MSRmaskhigh[MSRnumbers[0x411] - 1] = MSRmaskhigh[MSRnumbers[0x401] - 1]; //MC1_STATUS mask
+}
+
 //CPU timings information
 extern CPU_OpcodeInformation CPUOpcodeInformationPrecalcs[CPU_MODES][0x200]; //All normal and 0F CPU timings, which are used, for all modes available!
 
@@ -1086,6 +1180,7 @@ void initCPU() //Initialize CPU for full system reset into known state!
 	memset(&CPU, 0, sizeof(CPU)); //Reset the CPU fully!
 	resetCPU(1); //Reset normally!
 	Paging_initTLB(); //Initialize the TLB for usage!
+	CPU_initMSRs(); //Initialize the MSRs and their mappings!
 }
 
 void CPU_tickPendingReset()

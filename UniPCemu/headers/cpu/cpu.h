@@ -54,6 +54,9 @@ extern BIOS_Settings_TYPE BIOS_Settings; //BIOS Settings (required for determini
 //Since we're comparing to Bochs, emulate a Pentium PC!
 //#define EMULATED_CPU CPU_PENTIUM
 
+//How many MSRs are mapped at address 0 in the MSR space?
+#define MAPPEDMSRS 0x500
+
 //For easygoing solid state segments (not changeable) in CPU[activeCPU].registers.SEGMENT_REGISTERS[]
 #define CPU_SEGMENT_CS 0
 #define CPU_SEGMENT_SS 1
@@ -786,6 +789,8 @@ typedef struct //The registers!
 //Tables:
 	DTR_PTR GDTR; //GDTR pointer (48-bits) Global Descriptor Table Register
 	DTR_PTR IDTR; //IDTR pointer (48-bits) Interrupt Descriptor Table Register
+
+	CPUMSR genericMSR[0x4D]; //Generic, unnamed MSR!
 
 	//MSR registers (Pentium II and up)
 	CPUMSR IA32_SYSENTER_CS;
