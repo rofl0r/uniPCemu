@@ -350,6 +350,7 @@ void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float sampler
 {
 	//Our current rendering routine:
 	INLINEREGISTER uint_32 temp;
+	sword mutesample[2] = { ~0, 0 }; //Mute this sample?
 	int_64 samplepos[2];
 	float lchannel, rchannel; //Both channels to use!
 	byte loopflags[2]; //Flags used during looping!
@@ -524,6 +525,8 @@ void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float sampler
 			((getSFSample16(soundfont, (uint_32)samplepos[1], &readsample[1]))|(totalloopflags&2)) //Right sample?
 			)) //Sample found?
 	{
+		readsample[0] &= mutesample[totalloopflags & 1]; //Mute left sample, if needed!
+		readsample[1] &= mutesample[(totalloopflags >> 1) & 1]; //Mute left sample, if needed!
 		lchannel = (float)readsample[0]; //Convert to floating point for our calculations!
 		rchannel = (float)readsample[1]; //Convert to floating point for our calculations!
 
