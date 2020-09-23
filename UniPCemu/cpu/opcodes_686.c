@@ -226,13 +226,13 @@ void CPU686_OP0F32() //RDMSR
 
 	if (REG_ECX >= MAPPEDMSRS) //Invalid register in ECX?
 	{
-	handleinvalidregisterWRMSR:
+	handleinvalidregisterRDMSR:
 		THROWDESCGP(0, 0, 0); //#GP(0)!
 		return;
 	}
 	if (!MSRnumbers[REG_ECX]) //Unmapped?
 	{
-		goto handleinvalidregisterWRMSR; //Handle it!
+		goto handleinvalidregisterRDMSR; //Handle it!
 	}
 	storagenr = MSRnumbers[REG_ECX] - 1; //Where are we stored?
 
