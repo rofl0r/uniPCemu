@@ -511,7 +511,7 @@ void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float sampler
 	}
 
 	//Next, apply finish!
-	loopflags = (samplepos[0] >= voice->endaddressoffset[0]) | ((samplepos[1] >= voice->endaddressoffset[1])); //Expired or not started yet?
+	loopflags = (samplepos[0] >= voice->endaddressoffset[0]) | ((samplepos[1] >= voice->endaddressoffset[1])<<1); //Expired or not started yet?
 	#ifndef DISABLE_REVERB
 	if (loopflags==3) goto finishedsample;
 	#else
