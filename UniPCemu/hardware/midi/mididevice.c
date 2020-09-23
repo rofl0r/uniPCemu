@@ -350,9 +350,10 @@ void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float sampler
 {
 	//Our current rendering routine:
 	INLINEREGISTER uint_32 temp;
-	INLINEREGISTER int_64 samplepos[2];
+	int_64 samplepos[2];
 	float lchannel, rchannel; //Both channels to use!
 	byte loopflags[2]; //Flags used during looping!
+	byte totalloopflags;
 	static sword readsample[2]= {0,0}; //The sample retrieved!
 	int_32 modulationratiocents;
 	uint_32 tempbuffer,tempbuffer2;
@@ -454,7 +455,7 @@ void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float sampler
 					//Loop for the last time!
 					voice->finallooppos[0] = samplepos[0]; //Our new position for our final execution till the end!
 					voice->has_finallooppos[0] = 1; //We have a final loop position set!
-					loopflags |= 0x20; //We're to update our final loop start!
+					loopflags[0] |= 0x20; //We're to update our final loop start!
 				}
 			}
 
@@ -465,7 +466,7 @@ void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float sampler
 			samplepos[0] %= voice->loopsize[0]; //Loop past startloop by endloop!
 			samplepos[0] += temp; //The destination position within the loop!
 			//Check for depress special actions!
-			if (loopflags&0x20) //Extra information needed for the final loop?
+			if (loopflags[0]&0x20) //Extra information needed for the final loop?
 			{
 				voice->finallooppos_playcounter[0] = samplepos[0]; //The start position within the loop to use at this point in time!
 			}
@@ -492,7 +493,7 @@ void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float sampler
 					//Loop for the last time!
 					voice->finallooppos[1] = samplepos[1]; //Our new position for our final execution till the end!
 					voice->has_finallooppos[1] = 1; //We have a final loop position set!
-					loopflags |= 0x20; //We're to update our final loop start!
+					loopflags[1] |= 0x20; //We're to update our final loop start!
 				}
 			}
 
@@ -503,7 +504,7 @@ void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float sampler
 			samplepos[1] %= voice->loopsize[1]; //Loop past startloop by endloop!
 			samplepos[1] += temp; //The destination position within the loop!
 			//Check for depress special actions!
-			if (loopflags&0x20) //Extra information needed for the final loop?
+			if (loopflags[1]&0x20) //Extra information needed for the final loop?
 			{
 				voice->finallooppos_playcounter[1] = samplepos[1]; //The start position within the loop to use at this point in time!
 			}
@@ -511,24 +512,24 @@ void MIDIDEVICE_getsample(int_64 play_counter, uint_32 totaldelay, float sampler
 	}
 
 	//Next, apply finish!
-	loopflags = (samplepos[0] >= voice->endaddressoffset[0]) | ((samplepos[1] >= voice->endaddressoffset[1])<<1); //Expired or not started yet?
+	totalloopflags = (samplepos[0] >= voice->endaddressoffset[0]) | ((samplepos[1] >= voice->endaddressoffset[1])<<1); //Expired or not started yet?
 	#ifndef DISABLE_REVERB
-	if (loopflags==3) goto finishedsample;
+	if (totalloopflags==3) goto finishedsample;
 	#else
-	if (loopflags==3) goto return;
+	if (totalloopflags==3) goto return;
 	#endif
 
 	if (likely(
-			(getSFSample16(soundfont, (uint_32)samplepos[0], &readsample[0]))|(loopflags&1)) //Left sample?
-			(getSFSample16(soundfont, (uint_32)samplepos[1], &readsample[1]))|(loopflags&2)) //Right sample?
-			) //Sample found?
+			((getSFSample16(soundfont, (uint_32)samplepos[0], &readsample[0]))|(totalloopflags&1)) || //Left sample?
+			((getSFSample16(soundfont, (uint_32)samplepos[1], &readsample[1]))|(totalloopflags&2)) //Right sample?
+			)) //Sample found?
 	{
 		lchannel = (float)readsample[0]; //Convert to floating point for our calculations!
 		rchannel = (float)readsample[1]; //Convert to floating point for our calculations!
 
 		//First, apply filters and current envelope!
 		applyMIDILowpassFilter(voice, 0, &lchannel, Modulation, LFOfiltercutoff, lowpassfilter_modenvfactor, filterindex); //Low pass filter!
-		applyMIDILowpassFilter(voice, 0, &rchannel, Modulation, LFOfiltercutoff, lowpassfilter_modenvfactor, filterindex); //Low pass filter!
+		applyMIDILowpassFilter(voice, 1, &rchannel, Modulation, LFOfiltercutoff, lowpassfilter_modenvfactor, filterindex); //Low pass filter!
 		currentattenuation = combineAttenuation(voice,voice->effectiveAttenuation+LFOvolume,Volume); //The volume of the samples including ADSR!
 		currentattenuation *= chorusvol; //Apply chorus&reverb volume for this stream!
 		currentattenuation *= VOLUME; //Apply general volume!
@@ -652,12 +653,15 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 
 	if (voice->request_off) //Requested turn off?
 	{
-		voice->currentloopflags |= 0x80; //Request quit looping if needed: finish sound!
+		voice->currentloopflags[0] |= 0x80; //Request quit looping if needed: finish sound!
+		voice->currentloopflags[1] |= 0x80; //Request quit looping if needed: finish sound!
 	} //Requested off?
 
 	//Apply sustain
-	voice->currentloopflags &= ~0x40; //Sustain disabled by default!
-	voice->currentloopflags |= (channel->sustain << 6); //Sustaining?
+	voice->currentloopflags[0] &= ~0x40; //Sustain disabled by default!
+	voice->currentloopflags[0] |= (channel->sustain << 6); //Sustaining?
+	voice->currentloopflags[1] &= ~0x40; //Sustain disabled by default!
+	voice->currentloopflags[1] |= (channel->sustain << 6); //Sustaining?
 
 	VolumeEnvelope = voice->CurrentVolumeEnvelope; //Make sure we don't clear!
 	ModulationEnvelope = voice->CurrentModulationEnvelope; //Make sure we don't clear!
@@ -665,7 +669,7 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 	int_32 lchannel, rchannel; //Left&right samples, big enough for all chorus and reverb to be applied!
 	float channelsamplel, channelsampler; //A channel sample!
 
-	float samplerate = (float)LE32(voice->sample.dwSampleRate); //The samplerate we use!
+	float samplerate = (float)LE32(voice->sample[1].dwSampleRate); //The samplerate we use!
 
 	byte chorus,reverb;
 	uint_32 totaldelay;
@@ -685,8 +689,8 @@ byte MIDIDEVICE_renderer(void* buf, uint_32 length, byte stereo, void *userdata)
 			chorusreverbsamplepos = voice->play_counter; //Load the current play counter!
 			totaldelay = voice->chorusdelay[currentchorusreverb]; //Load the total delay!
 			chorusreverbsamplepos -= (int_64)totaldelay; //Apply specified chorus&reverb delay!
-			VolumeEnvelope = 1.0f-(ADSR_tick(VolumeADSR,chorusreverbsamplepos,((voice->currentloopflags & 0xD0) != 0x80),voice->note->noteon_velocity, voice->note->noteoff_velocity)); //Apply Volume Envelope, converted to attenuation!
-			ModulationEnvelope = (ADSR_tick(ModulationADSR,chorusreverbsamplepos,((voice->currentloopflags & 0xD0) != 0x80),voice->note->noteon_velocity, voice->note->noteoff_velocity)); //Apply Modulation Envelope, converted to attenuation!
+			VolumeEnvelope = 1.0f-(ADSR_tick(VolumeADSR,chorusreverbsamplepos,((voice->currentloopflags[1] & 0xD0) != 0x80),voice->note->noteon_velocity, voice->note->noteoff_velocity)); //Apply Volume Envelope, converted to attenuation!
+			ModulationEnvelope = (ADSR_tick(ModulationADSR,chorusreverbsamplepos,((voice->currentloopflags[1] & 0xD0) != 0x80),voice->note->noteon_velocity, voice->note->noteoff_velocity)); //Apply Modulation Envelope, converted to attenuation!
 			if (!currentchorusreverb) //The first?
 			{
 				voice->CurrentVolumeEnvelope = VolumeEnvelope; //Current volume!
@@ -1346,7 +1350,7 @@ void updateSampleSpeed(MIDIDEVICE_VOICE* voice)
 	tonecents += getSFInstrumentmodulator(voice, scaleTuning, 1, 0.0f, 0.0f);
 	tonecents += getSFPresetmodulator(voice, scaleTuning, 1, 0.0f, 0.0f);
 
-	cents += voice->sample.chPitchCorrection; //Apply pitch correction for the used sample!
+	cents += voice->sample[1].chPitchCorrection; //Apply pitch correction for the used sample!
 
 	cents *= (tonecents * 0.01f); //Apply scale tuning to the coarse/fine tuning as well!
 
@@ -1428,7 +1432,7 @@ void MIDIDEVICE_updateLFO(MIDIDEVICE_VOICE * voice, MIDIDEVICE_LFO * LFO)
 
 	//Don't update the delay, it's handled only once!
 
-	LFO->sinposstep = SINUS_BASE * (1.0f / (float)LE32(voice->sample.dwSampleRate)) * sinustable_percision_reverse; //How much time to add to the chorus sinus after each sample
+	LFO->sinposstep = SINUS_BASE * (1.0f / (float)LE32(voice->sample[1].dwSampleRate)) * sinustable_percision_reverse; //How much time to add to the chorus sinus after each sample
 	//Continue the sinus from the current position, at the newly specified frequency!
 
 	//Now, the basic sinus is setup!
@@ -1554,8 +1558,8 @@ void MIDIDEVICE_initLFO(MIDIDEVICE_VOICE* voice, MIDIDEVICE_LFO* LFO, word thede
 
 	effectivedelay = cents2samplesfactorf(cents); //Effective delay to use!
 
-	LFO->delay = (uint_32)((effectivedelay) * (float)LE16(voice->sample.dwSampleRate)); //Total delay to apply for this channel!
-	LFO->sinposstep = SINUS_BASE * (1.0f / (float)LE32(voice->sample.dwSampleRate)) * sinustable_percision_reverse; //How much time to add to the chorus sinus after each sample
+	LFO->delay = (uint_32)((effectivedelay) * (float)LE16(voice->sample[1].dwSampleRate)); //Total delay to apply for this channel!
+	LFO->sinposstep = SINUS_BASE * (1.0f / (float)LE32(voice->sample[1].dwSampleRate)) * sinustable_percision_reverse; //How much time to add to the chorus sinus after each sample
 	LFO->sinpos = fmodf(fmodf((float)(-effectivedelay) * LFO->sinposstep, (2 * (float)PI))+(2 * (float)PI), (2 * (float)PI)) * sinustable_percision_reverse; //Initialize the starting chorus sin position for the first sample!
 
 	//Now, the basic sinus is setup!
@@ -1753,7 +1757,7 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 	switch (sampleInfo[0].sfSampleType) //What sample type?
 	{
 	case monoSample:
-		memcpy(&sampleInfo[1],&sampleInfo[0],sizeof(sampleInfo)); //Duplicate left/right channel from 1 source!
+		memcpy(&sampleInfo[1],&sampleInfo[0],sizeof(sampleInfo[0])); //Duplicate left/right channel from 1 source!
 		break;
 	case leftSample:
 		if (!getSFSampleInformation(soundfont, LE16(sampleptr.genAmount.wAmount), &sampleInfo[1])) //Load the used sample information!
@@ -1762,7 +1766,7 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 		}
 		break;
 	case rightSample:
-		memcpy(&sampleInfo[1],&sampleInfo[0],sizeof(sampleInfo)); //Duplicate left/right channel from 1 source!
+		memcpy(&sampleInfo[1],&sampleInfo[0],sizeof(sampleInfo[0])); //Duplicate left/right channel from 1 source!
 		if (!getSFSampleInformation(soundfont, LE16(sampleptr.genAmount.wAmount), &sampleInfo[0])) //Load the used sample information!
 		{
 			goto invalidsampleinfo;
@@ -2018,12 +2022,12 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 		rootMIDITone = (sword)LE16(applyigen.genAmount.wAmount); //The MIDI tone to apply is different!
 		if ((rootMIDITone<0) || (rootMIDITone>127)) //Invalid?
 		{
-			rootMIDITone = (sword)voice->sample.byOriginalPitch; //Original MIDI tone!
+			rootMIDITone = (sword)voice->sample[1].byOriginalPitch; //Original MIDI tone!
 		}
 	}
 	else
 	{
-		rootMIDITone = (sword)voice->sample.byOriginalPitch; //Original MIDI tone!
+		rootMIDITone = (sword)voice->sample[1].byOriginalPitch; //Original MIDI tone!
 	}
 
 	rootMIDITone = (((sword)effectivenote)-rootMIDITone); //>positive difference, <negative difference.
@@ -2096,13 +2100,14 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 		voice->modulationratiosamples[chorusreverbdepth] = 1.0f; //Default ratio: no modulation!
 		voice->lowpass_modulationratio[chorusreverbdepth] = 1200.0f; //Default ratio: no modulation!
 		voice->lowpass_modulationratiosamples[chorusreverbdepth] = voice->lowpassfilter_freq; //Default ratio: no modulation!
-		voice->chorusdelay[chorusreverbdepth] = (uint_32)((chorus_delay[chorusreverbdepth])*(float)LE16(voice->sample.dwSampleRate)); //Total delay to apply for this channel!
-		voice->chorussinposstep = MIDI_CHORUS_SINUS_BASE * (1.0f / (float)LE32(voice->sample.dwSampleRate)) * sinustable_percision_reverse; //How much time to add to the chorus sinus after each sample
-		voice->chorussinpos[chorusreverbdepth] = fmodf(fmodf((float)(-(chorus_delay[chorusreverbdepth]*(float)LE16(voice->sample.dwSampleRate))) * voice->chorussinposstep, (2 * (float)PI)) + (2 * (float)PI), (2 * (float)PI)) * sinustable_percision_reverse; //Initialize the starting chorus sin position for the first sample!
+		voice->chorusdelay[chorusreverbdepth] = (uint_32)((chorus_delay[chorusreverbdepth])*(float)LE16(voice->sample[1].dwSampleRate)); //Total delay to apply for this channel!
+		voice->chorussinposstep = MIDI_CHORUS_SINUS_BASE * (1.0f / (float)LE32(voice->sample[1].dwSampleRate)) * sinustable_percision_reverse; //How much time to add to the chorus sinus after each sample
+		voice->chorussinpos[chorusreverbdepth] = fmodf(fmodf((float)(-(chorus_delay[chorusreverbdepth]*(float)LE16(voice->sample[1].dwSampleRate))) * voice->chorussinposstep, (2 * (float)PI)) + (2 * (float)PI), (2 * (float)PI)) * sinustable_percision_reverse; //Initialize the starting chorus sin position for the first sample!
 		voice->isfinalchannel_chorus[chorusreverbdepth] = (chorusreverbdepth==(CHORUSSIZE-1)); //Are we the final channel?
 		voice->lowpass_dirty[chorusreverbdepth] = 0; //We're not dirty anymore by default: we're loaded!
 		voice->last_lowpass[chorusreverbdepth] = modulateLowpass(voice,1.0f,0.0f,voice->lowpassfilter_modenvfactor,(byte)chorusreverbdepth); //The current low-pass filter to use!
-		initSoundFilter(&voice->lowpassfilter[chorusreverbdepth],0,voice->last_lowpass[chorusreverbdepth],(float)LE32(voice->sample.dwSampleRate)); //Apply a default low pass filter to use!
+		initSoundFilter(&voice->lowpassfilter[chorusreverbdepth][0],0,voice->last_lowpass[chorusreverbdepth],(float)LE32(voice->sample[1].dwSampleRate)); //Apply a default low pass filter to use!
+		initSoundFilter(&voice->lowpassfilter[chorusreverbdepth][1],0,voice->last_lowpass[chorusreverbdepth],(float)LE32(voice->sample[1].dwSampleRate)); //Apply a default low pass filter to use!
 		voice->lowpass_dirty[chorusreverbdepth] = 0; //We're not dirty anymore by default: we're loaded!
 	}
 
@@ -2110,14 +2115,14 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 	for (chorusreverbdepth=0;chorusreverbdepth<REVERBSIZE;++chorusreverbdepth)
 	{
 		voice->reverbvol[chorusreverbdepth] = voice->activereverbdepth[chorusreverbdepth]; //Chorus reverb volume!
-		voice->reverbdelay[chorusreverbdepth] = (uint_32)((reverb_delay[chorusreverbdepth])*(float)LE16(voice->sample.dwSampleRate)); //Total delay to apply for this channel!
+		voice->reverbdelay[chorusreverbdepth] = (uint_32)((reverb_delay[chorusreverbdepth])*(float)LE16(voice->sample[1].dwSampleRate)); //Total delay to apply for this channel!
 		voice->isfinalchannel_reverb[chorusreverbdepth] = (chorusreverbdepth==(REVERBSIZE-1)); //Are we the final channel?
 	}
 
 	for (chorusreverbdepth=0;chorusreverbdepth<CHORUSREVERBSIZE;++chorusreverbdepth)
 	{
-		initSoundFilter(&voice->reverbfilter[(chorusreverbdepth<<1)],0,voice->lowpassfilter_freq*((chorusreverbdepth)?1.0f:(0.7f*powf(0.9f,(float)(chorusreverbdepth>>1)))),(float)LE32(voice->sample.dwSampleRate)); //Apply a default low pass filter to use!
-		initSoundFilter(&voice->reverbfilter[((chorusreverbdepth<<1)|1)],0,voice->lowpassfilter_freq*((chorusreverbdepth)?1.0f:(0.7f*powf(0.9f,(float)(chorusreverbdepth>>1)))),(float)LE32(voice->sample.dwSampleRate)); //Apply a default low pass filter to use!
+		initSoundFilter(&voice->reverbfilter[(chorusreverbdepth<<1)],0,voice->lowpassfilter_freq*((chorusreverbdepth)?1.0f:(0.7f*powf(0.9f,(float)(chorusreverbdepth>>1)))),(float)LE32(voice->sample[1].dwSampleRate)); //Apply a default low pass filter to use!
+		initSoundFilter(&voice->reverbfilter[((chorusreverbdepth<<1)|1)],0,voice->lowpassfilter_freq*((chorusreverbdepth)?1.0f:(0.7f*powf(0.9f,(float)(chorusreverbdepth>>1)))),(float)LE32(voice->sample[1].dwSampleRate)); //Apply a default low pass filter to use!
 	}
 
 	//Setup default channel chorus/reverb!
@@ -2144,8 +2149,8 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 	voice->bank = channel->activebank;
 
 	//Final adjustments and set active!
-	ADSR_init(voice, (float)voice->sample.dwSampleRate, effectivevelocity, &voice->VolumeEnvelope, soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, preset, pbag, delayVolEnv, attackVolEnv, 1, holdVolEnv, decayVolEnv, sustainVolEnv, releaseVolEnv, effectivenote, keynumToVolEnvHold, keynumToVolEnvDecay); //Initialise our Volume Envelope for use!
-	ADSR_init(voice, (float)voice->sample.dwSampleRate, effectivevelocity, &voice->ModulationEnvelope, soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, preset, pbag, delayModEnv, attackModEnv, 1, holdModEnv, decayModEnv, sustainModEnv, releaseModEnv, effectivenote, keynumToModEnvHold, keynumToModEnvDecay); //Initialise our Modulation Envelope for use!
+	ADSR_init(voice, (float)voice->sample[1].dwSampleRate, effectivevelocity, &voice->VolumeEnvelope, soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, preset, pbag, delayVolEnv, attackVolEnv, 1, holdVolEnv, decayVolEnv, sustainVolEnv, releaseVolEnv, effectivenote, keynumToVolEnvHold, keynumToVolEnvDecay); //Initialise our Volume Envelope for use!
+	ADSR_init(voice, (float)voice->sample[1].dwSampleRate, effectivevelocity, &voice->ModulationEnvelope, soundfont, LE16(instrumentptr.genAmount.wAmount), ibag, preset, pbag, delayModEnv, attackModEnv, 1, holdModEnv, decayModEnv, sustainModEnv, releaseModEnv, effectivenote, keynumToModEnvHold, keynumToModEnvDecay); //Initialise our Modulation Envelope for use!
 
 	voice->starttime = starttime++; //Take a new start time!
 	voice->active = 1; //Active!
@@ -2405,7 +2410,7 @@ OPTINLINE void MIDIDEVICE_noteOn(byte selectedchannel, byte channel, byte note, 
 						currentranking = 0; //Start with no ranking!
 						if (activevoices[voiceactive].VolumeEnvelope.active == ADSR_IDLE) currentranking -= 4000; //Idle gets priority to be stolen!
 						else if (activevoices[voiceactive].VolumeEnvelope.active == ADSR_RELEASE) currentranking -= 2000; //Release gets priority to be stolen!
-						if (activevoices[voiceactive].channel->sustain | (activevoices[voiceactive].currentloopflags&0x10)) currentranking -= 1000; //Lower when sustained or sostenuto!
+						if (activevoices[voiceactive].channel->sustain | ((activevoices[voiceactive].currentloopflags[1]|activevoices[voiceactive].currentloopflags[0])&0x10)) currentranking -= 1000; //Lower when sustained or sostenuto!
 						float volume;
 						volume = combineAttenuation(&activevoices[voiceactive],activevoices[voiceactive].effectiveAttenuation, activevoices[voiceactive].CurrentVolumeEnvelope); //Load the ADSR volume!
 						if (activevoices[voiceactive].lvolume > activevoices[voice].rvolume) //More left volume?
@@ -2506,9 +2511,10 @@ void startMIDIsostenuto(byte channel)
 		{
 			if (voice->channel == &MIDI_channels[channel]) //The requested channel?
 			{
-				if (((voice->currentloopflags&0xD0)!=0x80) && (voice->VolumeEnvelope.active!=ADSR_RELEASE)) //Still pressed and not releasing?
+				if (((voice->currentloopflags[1]&0xD0)!=0x80) && (voice->VolumeEnvelope.active!=ADSR_RELEASE)) //Still pressed and not releasing?
 				{
-					voice->currentloopflags |= 0x10; //Set sostenuto!
+					voice->currentloopflags[0] |= 0x10; //Set sostenuto!
+					voice->currentloopflags[1] |= 0x10; //Set sostenuto!
 				}
 			}
 		}
@@ -2527,7 +2533,8 @@ void stopMIDIsostenuto(byte channel)
 		{
 			if (voice->channel == &MIDI_channels[channel]) //The requested channel?
 			{
-				voice->currentloopflags &= ~0x10; //Clear sostenuto!
+				voice->currentloopflags[0] &= ~0x10; //Clear sostenuto!
+				voice->currentloopflags[1] &= ~0x10; //Clear sostenuto!
 			}
 		}
 	}
