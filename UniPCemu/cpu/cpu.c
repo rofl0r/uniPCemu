@@ -70,8 +70,8 @@ uint_32 MSRmasklow[MAPPEDMSRS*2]; //Low mask!
 uint_32 MSRmaskhigh[MAPPEDMSRS*2]; //High mask!
 uint_32 MSRmaskwritelow_readonly[MAPPEDMSRS*2]; //Low mask for writes changing data erroring out!
 uint_32 MSRmaskwritehigh_readonly[MAPPEDMSRS*2]; //High mask for writes changing data erroring out!
-uint_32 MSRmaskwritelow_writeonly[MAPPEDMSRS*2]; //Low mask for reads changing data!
-uint_32 MSRmaskwritehigh_writeonly[MAPPEDMSRS*2]; //High mask for reads changing data!
+uint_32 MSRmaskreadlow_writeonly[MAPPEDMSRS*2]; //Low mask for reads changing data!
+uint_32 MSRmaskreadhigh_writeonly[MAPPEDMSRS*2]; //High mask for reads changing data!
 
 void CPU_initMSRnumbers()
 {
@@ -185,8 +185,8 @@ void CPU_initMSRs()
 	memset(&MSRmaskhigh, ~0, sizeof(MSRmaskhigh)); //Allow all bits!
 	memset(&MSRmaskwritelow_readonly, 0, sizeof(MSRmaskwritelow_readonly)); //No read-only bits!
 	memset(&MSRmaskwritehigh_readonly, 0, sizeof(MSRmaskwritehigh_readonly)); //No read-only bits!
-	memset(&MSRmaskwritelow_writeonly, 0, sizeof(MSRmaskwritelow_writeonly)); //No write-only bits!
-	memset(&MSRmaskwritehigh_writeonly, 0, sizeof(MSRmaskwritehigh_writeonly)); //No write-only bits!
+	memset(&MSRmaskreadlow_writeonly, 0, sizeof(MSRmaskwritelow_writeonly)); //No write-only bits!
+	memset(&MSRmaskreadhigh_writeonly, 0, sizeof(MSRmaskwritehigh_writeonly)); //No write-only bits!
 	MSRmasklow[MSRnumbers[0x1B] - 1] = 0xF0; //APICBASE mask
 	MSRmaskhigh[MSRnumbers[0x1B] - 1] = 0; //APICBASE mask
 	if (EMULATED_CPU==CPU_PENTIUM) //Pentium-only?
@@ -207,6 +207,26 @@ void CPU_initMSRs()
 		MSRmaskwritehigh_readonly[MSRnumbers[0x1A+MAPPEDMSRS] - 1] = ~0; //They're all readonly!
 		MSRmaskwritelow_readonly[MSRnumbers[0x1C+MAPPEDMSRS] - 1] = ~0; //They're all readonly!
 		MSRmaskwritehigh_readonly[MSRnumbers[0x1C+MAPPEDMSRS] - 1] = ~0; //They're all readonly!
+		//Write-only low ones!
+		MSRmaskreadlow_writeonly[MSRnumbers[0x02] - 1] = ~0; //They're all readonly!
+		MSRmaskreadhigh_writeonly[MSRnumbers[0x02] - 1] = ~0; //They're all readonly!
+		MSRmaskreadlow_writeonly[MSRnumbers[0x07] - 1] = ~0; //They're all readonly!
+		MSRmaskreadhigh_writeonly[MSRnumbers[0x07] - 1] = ~0; //They're all readonly!
+		MSRmaskreadlow_writeonly[MSRnumbers[0x0D] - 1] = ~0; //They're all readonly!
+		MSRmaskreadhigh_writeonly[MSRnumbers[0x0D] - 1] = ~0; //They're all readonly!
+		MSRmaskreadlow_writeonly[MSRnumbers[0x0E] - 1] = ~0; //They're all readonly!
+		MSRmaskreadhigh_writeonly[MSRnumbers[0x0E] - 1] = ~0; //They're all readonly!
+		//High write-only!
+		MSRmaskreadlow_writeonly[MSRnumbers[0x02+MAPPEDMSRS] - 1] = ~0; //They're all readonly!
+		MSRmaskreadhigh_writeonly[MSRnumbers[0x02+MAPPEDMSRS] - 1] = ~0; //They're all readonly!
+		MSRmaskreadlow_writeonly[MSRnumbers[0x07+MAPPEDMSRS] - 1] = ~0; //They're all readonly!
+		MSRmaskreadhigh_writeonly[MSRnumbers[0x07+MAPPEDMSRS] - 1] = ~0; //They're all readonly!
+		MSRmaskreadlow_writeonly[MSRnumbers[0x0D+MAPPEDMSRS] - 1] = ~0; //They're all readonly!
+		MSRmaskreadhigh_writeonly[MSRnumbers[0x0D+MAPPEDMSRS] - 1] = ~0; //They're all readonly!
+		MSRmaskreadlow_writeonly[MSRnumbers[0x0E+MAPPEDMSRS] - 1] = ~0; //They're all readonly!
+		MSRmaskreadhigh_writeonly[MSRnumbers[0x0E+MAPPEDMSRS] - 1] = ~0; //They're all readonly!
+		MSRmaskreadlow_writeonly[MSRnumbers[0x0F+MAPPEDMSRS] - 1] = ~0; //They're all readonly!
+		MSRmaskreadhigh_writeonly[MSRnumbers[0x0F+MAPPEDMSRS] - 1] = ~0; //They're all readonly!
 		//Weird always 0 ones or unimplemented?
 		MSRmaskwritelow_readonly[MSRnumbers[0x03+MAPPEDMSRS] - 1] = ~0; //They're all readonly!
 		MSRmaskwritehigh_readonly[MSRnumbers[0x03+MAPPEDMSRS] - 1] = ~0; //They're all readonly!

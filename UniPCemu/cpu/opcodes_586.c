@@ -59,8 +59,8 @@ extern uint_32 MSRmasklow[MAPPEDMSRS*2]; //Low mask!
 extern uint_32 MSRmaskhigh[MAPPEDMSRS*2]; //High mask!
 extern uint_32 MSRmaskwritelow_readonly[MAPPEDMSRS*2]; //Low mask for writes changing data erroring out!
 extern uint_32 MSRmaskwritehigh_readonly[MAPPEDMSRS*2]; //High mask for writes changing data erroring out!
-extern uint_32 MSRmaskwritelow_writeonly[MAPPEDMSRS*2]; //Low mask for reads changing data!
-extern uint_32 MSRmaskwritehigh_writeonly[MAPPEDMSRS*2]; //High mask for reads changing data!
+extern uint_32 MSRmaskreadlow_writeonly[MAPPEDMSRS*2]; //Low mask for reads changing data!
+extern uint_32 MSRmaskreadhigh_writeonly[MAPPEDMSRS*2]; //High mask for reads changing data!
 
 //Handle all MSRs as our generic preregistered MSRs!
 void CPU586_OP0F30() //WRMSR
@@ -173,8 +173,8 @@ void CPU586_OP0F32() //RDMSR
 
 	MSR = &CPU[activeCPU].registers->genericMSR[storagenr]; //Actual MSR to use!
 
-	REG_EDX = (MSR->hi&(~MSRmaskwritehigh_writeonly[storagenr])); //High dword of MSR #ECX
-	REG_EAX = (MSR->lo&(~MSRmaskwritehigh_writeonly[storagenr])); //Low dword of MSR #ECX
+	REG_EDX = (MSR->hi&(~MSRmaskreadhigh_writeonly[storagenr])); //High dword of MSR #ECX
+	REG_EAX = (MSR->lo&(~MSRmaskreadhigh_writeonly[storagenr])); //Low dword of MSR #ECX
 }
 
 void CPU586_OP0FC7() //CMPXCHG8B r/m32
