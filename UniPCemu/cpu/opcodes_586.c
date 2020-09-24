@@ -86,19 +86,19 @@ void CPU586_OP0F30() //WRMSR
 	if (ECXoffset&0x80000000) //High?
 	{
 		mapbase = MAPPEDMSRS; //Base high!
-		CXoffset &= ~0x80000000; //High offset!
+		ECXoffset &= ~0x80000000; //High offset!
 	}
-	if (CXoffset >= MAPPEDMSRS) //Invalid register in ECX?
+	if (ECXoffset >= MAPPEDMSRS) //Invalid register in ECX?
 	{
 		handleinvalidregisterWRMSR:
 		THROWDESCGP(0, 0, 0); //#GP(0)!
 		return;
 	}
-	if (!MSRnumbers[CXoffset+mapbase]) //Unmapped?
+	if (!MSRnumbers[ECXoffset+mapbase]) //Unmapped?
 	{
 		goto handleinvalidregisterWRMSR; //Handle it!
 	}
-	storagenr = MSRnumbers[CXoffset+mapbase]-1; //Where are we stored?
+	storagenr = MSRnumbers[ECXoffset+mapbase]-1; //Where are we stored?
 
 	validbitshi = MSRmaskhigh[storagenr]; //Valid bits to access!
 	validbitslo = MSRmasklow[storagenr]; //Valid bits to access!
@@ -155,19 +155,19 @@ void CPU586_OP0F32() //RDMSR
 	if (ECXoffset&0x80000000) //High?
 	{
 		mapbase = MAPPEDMSRS; //Base high!
-		CXoffset &= ~0x80000000; //High offset!
+		ECXoffset &= ~0x80000000; //High offset!
 	}
-	if (CXoffset >= MAPPEDMSRS) //Invalid register in ECX?
+	if (ECXoffset >= MAPPEDMSRS) //Invalid register in ECX?
 	{
 		handleinvalidregisterRDMSR:
 		THROWDESCGP(0, 0, 0); //#GP(0)!
 		return;
 	}
-	if (!MSRnumbers[CXoffset+mapbase]) //Unmapped?
+	if (!MSRnumbers[ECXoffset+mapbase]) //Unmapped?
 	{
 		goto handleinvalidregisterRDMSR; //Handle it!
 	}
-	storagenr = MSRnumbers[CXoffset+mapbase]-1; //Where are we stored?
+	storagenr = MSRnumbers[ECXoffset+mapbase]-1; //Where are we stored?
 
 	MSR = &CPU[activeCPU].registers->genericMSR[storagenr]; //Actual MSR to use!
 
