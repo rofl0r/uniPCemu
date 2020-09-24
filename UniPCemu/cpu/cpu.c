@@ -78,20 +78,50 @@ void CPU_initMSRnumbers()
 	MSRstorage = 0; //Default: first entry!
 	MSRnumbers[0] = ++MSRstorage; //MSR xxh!
 	MSRnumbers[1] = ++MSRstorage; //MSR xxh!
+	if (EMULATED_CPU==CPU_PENTIUM) //Pentium-only?
+	{
+		MSRnumbers[2] = ++MSRstorage; //MSR xxh!
+		for (MSRcounter = 4; MSRcounter <= 0x9; ++MSRcounter)
+		{
+			MSRnumbers[MSRcounter] = ++MSRstorage; //MSR xxh!
+		}
+		for (MSRcounter = 0xB; MSRcounter <= 0xE; ++MSRcounter)
+		{
+			MSRnumbers[MSRcounter] = ++MSRstorage; //MSR xxh!
+		}
+	}
 	MSRnumbers[0x10] = ++MSRstorage; //MSR xxh!
-	MSRnumbers[0x1B] = ++MSRstorage; //MSR xxh!
-	MSRnumbers[0x2A] = ++MSRstorage; //MSR xxh!
-	MSRnumbers[0x79] = ++MSRstorage; //MSR xxh!
-	if (EMULATED_CPU >= CPU_PENTIUM2) //Pentium II MSRs!
+	if (EMULATED_CPU==CPU_PENTIUM) //Pentium-only?
+	{
+		for (MSRcounter = 0x11; MSRcounter <= 0x14; ++MSRcounter)
+		{
+			MSRnumbers[MSRcounter] = ++MSRstorage; //MSR xxh!
+		}
+		//High MSRs!
+		for (MSRcounter = 0; MSRcounter < 0x20; ++MSRcounter)
+		{
+			MSRnumbers[MSRcounter+MAPPEDMSRS] = ++MSRstorage; //MSR xxh!
+		}
+	}
+	if (EMULATED_CPU>=CPU_PENTIUMPRO) //Pentium Pro and up MSRs!
+	{
+		MSRnumbers[0x1B] = ++MSRstorage; //MSR xxh!
+		MSRnumbers[0x2A] = ++MSRstorage; //MSR xxh!
+		MSRnumbers[0x79] = ++MSRstorage; //MSR xxh!
+	}
+	if (EMULATED_CPU >= CPU_PENTIUM2) //Pentium II and up MSRs!
 	{
 		MSRnumbers[0x88] = ++MSRstorage; //MSR xxh!
 		MSRnumbers[0x89] = ++MSRstorage; //MSR xxh!
 		MSRnumbers[0x8A] = ++MSRstorage; //MSR xxh!
 	}
-	MSRnumbers[0x8B] = ++MSRstorage; //MSR xxh!
-	MSRnumbers[0xC1] = ++MSRstorage; //MSR xxh!
-	MSRnumbers[0xC2] = ++MSRstorage; //MSR xxh!
-	MSRnumbers[0xFE] = ++MSRstorage; //MSR xxh!
+	if (EMULATED_CPU>=CPU_PENTIUMPRO) //Pentium Pro and up MSRs!
+	{
+		MSRnumbers[0x8B] = ++MSRstorage; //MSR xxh!
+		MSRnumbers[0xC1] = ++MSRstorage; //MSR xxh!
+		MSRnumbers[0xC2] = ++MSRstorage; //MSR xxh!
+		MSRnumbers[0xFE] = ++MSRstorage; //MSR xxh!
+	}
 
 	if (EMULATED_CPU >= CPU_PENTIUM2) //Pentium II MSRs!
 	{
@@ -106,39 +136,41 @@ void CPU_initMSRnumbers()
 		MSRnumbers[0x11E] = ++MSRstorage; //MSR xxh!
 	}
 	//Remainder of the MSRs!
-	MSRnumbers[0x179] = ++MSRstorage; //MSR xxh!
-	MSRnumbers[0x17A] = ++MSRstorage; //MSR xxh!
-	MSRnumbers[0x17B] = ++MSRstorage; //MSR xxh!
-	MSRnumbers[0x186] = ++MSRstorage; //MSR xxh!
-	MSRnumbers[0x187] = ++MSRstorage; //MSR xxh!
-	MSRnumbers[0x1D9] = ++MSRstorage; //MSR xxh!
-	MSRnumbers[0x1DB] = ++MSRstorage; //MSR xxh!
-	MSRnumbers[0x1DC] = ++MSRstorage; //MSR xxh!
-	MSRnumbers[0x1DD] = ++MSRstorage; //MSR xxh!
-	MSRnumbers[0x1DE] = ++MSRstorage; //MSR xxh!
-	MSRnumbers[0x1E0] = ++MSRstorage; //MSR xxh!
-	for (MSRcounter = 0; MSRcounter < 0x10; ++MSRcounter)
+	if (EMULATED_CPU>=CPU_PENTIUMPRO) //Pentium Pro and up MSRs!
 	{
-		MSRnumbers[0x200+MSRcounter] = ++MSRstorage; //MSR xxh!
-	}
-	MSRnumbers[0x250] = ++MSRstorage; //MSR xxh!
-	MSRnumbers[0x258] = ++MSRstorage; //MSR xxh!
-	MSRnumbers[0x259] = ++MSRstorage; //MSR xxh!
-	for (MSRcounter = 0; MSRcounter < 0x8; ++MSRcounter)
-	{
-		MSRnumbers[0x268+MSRcounter] = ++MSRstorage; //MSR xxh!
-	}
-	MSRnumbers[0x2FF] = ++MSRstorage; //MSR xxh!
-	for (MSRcounter = 0; MSRcounter < 0x8; ++MSRcounter)
-	{
-		MSRnumbers[0x268] = ++MSRstorage; //MSR xxh!
-	}
-	for (MSRcounter = 0; MSRcounter < 0x14; ++MSRcounter)
-	{
-		MSRnumbers[0x400+MSRcounter] = ++MSRstorage; //MSR xxh!
+		MSRnumbers[0x179] = ++MSRstorage; //MSR xxh!
+		MSRnumbers[0x17A] = ++MSRstorage; //MSR xxh!
+		MSRnumbers[0x17B] = ++MSRstorage; //MSR xxh!
+		MSRnumbers[0x186] = ++MSRstorage; //MSR xxh!
+		MSRnumbers[0x187] = ++MSRstorage; //MSR xxh!
+		MSRnumbers[0x1D9] = ++MSRstorage; //MSR xxh!
+		MSRnumbers[0x1DB] = ++MSRstorage; //MSR xxh!
+		MSRnumbers[0x1DC] = ++MSRstorage; //MSR xxh!
+		MSRnumbers[0x1DD] = ++MSRstorage; //MSR xxh!
+		MSRnumbers[0x1DE] = ++MSRstorage; //MSR xxh!
+		MSRnumbers[0x1E0] = ++MSRstorage; //MSR xxh!
+		for (MSRcounter = 0; MSRcounter < 0x10; ++MSRcounter)
+		{
+			MSRnumbers[0x200+MSRcounter] = ++MSRstorage; //MSR xxh!
+		}
+		MSRnumbers[0x250] = ++MSRstorage; //MSR xxh!
+		MSRnumbers[0x258] = ++MSRstorage; //MSR xxh!
+		MSRnumbers[0x259] = ++MSRstorage; //MSR xxh!
+		for (MSRcounter = 0; MSRcounter < 0x8; ++MSRcounter)
+		{
+			MSRnumbers[0x268+MSRcounter] = ++MSRstorage; //MSR xxh!
+		}
+		MSRnumbers[0x2FF] = ++MSRstorage; //MSR xxh!
+		for (MSRcounter = 0; MSRcounter < 0x8; ++MSRcounter)
+		{
+			MSRnumbers[0x268] = ++MSRstorage; //MSR xxh!
+		}
+		for (MSRcounter = 0; MSRcounter < 0x14; ++MSRcounter)
+		{
+			MSRnumbers[0x400+MSRcounter] = ++MSRstorage; //MSR xxh!
+		}
 	}
 }
-
 void CPU_initMSRs()
 {
 	CPU_initMSRnumbers(); //Initialize the number mapping!
@@ -153,6 +185,38 @@ void CPU_initMSRs()
 	memset(&MSRmaskwritehigh_readonly, 0, sizeof(MSRmaskwritehigh_readonly)); //No read-only bits!
 	MSRmasklow[MSRnumbers[0x1B] - 1] = 0xF0; //APICBASE mask
 	MSRmaskhigh[MSRnumbers[0x1B] - 1] = 0; //APICBASE mask
+	if (EMULATED_CPU==CPU_PENTIUM) //Pentium-only?
+	{
+		MSRmasklow[MSRnumbers[0x14] - 1] = 0; //ROM 0
+		MSRmaskhigh[MSRnumbers[0x14] - 1] = 0; //ROM 0
+		MSRmaskwritelow_readonly[MSRnumbers[0x00+MAPPEDMSRS] - 1] = ~0; //They're all readonly!
+		MSRmaskwritehigh_readonly[MSRnumbers[0x00+MAPPEDMSRS] - 1] = ~0; //They're all readonly!
+		MSRmaskwritelow_readonly[MSRnumbers[0x01+MAPPEDMSRS] - 1] = ~0; //They're all readonly!
+		MSRmaskwritehigh_readonly[MSRnumbers[0x01+MAPPEDMSRS] - 1] = ~0; //They're all readonly!
+		MSRmaskwritelow_readonly[MSRnumbers[0x14+MAPPEDMSRS] - 1] = ~0; //They're all readonly!
+		MSRmaskwritehigh_readonly[MSRnumbers[0x14+MAPPEDMSRS] - 1] = ~0; //They're all readonly!
+		MSRmaskwritelow_readonly[MSRnumbers[0x18+MAPPEDMSRS] - 1] = ~0; //They're all readonly!
+		MSRmaskwritehigh_readonly[MSRnumbers[0x18+MAPPEDMSRS] - 1] = ~0; //They're all readonly!
+		MSRmaskwritelow_readonly[MSRnumbers[0x19+MAPPEDMSRS] - 1] = ~0; //They're all readonly!
+		MSRmaskwritehigh_readonly[MSRnumbers[0x19+MAPPEDMSRS] - 1] = ~0; //They're all readonly!
+		MSRmaskwritelow_readonly[MSRnumbers[0x1A+MAPPEDMSRS] - 1] = ~0; //They're all readonly!
+		MSRmaskwritehigh_readonly[MSRnumbers[0x1A+MAPPEDMSRS] - 1] = ~0; //They're all readonly!
+		MSRmaskwritelow_readonly[MSRnumbers[0x1C+MAPPEDMSRS] - 1] = ~0; //They're all readonly!
+		MSRmaskwritehigh_readonly[MSRnumbers[0x1C+MAPPEDMSRS] - 1] = ~0; //They're all readonly!
+		//Weird always 0 ones or unimplemented?
+		MSRmaskwritelow_readonly[MSRnumbers[0x03+MAPPEDMSRS] - 1] = ~0; //They're all readonly!
+		MSRmaskwritehigh_readonly[MSRnumbers[0x03+MAPPEDMSRS] - 1] = ~0; //They're all readonly!
+		MSRmaskwritelow_readonly[MSRnumbers[0x0A+MAPPEDMSRS] - 1] = ~0; //They're all readonly!
+		MSRmaskwritehigh_readonly[MSRnumbers[0x0A+MAPPEDMSRS] - 1] = ~0; //They're all readonly!
+		MSRmaskwritelow_readonly[MSRnumbers[0x15+MAPPEDMSRS] - 1] = ~0; //They're all readonly!
+		MSRmaskwritehigh_readonly[MSRnumbers[0x15+MAPPEDMSRS] - 1] = ~0; //They're all readonly!
+		MSRmaskwritelow_readonly[MSRnumbers[0x16+MAPPEDMSRS] - 1] = ~0; //They're all readonly!
+		MSRmaskwritehigh_readonly[MSRnumbers[0x16+MAPPEDMSRS] - 1] = ~0; //They're all readonly!
+		MSRmaskwritelow_readonly[MSRnumbers[0x17+MAPPEDMSRS] - 1] = ~0; //They're all readonly!
+		MSRmaskwritehigh_readonly[MSRnumbers[0x17+MAPPEDMSRS] - 1] = ~0; //They're all readonly!
+		MSRmaskwritelow_readonly[MSRnumbers[0x1C+MAPPEDMSRS] - 1] = ~0; //They're all readonly!
+		MSRmaskwritehigh_readonly[MSRnumbers[0x1C+MAPPEDMSRS] - 1] = ~0; //They're all readonly!
+	}
 	if (EMULATED_CPU>=CPU_PENTIUMPRO) //Pro and up?
 	{
 		MSRmasklow[MSRnumbers[0x2A] - 1] = 0x1F | (0x1F << 6) | (0xF << 10) | (3<<16) | (3<<20) | (7<<22); //EBL_CR_POWERON
