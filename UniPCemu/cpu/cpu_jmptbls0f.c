@@ -1189,9 +1189,9 @@ Handler opcode0F_jmptbl[NUM0FEXTS][256][2] =   //Our standard internal standard 
 		{ NULL, NULL }, //2Eh: Special
 		{ NULL, NULL }, //2Fh:
 		//0x30:
-		{ CPU686_OP0F30, NULL }, //30h:
+		{ NULL, NULL }, //30h:
 		{ NULL, NULL }, //31h:
-		{ CPU686_OP0F32, NULL }, //32h:
+		{ NULL, NULL }, //32h:
 		{ CPU686_OP0F33, NULL }, //33h:
 		{ NULL, NULL }, //34h:
 		{ NULL, NULL }, //35h:

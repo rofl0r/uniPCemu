@@ -22,7 +22,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/cpu/cpu_OP80786.h" //i786 support!
 #include "headers/cpu/cpu_OP8086.h" //16-bit support!
 #include "headers/cpu/cpu_OP80386.h" //32-bit support!
-#include "headers/cpu/cpu_OP80686.h" //Basic MSR support!
+#include "headers/cpu/cpu_OP80586.h" //Basic MSR support!
 #include "headers/cpu/cpu_pmtimings.h" //Timing support!
 #include "headers/cpu/easyregs.h" //Easy register support!
 #include "headers/cpu/protection.h" //Protection support!
@@ -53,7 +53,7 @@ void CPU786_OP0F30() //WRMSR
 	}
 	if ((REG_ECX<0x174) || (REG_ECX>0x176)) //Invalid register in ECX to handle by us?
 	{
-		CPU686_OP0F30(); //Let the parent handle it!
+		CPU586_OP0F30(); //Let the parent handle it!
 		return;
 	}
 	validbitshi = 0; //No valid bits!
@@ -115,7 +115,7 @@ void CPU786_OP0F32() //RDMSR
 	}
 	if ((REG_ECX < 0x174) || (REG_ECX > 0x176)) //Invalid register in ECX?
 	{
-		CPU686_OP0F32(); //Let the parent handle it!
+		CPU586_OP0F32(); //Let the parent handle it!
 		return;
 	}
 

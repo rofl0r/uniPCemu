@@ -54,8 +54,21 @@ void CPU586_CPUID()
 	}
 }
 
+extern uint_32 MSRnumbers[MAPPEDMSRS*2]; //All possible MSR numbers!
+extern uint_32 MSRmasklow[MAPPEDMSRS*2]; //Low mask!
+extern uint_32 MSRmaskhigh[MAPPEDMSRS*2]; //High mask!
+extern uint_32 MSRmaskwritelow_readonly[MAPPEDMSRS*2]; //Low mask for writes changing data erroring out!
+extern uint_32 MSRmaskwritehigh_readonly[MAPPEDMSRS*2]; //High mask for writes changing data erroring out!
+
+//Handle all MSRs as our generic preregistered MSRs!
 void CPU586_OP0F30() //WRMSR
 {
+	CPUMSR* MSR;
+	uint_32 validbitslo;
+	uint_32 validbitshi;
+	uint_32 storagenr;
+	uint_32 mapbase;
+	uint_32 ECXoffset;
 	if (unlikely(cpudebugger)) //Debugger on?
 	{
 		modrm_generateInstructionTEXT("WRMSR", 0, 0, PARAM_NONE);
@@ -66,16 +79,42 @@ void CPU586_OP0F30() //WRMSR
 		THROWDESCGP(0, 0, 0); //#GP(0)!
 		return;
 	}
-	if (1) //Invalid register in ECX?
+
+	//Decode the offset!
+	ECXoffset = REG_ECX;
+	mapbase = 0;
+	if (ECXoffset&0x80000000) //High?
 	{
+		mapbase = MAPPEDMSRS; //Base high!
+		CXoffset &= ~0x80000000; //High offset!
+	}
+	if (CXoffset >= MAPPEDMSRS) //Invalid register in ECX?
+	{
+		handleinvalidregisterWRMSR:
 		THROWDESCGP(0, 0, 0); //#GP(0)!
 		return;
 	}
-	if (1) //Invalid register bits in EDX::EAX?
+	if (!MSRnumbers[CXoffset+mapbase]) //Unmapped?
 	{
-		THROWDESCGP(0, 0, 0); //#GP(0)!
-		return;
+		goto handleinvalidregisterWRMSR; //Handle it!
 	}
+	storagenr = MSRnumbers[CXoffset+mapbase]-1; //Where are we stored?
+
+	validbitshi = MSRmaskhigh[storagenr]; //Valid bits to access!
+	validbitslo = MSRmasklow[storagenr]; //Valid bits to access!
+
+	//Inverse the valid bits to get a mask of invalid bits!
+	validbitslo = ~validbitslo; //invalid bits calculation!
+	validbitshi = ~validbitshi; //invalid bits calculation!
+	if ((REG_EDX & validbitshi) || (REG_EAX & validbitslo)) //Invalid register bits in EDX::EAX?
+	{
+		goto handleinvalidregisterWRMSR; //Handle it!
+	}
+
+	MSR = &CPU[activeCPU].registers->genericMSR[storagenr]; //Actual MSR to use!
+
+	MSR->hi = (MSR->hi&MSRmaskwritehigh_readonly[storagenr])|(REG_EDX&~MSRmaskwritehigh_readonly[storagenr]); //Set high!
+	MSR->lo = (MSR->lo&MSRmaskwritelow_readonly[storagenr])|(REG_EAX&~MSRmaskwritelow_readonly[storagenr]); //Set low!
 }
 
 void CPU586_OP0F31() //RDTSC
@@ -95,22 +134,45 @@ void CPU586_OP0F31() //RDTSC
 
 void CPU586_OP0F32() //RDMSR
 {
+	uint_32 storagenr;
+	uint_32 mapbase;
+	uint_32 ECXoffset;
+	CPUMSR* MSR;
 	if (unlikely(cpudebugger)) //Debugger on?
 	{
 		modrm_generateInstructionTEXT("RDMSR", 0, 0, PARAM_NONE);
 	}
+
 	if (getCPL() && (getcpumode() != CPU_MODE_REAL)) //Invalid privilege?
-	{
-		THROWDESCGP(0,0,0); //#GP(0)!
-		return;
-	}
-	if (1) //Invalid register in ECX?
 	{
 		THROWDESCGP(0, 0, 0); //#GP(0)!
 		return;
 	}
-	REG_EDX = 0; //High dword of MSR #ECX
-	REG_EAX = 0; //Low dword of MSR #ECX
+
+	//Decode the offset!
+	ECXoffset = REG_ECX;
+	mapbase = 0;
+	if (ECXoffset&0x80000000) //High?
+	{
+		mapbase = MAPPEDMSRS; //Base high!
+		CXoffset &= ~0x80000000; //High offset!
+	}
+	if (CXoffset >= MAPPEDMSRS) //Invalid register in ECX?
+	{
+		handleinvalidregisterRDMSR:
+		THROWDESCGP(0, 0, 0); //#GP(0)!
+		return;
+	}
+	if (!MSRnumbers[CXoffset+mapbase]) //Unmapped?
+	{
+		goto handleinvalidregisterRDMSR; //Handle it!
+	}
+	storagenr = MSRnumbers[CXoffset+mapbase]-1; //Where are we stored?
+
+	MSR = &CPU[activeCPU].registers->genericMSR[storagenr]; //Actual MSR to use!
+
+	REG_EDX = MSR->hi; //High dword of MSR #ECX
+	REG_EAX = MSR->lo; //Low dword of MSR #ECX
 }
 
 void CPU586_OP0FC7() //CMPXCHG8B r/m32

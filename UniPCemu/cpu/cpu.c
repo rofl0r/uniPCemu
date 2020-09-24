@@ -65,11 +65,11 @@ byte cpudebugger; //To debug the CPU?
 CPU_type CPU[MAXCPUS]; //The CPU data itself!
 
 uint_32 MSRstorage; //How much storage is used?
-uint_32 MSRnumbers[MAPPEDMSRS]; //All possible MSR numbers!
-uint_32 MSRmasklow[MAPPEDMSRS]; //Low mask!
-uint_32 MSRmaskhigh[MAPPEDMSRS]; //High mask!
-uint_32 MSRmaskwritelow_readonly[MAPPEDMSRS]; //Low mask for writes changing data erroring out!
-uint_32 MSRmaskwritehigh_readonly[MAPPEDMSRS]; //High mask for writes changing data erroring out!
+uint_32 MSRnumbers[MAPPEDMSRS*2]; //All possible MSR numbers!
+uint_32 MSRmasklow[MAPPEDMSRS*2]; //Low mask!
+uint_32 MSRmaskhigh[MAPPEDMSRS*2]; //High mask!
+uint_32 MSRmaskwritelow_readonly[MAPPEDMSRS*2]; //Low mask for writes changing data erroring out!
+uint_32 MSRmaskwritehigh_readonly[MAPPEDMSRS*2]; //High mask for writes changing data erroring out!
 
 void CPU_initMSRnumbers()
 {
@@ -153,30 +153,32 @@ void CPU_initMSRs()
 	memset(&MSRmaskwritehigh_readonly, 0, sizeof(MSRmaskwritehigh_readonly)); //No read-only bits!
 	MSRmasklow[MSRnumbers[0x1B] - 1] = 0xF0; //APICBASE mask
 	MSRmaskhigh[MSRnumbers[0x1B] - 1] = 0; //APICBASE mask
-	MSRmasklow[MSRnumbers[0x2A] - 1] = 0x1F | (0x1F << 6) | (0xF << 10) | (3<<16) | (3<<20) | (7<<22); //EBL_CR_POWERON
-	MSRmaskhigh[MSRnumbers[0x2A] - 1] = 0; //EBL_CR_POWERON
-	MSRmaskwritelow_readonly[MSRnumbers[0x2A] - 1] = MSRmasklow[MSRnumbers[0x2A] - 1]&~(0x1F|(3<<6)); //They're all readonly, except the first 6 bits that are defined!
-	MSRmasklow[MSRnumbers[0x186] - 1] = ~0x200000; //EVNTSEL0 mask
-	MSRmaskhigh[MSRnumbers[0x186] - 1] = 0; //EVNTSEL0 mask
-	MSRmasklow[MSRnumbers[0x186] - 1] = ~0x600000; //EVNTSEL1 mask
-	MSRmaskhigh[MSRnumbers[0x186] - 1] = 0; //EVNTSEL1 mask
-	MSRmasklow[MSRnumbers[0x1D9] - 1] = (0x3<<8)|0x7F; //DEBUGCTLMSR mask
-	MSRmaskhigh[MSRnumbers[0x1D9] - 1] = 0; //DEBUGCTLMSR mask
-	MSRmasklow[MSRnumbers[0x1E0] - 1] = 2; //ROB_CR_BKUPTMPDR6 mask
-	MSRmaskhigh[MSRnumbers[0x1E0] - 1] = 0; //ROB_CR_BKUPTMPDR mask
-	MSRmasklow[MSRnumbers[0x2FF] - 1] = 0x3|(3<<10); //MTRRdefType mask
-	MSRmaskhigh[MSRnumbers[0x2FF] - 1] = 0; //MTRRdefType mask
-	MSRmasklow[MSRnumbers[0x401] - 1] = ~0; //MC0_STATUS mask
-	MSRmaskhigh[MSRnumbers[0x401] - 1] = 0; //MC0_STATUS mask
-	MSRmasklow[MSRnumbers[0x405] - 1] = MSRmasklow[MSRnumbers[0x401] - 1]; //MC1_STATUS mask
-	MSRmaskhigh[MSRnumbers[0x405] - 1] = MSRmaskhigh[MSRnumbers[0x401] - 1]; //MC1_STATUS mask
-	MSRmasklow[MSRnumbers[0x409] - 1] = MSRmasklow[MSRnumbers[0x401] - 1]; //MC1_STATUS mask
-	MSRmaskhigh[MSRnumbers[0x409] - 1] = MSRmaskhigh[MSRnumbers[0x401] - 1]; //MC1_STATUS mask
-	MSRmasklow[MSRnumbers[0x40D] - 1] = MSRmasklow[MSRnumbers[0x401] - 1]; //MC1_STATUS mask
-	MSRmaskhigh[MSRnumbers[0x40D] - 1] = MSRmaskhigh[MSRnumbers[0x401] - 1]; //MC1_STATUS mask
-	MSRmasklow[MSRnumbers[0x411] - 1] = MSRmasklow[MSRnumbers[0x401] - 1]; //MC1_STATUS mask
-	MSRmaskhigh[MSRnumbers[0x411] - 1] = MSRmaskhigh[MSRnumbers[0x401] - 1]; //MC1_STATUS mask
-
+	if (EMULATED_CPU>=CPU_PENTIUMPRO) //Pro and up?
+	{
+		MSRmasklow[MSRnumbers[0x2A] - 1] = 0x1F | (0x1F << 6) | (0xF << 10) | (3<<16) | (3<<20) | (7<<22); //EBL_CR_POWERON
+		MSRmaskhigh[MSRnumbers[0x2A] - 1] = 0; //EBL_CR_POWERON
+		MSRmaskwritelow_readonly[MSRnumbers[0x2A] - 1] = MSRmasklow[MSRnumbers[0x2A] - 1]&~(0x1F|(3<<6)); //They're all readonly, except the first 6 bits that are defined!
+		MSRmasklow[MSRnumbers[0x186] - 1] = ~0x200000; //EVNTSEL0 mask
+		MSRmaskhigh[MSRnumbers[0x186] - 1] = 0; //EVNTSEL0 mask
+		MSRmasklow[MSRnumbers[0x186] - 1] = ~0x600000; //EVNTSEL1 mask
+		MSRmaskhigh[MSRnumbers[0x186] - 1] = 0; //EVNTSEL1 mask
+		MSRmasklow[MSRnumbers[0x1D9] - 1] = (0x3<<8)|0x7F; //DEBUGCTLMSR mask
+		MSRmaskhigh[MSRnumbers[0x1D9] - 1] = 0; //DEBUGCTLMSR mask
+		MSRmasklow[MSRnumbers[0x1E0] - 1] = 2; //ROB_CR_BKUPTMPDR6 mask
+		MSRmaskhigh[MSRnumbers[0x1E0] - 1] = 0; //ROB_CR_BKUPTMPDR mask
+		MSRmasklow[MSRnumbers[0x2FF] - 1] = 0x3|(3<<10); //MTRRdefType mask
+		MSRmaskhigh[MSRnumbers[0x2FF] - 1] = 0; //MTRRdefType mask
+		MSRmasklow[MSRnumbers[0x401] - 1] = ~0; //MC0_STATUS mask
+		MSRmaskhigh[MSRnumbers[0x401] - 1] = 0; //MC0_STATUS mask
+		MSRmasklow[MSRnumbers[0x405] - 1] = MSRmasklow[MSRnumbers[0x401] - 1]; //MC1_STATUS mask
+		MSRmaskhigh[MSRnumbers[0x405] - 1] = MSRmaskhigh[MSRnumbers[0x401] - 1]; //MC1_STATUS mask
+		MSRmasklow[MSRnumbers[0x409] - 1] = MSRmasklow[MSRnumbers[0x401] - 1]; //MC1_STATUS mask
+		MSRmaskhigh[MSRnumbers[0x409] - 1] = MSRmaskhigh[MSRnumbers[0x401] - 1]; //MC1_STATUS mask
+		MSRmasklow[MSRnumbers[0x40D] - 1] = MSRmasklow[MSRnumbers[0x401] - 1]; //MC1_STATUS mask
+		MSRmaskhigh[MSRnumbers[0x40D] - 1] = MSRmaskhigh[MSRnumbers[0x401] - 1]; //MC1_STATUS mask
+		MSRmasklow[MSRnumbers[0x411] - 1] = MSRmasklow[MSRnumbers[0x401] - 1]; //MC1_STATUS mask
+		MSRmaskhigh[MSRnumbers[0x411] - 1] = MSRmaskhigh[MSRnumbers[0x401] - 1]; //MC1_STATUS mask
+	}
 	if (EMULATED_CPU >= CPU_PENTIUM2) //Pentium 2 has additional MSRs?
 	{
 		MSRmasklow[MSRnumbers[0x116] - 1] = ~0x7; //BBL_CR_ADDR mask
