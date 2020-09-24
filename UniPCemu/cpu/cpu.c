@@ -223,8 +223,8 @@ void CPU_initMSRs()
 		MSRmaskreadhigh_writeonly[MSRnumbers[0x07+MAPPEDMSRS] - 1] = ~0; //They're all readonly!
 		MSRmaskreadlow_writeonly[MSRnumbers[0x0D+MAPPEDMSRS] - 1] = ~0; //They're all readonly!
 		MSRmaskreadhigh_writeonly[MSRnumbers[0x0D+MAPPEDMSRS] - 1] = ~0; //They're all readonly!
-		MSRmaskreadlow_writeonly[MSRnumbers[0x0E+MAPPEDMSRS] - 1] = ~0; //They're all readonly!
-		MSRmaskreadhigh_writeonly[MSRnumbers[0x0E+MAPPEDMSRS] - 1] = ~0; //They're all readonly!
+		MSRmaskreadlow_writeonly[MSRnumbers[0x0E + MAPPEDMSRS] - 1] = ~0; //They're all readonly!
+		MSRmaskreadhigh_writeonly[MSRnumbers[0x0E + MAPPEDMSRS] - 1] = ~0; //They're all readonly!
 		MSRmaskreadlow_writeonly[MSRnumbers[0x0F+MAPPEDMSRS] - 1] = ~0; //They're all readonly!
 		MSRmaskreadhigh_writeonly[MSRnumbers[0x0F+MAPPEDMSRS] - 1] = ~0; //They're all readonly!
 		//Weird always 0 ones or unimplemented?
