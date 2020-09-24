@@ -185,8 +185,8 @@ void CPU_initMSRs()
 	memset(&MSRmaskhigh, ~0, sizeof(MSRmaskhigh)); //Allow all bits!
 	memset(&MSRmaskwritelow_readonly, 0, sizeof(MSRmaskwritelow_readonly)); //No read-only bits!
 	memset(&MSRmaskwritehigh_readonly, 0, sizeof(MSRmaskwritehigh_readonly)); //No read-only bits!
-	memset(&MSRmaskreadlow_writeonly, 0, sizeof(MSRmaskwritelow_writeonly)); //No write-only bits!
-	memset(&MSRmaskreadhigh_writeonly, 0, sizeof(MSRmaskwritehigh_writeonly)); //No write-only bits!
+	memset(&MSRmaskreadlow_writeonly, 0, sizeof(MSRmaskreadlow_writeonly)); //No write-only bits!
+	memset(&MSRmaskreadhigh_writeonly, 0, sizeof(MSRmaskreadhigh_writeonly)); //No write-only bits!
 	MSRmasklow[MSRnumbers[0x1B] - 1] = 0xF0; //APICBASE mask
 	MSRmaskhigh[MSRnumbers[0x1B] - 1] = 0; //APICBASE mask
 	if (EMULATED_CPU==CPU_PENTIUM) //Pentium-only?
