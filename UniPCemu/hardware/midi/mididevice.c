@@ -1218,22 +1218,19 @@ void updateChorusMod(MIDIDEVICE_VOICE* voice)
 		basechorusreverb = (float)LE16(applygen.genAmount.shAmount); //How many semitones! Apply to the cents: 1 semitone = 100 cents!
 	}
 
-	panningtemp *= 0.001f; //Make into a percentage, it's in 0.1% units!
+	basechorusreverb += panningtemp; //How much is changed by modulators!
 	basechorusreverb *= 0.001f; //Make into a percentage, it's in 0.1% units!
 
-	panningtemp *= (1.0f / 127.0f); //Linear depth!
-
-	for (chorusreverbdepth = 1; chorusreverbdepth < 0x100; chorusreverbdepth++) //Process all possible chorus depths!
+	for (chorusreverbdepth = 1; chorusreverbdepth < NUMITEMS(voice->chorusdepth); chorusreverbdepth++) //Process all possible chorus depths!
 	{
-		voice->chorusdepth[chorusreverbdepth] = (panningtemp * (float)chorusreverbdepth) + basechorusreverb; //Apply the volume!
+		voice->chorusdepth[chorusreverbdepth] = powf(basechorusreverb,(float)chorusreverbdepth); //Apply the volume!
 	}
-	voice->chorusdepth[0] = 0.0f; //Always none at the original level!
-
-	voice->currentchorusdepth = voice->channel->choruslevel; //Current chorus depth!
+	voice->chorusdepth[0] = 1.0f; //Always none at the original level!
 
 	for (chorusreverbchannel = 0; chorusreverbchannel < 2; ++chorusreverbchannel) //Process all reverb&chorus channels, precalculating every used value!
 	{
-		voice->activechorusdepth[chorusreverbchannel] = voice->chorusdepth[voice->currentchorusdepth]; //The chorus feedback strength for that channel!
+		voice->activechorusdepth[chorusreverbchannel] = voice->chorusdepth[chorusreverbchannel]; //The chorus feedback strength for that channel!
+		voice->chorusvol[chorusreverbchannel] = voice->activechorusdepth[chorusreverbchannel]; //The (chorus) volume on this channel!
 	}
 }
 
@@ -1262,31 +1259,24 @@ void updateReverbMod(MIDIDEVICE_VOICE* voice)
 		basechorusreverb = (float)LE16(applygen.genAmount.shAmount); //How many semitones! Apply to the cents: 1 semitone = 100 cents!
 	}
 
-	panningtemp *= 0.001f; //Make into a percentage, it's in 0.1% units!
+	basechorusreverb += panningtemp; //How much is changed by modulators!
 	basechorusreverb *= 0.001f; //Make into a percentage, it's in 0.1% units!
 
-	panningtemp *= (1.0f / 127.0f); //Linear depth!
-
-	for (chorusreverbdepth = 0; chorusreverbdepth < 0x100; chorusreverbdepth++) //Process all possible chorus depths!
+	for (chorusreverbdepth = 0; chorusreverbdepth < NUMITEMS(voice->reverbdepth); chorusreverbdepth++) //Process all possible chorus depths!
 	{
-		for (chorusreverbchannel = 0; chorusreverbchannel < 2; chorusreverbchannel++) //Process all channels!
+		if (chorusreverbdepth == 0)
 		{
-			if (chorusreverbdepth == 0)
-			{
-				voice->reverbdepth[chorusreverbdepth][chorusreverbchannel] = 0.0; //Nothing at the main channel!
-			}
-			else //Valid depth?
-			{
-				voice->reverbdepth[chorusreverbdepth][chorusreverbchannel] = (float)dB2factor((panningtemp * chorusreverbdepth) + basechorusreverb, 1.0f); //Apply the volume!
-			}
+			voice->reverbdepth[chorusreverbdepth] = 0.0; //Nothing at the main channel!
+		}
+		else //Valid depth?
+		{
+			voice->reverbdepth[chorusreverbdepth] = powf(basechorusreverb,(float)chorusreverbdepth); //Apply the volume!
 		}
 	}
 
-	voice->currentreverbdepth = voice->channel->reverblevel; //Current reverb depth!
-
 	for (chorusreverbchannel = 0; chorusreverbchannel < 2; ++chorusreverbchannel) //Process all reverb&chorus channels, precalculating every used value!
 	{
-		voice->activereverbdepth[chorusreverbchannel] = voice->reverbdepth[voice->currentreverbdepth][chorusreverbchannel]; //The selected value!
+		voice->activereverbdepth[chorusreverbchannel] = voice->reverbdepth[chorusreverbchannel]; //The selected value!
 	}
 
 	for (chorusreverbdepth = 0; chorusreverbdepth < REVERBSIZE; ++chorusreverbdepth)

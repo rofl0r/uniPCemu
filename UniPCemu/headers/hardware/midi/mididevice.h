@@ -182,9 +182,9 @@ typedef struct
 	sword rootMIDITone;
 
 	//Chorus and reverb calculations!
-	float chorusdepth[0x100]; //All chorus depths, index 0 is dry sound!
-	float reverbdepth[0x100][8]; //All reverb depths, index 0 is dry sound!
-	float activechorusdepth[4]; //The chorus depth used for all channels!
+	float chorusdepth[2]; //All chorus depths, index 0 is dry sound!
+	float reverbdepth[8]; //All reverb depths, index 0 is dry sound!
+	float activechorusdepth[2]; //The chorus depth used for all channels!
 	float activereverbdepth[8]; //The reverb depth used for all channels!
 	byte currentchorusdepth; //Used chorus depth, set by software when a note is started! 
 	byte currentreverbdepth; //Used reverb depth, set by software when a note is started!
