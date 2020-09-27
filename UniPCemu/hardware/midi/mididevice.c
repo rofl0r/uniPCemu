@@ -2115,8 +2115,8 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 
 	for (chorusreverbdepth=0;chorusreverbdepth<CHORUSREVERBSIZE;++chorusreverbdepth)
 	{
-		initSoundFilter(&voice->reverbfilter[(chorusreverbdepth<<1)],0,voice->lowpassfilter_freq*((chorusreverbdepth)?1.0f:(0.7f*powf(0.9f,(float)(chorusreverbdepth>>1)))),(float)LE32(voice->sample[1].dwSampleRate)); //Apply a default low pass filter to use!
-		initSoundFilter(&voice->reverbfilter[((chorusreverbdepth<<1)|1)],0,voice->lowpassfilter_freq*((chorusreverbdepth)?1.0f:(0.7f*powf(0.9f,(float)(chorusreverbdepth>>1)))),(float)LE32(voice->sample[1].dwSampleRate)); //Apply a default low pass filter to use!
+		initSoundFilter(&voice->reverbfilter[(chorusreverbdepth<<1)],0,voice->lowpassfilter_freq*((chorusreverbdepth<CHORUSSIZE)?1.0f:(0.7f*powf(0.9f,(float)((chorusreverbdepth/CHORUSSIZE)-1)))),(float)LE32(voice->sample[1].dwSampleRate)); //Apply a default low pass filter to use!
+		initSoundFilter(&voice->reverbfilter[((chorusreverbdepth<<1)|1)],0,voice->lowpassfilter_freq*((chorusreverbdepth<CHORUSSIZE)?1.0f:(0.7f*powf(0.9f,(float)((chorusreverbdepth/CHORUSSIZE)-1)))),(float)LE32(voice->sample[1].dwSampleRate)); //Apply a default low pass filter to use!
 	}
 
 	//Now determine the volume envelope!
