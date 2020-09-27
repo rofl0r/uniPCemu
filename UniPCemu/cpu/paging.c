@@ -38,8 +38,8 @@ extern byte EMU_RUNNING; //1 when paging can be applied!
 //#define ACCESS_ON_READWRITE
 
 //20-bit PDBR. Could also be CR3 in total?
-#define PDBR (CPU[activeCPU].registers->CR3&0xFFFFF000)
-//#define PDBR ((CPU[activeCPU].registers->CR3>>12)&0xFFFFF)
+#define CR3_PDBR (CPU[activeCPU].registers->CR3&0xFFFFF000)
+#define CR3_PAEPDBR (CPU[activeCPU].registers->CR3&0xFFFFFFE0)
 
 //Present: 1 when below is used, 0 is invalid: not present (below not used/to be trusted).
 #define PXE_P 0x00000001
@@ -258,8 +258,8 @@ byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch, byte 
 
 	if ((CPU[activeCPU].registers->CR4 & 0x20) && (EMULATED_CPU >= CPU_PENTIUMPRO)) //PAE enabled?
 	{
-		PDPT = memory_BIUdirectrdw(PDBR + ((DIR>>8) << 3)); //Read the page directory entry low!
-		PDPT |= ((uint_64)memory_BIUdirectrdw(PDBR + (((DIR >> 8)) << 3)|4))<<32; //Read the page directory entry high!
+		PDPT = memory_BIUdirectrdw(CR3_PAEPDBR + ((DIR>>8) << 3)); //Read the page directory entry low!
+		PDPT |= ((uint_64)memory_BIUdirectrdw(CR3_PAEPDBR + (((DIR >> 8)) << 3)|4))<<32; //Read the page directory entry high!
 		PDEsize = PTEsize = 3; //Double the size of the entries to be 64-bits!
 		PXEsize = PXE_PAEADDRESSMASK; //Large address mask!
 		//Check present only!
@@ -288,9 +288,9 @@ byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch, byte 
 	}
 	else //PAE disabled?
 	{
-		PDEbase = PDBR; //What is the PDE base address!
+		PDEbase = CR3_PDBR; //What is the PDE base address!
 		//Check PDE
-		PDE = memory_BIUdirectrdw(PDBR + (DIR << 2)); //Read the page directory entry!
+		PDE = memory_BIUdirectrdw(PDEbase + (DIR << 2)); //Read the page directory entry!
 		if (!(PDE & PXE_P)) //Not present?
 		{
 			raisePF(address, (RW << 1) | (effectiveUS << 2)); //Run a not present page fault!
