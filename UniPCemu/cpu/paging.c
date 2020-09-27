@@ -839,7 +839,6 @@ byte Paging_readTLB(byte *TLB_way, uint_32 logicaladdress, uint_32 LWUDAS, byte 
 		{
 			if (likely((curentry->entry->TAG&TAGMask) == TAG)) //Found and allocated?
 			{
-				mostrecentTAGvalid = 1; //Valid tag in the cache!
 				mostrecentTAGread = TAG; //Most recent tag that has been read!
 				mostrecentTAGmask = TAGMask; //What to count!
 				*result = mostrecentTAGresult = curentry->entry->data; //Give the stored data!
@@ -850,6 +849,7 @@ byte Paging_readTLB(byte *TLB_way, uint_32 logicaladdress, uint_32 LWUDAS, byte 
 				{
 					*TLB_way = mostrecentTAGway; //What way was found!
 				}
+				mostrecentTAGvalid = 1; //Valid tag in the cache!
 				return 1; //Found!
 			}
 			curentry = (TLB_ptr *)(curentry->next); //Next entry!
