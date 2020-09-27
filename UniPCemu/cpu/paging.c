@@ -104,7 +104,8 @@ word PFflags;
 //Small little cache for the most recent tags that are read!
 uint_32 mostrecentTAGread = 0; //Most recent read tag in the TLB!
 uint_32 mostrecentTAGmask = 0; //Most recent read tag mask in the TLB!
-uint_32 mostrecentTAGresult = 0; //The result of the most recent tag read!
+uint_64 mostrecentTAGresult = 0; //The result of the most recent tag read!
+uint_32 mostrecentTAGpassthroughmask = 0xFFF; //The result of the most recent tag read!
 
 void raisePF(uint_32 address, word flags)
 {
@@ -823,7 +824,9 @@ byte Paging_readTLB(byte *TLB_way, uint_32 logicaladdress, uint_32 LWUDAS, byte 
 
 		if (likely((mostrecentTAGread==TAG) && (mostrecentTAGmask==TAGMask) && (TLB_way==NULL))) //Same tag read again(and no extra action needed)?
 		{
-			return mostrecentTAGresult; //Give the most recent result!
+			*result = mostrecentTAGresult; //Give the most recent result!
+			*passthroughmask = mostrecentTAGpassthroughmask; //Give the most recent passthrough bitmask!
+			return 1; //Found!
 		}
 
 		for (; curentry;) //Check all entries that are allocated!
@@ -833,7 +836,7 @@ byte Paging_readTLB(byte *TLB_way, uint_32 logicaladdress, uint_32 LWUDAS, byte 
 				mostrecentTAGread = TAG; //Most recent tag that has been read!
 				mostrecentTAGmask = TAGMask; //What to count!
 				*result = mostrecentTAGresult = curentry->entry->data; //Give the stored data!
-				*passthroughmask = curentry->entry->passthroughmask; //What bits to pass through!
+				*passthroughmask = mostrecentTAGpassthroughmask = curentry->entry->passthroughmask; //What bits to pass through!
 				Paging_setNewestTLB(TLB_set, curentry); //Set us as the newest TLB!
 				if (unlikely(TLB_way)) //Requested way?
 				{
