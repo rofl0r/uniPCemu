@@ -182,12 +182,10 @@ typedef struct
 	sword rootMIDITone;
 
 	//Chorus and reverb calculations!
-	float chorusdepth[2]; //All chorus depths, index 0 is dry sound!
-	float reverbdepth[8]; //All reverb depths, index 0 is dry sound!
-	float activechorusdepth[2]; //The chorus depth used for all channels!
-	float activereverbdepth[8]; //The reverb depth used for all channels!
-	byte currentchorusdepth; //Used chorus depth, set by software when a note is started! 
-	byte currentreverbdepth; //Used reverb depth, set by software when a note is started!
+	float chorusdepth[CHORUSSIZE]; //All chorus depths, index 0 is dry sound!
+	float reverbdepth[REVERBSIZE]; //All reverb depths, index 0 is dry sound!
+	float activechorusdepth[CHORUSSIZE]; //The chorus depth used for all channels!
+	float activereverbdepth[REVERBSIZE]; //The reverb depth used for all channels!
 	int_32 modulationratiocents[CHORUSSIZE];
 	DOUBLE modulationratiosamples[CHORUSSIZE]; //Modulation ratio and it's samples rate for faster lookup on boundaries!
 	float lowpass_modulationratio[CHORUSSIZE], lowpass_modulationratiosamples[CHORUSSIZE]; //See modulation ratio, but for the low pass filter only!

@@ -1227,7 +1227,7 @@ void updateChorusMod(MIDIDEVICE_VOICE* voice)
 	}
 	voice->chorusdepth[0] = 1.0f; //Always none at the original level!
 
-	for (chorusreverbchannel = 0; chorusreverbchannel < 2; ++chorusreverbchannel) //Process all reverb&chorus channels, precalculating every used value!
+	for (chorusreverbchannel = 0; chorusreverbchannel < CHORUSSIZE; ++chorusreverbchannel) //Process all reverb&chorus channels, precalculating every used value!
 	{
 		voice->activechorusdepth[chorusreverbchannel] = voice->chorusdepth[chorusreverbchannel]; //The chorus feedback strength for that channel!
 		voice->chorusvol[chorusreverbchannel] = voice->activechorusdepth[chorusreverbchannel]; //The (chorus) volume on this channel!
@@ -1274,7 +1274,7 @@ void updateReverbMod(MIDIDEVICE_VOICE* voice)
 		}
 	}
 
-	for (chorusreverbchannel = 0; chorusreverbchannel < 2; ++chorusreverbchannel) //Process all reverb&chorus channels, precalculating every used value!
+	for (chorusreverbchannel = 0; chorusreverbchannel < REVERBSIZE; ++chorusreverbchannel) //Process all reverb&chorus channels, precalculating every used value!
 	{
 		voice->activereverbdepth[chorusreverbchannel] = voice->reverbdepth[chorusreverbchannel]; //The selected value!
 	}
@@ -2118,17 +2118,6 @@ OPTINLINE sbyte MIDIDEVICE_newvoice(MIDIDEVICE_VOICE *voice, byte request_channe
 		initSoundFilter(&voice->reverbfilter[(chorusreverbdepth<<1)],0,voice->lowpassfilter_freq*((chorusreverbdepth)?1.0f:(0.7f*powf(0.9f,(float)(chorusreverbdepth>>1)))),(float)LE32(voice->sample[1].dwSampleRate)); //Apply a default low pass filter to use!
 		initSoundFilter(&voice->reverbfilter[((chorusreverbdepth<<1)|1)],0,voice->lowpassfilter_freq*((chorusreverbdepth)?1.0f:(0.7f*powf(0.9f,(float)(chorusreverbdepth>>1)))),(float)LE32(voice->sample[1].dwSampleRate)); //Apply a default low pass filter to use!
 	}
-
-	//Setup default channel chorus/reverb!
-	#ifdef IS_LONGDOUBLE
-	voice->activechorusdepth[0] = 1.0L; //Always the same: produce full sound!
-	voice->activereverbdepth[0] = 1.0L; //Always the same: produce full sound!
-	#else
-	voice->activechorusdepth[0] = 1.0; //Always the same: produce full sound!
-	voice->activereverbdepth[0] = 1.0; //Always the same: produce full sound!
-	#endif
-	voice->chorusvol[0] = voice->activechorusdepth[0];
-	voice->reverbvol[0] = voice->activereverbdepth[0]; //Chorus reverb volume, fixed!
 
 	//Now determine the volume envelope!
 	voice->CurrentVolumeEnvelope = 1000.0f; //Default: nothing yet, so no volume, full attenuation!
