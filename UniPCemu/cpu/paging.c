@@ -290,7 +290,7 @@ byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch, byte 
 	{
 		PDEbase = CR3_PDBR; //What is the PDE base address!
 		//Check PDE
-		PDE = memory_BIUdirectrdw(PDEbase + (DIR << 2)); //Read the page directory entry!
+		PDE = (uint_64)memory_BIUdirectrdw(PDEbase + (DIR << 2)); //Read the page directory entry!
 		if (!(PDE & PXE_P)) //Not present?
 		{
 			raisePF(address, (RW << 1) | (effectiveUS << 2)); //Run a not present page fault!
