@@ -276,7 +276,7 @@ byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch, byte 
 
 		//Check PDE
 		PDEbase = PDPT; //What is the PDE base address!
-		PDE = memory_BIUdirectrdw(PDPT + (DIR << 3)); //Read the page directory entry low!
+		PDE = (uint_64)memory_BIUdirectrdw(PDPT + (DIR << 3)); //Read the page directory entry low!
 		PDE |= ((uint_64)memory_BIUdirectrdw(PDPT + ((DIR << 3)|4)))<<32; //Read the page directory entry high!
 		if (!(PDE & PXE_P)) //Not present?
 		{
@@ -308,7 +308,7 @@ byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch, byte 
 			raisePF(address, PXE_P | (RW << 1) | (effectiveUS << 2)|8); //Run a reserved page fault!
 			return 0; //We have an error, abort!
 		}
-		PTE = memory_BIUdirectrdw(((PDE&PXEsize) >> PXE_ADDRESSSHIFT) + (TABLE << PTEsize)); //Read the page table entry!
+		PTE = (uint_64)memory_BIUdirectrdw(((PDE&PXEsize) >> PXE_ADDRESSSHIFT) + (TABLE << PTEsize)); //Read the page table entry!
 		if (PTEsize == 3) //Needs high half too?
 		{
 			PTE |= ((uint_64)memory_BIUdirectrdw(((PDE & PXEsize) >> PXE_ADDRESSSHIFT) + ((TABLE << PTEsize)|4))<<32); //Read the page table entry!
