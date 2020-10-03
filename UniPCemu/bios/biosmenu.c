@@ -1773,7 +1773,7 @@ void BIOS_DisksMenu() //Manages the mounted disks!
 	byte allowsaveresume;
 	BIOS_Title("Manage mounted drives");
 	BIOS_InitDisksText(); //First, initialise texts!
-	int menuresult = ExecuteMenu(15,4,BIOSMENU_SPEC_LR|BIOSMENU_SPEC_SQUAREOPTION|BIOSMENU_SPEC_RETURN,&Menu_Stat); //Show the menu options, allow SQUARE!
+	int menuresult = ExecuteMenu(17,4,BIOSMENU_SPEC_LR|BIOSMENU_SPEC_SQUAREOPTION|BIOSMENU_SPEC_RETURN,&Menu_Stat); //Show the menu options, allow SQUARE!
 	switch (menuresult)
 	{
 	case BIOSMENU_SPEC_CANCEL: //Return?
