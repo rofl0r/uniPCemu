@@ -78,6 +78,10 @@ void CPU_initMSRnumbers()
 	uint_32 MSRcounter;
 	memset(&MSRnumbers, 0, sizeof(MSRnumbers)); //Default to unmapped!
 	MSRstorage = 0; //Default: first entry!
+	if (EMULATED_CPU < CPU_PENTIUM) //No MSRs available?
+	{
+		return; //No MSR numbers available!
+	}
 	MSRnumbers[0] = ++MSRstorage; //MSR xxh!
 	MSRnumbers[1] = ++MSRstorage; //MSR xxh!
 	if (EMULATED_CPU==CPU_PENTIUM) //Pentium-only?
@@ -187,8 +191,11 @@ void CPU_initMSRs()
 	memset(&MSRmaskwritehigh_readonly, 0, sizeof(MSRmaskwritehigh_readonly)); //No read-only bits!
 	memset(&MSRmaskreadlow_writeonly, 0, sizeof(MSRmaskreadlow_writeonly)); //No write-only bits!
 	memset(&MSRmaskreadhigh_writeonly, 0, sizeof(MSRmaskreadhigh_writeonly)); //No write-only bits!
-	MSRmasklow[MSRnumbers[0x1B] - 1] = 0xF0; //APICBASE mask
-	MSRmaskhigh[MSRnumbers[0x1B] - 1] = 0; //APICBASE mask
+	if (EMULATED_CPU >= CPU_PENTIUM) //Pentium and up?
+	{
+		MSRmasklow[MSRnumbers[0x1B] - 1] = 0xF0; //APICBASE mask
+		MSRmaskhigh[MSRnumbers[0x1B] - 1] = 0; //APICBASE mask
+	}
 	if (EMULATED_CPU==CPU_PENTIUM) //Pentium-only?
 	{
 		MSRmasklow[MSRnumbers[0x14] - 1] = 0; //ROM 0
