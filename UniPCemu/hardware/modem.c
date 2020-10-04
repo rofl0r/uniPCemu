@@ -2481,8 +2481,9 @@ void modem_writeCommandData(byte value)
 			}
 			if (modem.echomode) //Echo enabled?
 			{
-				if (fifobuffer_freesize(modem.inputbuffer) >= 2) //Enough to add the proper backspace?
+				if (fifobuffer_freesize(modem.inputbuffer) >= 3) //Enough to add the proper backspace?
 				{
+					writefifobuffer(modem.inputbuffer, value); //Previous character movement followed by...
 					writefifobuffer(modem.inputbuffer, ' '); //Space to clear the character followed by...
 					writefifobuffer(modem.inputbuffer, value); //Another backspace to clear it, if possible!
 				}
@@ -2531,9 +2532,10 @@ void modem_writeCommandData(byte value)
 						|| ((modem.ATcommand[modem.ATcommandsize - 1] == 't') && (modem.ATcommand[modem.ATcommandsize - 2] == 'a')) //Same case at?
 						)
 					{
-						for (; modem.ATcommandsize > 2;) //Simulate removing the entire string after AT for any automatic inputs!
+						fifobuffer_clear(modem.inputbuffer); //Make sure we have enough room for the backspaces to be received!
+						for (; modem.ATcommandsize > 2;) //Simulate removing the entire string after AT for any automatic inputs for any parser!
 						{
-							modem_writeCommandData(modem.backspacecharacter); //Backspace all the way until reaching only the AT/at left!
+							modem_writeCommandData(modem.backspacecharacter); //Backspace once to remove a character and give a empty backspace character in the removed location!
 						}
 					}
 				}
@@ -2611,7 +2613,7 @@ void initModem(byte enabled) //Initialise modem!
 			goto unsupportedUARTModem;
 		}
 		modem.connectionid = -1; //Default: not connected!
-		modem.inputbuffer = allocfifobuffer(MODEM_BUFFERSIZE,0); //Small input buffer!
+		modem.inputbuffer = allocfifobuffer(MIN(MODEM_BUFFERSIZE,NUMITEMS(modem.ATcommand)*3),0); //Small input buffer! Make sure it's large enough to contain all command buffer items in backspaces(3 for each character)!
 		initPacketServerClients(); //Prepare the clients for use!
 		Packetserver_availableClients = 0; //Init: 0 clients available!
 		for (i = 0; i < MIN(MIN(NUMITEMS(modem.inputdatabuffer),NUMITEMS(modem.outputbuffer)),(Packetserver_totalClients?Packetserver_totalClients:1)); ++i) //Allocate buffers for server and client purposes!
