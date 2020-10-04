@@ -258,8 +258,8 @@ byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch, byte 
 
 	if ((CPU[activeCPU].registers->CR4 & 0x20) && (EMULATED_CPU >= CPU_PENTIUMPRO)) //PAE enabled?
 	{
-		PDPT = memory_BIUdirectrdw(CR3_PAEPDBR + ((DIR>>8) << 3)); //Read the page directory entry low!
-		PDPT |= ((uint_64)memory_BIUdirectrdw(CR3_PAEPDBR + (((DIR >> 8)) << 3)|4))<<32; //Read the page directory entry high!
+		PDPT = (uint_64)memory_BIUdirectrdw(CR3_PAEPDBR + ((DIR>>8) << 3)); //Read the page directory entry low!
+		PDPT |= ((uint_64)memory_BIUdirectrdw(CR3_PAEPDBR + (((DIR >> 8) << 3)|4)))<<32; //Read the page directory entry high!
 		PDEsize = PTEsize = 3; //Double the size of the entries to be 64-bits!
 		PXEsize = PXE_PAEADDRESSMASK; //Large address mask!
 		//Check present only!
@@ -311,7 +311,7 @@ byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch, byte 
 		PTE = (uint_64)memory_BIUdirectrdw(((PDE&PXEsize) >> PXE_ADDRESSSHIFT) + (TABLE << PTEsize)); //Read the page table entry!
 		if (PTEsize == 3) //Needs high half too?
 		{
-			PTE |= ((uint_64)memory_BIUdirectrdw(((PDE & PXEsize) >> PXE_ADDRESSSHIFT) + ((TABLE << PTEsize)|4))<<32); //Read the page table entry!
+			PTE |= (((uint_64)memory_BIUdirectrdw(((PDE & PXEsize) >> PXE_ADDRESSSHIFT) + ((TABLE << PTEsize)|4)))<<32); //Read the page table entry!
 		}
 		if ((PTE&0x180) && ((((CPU[activeCPU].registers->CR4 & 0x10) >> 4) & (EMULATED_CPU>=CPU_PENTIUM))|isPAE)) //Reserved bit in PTE?
 		{
