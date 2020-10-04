@@ -466,6 +466,10 @@ byte PORT_writeUART(word port, byte value)
 				//bit2 = break/error
 				//bit3 = status change
 				UART_port[COMport].InterruptEnableRegister = (value & 0xF); //Set the register! Clear the undefined bits, as per the documentation!
+				if ((value & 2) && (UART_port[COMport].sendPhase == 0) && ((UART_port[COMport].LineStatusRegister&0x60)==0x60)) //Enabling transmitter empty IRQ while not sending any data yet?
+				{
+					launchUARTIRQ(COMport, 1); //We're raising a sent data IRQ because the FIFO is empty!
+				}
 			}
 			break;
 		case 2: //FIFO control register?
