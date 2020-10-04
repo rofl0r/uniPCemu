@@ -205,12 +205,9 @@ byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch, byte 
 	uint_64 PXEsize = PXE_ADDRESSMASK; //The mask to use for the PDE/PTE entries!
 	uint_64 PDEbase;
 	byte PDEsize = 2, PTEsize = 2; //Size of an entry in the PDE/PTE, in shifts(2^n)!
-	byte DIRshift, TABLEshift;
 	byte isPAE; //PAE is enabled?
 	uint_32 passthroughmask;
 	if (!CPU[activeCPU].registers) return 0; //No registers available!
-	DIRshift = 22;
-	TABLEshift = 12;
 	DIR = (address>>22)&0x3FF; //The directory entry!
 	TABLE = (address>>12)&0x3FF; //The table entry!
 	
