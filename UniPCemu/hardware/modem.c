@@ -2524,6 +2524,19 @@ void modem_writeCommandData(byte value)
 			if (modem.ATcommandsize < (sizeof(modem.ATcommand) - 1)) //Valid to input(leave 1 byte for the terminal character)?
 			{
 				modem.ATcommand[modem.ATcommandsize++] = value; //Add data to the string!
+				if (modem.ATcommandsize >= 4) //At least AT/at started and another AT/at might be entered after it?
+				{
+					if ( //Is the command string ended with...
+						((modem.ATcommand[modem.ATcommandsize - 1] == 'T') && (modem.ATcommand[modem.ATcommandsize - 2] == 'A')) //Same case AT?
+						|| ((modem.ATcommand[modem.ATcommandsize - 1] == 't') && (modem.ATcommand[modem.ATcommandsize - 2] == 'a')) //Same case at?
+						)
+					{
+						for (; modem.ATcommandsize > 2;) //Simulate removing the entire string after AT for any automatic inputs!
+						{
+							modem_writeCommandData(modem.backspacecharacter); //Backspace all the way until reaching only the AT/at left!
+						}
+					}
+				}
 				if ((modem.ATcommand[0] != 'A') && (modem.ATcommand[0]!='a')) //Not a valid start?
 				{
 					modem.ATcommand[0] = 0;
