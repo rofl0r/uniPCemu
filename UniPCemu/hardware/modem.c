@@ -3113,6 +3113,9 @@ byte PPPOE_handlePADreceived(sword connectedclient)
 
 void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 {
+	byte IP_useIHL;
+	uint_32 detselfrelpos;
+	uint_32 detselfdataleft;
 	sword connectedclient;
 	sword connectionid;
 	byte datatotransmit;
@@ -3359,6 +3362,34 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 												if ((memcmp(&Packetserver_clients[connectedclient].packet[sizeof(ethernetheader.data) + 16], Packetserver_clients[connectedclient].packetserver_staticIP, 4) != 0) && (memcmp(&Packetserver_clients[connectedclient].packet[sizeof(ethernetheader.data) + 16], packetserver_broadcastIP, 4) != 0)) //Static IP mismatch?
 												{
 													goto invalidpacket; //Invalid packet!
+												}
+											}
+											if (headertype == SDL_SwapBE16(0x0800)) //IP packet?
+											{
+												//Check for TCP packet in the IP packet!
+												detselfrelpos = sizeof(ethernetheader.data); //Start of the IP packet!
+												detselfdataleft = Packetserver_clients[connectedclient].pktlen-detselfrelpos; //Data left to parse as subpackets!
+												if (detselfdataleft >= 9) //Enough data left to parse?
+												{
+													if (Packetserver_clients[connectedclient].packet[detselfrelpos + 9] == 6) //TCP protocol?
+													{
+														IP_useIHL = (((Packetserver_clients[connectedclient].packet[detselfrelpos]&0xF0)>>4)<<5); //IHL field, in bytes!
+														if ((detselfdataleft > IP_useIHL) && (IP_useIHL)) //Enough left for the subpacket?
+														{
+															detselfrelpos += IP_useIHL; //TCP Data position!
+															detselfdataleft -= IP_useIHL; //How much data if left!
+															//Now we're at the start of the TCP packet!
+															if (detselfdataleft >= 4) //Valid to filter the port?
+															{
+																if ((SDL_SwapBE16(*((word*)&Packetserver_clients[connectedclient].packet[detselfrelpos])) == modem.connectionport) || //Own source port?
+																	(SDL_SwapBE16(*((word*)&Packetserver_clients[connectedclient].packet[detselfrelpos + 2])) == modem.connectionport) //Own destination port?
+																	)
+																{
+																	goto invalidpacket; //Ignore this packet!
+																}
+															}
+														}
+													}
 												}
 											}
 											//Valid packet! Receive it!
