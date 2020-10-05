@@ -3739,10 +3739,12 @@ void updateModem(DOUBLE timepassed) //Sound tick. Executes every instruction.
 										Packetserver_clients[connectedclient].packetserver_transmitsize = 1024; //How large is out transmit buffer!
 										Packetserver_clients[connectedclient].packetserver_transmitbuffer = zalloc(1024, "MODEM_SENDPACKET", NULL); //Simple transmit buffer, the size of a packet byte(when encoded) to be able to buffer any packet(since any byte can be doubled)!
 									}
+									/*
 									else
 									{
 										dolog("ethernetcard", "Error: Not enough buffered to send to the server(size: %u)!", Packetserver_clients[connectedclient].packetserver_transmitlength);
 									}
+									*/ //Silently discard the empty packets!
 									Packetserver_clients[connectedclient].packetserver_transmitlength = 0; //We're at the start of this buffer, nothing is sent yet!
 									Packetserver_clients[connectedclient].packetserver_transmitstate = 0; //Not escaped anymore!
 									readfifobuffer(modem.inputdatabuffer[connectedclient], &datatotransmit); //Ignore the data, just discard the packet END!
