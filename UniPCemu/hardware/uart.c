@@ -311,10 +311,13 @@ byte PORT_readUART(word port, byte *result) //Read from the uart!
 			break;
 		case 2: //Interrupt ID registers?
 			*result = UART_port[COMport].InterruptIdentificationRegister&(~0xF8); //Give the register! The high 5 bits are always cleared, as per the documentation!
-			UART_port[COMport].interrupt_pending[1] = 0; //We're handling this cause, if pending!
 			UART_port[COMport].interrupt_pending[4] = 0; //We're handling this cause, if pending!
 			if ((!UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTNOTPENDINGR(COMport)) && ((UART_INTERRUPTCAUSE_SIMPLECAUSER(COMport) == 1) || ((UART_INTERRUPTCAUSE_SIMPLECAUSER(COMport) == IRR_INTERRUPTREQUEST_CAUSE) && (IRR_INTERRUPTREQUEST_CAUSE>3)))) //We're to clear?
 			{
+				if (UART_INTERRUPTCAUSE_SIMPLECAUSER(COMport) == 1) //Transmit was the cause?
+				{
+					UART_port[COMport].interrupt_pending[1] = 0; //We're handling this cause, if pending!
+				}
 				UART_port[COMport].InterruptIdentificationRegister = 0; //Reset the register!
 				UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTNOTPENDINGW(COMport,1); //Reset interrupt pending!
 				switch (COMport) //What port?
