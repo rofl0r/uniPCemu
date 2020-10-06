@@ -481,7 +481,12 @@ byte PORT_writeUART(word port, byte value)
 				//bit2 = break/error
 				//bit3 = status change
 				UART_port[COMport].InterruptEnableRegister = (value & 0xF); //Set the register! Clear the undefined bits, as per the documentation!
-				if ((value & 2) && (UART_port[COMport].LineStatusRegister & 0x20)) //Enabled while not sending any data yet?
+				/*
+				8250A UART documentation (PC16450C/NS16450, PC8250A/INS8250A
+				Universal Asynchronous ReceiverITransmitter) says this about line status register bit 5:
+				"In addition. this bit causes the UART to issue an interrupt to the CPU when the Transmit Holding Register Empty Interrupt enable is set high."
+				*/
+				if ((value & 2) && (UART_port[COMport].LineStatusRegister & 0x20))
 				{
 					UART_port[COMport].interrupt_pending[1] = 1; //Start pending an interrupt always!
 				}
