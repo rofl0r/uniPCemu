@@ -66,6 +66,7 @@ struct
 	UART_hasdata hasdata;
 
 	byte interrupt_causes[5]; //All possible causes of an interrupt!
+	byte interrupt_pending[5]; //All possible pending causes that aren't handled yet!
 	uint_32 receiveTiming; //UART receive timing!
 	uint_32 sendTiming; //UART send timing!
 	byte sendPhase; //What's happening on the sending side?
@@ -116,6 +117,7 @@ byte allocUARTport()
 void launchUARTIRQ(byte COMport, byte cause) //Simple 2-bit cause.
 {
 	if (!UART_port[COMport].used) return; //Unused COM port!
+	UART_port[COMport].interrupt_pending[cause] |= !UART_port[COMport].interrupt_causes[cause]; //We're pending when not already causing it!
 	switch (cause) //What cause?
 	{
 	case 0: //Modem status changed?
@@ -136,7 +138,9 @@ void launchUARTIRQ(byte COMport, byte cause) //Simple 2-bit cause.
 		return; //Invalid cause!
 		break;
 	}
+	//We're raising an IRQ because of the reason! Stop being pending and start being causing!
 	//Prepare our info!
+	UART_port[COMport].interrupt_pending[cause] = 0; //We're requesting an interrupt for this cause, when available! We're not pending anymore because we're becoming a cause!
 	UART_port[COMport].interrupt_causes[cause] = 1; //We're requesting an interrupt for this cause!
 
 	if (UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTNOTPENDINGR(COMport)) //Can we safely raise it(are we ready to handle it)?
@@ -262,6 +266,7 @@ byte PORT_readUART(word port, byte *result) //Read from the uart!
 			else //Receiver buffer?
 			{
 				//Read from input buffer!
+				UART_port[COMport].interrupt_pending[2] = 0; //We're handling this cause, if pending!
 				if ((!UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTNOTPENDINGR(COMport)) && (UART_INTERRUPTCAUSE_SIMPLECAUSER(COMport)==2)) //We're to clear?
 				{
 					UART_port[COMport].InterruptIdentificationRegister = 0; //Reset the register!
@@ -306,6 +311,8 @@ byte PORT_readUART(word port, byte *result) //Read from the uart!
 			break;
 		case 2: //Interrupt ID registers?
 			*result = UART_port[COMport].InterruptIdentificationRegister&(~0xF8); //Give the register! The high 5 bits are always cleared, as per the documentation!
+			UART_port[COMport].interrupt_pending[1] = 0; //We're handling this cause, if pending!
+			UART_port[COMport].interrupt_pending[4] = 0; //We're handling this cause, if pending!
 			if ((!UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTNOTPENDINGR(COMport)) && ((UART_INTERRUPTCAUSE_SIMPLECAUSER(COMport) == 1) || ((UART_INTERRUPTCAUSE_SIMPLECAUSER(COMport) == IRR_INTERRUPTREQUEST_CAUSE) && (IRR_INTERRUPTREQUEST_CAUSE>3)))) //We're to clear?
 			{
 				UART_port[COMport].InterruptIdentificationRegister = 0; //Reset the register!
@@ -334,6 +341,7 @@ byte PORT_readUART(word port, byte *result) //Read from the uart!
 			*result = UART_port[COMport].ModemControlRegister; //Give the register!
 			break;
 		case 5: //Line Status Register?
+			UART_port[COMport].interrupt_pending[3] = 0; //We're handling this cause, if pending!
 			if ((!UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTNOTPENDINGR(COMport)) && (UART_INTERRUPTCAUSE_SIMPLECAUSER(COMport) == 3)) //We're to clear?
 			{
 				UART_port[COMport].InterruptIdentificationRegister = 0; //Reset the register!
@@ -358,6 +366,7 @@ byte PORT_readUART(word port, byte *result) //Read from the uart!
 			UART_port[COMport].LineStatusRegister &= ~0x1E; //Clear the register error flags!
 			break;
 		case 6: //Modem Status Register?
+			UART_port[COMport].interrupt_pending[0] = 0; //We're handling this cause, if pending!
 			if ((!UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTNOTPENDINGR(COMport)) && (UART_INTERRUPTCAUSE_SIMPLECAUSER(COMport) == 0)) //We're to clear?
 			{
 				UART_port[COMport].InterruptIdentificationRegister = 0; //Reset the register!
@@ -424,6 +433,7 @@ byte PORT_writeUART(word port, byte value)
 			}
 			else //Output buffer?
 			{
+				UART_port[COMport].interrupt_pending[1] = 0; //We're handling this cause, if pending!
 				if ((!UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTNOTPENDINGR(COMport)) && (UART_INTERRUPTCAUSE_SIMPLECAUSER(COMport) == 1)) //We're to clear?
 				{
 					UART_port[COMport].InterruptIdentificationRegister = 0; //Reset the register!
@@ -466,9 +476,9 @@ byte PORT_writeUART(word port, byte value)
 				//bit2 = break/error
 				//bit3 = status change
 				UART_port[COMport].InterruptEnableRegister = (value & 0xF); //Set the register! Clear the undefined bits, as per the documentation!
-				if ((value & 2) && (UART_port[COMport].LineStatusRegister&0x20)) //Enabling transmitter empty IRQ while not sending any data yet?
+				if ((value & 2) && (UART_port[COMport].LineStatusRegister & 0x20)) //Enabled while not sending any data yet?
 				{
-					launchUARTIRQ(COMport, 1); //We're raising a sent data IRQ because the FIFO is empty!
+					UART_port[COMport].interrupt_pending[1] = 1; //Start pending an interrupt always!
 				}
 			}
 			break;
@@ -567,23 +577,23 @@ void UART_handleInputs() //Handle any input to the UART!
 			UART_port[i].oldModemStatusRegister = UART_port[i].ModemStatusRegister; //Update the old modem status register!
 		}
 		linestatusbitsset = ((UART_port[i].oldLineStatusRegister ^ UART_port[i].LineStatusRegister) & UART_port[i].LineStatusRegister); //What bits have been set?
-		if (unlikely((linestatusbitsset & 0x1E) || (UART_port[i].interrupt_causes[3]))) //Line status has raised an error or required to be raised?
+		if (unlikely((linestatusbitsset & 0x1E) || (UART_port[i].interrupt_causes[3]|UART_port[i].interrupt_pending[3]))) //Line status has raised an error or required to be raised?
 		{
 			launchUARTIRQ(i, 3); //We're changing the Line Status Register!
 		}
-		if (unlikely((linestatusbitsset & 0x01) || (UART_port[i].interrupt_causes[2]))) //Have we received data or required to be raised?
+		if (unlikely((linestatusbitsset & 0x01) || (UART_port[i].interrupt_causes[2]|UART_port[i].interrupt_pending[2]))) //Have we received data or required to be raised?
 		{
 			launchUARTIRQ(i, 2); //We've received data!
 		}
-		if (unlikely((linestatusbitsset & 0x20) || (UART_port[i].interrupt_causes[1]))) //Sent a byte of data(full transmitter holder register becomes empty)?
+		if (unlikely((linestatusbitsset & 0x20) || (UART_port[i].interrupt_causes[1]|UART_port[i].interrupt_pending[1]))) //Sent a byte of data(full transmitter holder register becomes empty)?
 		{
 			launchUARTIRQ(i, 1); //We've sent data!
 		}
-		if (unlikely((modemstatusinterrupt) || (UART_port[i].interrupt_causes[0]))) //Status changed or required to be raised?
+		if (unlikely((modemstatusinterrupt) || (UART_port[i].interrupt_causes[0]|UART_port[i].interrupt_pending[0]))) //Status changed or required to be raised?
 		{
 			launchUARTIRQ(i, 0); //Modem status changed!
 		}
-		if (UART_port[i].interrupt_causes[4]) //UART IRQ request?
+		if (UART_port[i].interrupt_causes[4]|UART_port[i].interrupt_pending[4]) //UART IRQ request?
 		{
 			launchUARTIRQ(i, 4); //IRQ request!
 		}
@@ -747,6 +757,7 @@ void initUART() //Init software debugger!
 	{
 		UART_INTERRUPTIDENTIFICATIONREGISTER_INTERRUPTNOTPENDINGW(i,1); //We're not executing!
 		UART_port[i].LineStatusRegister = UART_port[i].oldLineStatusRegister = 0x60; //Receiver buffer not ready for reading, Transmitter Holding register and Shift register are empty.
+		UART_port[i].oldLineStatusRegister &= ~0x20; //Make sure that the IRQ becomes pending automatically, because we're an empty transmitter by default!
 
 		//Make sure the DLAB is timed correctly!
 		UART_port[i].UART_DLABtimingdivider = ((uint_32)(UART_port[i].DLAB + 1) << 4); //Calculate the new divider!
