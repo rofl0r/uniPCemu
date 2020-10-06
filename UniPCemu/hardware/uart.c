@@ -293,6 +293,7 @@ byte PORT_readUART(word port, byte *result) //Read from the uart!
 				{
 					UART_port[COMport].LineStatusRegister &= ~0x01; //We don't have any data anymore!
 				}
+				UART_handleInputs(); //Make sure that the change in line control is properly detected!
 			}
 			break;
 		case 1: //Interrupt Enable Register?
@@ -463,6 +464,7 @@ byte PORT_writeUART(word port, byte value)
 				UART_port[COMport].TransmitterHoldingRegister = value; //We're sending this!
 				//Apply a local loopback for this transfer accordingly, shifting from the Transmitter Shift Register to the Receiver Shift Register!
 				UART_port[COMport].LineStatusRegister = ((UART_port[COMport].LineStatusRegister & ~0x80) | ((UART_port[COMport].ModemControlRegister & 0x10) << 3)); //Are we using a loopback adapter?
+				UART_handleInputs(); //Make sure that the change in line control is properly detected!
 			}
 			break;
 		case 1: //Interrupt Enable Register?
