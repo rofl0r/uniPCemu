@@ -191,7 +191,7 @@ void CPU_initMSRs()
 	memset(&MSRmaskwritehigh_readonly, 0, sizeof(MSRmaskwritehigh_readonly)); //No read-only bits!
 	memset(&MSRmaskreadlow_writeonly, 0, sizeof(MSRmaskreadlow_writeonly)); //No write-only bits!
 	memset(&MSRmaskreadhigh_writeonly, 0, sizeof(MSRmaskreadhigh_writeonly)); //No write-only bits!
-	if (EMULATED_CPU >= CPU_PENTIUM) //Pentium and up?
+	if (EMULATED_CPU >= CPU_PENTIUMPRO) //Pentium Pro and up?
 	{
 		MSRmasklow[MSRnumbers[0x1B] - 1] = 0xF0; //APICBASE mask
 		MSRmaskhigh[MSRnumbers[0x1B] - 1] = 0; //APICBASE mask
