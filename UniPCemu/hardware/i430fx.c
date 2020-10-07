@@ -94,8 +94,8 @@ void i430fx_resetPCIConfiguration()
 {
 	i430fx_configuration[0x00] = 0x86;
 	i430fx_configuration[0x01] = 0x80; //Intel
-	i430fx_configuration[0x02] = 0x22;
-	i430fx_configuration[0x03] = 0x01; //SB82437FX-66
+	i430fx_configuration[0x02] = 0x2D;
+	i430fx_configuration[0x03] = 0x12; //SB82437FX-66
 	i430fx_configuration[0x04] = 0x06;
 	i430fx_configuration[0x05] = 0x00;
 	i430fx_configuration[0x06] = 0x00;
