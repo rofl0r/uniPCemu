@@ -396,7 +396,7 @@ byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch, byte 
 		}
 	}
 	Paging_freeOppositeTLB(address, RW, effectiveUS, (isS == 0) ? ((PTE&PTE_D) ? 1 : 0) : ((PDE&PDE_Dirty) ? 1 : 0), isS); //Clear the opposite TLB entry from existence!
-	Paging_writeTLB(-1,address,RW,effectiveUS,(isS==0)?((PTE&PTE_D)?1:0):((PDE&PDE_Dirty)?1:0), (isS == 0) ? ((PTE&PXE_A) ? 1 : 0) : ((PDE&PXE_A) ? 1 : 0),isS, (((isS == 0) ? (PXE_ACTIVEMASK) : (PDE & (isPAE?PDE_PAELARGEACTIVEMASK:PDE_LARGEACTIVEMASK)))), (((isS == 0) ? (0) : (isPAE?1:0))), (((isS==0)?(PTE&(isPAE?PXE_PAEADDRESSMASK:PXE_ADDRESSMASK)):(PDE&(isPAE?PDE_PAELARGEADDRESSMASK:PDE_LARGEADDRESSMASK))))); //Save the PTE 32-bit address in the TLB! PDE is always dirty when using 2MB/4MB pages!
+	Paging_writeTLB(-1,address,RW,effectiveUS,(isS==0)?((PTE&PTE_D)?1:0):((PDE&PDE_Dirty)?1:0), (isS == 0) ? ((PTE&PXE_A) ? 1 : 0) : ((PDE&PXE_A) ? 1 : 0),isS, (((isS == 0) ? (PXE_ACTIVEMASK) : (isPAE?PDE_PAELARGEACTIVEMASK:PDE_LARGEACTIVEMASK))), (((isS == 0) ? (0) : (isPAE?1:0))), (((isS==0)?(PTE&(isPAE?PXE_PAEADDRESSMASK:PXE_ADDRESSMASK)):(PDE&(isPAE?PDE_PAELARGEADDRESSMASK:PDE_LARGEADDRESSMASK))))); //Save the PTE 32-bit address in the TLB! PDE is always dirty when using 2MB/4MB pages!
 	return 1; //Valid!
 }
 
