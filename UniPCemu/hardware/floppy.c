@@ -807,6 +807,7 @@ OPTINLINE void FLOPPY_handlereset(byte source) //Resets the floppy disk command 
 			pending_size = 4; //Pending full size with polling mode enabled!
 			if (FLOPPY_CONFIGURATION_DRIVEPOLLINGMODEDISABLER) pending_size = 0; //Don't pend when polling mode is off!
 			if (pending_size) FLOPPY.ST0 |= 0xC0; //Top 2 bits are set when polling is enabled only!
+			else FLOPPY.reset_pending_size = 0xFF; //Invalid to issue an Sense Interrupt command!
 			FLOPPY.reset_pending_size = FLOPPY.reset_pending = pending_size; //We have a reset pending for all 4 drives, unless interrupted by an other command!
 			FLOPPY.reset_pended = 1; //We're pending a reset! Clear status once we're becoming active!
 			memset(&FLOPPY.currenthead, 0, sizeof(FLOPPY.currenthead)); //Clear the current heads!
@@ -2565,6 +2566,12 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			//Reset IRQ line!
 			if (FLOPPY.reset_pending) //Reset is pending?
 			{
+				if (FLOPPY.reset_pending == 0xFF) //Invalid reset sense interupt without polling mode on?
+				{
+					FLOPPY.reset_pending = 0; //Actual supposed value!
+					FLOPPY_LOGD("FLOPPY: Warning: Checking interrupt status without reset IRQ pending!")
+					goto floppy_reset_errorIRQ; //Handle the erroring out because no sense interrupt is allowed!
+				}
 				byte reset_drive;
 				reset_drive = FLOPPY.reset_pending_size - (FLOPPY.reset_pending--); //We're pending this drive!
 				FLOPPY_LOGD("FLOPPY: Reset Sense Interrupt, pending drive %u/%u...",reset_drive,FLOPPY.reset_pending_size)
@@ -2581,6 +2588,7 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			else if (!FLOPPY_hadIRQ) //Not an pending IRQ?
 			{
 				FLOPPY_LOGD("FLOPPY: Warning: Checking interrupt status without IRQ pending!")
+				floppy_reset_errorIRQ:
 				FLOPPY.ST0 = 0x80; //Error!
 				FLOPPY.resultbuffer[0] = FLOPPY.ST0; //Give ST0!
 				FLOPPY.resultbuffer[1] = FLOPPY.currentcylinder[FLOPPY_DOR_DRIVENUMBERR]; //Our idea of the current cylinder!
