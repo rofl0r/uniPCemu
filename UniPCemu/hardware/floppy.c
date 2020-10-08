@@ -820,6 +820,7 @@ OPTINLINE void FLOPPY_handlereset(byte source) //Resets the floppy disk command 
 				FLOPPY_CONFIGURATION_THRESHOLDW(0); //Reset threshold!
 				FLOPPY_CONFIGURATION_FIFODISABLEW(1); //Disable the FIFO!
 			}
+			FLOPPY.PerpendicularMode &= ~3; //Soft reset clears GAP and WGATE(bits 0&1). Hardware reset also clears D0-D3(bits 2/3/4/5).
 			//Make sure the IRQ works when resetting always!
 			FLOPPY.floppy_resetted = 1; //We're resetted!
 			FLOPPY.ignorecommands = 0; //We're enabling commands again!
@@ -3075,7 +3076,18 @@ void floppy_executeCommand() //Execute a floppy command. Buffers are fully fille
 			FLOPPY.commandstep = 3; //We're starting the result phase!
 			break;
 		case PERPENDICULAR_MODE:	// * used during initialization, once, maybe
-			FLOPPY.PerpendicularMode = FLOPPY.commandbuffer[1]; //What perpendicular mode! Bits 0-3=Drives 0-3!
+			//What perpendicular mode! Bits 0=WGATE, 1=GAP, 2-5=Drives 0-3(D0-D3), 7=OW!
+			//OW specifies if bits D0-D3 are actually overwriting the D0-D3 to be set or not! 0=Don't overwrite, 1=Overwrite!
+			//WGATE enables perpendicular mode. Gap then selects between 500Kb and 1Mb if enabled. D0=D3 force the perpendicular mode on for said drive?
+			if ((FLOPPY.commandbuffer[1] & 0x80) == 0) //Only overwrite D0-D3 when bit 7 is set!
+			{
+				FLOPPY.PerpendicularMode = ((FLOPPY.commandbuffer[1] & ~0x3C) | (FLOPPY.PerpendicularMode & 0x3C)); //Overwrite all but D0-D3!
+			}
+			else //Normal setting, overwriting D0-D3, but not OW!
+			{
+				FLOPPY.PerpendicularMode = (FLOPPY.commandbuffer[1]&0x7F); //Don't write the OW bit!
+			}
+			
 			FLOPPY.ST0 = 0x00 | (FLOPPY.ST0 & 0x38) | FLOPPY_DOR_DRIVENUMBERR | (FLOPPY.currentphysicalhead[FLOPPY_DOR_DRIVENUMBERR] << 2); //OK!
 			FLOPPY.commandstep = 0; //Ready for a new command!
 			//No interrupt!
