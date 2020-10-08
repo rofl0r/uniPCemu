@@ -524,10 +524,6 @@ void commandwritten_8042() //A command has been written to the 8042 controller?
 			}
 		}
 		Controller8042.data[0] &= ~0x20; //Enabled!
-		input_lastwrite_8042(); //Force 0xFA to user!
-		give_8042_output(0xFA); //ACK!
-		input_lastwrite_8042(); //Force 0xFA to user!
-		
 		break;
 	case 0xA9: //Test second PS/2 port! Give 0x00 if passed (detected). 0x02-0x04=Not detected?
 		input_lastwrite_8042(); //Force result to user!
