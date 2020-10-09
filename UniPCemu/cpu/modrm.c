@@ -411,12 +411,6 @@ extern byte CPU_databussize; //0=16/32-bit bus! 1=8-bit bus when possible (8088/
 
 void CPU_writeCR0(uint_32 backupval, uint_32 value)
 {
-	backupval ^= value; //Check for changes!
-	CPU[activeCPU].registers->CR0 = value; //Set!
-	if (backupval & 0x80010001) //Paging changed?
-	{
-		Paging_initTLB(); //Fully clear the TLB!
-	}
 	if (((EMULATED_CPU == CPU_80386) && (CPU_databussize)) || (EMULATED_CPU >= CPU_80486)) //16-bit data bus on 80386? 80386SX hardwires ET to 1! Both 80486SX and DX hardwire ET to 1!
 	{
 		value |= CR0_ET; //ET is hardwired to 1 on a 80386SX/CX/EX/CL.
@@ -430,7 +424,12 @@ void CPU_writeCR0(uint_32 backupval, uint_32 value)
 	{
 		value &= 0x8000001F; //Only defined bits!
 	}
-	CPU[activeCPU].registers->CR0 = value; //Set fixed value!
+	backupval ^= value; //Check for changes!
+	CPU[activeCPU].registers->CR0 = value; //Set!
+	if (backupval & 0x80010001) //Paging changed?
+	{
+		Paging_initTLB(); //Fully clear the TLB!
+	}
 	updateCPUmode(); //Try to update the CPU mode, if needed!
 }
 
