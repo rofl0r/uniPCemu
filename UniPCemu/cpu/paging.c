@@ -214,6 +214,10 @@ byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch, byte 
 	byte effectiveUS;
 	byte RW;
 	byte isS;
+	byte isG; //G set in any entry?
+	byte useG; //G enabled in processor and used?
+	isG = 0; //Default: no Global enabled!
+	useG = ((EMULATED_CPU>=CPU_PENTIUMPRO) & ((CPU[activeCPU].registers->CR4&0x80)>>7)); //Global emulated and enabled?
 	uint_32 tag;
 	RW = iswrite?1:0; //Are we trying to write?
 	effectiveUS = getUserLevel(CPL); //Our effective user level!
@@ -310,7 +314,7 @@ byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch, byte 
 		{
 			PTE |= (((uint_64)memory_BIUdirectrdw(((PDE & PXEsize) >> PXE_ADDRESSSHIFT) + ((TABLE << PTEsize)|4)))<<32); //Read the page table entry!
 		}
-		if ((PTE&0x180) && ((((CPU[activeCPU].registers->CR4 & 0x10) >> 4) & (EMULATED_CPU>=CPU_PENTIUM))|isPAE)) //Reserved bit in PTE?
+		if (((PTE&0x180)^(useG<<8)) && ((((CPU[activeCPU].registers->CR4 & 0x10) >> 4) & (EMULATED_CPU>=CPU_PENTIUM))|isPAE)) //Reserved bit in PTE?
 		{
 			raisePF(address, (PTE&PXE_P) | (RW << 1) | (effectiveUS << 2)|8); //Run a reserved page fault!
 			return 0; //We have an error, abort!
@@ -324,7 +328,7 @@ byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch, byte 
 
 	if (unlikely(isS)) //4MB? Only check the PDE, not the PTE!
 	{
-		if ((PDE&0x3FF100) && ((((CPU[activeCPU].registers->CR4 & 0x10) >> 4) & (EMULATED_CPU>=CPU_PENTIUM))|isPAE)) //Reserved bit in PDE?
+		if (((PDE&0x3FF100)^(useG<<8)) && ((((CPU[activeCPU].registers->CR4 & 0x10) >> 4) & (EMULATED_CPU>=CPU_PENTIUM))|isPAE)) //Reserved bit in PDE?
 		{
 			raisePF(address, PXE_P | (RW << 1) | (effectiveUS << 2)|8); //Run a reserved page fault!
 			return 0; //We have an error, abort!
@@ -334,6 +338,7 @@ byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch, byte 
 			raisePF(address,PXE_P|(RW<<1)|(effectiveUS<<2)); //Run a not present page fault!
 			return 0; //We have an error, abort!		
 		}
+		isG = ((PDE>>8)&1); //Bit 8=Global!
 	}
 	else //4KB?
 	{
@@ -342,6 +347,7 @@ byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch, byte 
 			raisePF(address, PXE_P | (RW << 1) | (effectiveUS << 2)); //Run a not present page fault!
 			return 0; //We have an error, abort!		
 		}
+		isG = ((PTE>>8)&1); //Bit 8=Global!
 	}
 	//RW=Are we writable?
 	if (likely(isS == 0)) //PTE-only?
@@ -396,7 +402,7 @@ byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch, byte 
 		}
 	}
 	Paging_freeOppositeTLB(address, RW, effectiveUS, (isS == 0) ? ((PTE&PTE_D) ? 1 : 0) : ((PDE&PDE_Dirty) ? 1 : 0), isS); //Clear the opposite TLB entry from existence!
-	Paging_writeTLB(-1,address,RW,effectiveUS,(isS==0)?((PTE&PTE_D)?1:0):((PDE&PDE_Dirty)?1:0), (isS == 0) ? ((PTE&PXE_A) ? 1 : 0) : ((PDE&PXE_A) ? 1 : 0),isS, (((isS == 0) ? (PXE_ACTIVEMASK) : (isPAE?PDE_PAELARGEACTIVEMASK:PDE_LARGEACTIVEMASK))), (((isS == 0) ? (0) : (isPAE?1:0))), (((isS==0)?(PTE&(isPAE?PXE_PAEADDRESSMASK:PXE_ADDRESSMASK)):(PDE&(isPAE?PDE_PAELARGEADDRESSMASK:PDE_LARGEADDRESSMASK))))); //Save the PTE 32-bit address in the TLB! PDE is always dirty when using 2MB/4MB pages!
+	Paging_writeTLB(-1,address,RW,effectiveUS,(isS==0)?((PTE&PTE_D)?1:0):((PDE&PDE_Dirty)?1:0), (isS == 0) ? ((PTE&PXE_A) ? 1 : 0) : ((PDE&PXE_A) ? 1 : 0),isS,(isG&useG), (((isS == 0) ? (PXE_ACTIVEMASK) : (isPAE?PDE_PAELARGEACTIVEMASK:PDE_LARGEACTIVEMASK))), (((isS == 0) ? (0) : (isPAE?1:0))), (((isS==0)?(PTE&(isPAE?PXE_PAEADDRESSMASK:PXE_ADDRESSMASK)):(PDE&(isPAE?PDE_PAELARGEADDRESSMASK:PDE_LARGEADDRESSMASK))))); //Save the PTE 32-bit address in the TLB! PDE is always dirty when using 2MB/4MB pages!
 	return 1; //Valid!
 }
 
@@ -745,7 +751,7 @@ void Paging_freeOppositeTLB(uint_32 logicaladdress, byte W, byte U, byte D, byte
 	}
 }
 
-void Paging_writeTLB(sbyte TLB_way, uint_32 logicaladdress, byte W, byte U, byte D, byte A, byte S, uint_32 passthroughmask, byte is2M, uint_64 result)
+void Paging_writeTLB(sbyte TLB_way, uint_32 logicaladdress, byte W, byte U, byte D, byte A, byte S, byte G, uint_32 passthroughmask, byte is2M, uint_64 result)
 {
 	INLINEREGISTER TLBEntry *curentry=NULL;
 	INLINEREGISTER TLB_ptr *effectiveentry;
@@ -864,28 +870,48 @@ void Paging_Invalidate(uint_32 logicaladdress) //Invalidate a single address!
 		curentry = CPU[activeCPU].Paging_TLB.TLB_usedlist_head[TLB_set]; //What TLB entry to apply?
 		for (;curentry;) //Check all entries that are allocated!
 		{
+			nextentry = (TLB_ptr *)(curentry->next); //Next entry saved!
 			if (Paging_matchTLBaddress(logicaladdress, curentry->entry->TAG, curentry->entry->addrmask)) //Matched and allocated?
 			{
 				curentry->entry->TAG = 0; //Clear the entry to unused!
 				freeTLB(TLB_set, curentry); //Free this entry from the TLB!
 			}
-			curentry = (TLB_ptr *)(curentry->next); //Next entry!
+			curentry = nextentry; //Next entry!
 		}
 	}
 }
 
 void Paging_clearTLB()
 {
+	//Remove all TLB entries that are not marked as global!
+	INLINEREGISTER byte TLB_set;
+	INLINEREGISTER TLB_ptr *curentry, *nextentry;
+	for (TLB_set = 0; TLB_set < 8; ++TLB_set) //Process all possible sets!
+	{
+		curentry = CPU[activeCPU].Paging_TLB.TLB_usedlist_head[TLB_set]; //What TLB entry to apply?
+		for (;curentry;) //Check all entries that are allocated!
+		{
+			nextentry = (TLB_ptr *)(curentry->next); //Next entry saved!
+			if (curentry->entry->isglobal==0) //Not global?
+			{
+				curentry->entry->TAG = 0; //Clear the entry to unused!
+				freeTLB(TLB_set, curentry); //Free this entry from the TLB!
+			}
+			curentry = nextentry; //Next entry!
+		}
+	}
+	//Finish up!
 	mostrecentTAGvalid = 0; //Invalidate to be sure!
-	PagingTLB_clearlists(); //Initialize the TLB lists to become empty!
 	BIU_recheckmemory(); //Recheck anything that's fetching from now on!
 }
 
 void Paging_initTLB()
 {
 	PagingTLB_initlists(); //Initialize the TLB lists to become empty!
-	Paging_clearTLB(); //Clear the TLB! This also calls clearlists, initializing the linked lists!
+	mostrecentTAGvalid = 0; //Invalidate to be sure!
+	PagingTLB_clearlists(); //Initialize the TLB lists to become empty!
 	effectivemappageHandler = (EMULATED_CPU >= CPU_PENTIUM) ? &mappagePSE : &mappagenonPSE; //Use either a PSE or non-PSE paging handler!
+	BIU_recheckmemory(); //Recheck anything that's fetching from now on!
 }
 
 void Paging_TestRegisterWritten(byte TR)
@@ -937,11 +963,11 @@ void Paging_TestRegisterWritten(byte TR)
 			{
 				if (CPU[activeCPU].registers->TR6 & 0x10) //Hit?
 				{
-					Paging_writeTLB((sbyte)((CPU[activeCPU].registers->TR7 >> 2) & 3), logicaladdress, W, U, D, 0, 0, PXE_ACTIVEMASK, 0, (result&PXE_ADDRESSMASK)); //Write to the associated block!
+					Paging_writeTLB((sbyte)((CPU[activeCPU].registers->TR7 >> 2) & 3), logicaladdress, W, U, D, 0, 0, 0, PXE_ACTIVEMASK, 0, (result&PXE_ADDRESSMASK)); //Write to the associated block!
 				}
 				else //LRU algorithm?
 				{
-					Paging_writeTLB(-1, logicaladdress, W, U, D, 0, 0, PXE_ACTIVEMASK, 0, (result&PXE_ADDRESSMASK)); //Write to the associated block!
+					Paging_writeTLB(-1, logicaladdress, W, U, D, 0, 0, 0, PXE_ACTIVEMASK, 0, (result&PXE_ADDRESSMASK)); //Write to the associated block!
 				}
 			}
 		}

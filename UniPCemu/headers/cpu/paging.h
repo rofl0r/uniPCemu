@@ -35,6 +35,7 @@ typedef struct
 	uint_32 addrmaskset; //Same as addrmask, but with the lower 12 bits set.
 	uint_32 passthroughmask; //The mask for the address to be passed through(4KB(12 1-bits), 4MB(22 1-bits) or 2MB(21 1-bits))
 	void *TLB_listnode; //The list node we're associated to!
+	byte isglobal; //Allocated as a global entry?
 } TLBEntry;
 
 typedef struct
