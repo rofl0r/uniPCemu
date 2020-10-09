@@ -808,6 +808,7 @@ void Paging_writeTLB(sbyte TLB_way, uint_32 logicaladdress, byte W, byte U, byte
 	curentry->addrmask = addrmask; //Save the address mask for matching a TLB entry after it's stored!
 	curentry->addrmaskset = (addrmask|0xFFF); //Save the address mask for matching a TLB entry after it's stored!
 	curentry->passthroughmask = passthroughmask; //Save the passthrough mask for giving a physical address!
+	curentry->isglobal = G; //Global or not!
 	mostrecentTAGvalid = 0; //Invalidate to be sure!
 	BIU_recheckmemory(); //Recheck anything that's fetching from now on!
 }
