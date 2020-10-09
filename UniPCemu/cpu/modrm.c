@@ -413,7 +413,7 @@ void CPU_writeCR0(uint_32 backupval, uint_32 value)
 {
 	backupval ^= value; //Check for changes!
 	CPU[activeCPU].registers->CR0 = value; //Set!
-	if (backupval & 0x80000000) //Paging changed?
+	if (backupval & 0x80010001) //Paging changed?
 	{
 		Paging_clearTLB(); //Clear the TLB!
 	}
@@ -460,12 +460,18 @@ void modrm_write32(MODRM_PARAMS *params, int whichregister, uint_32 value)
 			{
 				CPU_writeCR0(backupval, value); //Update CR0!
 			}
-			else if (
-				(result==&CPU[activeCPU].registers->CR3) || //CR3 has been updated?
-				((result == &CPU[activeCPU].registers->CR4) && ((*result^backupval)&0x10) && (EMULATED_CPU>=CPU_PENTIUM)) //PSE changed when supported?
-				) 
-			{ //Clear the TLB!
+			else if (result==&CPU[activeCPU].registers->CR3) //CR3 has been updated?
+			{
 				Paging_clearTLB(); //Clear the TLB!
+			}
+			else if ((result == &CPU[activeCPU].registers->CR4) && //CR4 paging affected?
+					(
+						(((*result ^ backupval) & 0x10) && (EMULATED_CPU >= CPU_PENTIUM)) || //PSE changed when supported?
+						(((*result ^ backupval) & 0xA0) && (EMULATED_CPU >= CPU_PENTIUMPRO)) //PAE/PGE changed when supported?
+					)
+				)
+			{
+				Paging_initTLB(); //Fully clear the TLB!
 			}
 			else if (result == &CPU[activeCPU].registers->DR7)
 			{
@@ -528,7 +534,7 @@ byte modrm_write32_BIU(MODRM_PARAMS *params, int whichregister, uint_32 value)
 				backupval ^= value; //Check for changes!
 				if (backupval&0x80000000) //Paging changed?
 				{
-					Paging_clearTLB(); //Clear the TLB!
+					Paging_initTLB(); //Clear the TLB!
 				}
 				if (((EMULATED_CPU==CPU_80386) && (CPU_databussize)) || (EMULATED_CPU>=CPU_80486)) //16-bit data bus on 80386? 80386SX hardwires ET to 1! Both 80486SX and DX hardwire ET to 1!
 				{
@@ -536,12 +542,18 @@ byte modrm_write32_BIU(MODRM_PARAMS *params, int whichregister, uint_32 value)
 				}
 				updateCPUmode(); //Try to update the CPU mode, if needed!
 			}
-			else if (
-				(result == &CPU[activeCPU].registers->CR3) || //CR3 has been updated?
-				((result == &CPU[activeCPU].registers->CR4) && ((*result^backupval) & 0x10) && (EMULATED_CPU >= CPU_PENTIUM)) //PSE changed when supported?
-				)
-			{ //Clear the TLB!
+			else if (result == &CPU[activeCPU].registers->CR3) //CR3 has been updated?
+			{
 				Paging_clearTLB(); //Clear the TLB!
+			}
+			else if ((result == &CPU[activeCPU].registers->CR4) && //CR4 paging affected?
+					(
+						(((*result ^ backupval) & 0x10) && (EMULATED_CPU >= CPU_PENTIUM)) || //PSE changed when supported?
+						(((*result ^ backupval) & 0xA0) && (EMULATED_CPU >= CPU_PENTIUMPRO)) //PAE/PGE changed when supported?
+					)
+				)
+			{
+				Paging_initTLB(); //Clear the TLB!
 			}
 			else if (result == &CPU[activeCPU].registers->DR7)
 			{
