@@ -55,7 +55,7 @@ typedef struct
 } CPU_TLB; //A TLB to use for the CPU!
 
 void Paging_clearTLB(); //Clears the TLB for further fetching!
-void Paging_writeTLB(sbyte TLB_way, uint_32 logicaladdress, byte W, byte U, byte D, byte A, byte S, uint_32 passthroughmask, byte is2M, uint_64 result);
+void Paging_writeTLB(sbyte TLB_way, uint_32 logicaladdress, byte W, byte U, byte D, byte A, byte S, byte G, uint_32 passthroughmask, byte is2M, uint_64 result);
 byte Paging_readTLB(byte *TLB_way, uint_32 logicaladdress, uint_32 LWUDAS, byte S, uint_32 WDMask, uint_64 *result, uint_32* passthroughmask, byte updateAges);
 void Paging_initTLB(); //Initialize the Paging TLB!
 void Paging_Invalidate(uint_32 logicaladdress); //Invalidate a single address!

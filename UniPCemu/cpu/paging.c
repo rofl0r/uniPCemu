@@ -865,7 +865,7 @@ byte Paging_readTLB(byte *TLB_way, uint_32 logicaladdress, uint_32 LWUDAS, byte 
 void Paging_Invalidate(uint_32 logicaladdress) //Invalidate a single address!
 {
 	INLINEREGISTER byte TLB_set;
-	INLINEREGISTER TLB_ptr *curentry;
+	INLINEREGISTER TLB_ptr *curentry, *nextentry;
 	for (TLB_set = 0; TLB_set < 8; ++TLB_set) //Process all possible sets!
 	{
 		curentry = CPU[activeCPU].Paging_TLB.TLB_usedlist_head[TLB_set]; //What TLB entry to apply?
