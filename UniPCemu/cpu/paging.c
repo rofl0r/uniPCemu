@@ -317,7 +317,7 @@ byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch, byte 
 			PTE |= (((uint_64)memory_BIUdirectrdw(((PDE & PXEsize) >> PXE_ADDRESSSHIFT) + ((TABLE << PTEsize)|4)))<<32); //Read the page table entry!
 		}
 		/*
-		if (((PTE&(0x180^(useG<<8)))) && ((((CPU[activeCPU].registers->CR4 & 0x10) >> 4) & (EMULATED_CPU>=CPU_PENTIUM))|isPAE)) //Reserved bit in PTE?
+		if (((PTE&(0x180^(useG<<8)))) && ((((CPU[activeCPU].registers->CR4 & 0x10) >> 4) & (EMULATED_CPU>=CPU_PENTIUM))|isPAE)) //Reserved bit in PTE? Not G when said bit is enabled!
 		{
 			raisePF(address, (PTE&PXE_P) | (RW << 1) | (effectiveUS << 2)|8); //Run a reserved page fault!
 			return 0; //We have an error, abort!
@@ -333,12 +333,17 @@ byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch, byte 
 	if (unlikely(isS)) //4MB? Only check the PDE, not the PTE!
 	{
 		/*
-		if ((PDE&(0x3FF100 ^ (useG << 8))) && ((((CPU[activeCPU].registers->CR4 & 0x10) >> 4) & (EMULATED_CPU>=CPU_PENTIUM))|isPAE)) //Reserved bit in PDE?
+		if ((PDE&(0x3FF100 ^ ((useG << 8) | (isPAE<<21)))) && ((((CPU[activeCPU].registers->CR4 & 0x10) >> 4) & (EMULATED_CPU>=CPU_PENTIUM))|isPAE)) //Reserved bit in PDE? The not the top bit in PAE(bit 21) or G(bit 8) when said features are enabled.
 		{
 			raisePF(address, PXE_P | (RW << 1) | (effectiveUS << 2)|8); //Run a reserved page fault!
 			return 0; //We have an error, abort!
 		}
 		*/
+		if ((PDE & (0x3FF000 ^ (isPAE << 21))) && ((((CPU[activeCPU].registers->CR4 & 0x10) >> 4) & (EMULATED_CPU >= CPU_PENTIUM)) | isPAE)) //Reserved bit in PDE?
+		{
+			raisePF(address, PXE_P | (RW << 1) | (effectiveUS << 2) | 8); //Run a reserved page fault!
+			return 0; //We have an error, abort!
+		}
 		if (!verifyCPL(RW,effectiveUS,((PDE&PXE_RW)>>1),((PDE&PXE_US)>>2),((PDE&PXE_RW)>>1),((PDE&PXE_US)>>2),&RW)) //Protection fault on combined flags?
 		{
 			raisePF(address,PXE_P|(RW<<1)|(effectiveUS<<2)); //Run a not present page fault!
