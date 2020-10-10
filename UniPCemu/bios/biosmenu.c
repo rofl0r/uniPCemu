@@ -8011,7 +8011,7 @@ void BIOS_CR3breakpoint()
 	char breakpointstr[256]; //32-bits offset, colon, 16-bits segment, mode if required(Protected/Virtual 8086), Ignore EIP/CS/Whole address(mode only) and final character(always zero)!
 	cleardata(&breakpointstr[0],sizeof(breakpointstr));
 	//First, convert the current breakpoint to a string format!
-	switch ((BIOS_Settings.CR3breakpoint>>SETTINGS_TASKBREAKPOINT_ENABLE_SHIFT)) //What mode?
+	switch ((BIOS_Settings.CR3breakpoint>>SETTINGS_CR3BREAKPOINT_ENABLE_SHIFT)) //What mode?
 	{
 		case 0: //No breakpoint?
 			break;
@@ -8049,7 +8049,7 @@ void BIOS_CR3breakpoint()
 		}
 		else //Unset?
 		{
-			BIOS_Changed = BIOS_Changed||((BIOS_Settings.taskBreakpoint!=0)?1:0); //We've changed!			
+			BIOS_Changed = BIOS_Changed||((BIOS_Settings.CR3breakpoint!=0)?1:0); //We've changed!			
 			BIOS_Settings.CR3breakpoint = 0; //No breakpoint!
 		}
 	}
