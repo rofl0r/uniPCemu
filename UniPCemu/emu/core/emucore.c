@@ -94,6 +94,8 @@ byte doEMUsinglestep[5] = { 0,0,0,0,0 }; //CPU mode plus 1
 uint_64 singlestepaddress[5] = { 0,0,0,0,0 }; //The segment:offset address!
 byte doEMUtasksinglestep = 0; //Enabled?
 uint_64 singlestepTaskaddress = 0; //The segment:offset address!
+byte doEMUFSsinglestep = 0; //Enabled?
+uint_64 singlestepFSaddress = 0; //The segment:offset address!
 byte doEMUCR3singlestep = 0; //Enabled?
 uint_64 singlestepCR3address = 0; //The segment:offset address!
 extern byte allow_debuggerstep; //Disabled by default: needs to be enabled by our BIOS!
@@ -242,6 +244,19 @@ void updateEMUSingleStep(byte index) //Update our single-step address!
 			//High 16 bits are TR, low 32 bits are base
 			singlestepTaskaddress = ((((BIOS_Settings.taskBreakpoint>>SETTINGS_TASKBREAKPOINT_IGNOREBASE_SHIFT)&1)<<48) | (((BIOS_Settings.taskBreakpoint>>SETTINGS_TASKBREAKPOINT_IGNORESEGMENT_SHIFT)&1)<<50) | (((BIOS_Settings.taskBreakpoint>>SETTINGS_TASKBREAKPOINT_SEGMENT_SHIFT)&SETTINGS_TASKBREAKPOINT_SEGMENT_MASK)<<32) | ((BIOS_Settings.taskBreakpoint&SETTINGS_TASKBREAKPOINT_BASE_MASK) & 0xFFFFFFFF)); //Single step address!
 			break;
+	}
+
+	switch ((BIOS_Settings.FSBreakpoint >> SETTINGS_FSBREAKPOINT_ENABLE_SHIFT)) //What mode?
+	{
+	case 0: //Unset?
+		doEMUFSsinglestep = 0;
+		singlestepFSaddress = 0; //Nothing!
+		break;
+	default: //Enabled
+		doEMUFSsinglestep = 1;
+		//High 16 bits are TR, low 32 bits are base
+		singlestepFSaddress = ((((BIOS_Settings.FSBreakpoint >> SETTINGS_FSBREAKPOINT_IGNOREBASE_SHIFT) & 1) << 48) | (((BIOS_Settings.FSBreakpoint >> SETTINGS_FSBREAKPOINT_IGNORESEGMENT_SHIFT) & 1) << 50) | (((BIOS_Settings.FSBreakpoint >> SETTINGS_FSBREAKPOINT_SEGMENT_SHIFT) & SETTINGS_FSBREAKPOINT_SEGMENT_MASK) << 32) | ((BIOS_Settings.FSBreakpoint & SETTINGS_FSBREAKPOINT_BASE_MASK) & 0xFFFFFFFF)); //Single step address!
+		break;
 	}
 
 	switch ((BIOS_Settings.CR3breakpoint>>SETTINGS_CR3BREAKPOINT_ENABLE_SHIFT)) //What mode?
@@ -1207,7 +1222,7 @@ OPTINLINE byte coreHandler()
 
 				if (unlikely(CPU[activeCPU].registers && (CPU[activeCPU].permanentreset == 0) && (CPU[activeCPU].internalinterruptstep == 0) && BIU_Ready() && (CPU_executionphase_busy() == 0) && (CPU[activeCPU].instructionfetch.CPU_isFetching && (CPU[activeCPU].instructionfetch.CPU_fetchphase == 1)))) //Only check for hardware interrupts when not trapped and allowed to execute interrupts(not permanently reset)!
 				{
-					if (unlikely(CPU[activeCPU].registers && allow_debuggerstep && (doEMUsinglestep[0]|doEMUsinglestep[1]|doEMUsinglestep[2]|doEMUsinglestep[3]|doEMUsinglestep[4]|doEMUtasksinglestep|doEMUCR3singlestep))) //Single step allowed, CPU mode specified?
+					if (unlikely(CPU[activeCPU].registers && allow_debuggerstep && (doEMUsinglestep[0]|doEMUsinglestep[1]|doEMUsinglestep[2]|doEMUsinglestep[3]|doEMUsinglestep[4]|doEMUtasksinglestep|doEMUFSsinglestep|doEMUCR3singlestep))) //Single step allowed, CPU mode specified?
 					{
 						applysinglestep = applysinglestepBP = 0; //Init!
 						calcGenericSinglestep(0);
@@ -1219,6 +1234,10 @@ OPTINLINE byte coreHandler()
 						if (unlikely(doEMUtasksinglestep)) //Task filter enabled for breakpoints?
 						{
 							applysinglestep &= ((((REG_TR == ((singlestepTaskaddress >> 32) & 0xFFFF)) | (singlestepTaskaddress & 0x4000000000000ULL)) && (((CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR].PRECALCS.base == (singlestepTaskaddress & 0xFFFFFFFF)) && GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) || (singlestepTaskaddress & 0x1000000000000ULL))) || (singlestepTaskaddress & 0x2000000000000ULL)); //Single step enabled?
+						}
+						if (unlikely(doEMUFSsinglestep)) //Task filter enabled for breakpoints?
+						{
+							applysinglestep &= ((((REG_FS == ((singlestepFSaddress >> 32) & 0xFFFF)) | (singlestepFSaddress & 0x4000000000000ULL)) && (((CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_FS].PRECALCS.base == (singlestepFSaddress & 0xFFFFFFFF)) && GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_FS])) || (singlestepFSaddress & 0x1000000000000ULL))) || (singlestepFSaddress & 0x2000000000000ULL)); //Single step enabled?
 						}
 						if (unlikely(doEMUCR3singlestep)) //CR3 filter enabled for breakpoints?
 						{

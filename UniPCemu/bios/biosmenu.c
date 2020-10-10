@@ -226,6 +226,7 @@ void BIOS_CMOSTiming(); //Time the CMOS!
 void BIOS_BackgroundPolicySetting(); //Background policy!
 void BIOS_AdvancedLogSetting(); //Advanced log policy!
 void BIOS_taskBreakpoint(); //Task breakpoint!
+void BIOS_FSBreakpoint(); //Task breakpoint!
 void BIOS_CR3breakpoint(); //CR3 breakpoint!
 void BIOS_DirectInput_remap_RCTRL_to_LWIN(); //Remap RCTRL to LWIN!
 void BIOS_DirectInput_remap_accentgrave_to_tab(); //Remap accent grave to tab during LALT!
@@ -321,6 +322,7 @@ Handler BIOS_Menus[] =
 	,BIOS_GenerateIMDFloppyDisk //Generate IMD floppy disk is #78!
 	,BIOS_LoadEjectCDROM0 //Load/Eject CD-ROM 0 is #79!
 	,BIOS_LoadEjectCDROM1 //Load/Eject CD-ROM 1 is #80!
+	,BIOS_FSBreakpoint //Task breakpoint is #81!
 };
 
 //Not implemented?
@@ -5508,7 +5510,7 @@ void BIOS_InitCPUText()
 {
 	advancedoptions = 0; //Init!
 	int i;
-	for (i = 0; i<18; i++) //Clear all possibilities!
+	for (i = 0; i<19; i++) //Clear all possibilities!
 	{
 		cleardata(&menuoptions[i][0], sizeof(menuoptions[i])); //Init!
 	}
@@ -5831,6 +5833,31 @@ setShowCPUSpeed:
 		default: //Just in case!
 			safestrcat(menuoptions[advancedoptions],sizeof(menuoptions[0]), "<UNKNOWN. CHECK SETTINGS VERSION>");
 			break;
+	}
+	++advancedoptions; //Increase after!
+
+	optioninfo[advancedoptions] = 26; //FS Breakpoint!
+	safestrcpy(menuoptions[advancedoptions], sizeof(menuoptions[0]), "FS Breakpoint: ");
+	//First, convert the current breakpoint to a string format!
+	switch ((BIOS_Settings.FSBreakpoint >> SETTINGS_FSBREAKPOINT_ENABLE_SHIFT)) //What mode?
+	{
+	case 0: //No breakpoint?
+		safestrcat(menuoptions[advancedoptions], sizeof(menuoptions[0]), "Not set"); //seg16:offs16 default!
+		break;
+	case 1: //Enabled?
+		safescatnprintf(menuoptions[advancedoptions], sizeof(menuoptions[0]), "%04X:%08X", (word)((BIOS_Settings.FSBreakpoint >> SETTINGS_TASKBREAKPOINT_SEGMENT_SHIFT) & SETTINGS_TASKBREAKPOINT_SEGMENT_MASK), (uint_32)(BIOS_Settings.FSBreakpoint & SETTINGS_TASKBREAKPOINT_BASE_MASK)); //seg16:offs16!
+		if ((BIOS_Settings.FSBreakpoint >> SETTINGS_FSBREAKPOINT_IGNOREBASE_SHIFT) & 1) //Ignore Base?
+		{
+			safestrcat(menuoptions[advancedoptions], sizeof(menuoptions[0]), "I"); //Ignore EIP!
+		}
+		else if ((BIOS_Settings.FSBreakpoint >> SETTINGS_FSBREAKPOINT_IGNORESEGMENT_SHIFT) & 1) //Ignore TR?
+		{
+			safestrcat(menuoptions[advancedoptions], sizeof(menuoptions[0]), "O"); //Ignore TR!
+		}
+		break;
+	default: //Just in case!
+		safestrcat(menuoptions[advancedoptions], sizeof(menuoptions[0]), "<UNKNOWN. CHECK SETTINGS VERSION>");
+		break;
 	}
 	++advancedoptions; //Increase after!
 
@@ -6188,6 +6215,39 @@ void BIOS_CPU() //CPU menu!
 				{
 					offset = CPU[activeCPU].registers->CR3; //Our offset!
 					BIOS_Settings.CR3breakpoint = (((uint_64)mode&3)<<SETTINGS_CR3BREAKPOINT_ENABLE_SHIFT)|((uint_64)offset&SETTINGS_CR3BREAKPOINT_BASE_MASK); //Set the new breakpoint!
+					BIOS_Changed = 1; //We've changed!
+				}
+				unlock(LOCK_CPU); //Finished with the CPU!
+			}
+			break;
+		case 26: //FS Breakpoint
+			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
+			{
+#ifndef IS_PSP
+				//This option fails to compile on the PSP for some unknown reason.
+				BIOS_Menu = 81; //Timeout to be used for breakpoints?
+#endif
+			}
+			else if (Menu_Stat == BIOSMENU_STAT_SQUARE) //SQUARE=Set current address&mode as the breakpoint!
+			{
+				byte mode = 0;
+				word segment;
+				uint_32 offset;
+				lock(LOCK_CPU); //Lock the CPU!
+				switch (GENERALSEGMENT_P(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_TR])) //What mode are we?
+				{
+				case 0: //None?
+					BIOS_Settings.FSBreakpoint = 0; //Disabled!
+					break;
+				default: //Enabled?
+					mode = 1; //Enable!
+					break;
+				}
+				if (mode) //Enabled?
+				{
+					segment = REG_FS; //CS!
+					offset = (uint_32)CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_FS].PRECALCS.base; //Our offset!
+					BIOS_Settings.FSBreakpoint = (((uint_64)mode & 1) << SETTINGS_FSBREAKPOINT_ENABLE_SHIFT) | (((uint_64)segment & SETTINGS_FSBREAKPOINT_SEGMENT_MASK) << SETTINGS_FSBREAKPOINT_SEGMENT_SHIFT) | ((uint_64)offset & SETTINGS_FSBREAKPOINT_BASE_MASK); //Set the new breakpoint!
 					BIOS_Changed = 1; //We've changed!
 				}
 				unlock(LOCK_CPU); //Finished with the CPU!
@@ -8004,6 +8064,92 @@ void BIOS_taskBreakpoint()
 	BIOS_Menu = 35; //Goto CPU menu!
 }
 
+void BIOS_setFSBreakpoint(char* breakpointstr, word semicolonpos, byte enabled, byte ignoreBase, byte ignoreSegment);
+
+void BIOS_FSBreakpoint()
+{
+	char breakpointstr[256]; //32-bits offset, colon, 16-bits segment, mode if required(Protected/Virtual 8086), Ignore EIP/CS/Whole address(mode only) and final character(always zero)!
+	cleardata(&breakpointstr[0], sizeof(breakpointstr));
+	//First, convert the current breakpoint to a string format!
+	switch ((BIOS_Settings.FSBreakpoint >> SETTINGS_FSBREAKPOINT_ENABLE_SHIFT)) //What mode?
+	{
+	case 0: //No breakpoint?
+		break;
+	case 1: //Enabled?
+		snprintf(breakpointstr, sizeof(breakpointstr), "%04X:%08X", (word)((BIOS_Settings.FSBreakpoint >> SETTINGS_FSBREAKPOINT_SEGMENT_SHIFT) & SETTINGS_FSBREAKPOINT_SEGMENT_MASK), (uint_32)(BIOS_Settings.FSBreakpoint & SETTINGS_FSBREAKPOINT_BASE_MASK)); //seg16:offs16!
+		if ((BIOS_Settings.FSBreakpoint >> SETTINGS_FSBREAKPOINT_IGNOREBASE_SHIFT) & 1) //Ignore EIP?
+		{
+			safestrcat(breakpointstr, sizeof(breakpointstr), "I"); //Ignore EIP!
+		}
+		else if ((BIOS_Settings.FSBreakpoint >> SETTINGS_BREAKPOINT_IGNORESEGMENT_SHIFT) & 1) //Ignore CS?
+		{
+			safestrcat(breakpointstr, sizeof(breakpointstr), "O"); //Ignore CS!
+		}
+		break;
+	default: //Just in case!
+		break;
+	}
+	//I is added with bit set when it's done(Ignore EIP).
+
+	BIOSClearScreen(); //Clear the screen!
+	BIOS_Title("FS Breakpoint"); //Full clear!
+	EMU_locktext();
+	EMU_gotoxy(0, 4); //Goto position for info!
+	GPU_EMU_printscreen(0, 4, "Address: "); //Show the filename!
+	EMU_unlocktext();
+	//byte mode; //The mode to use!
+	word semicolonpos;
+	char* temp;
+	word maxsegmentsize = 4;
+#ifndef IS_PSP
+	word maxoffsetsize = 8;
+#endif
+	byte ignoreBase = 0;
+	byte ignoreSegment = 0;
+	if (BIOS_InputAddressWithMode(9, 4, &breakpointstr[0], sizeof(breakpointstr) - 1, 0, 1, 0)) //Input text confirmed?
+	{
+		if (strcmp(breakpointstr, "") != 0) //Got valid input?
+		{
+			//Convert the string back into our valid numbers for storage!
+			//mode = 1; //Default to real mode!
+			ignoreSegment = (breakpointstr[safestrlen(breakpointstr, sizeof(breakpointstr)) - 1] == 'O'); //Ignore code segment?
+			if (ignoreSegment) breakpointstr[safestrlen(breakpointstr, sizeof(breakpointstr)) - 1] = '\0'; //Take off the mode identifier!
+			ignoreBase = (breakpointstr[safestrlen(breakpointstr, sizeof(breakpointstr)) - 1] == 'I'); //Ignore EIP?
+			if (ignoreBase) breakpointstr[safestrlen(breakpointstr, sizeof(breakpointstr)) - 1] = '\0'; //Take off the mode identifier!
+			temp = &breakpointstr[0]; //First character!
+			for (; (*temp && *temp != ':'); ++temp); //No seperator yet?
+			if (*temp != ':') //No seperator found?
+			{
+				goto abortcoloninput; //Invalid: can't handle!
+			}
+			if (*(temp + 1) == '\0') //Invalid ending?
+			{
+				goto abortcoloninput; //Invalid: can't handle colon at the end!							
+			}
+			//Temp points to the colon!
+			semicolonpos = (word)(temp - &breakpointstr[0]); //length up to the semicolon, which should be valid!
+			if ((semicolonpos == 0) || (semicolonpos > maxsegmentsize)) //Too long segment?
+			{
+				goto abortcoloninput; //Invalid: can't handle segment length!							
+			}
+#ifndef IS_PSP
+			//This won't compile on the PSP for some unknown reason, crashing the compiler!
+			if (((safe_strlen(&breakpointstr[0], sizeof(breakpointstr)) - semicolonpos) - 1) <= maxoffsetsize) //Offset OK?
+			{
+				BIOS_setFSBreakpoint(&breakpointstr[0], semicolonpos, 1, ignoreBase, ignoreSegment);
+			}
+#endif
+		}
+		else //Unset?
+		{
+			BIOS_Changed = BIOS_Changed || ((BIOS_Settings.FSBreakpoint != 0) ? 1 : 0); //We've changed!			
+			BIOS_Settings.FSBreakpoint = 0; //No breakpoint!
+		}
+	}
+abortcoloninput:
+	BIOS_Menu = 35; //Goto CPU menu!
+}
+
 void BIOS_setCR3breakpoint(char *breakpointstr, byte enabled);
 
 void BIOS_CR3breakpoint()
@@ -8089,6 +8235,23 @@ void BIOS_setTaskBreakpoint(char *breakpointstr, word semicolonpos, byte enabled
 	BIOS_Settings.taskBreakpoint |= (((ignoreSegment ? 1LLU : 0LLU) << SETTINGS_TASKBREAKPOINT_IGNORESEGMENT_SHIFT));
 	BIOS_Settings.taskBreakpoint |= (((uint_64)segment&SETTINGS_TASKBREAKPOINT_SEGMENT_MASK)<<SETTINGS_TASKBREAKPOINT_SEGMENT_SHIFT);
 	BIOS_Settings.taskBreakpoint |= ((uint_64)offset&SETTINGS_TASKBREAKPOINT_BASE_MASK); //Set the new breakpoint!
+	BIOS_Changed = 1; //We've changed!
+}
+
+void BIOS_setFSBreakpoint(char* breakpointstr, word semicolonpos, byte enabled, byte ignoreBase, byte ignoreSegment)
+{
+	word segment;
+	uint_32 offset;
+	breakpointstr[semicolonpos] = '\0'; //Convert the semicolon into an EOS character to apply the string length!
+	segment = converthex2int(&breakpointstr[0]); //Convert the number to our usable format!
+	offset = converthex2int(&breakpointstr[semicolonpos + 1]); //Convert the number to our usable format!
+
+	//Apply the new breakpoint!
+	BIOS_Settings.FSBreakpoint = (((uint_64)enabled & 3) << SETTINGS_FSBREAKPOINT_ENABLE_SHIFT);
+	BIOS_Settings.FSBreakpoint |= (((ignoreBase ? 1LLU : 0LLU) << SETTINGS_FSBREAKPOINT_IGNOREBASE_SHIFT));
+	BIOS_Settings.FSBreakpoint |= (((ignoreSegment ? 1LLU : 0LLU) << SETTINGS_FSBREAKPOINT_IGNORESEGMENT_SHIFT));
+	BIOS_Settings.FSBreakpoint |= (((uint_64)segment & SETTINGS_FSBREAKPOINT_SEGMENT_MASK) << SETTINGS_FSBREAKPOINT_SEGMENT_SHIFT);
+	BIOS_Settings.FSBreakpoint |= ((uint_64)offset & SETTINGS_FSBREAKPOINT_BASE_MASK); //Set the new breakpoint!
 	BIOS_Changed = 1; //We've changed!
 }
 

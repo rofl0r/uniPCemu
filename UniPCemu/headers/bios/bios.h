@@ -135,6 +135,7 @@ typedef struct
 	byte backgroundpolicy; //The currently active background policy!
 	byte advancedlog; //Use advanced debugger information during common log format logging?
 	uint_64 taskBreakpoint; //Task to break on
+	uint_64 FSBreakpoint; //FS to break on
 	uint_64 CR3breakpoint; //CR3 to break on
 } BIOS_Settings_TYPE; //BIOS Settings!
 
@@ -296,6 +297,14 @@ enum BIOSROMMode {
 #define SETTINGS_TASKBREAKPOINT_IGNOREBASE_SHIFT 59
 #define SETTINGS_TASKBREAKPOINT_IGNORESEGMENT_SHIFT 58
 #define SETTINGS_TASKBREAKPOINT_BASE_MASK 0xFFFFFFFF
+
+//FS breakpoint
+#define SETTINGS_FSBREAKPOINT_ENABLE_SHIFT 60
+#define SETTINGS_FSBREAKPOINT_SEGMENT_SHIFT 32
+#define SETTINGS_FSBREAKPOINT_SEGMENT_MASK 0xFFFFULL
+#define SETTINGS_FSBREAKPOINT_IGNOREBASE_SHIFT 59
+#define SETTINGS_FSBREAKPOINT_IGNORESEGMENT_SHIFT 58
+#define SETTINGS_FSBREAKPOINT_BASE_MASK 0xFFFFFFFF
 
 //CR3 breakpoint
 #define SETTINGS_CR3BREAKPOINT_ENABLE_SHIFT 60

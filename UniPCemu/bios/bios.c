@@ -1139,6 +1139,7 @@ void BIOS_LoadData() //Load BIOS settings!
 	BIOS_Settings.breakpoint[3] = get_private_profile_uint64("debugger", "breakpoint4", 0, inifile); //The used breakpoint segment:offset and mode!
 	BIOS_Settings.breakpoint[4] = get_private_profile_uint64("debugger", "breakpoint5", 0, inifile); //The used breakpoint segment:offset and mode!
 	BIOS_Settings.taskBreakpoint = get_private_profile_uint64("debugger", "taskbreakpoint", 0, inifile); //The used breakpoint segment:offset and mode!
+	BIOS_Settings.FSBreakpoint = get_private_profile_uint64("debugger", "FSbreakpoint", 0, inifile); //The used breakpoint segment:offset and mode!
 	BIOS_Settings.CR3breakpoint = get_private_profile_uint64("debugger", "CR3breakpoint", 0, inifile); //The used breakpoint segment:offset and mode!
 	BIOS_Settings.diagnosticsportoutput_breakpoint = LIMITRANGE((sword)get_private_profile_int64("debugger", "diagnosticsport_breakpoint", DEFAULT_DIAGNOSTICSPORTOUTPUT_BREAKPOINT, inifile),-1,0xFF); //Use a diagnostics port breakpoint?
 	BIOS_Settings.diagnosticsportoutput_timeout = (uint_32)get_private_profile_uint64("debugger", "diagnosticsport_timeout", DEFAULT_DIAGNOSTICSPORTOUTPUT_TIMEOUT, inifile); //Breakpoint timeout used!
@@ -1419,6 +1420,7 @@ int BIOS_SaveData() //Save BIOS settings!
 	safestrcat(debugger_comment, sizeof(debugger_comment), "logregisters: 0=Disabled, 1=Enabled\n");
 	safestrcat(debugger_comment, sizeof(debugger_comment), "breakpoint: bits 60-61: 0=Not set, 1=Real mode, 2=Protected mode, 3=Virtual 8086 mode; bit 59: Break on CS only; bit 58: Break on mode only. bit 57: Break on EIP only. bit 56: enforce single step. bits 32-47: segment, bits 31-0: offset(truncated to 16-bits in Real/Virtual 8086 mode\n");
 	safestrcat(debugger_comment, sizeof(debugger_comment), "taskbreakpoint: bits 60-61: 0=Not set, 1=Enabled; bit 59: Break on TR only; bit 57: Break on base address only. bits 32-47: TR segment, bits 31-0: base address within the descriptor cache\n");
+	safestrcat(debugger_comment, sizeof(debugger_comment), "FSbreakpoint: bits 60-61: 0=Not set, 1=Enabled; bit 59: Break on FS only; bit 57: Break on base address only. bits 32-47: FS segment, bits 31-0: base address within the descriptor cache\n");
 	safestrcat(debugger_comment, sizeof(debugger_comment), "CR3breakpoint: bits 60-61: 0=Not set, 1=Enabled; bits 31-0: Base address\n");
 	safestrcat(debugger_comment, sizeof(debugger_comment), "diagnosticsport_breakpoint: -1=Disabled, 0-255=Value to trigger the breakpoint\n");
 	safestrcat(debugger_comment, sizeof(debugger_comment), "diagnosticsport_timeout: 0=At first instruction, 1+: At the n+1th instruction\n");
@@ -1435,6 +1437,7 @@ int BIOS_SaveData() //Save BIOS settings!
 	if (!write_private_profile_uint64("debugger", debugger_commentused, "breakpoint4", BIOS_Settings.breakpoint[3], inifile)) ABORT_SAVEDATA //The used breakpoint segment:offset and mode!
 	if (!write_private_profile_uint64("debugger", debugger_commentused, "breakpoint5", BIOS_Settings.breakpoint[4], inifile)) ABORT_SAVEDATA //The used breakpoint segment:offset and mode!
 	if (!write_private_profile_uint64("debugger", debugger_commentused, "taskbreakpoint", BIOS_Settings.taskBreakpoint, inifile)) ABORT_SAVEDATA //The used breakpoint segment:offset and enable!
+	if (!write_private_profile_uint64("debugger", debugger_commentused, "FSbreakpoint", BIOS_Settings.FSBreakpoint, inifile)) ABORT_SAVEDATA //The used breakpoint segment:offset and enable!
 	if (!write_private_profile_uint64("debugger", debugger_commentused, "CR3breakpoint", BIOS_Settings.CR3breakpoint, inifile)) ABORT_SAVEDATA //The used breakpoint offset ans enable!
 	if (!write_private_profile_int64("debugger", debugger_commentused, "diagnosticsport_breakpoint", BIOS_Settings.diagnosticsportoutput_breakpoint, inifile)) ABORT_SAVEDATA //Use a diagnostics port breakpoint?
 	if (!write_private_profile_uint64("debugger", debugger_commentused, "diagnosticsport_timeout", BIOS_Settings.diagnosticsportoutput_timeout, inifile)) ABORT_SAVEDATA //Breakpoint timeout used!
