@@ -5837,7 +5837,7 @@ setShowCPUSpeed:
 	optioninfo[advancedoptions] = 21; //CR3 Breakpoint!
 	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "CR3 Breakpoint: ");
 	//First, convert the current breakpoint to a string format!
-	switch ((BIOS_Settings.CR3breakpoint>>SETTINGS_TASKBREAKPOINT_ENABLE_SHIFT)) //What mode?
+	switch ((BIOS_Settings.CR3breakpoint>>SETTINGS_CR3BREAKPOINT_ENABLE_SHIFT)) //What mode?
 	{
 		case 0: //No breakpoint?
 			safestrcat(menuoptions[advancedoptions],sizeof(menuoptions[0]),"Not set"); //seg16:offs16 default!
