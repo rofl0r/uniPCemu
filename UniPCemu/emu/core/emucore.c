@@ -1063,7 +1063,7 @@ void calcGenericSinglestep(byte index)
 			break;
 		}
 	}
-	else if (unlikely(((doEMUtasksinglestep | doEMUCR3singlestep) && ((doEMUsinglestep[0]|doEMUsinglestep[1]|doEMUsinglestep[2]|doEMUsinglestep[3]|doEMUsinglestep[4]) == 0)))) //Task&CR3 singlestep for any address?
+	else if (unlikely(((doEMUFSsinglestep | doEMUtasksinglestep | doEMUCR3singlestep) && ((doEMUsinglestep[0]|doEMUsinglestep[1]|doEMUsinglestep[2]|doEMUsinglestep[3]|doEMUsinglestep[4]) == 0)))) //Task&CR3 singlestep for any address?
 	{
 		applysinglestep = 1; //Use combined rights!
 	}
