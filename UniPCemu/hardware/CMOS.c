@@ -647,7 +647,11 @@ void loadCMOS()
 	}
 	else //Load BIOS CMOS!
 	{
-		if (is_i430fx) //i430fx CMOS?
+		if (is_i430fx==2) //i440fx CMOS?
+		{
+			memcpy(&CMOS.DATA, &BIOS_Settings.i440fxCMOS, sizeof(CMOS.DATA)); //Copy to our memory!
+		}
+		else if (is_i430fx==1) //i430fx CMOS?
 		{
 			memcpy(&CMOS.DATA, &BIOS_Settings.i430fxCMOS, sizeof(CMOS.DATA)); //Copy to our memory!
 		}
@@ -710,7 +714,27 @@ void saveCMOS()
 	byte clockingmodebackup; //Are we using the IPS clock instead of cycle-accurate clock?
 	byte DataBusSizebackup; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
 	if (CMOS.Loaded==0) return; //Don't save when not loaded/initialised!
-	if (is_i430fx) //i430fx CMOS?
+	if (is_i430fx==2) //i440fx CMOS?
+	{
+		memorybackup = BIOS_Settings.i440fxCMOS.memory; //Backup the memory field!
+		emulated_CPUbackup = BIOS_Settings.i440fxCMOS.emulated_CPU; //Emulated CPU?
+		CPUspeedbackup = BIOS_Settings.i440fxCMOS.CPUspeed; //CPU speed
+		TurboCPUspeedbackup = BIOS_Settings.i440fxCMOS.TurboCPUspeed; //Turbo CPU speed
+		useTurboCPUSpeedbackup = BIOS_Settings.i440fxCMOS.useTurboCPUSpeed; //Are we to use Turbo CPU speed?
+		clockingmodebackup = BIOS_Settings.i440fxCMOS.clockingmode; //Are we using the IPS clock instead of cycle-accurate clock?
+		DataBusSizebackup = BIOS_Settings.i440fxCMOS.DataBusSize; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+		memcpy(&BIOS_Settings.i440fxCMOS, &CMOS.DATA, sizeof(CMOS.DATA)); //Copy the CMOS to BIOS!
+		CMOS_cleartimedata(&BIOS_Settings.i440fxCMOS);
+		BIOS_Settings.i440fxCMOS.memory = memorybackup; //Backup restored!
+		BIOS_Settings.i440fxCMOS.emulated_CPU = emulated_CPUbackup; //Emulated CPU?
+		BIOS_Settings.i440fxCMOS.CPUspeed = CPUspeedbackup; //CPU speed
+		BIOS_Settings.i440fxCMOS.TurboCPUspeed = TurboCPUspeedbackup; //Turbo CPU speed
+		BIOS_Settings.i440fxCMOS.useTurboCPUSpeed = useTurboCPUSpeedbackup; //Are we to use Turbo CPU speed?
+		BIOS_Settings.i440fxCMOS.clockingmode = clockingmodebackup; //Are we using the IPS clock instead of cycle-accurate clock?
+		BIOS_Settings.i440fxCMOS.DataBusSize = DataBusSizebackup; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+		BIOS_Settings.got_i440fxCMOS = 1; //We've saved an CMOS!
+	}
+	else if (is_i430fx==1) //i430fx CMOS?
 	{
 		memorybackup = BIOS_Settings.i430fxCMOS.memory; //Backup the memory field!
 		emulated_CPUbackup = BIOS_Settings.i430fxCMOS.emulated_CPU; //Emulated CPU?

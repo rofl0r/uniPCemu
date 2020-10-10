@@ -85,7 +85,7 @@ extern byte is_i430fx; //Are we emulating a i430fx architecture?
 void scanROM(char *device, char *filename, uint_32 size)
 {
 	//Special case: 32-bit uses Compaq ROMs!
-	snprintf(filename, size, "%s/%s.%s.BIN", ROMpath, device,  ((is_i430fx) ? "i430fx" : (is_PS2 ? "PS2" : (is_Compaq ? "32" : (is_XT ? "XT" : "AT"))))); //Create the filename for the ROM for the architecture!
+	snprintf(filename, size, "%s/%s.%s.BIN", ROMpath, device,  ((is_i430fx) ? ((is_i430fx==1)?"i430fx":"i440fx") : (is_PS2 ? "PS2" : (is_Compaq ? "32" : (is_XT ? "XT" : "AT"))))); //Create the filename for the ROM for the architecture!
 	if (!file_exists(filename)) //This version doesn't exist? Then try the other version!
 	{
 		snprintf(filename, size, "%s/%s.%s.BIN", ROMpath, device, (is_PS2 ? "PS2" : (is_Compaq ? "32" : (is_XT ? "XT" : "AT")))); //Create the filename for the ROM for the architecture!
@@ -127,7 +127,7 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 		if (i) //Not Graphics Adapter ROM?
 		{
 			//Default!
-			snprintf(filename, sizeof(filename), "%s/OPTROM.%s.%u.BIN", ROMpath, (is_i430fx ? "i430fx" : (is_PS2 ? "PS2" : (is_Compaq ? "32" : (is_XT ? "XT" : "AT")))), i); //Create the filename for the ROM for the architecture!
+			snprintf(filename, sizeof(filename), "%s/OPTROM.%s.%u.BIN", ROMpath, (is_i430fx ? ((is_i430fx==1)?"i430fx":"i440fx") : (is_PS2 ? "PS2" : (is_Compaq ? "32" : (is_XT ? "XT" : "AT")))), i); //Create the filename for the ROM for the architecture!
 			if (!file_exists(filename)) //This version doesn't exist? Then try the other version!
 			{
 				snprintf(filename, sizeof(filename), "%s/OPTROM.%s.%u.BIN", ROMpath, (is_PS2 ? "PS2" : (is_Compaq ? "32" : (is_XT ? "XT" : "AT"))), i); //Create the filename for the ROM for the architecture!
@@ -395,13 +395,27 @@ retryext:
 			++tryext; //Next try!
 			goto retryext; //Skip PS/2 ROMs!
 		}
-		if (BIOS_Settings.BIOSROMmode == BIOSROMMODE_DIAGNOSTICS) //Diagnostics mode?
+		if (is_i430fx == 1) //i430fx?
 		{
-			snprintf(filename, sizeof(filename), "%s/BIOSROM.i430fx.U%u.DIAGNOSTICS.BIN", ROMpath, nr); //Create the filename for the ROM!		
+			if (BIOS_Settings.BIOSROMmode == BIOSROMMODE_DIAGNOSTICS) //Diagnostics mode?
+			{
+				snprintf(filename, sizeof(filename), "%s/BIOSROM.i430fx.U%u.DIAGNOSTICS.BIN", ROMpath, nr); //Create the filename for the ROM!		
+			}
+			else //Normal mode?
+			{
+				snprintf(filename, sizeof(filename), "%s/BIOSROM.i430fx.U%u.BIN", ROMpath, nr); //Create the filename for the ROM!		
+			}
 		}
-		else //Normal mode?
+		else //i440fx?
 		{
-			snprintf(filename, sizeof(filename), "%s/BIOSROM.i430fx.U%u.BIN", ROMpath, nr); //Create the filename for the ROM!		
+			if (BIOS_Settings.BIOSROMmode == BIOSROMMODE_DIAGNOSTICS) //Diagnostics mode?
+			{
+				snprintf(filename, sizeof(filename), "%s/BIOSROM.i440fx.U%u.DIAGNOSTICS.BIN", ROMpath, nr); //Create the filename for the ROM!		
+			}
+			else //Normal mode?
+			{
+				snprintf(filename, sizeof(filename), "%s/BIOSROM.i440fx.U%u.BIN", ROMpath, nr); //Create the filename for the ROM!		
+			}
 		}
 		break;
 	case 1: //PS/2?
@@ -1791,8 +1805,8 @@ void BIOSROM_dumpBIOS()
 		BIGFILE *f;
 		char filename[2][100];
 		memset(&filename,0,sizeof(filename)); //Clear/init!
-		snprintf(filename[0],sizeof(filename[0]), "%s/ROMDMP.%s.BIN", ROMpath,(is_i430fx?"i430fx":(is_PS2?"PS2":(is_Compaq?"32":(is_XT?"XT":"AT"))))); //Create the filename for the ROM for the architecture!
-		snprintf(filename[1],sizeof(filename[1]), "ROMDMP.%s.BIN",(is_i430fx?"i430fx":(is_PS2?"PS2":(is_Compaq?"32":(is_XT?"XT":"AT"))))); //Create the filename for the ROM for the architecture!
+		snprintf(filename[0],sizeof(filename[0]), "%s/ROMDMP.%s.BIN", ROMpath,(is_i430fx?((is_i430fx==1)?"i430fx":"i440fx"):(is_PS2?"PS2":(is_Compaq?"32":(is_XT?"XT":"AT"))))); //Create the filename for the ROM for the architecture!
+		snprintf(filename[1],sizeof(filename[1]), "ROMDMP.%s.BIN",(is_i430fx?((is_i430fx==1)?"i430fx":"i440fx"):(is_PS2?"PS2":(is_Compaq?"32":(is_XT?"XT":"AT"))))); //Create the filename for the ROM for the architecture!
 
 		f = emufopen64(filename[0],"wb");
 		if (!f) return;

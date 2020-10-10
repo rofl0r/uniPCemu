@@ -79,12 +79,16 @@ extern byte is_Compaq; //Are we emulating a Compaq architecture?
 extern byte non_Compaq; //Are we not emulating a Compaq architecture?
 extern byte is_PS2; //Are we emulating PS/2 architecture extensions?
 
-extern char currentarchtext[5][256]; //The current architecture texts!
+extern char currentarchtext[6][256]; //The current architecture texts!
 
 char* getcurrentarchtext() //Get the current architecture!
 {
 	//First, determine the current CMOS!
-	if (is_i430fx) //i430fx?
+	if (is_i430fx==2) //i440fx?
+	{
+		return &currentarchtext[5][0]; //We've used!
+	}
+	else if (is_i430fx==1) //i430fx?
 	{
 		return &currentarchtext[4][0]; //We've used!
 	}
@@ -112,7 +116,11 @@ uint_32 *getarchmemory() //Get the memory field for the current architecture!
 {
 	//First, determine the current CMOS!
 	CMOSDATA* currentCMOS;
-	if (is_i430fx) //i430fx?
+	if (is_i430fx==2) //i440fx?
+	{
+		currentCMOS = &BIOS_Settings.i440fxCMOS; //We've used!
+	}
+	else if (is_i430fx==1) //i430fx?
 	{
 		currentCMOS = &BIOS_Settings.i430fxCMOS; //We've used!
 	}
@@ -140,7 +148,11 @@ byte* getarchemulated_CPU() //Get the memory field for the current architecture!
 {
 	//First, determine the current CMOS!
 	CMOSDATA* currentCMOS;
-	if (is_i430fx) //i430fx?
+	if (is_i430fx==2) //i440fx?
+	{
+		currentCMOS = &BIOS_Settings.i440fxCMOS; //We've used!
+	}
+	else if (is_i430fx==1) //i430fx?
 	{
 		currentCMOS = &BIOS_Settings.i430fxCMOS; //We've used!
 	}
@@ -167,7 +179,11 @@ byte* getarchDataBusSize() //Get the memory field for the current architecture!
 {
 	//First, determine the current CMOS!
 	CMOSDATA* currentCMOS;
-	if (is_i430fx) //i430fx?
+	if (is_i430fx==2) //i440fx?
+	{
+		currentCMOS = &BIOS_Settings.i440fxCMOS; //We've used!
+	}
+	else if (is_i430fx==1) //i430fx?
 	{
 		currentCMOS = &BIOS_Settings.i430fxCMOS; //We've used!
 	}
@@ -194,7 +210,11 @@ uint_32* getarchCPUSpeed() //Get the memory field for the current architecture!
 {
 	//First, determine the current CMOS!
 	CMOSDATA* currentCMOS;
-	if (is_i430fx) //i430fx?
+	if (is_i430fx==2) //i440fx?
+	{
+		currentCMOS = &BIOS_Settings.i440fxCMOS; //We've used!
+	}
+	else if (is_i430fx==1) //i430fx?
 	{
 		currentCMOS = &BIOS_Settings.i430fxCMOS; //We've used!
 	}
@@ -221,7 +241,11 @@ uint_32* getarchTurboCPUSpeed() //Get the memory field for the current architect
 {
 	//First, determine the current CMOS!
 	CMOSDATA* currentCMOS;
-	if (is_i430fx) //i430fx?
+	if (is_i430fx==2) //i440fx?
+	{
+		currentCMOS = &BIOS_Settings.i440fxCMOS; //We've used!
+	}
+	else if (is_i430fx==1) //i430fx?
 	{
 		currentCMOS = &BIOS_Settings.i430fxCMOS; //We've used!
 	}
@@ -248,7 +272,11 @@ byte* getarchuseTurboCPUSpeed() //Get the memory field for the current architect
 {
 	//First, determine the current CMOS!
 	CMOSDATA* currentCMOS;
-	if (is_i430fx) //i430fx?
+	if (is_i430fx==2) //i440fx?
+	{
+		currentCMOS = &BIOS_Settings.i440fxCMOS; //We've used!
+	}
+	else if (is_i430fx==1) //i430fx?
 	{
 		currentCMOS = &BIOS_Settings.i430fxCMOS; //We've used!
 	}
@@ -275,7 +303,11 @@ byte* getarchclockingmode() //Get the memory field for the current architecture!
 {
 	//First, determine the current CMOS!
 	CMOSDATA* currentCMOS;
-	if (is_i430fx) //i430fx?
+	if (is_i430fx==2) //i440fx?
+	{
+		currentCMOS = &BIOS_Settings.i440fxCMOS; //We've used!
+	}
+	else if (is_i430fx==1) //i430fx?
 	{
 		currentCMOS = &BIOS_Settings.i430fxCMOS; //We've used!
 	}
@@ -711,9 +743,9 @@ void autoDetectArchitecture()
 		is_XT = 0; //AT compatible!
 		is_Compaq = 1; //Compaq compatible!
 	}
-	if (BIOS_Settings.architecture==ARCHITECTURE_i430fx) //i430fx architecture?
+	if ((BIOS_Settings.architecture==ARCHITECTURE_i430fx) || (BIOS_Settings.architecture==ARCHITECTURE_i440fx)) //i430fx architecture?
 	{
-		is_i430fx = 1; //i430fx architecture!
+		is_i430fx = (BIOS_Settings.architecture==ARCHITECTURE_i430fx)?1:2; //i430fx/i440fx architecture!
 		is_PS2 = 1; //PS/2 extensions enabled!
 		is_XT = 0; //AT compatible!
 		is_Compaq = 0; //Compaq compatible!
@@ -933,13 +965,14 @@ void BIOS_LoadDefaults(int tosave) //Load BIOS defaults, but not memory size!
 		printmsg(0xF,"\r\nSettings Checksum Error. "); //Checksum error.
 	}
 
-	uint_32 memorytypes[5];
+	uint_32 memorytypes[6];
 	//Backup memory settings first!
 	memorytypes[0] = BIOS_Settings.XTCMOS.memory;
 	memorytypes[1] = BIOS_Settings.ATCMOS.memory;
 	memorytypes[2] = BIOS_Settings.CompaqCMOS.memory;
 	memorytypes[3] = BIOS_Settings.PS2CMOS.memory;
 	memorytypes[4] = BIOS_Settings.i430fxCMOS.memory;
+	memorytypes[5] = BIOS_Settings.i440fxCMOS.memory;
 
 	//Zero out!
 	memset(&BIOS_Settings,0,sizeof(BIOS_Settings)); //Reset to empty!
@@ -950,6 +983,7 @@ void BIOS_LoadDefaults(int tosave) //Load BIOS defaults, but not memory size!
 	BIOS_Settings.CompaqCMOS.memory = memorytypes[2];
 	BIOS_Settings.PS2CMOS.memory = memorytypes[3];
 	BIOS_Settings.i430fxCMOS.memory = memorytypes[4];
+	BIOS_Settings.i440fxCMOS.memory = memorytypes[5];
 
 	if (!file_exists(BIOS_Settings_file)) //New file?
 	{
@@ -1118,7 +1152,7 @@ void BIOS_LoadData() //Load BIOS settings!
 	//Machine
 	BIOS_Settings.emulated_CPU = (word)get_private_profile_uint64("machine", "cpu", DEFAULT_CPU, inifile);
 	BIOS_Settings.DataBusSize = (byte)get_private_profile_uint64("machine", "databussize", 0, inifile); //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
-	BIOS_Settings.architecture = LIMITRANGE((byte)get_private_profile_uint64("machine", "architecture", ARCHITECTURE_XT, inifile),ARCHITECTURE_XT,ARCHITECTURE_i430fx); //Are we using the XT/AT/PS/2 architecture?
+	BIOS_Settings.architecture = LIMITRANGE((byte)get_private_profile_uint64("machine", "architecture", ARCHITECTURE_XT, inifile),ARCHITECTURE_XT,ARCHITECTURE_i440fx); //Are we using the XT/AT/PS/2 architecture?
 	BIOS_Settings.executionmode = (byte)get_private_profile_uint64("machine", "executionmode", DEFAULT_EXECUTIONMODE, inifile); //What mode to execute in during runtime?
 	BIOS_Settings.CPUSpeed = (uint_32)get_private_profile_uint64("machine", "cpuspeed", 0, inifile);
 	BIOS_Settings.ShowCPUSpeed = (byte)get_private_profile_uint64("machine", "showcpuspeed", 0, inifile); //Show the relative CPU speed together with the framerate?
@@ -1281,6 +1315,10 @@ void BIOS_LoadData() //Load BIOS settings!
 	BIOS_Settings.got_i430fxCMOS = (byte)get_private_profile_uint64("i430fxCMOS", "gotCMOS", 0, inifile); //Gotten an CMOS?
 	loadBIOSCMOS(&BIOS_Settings.i430fxCMOS, "i430fxCMOS",inifile); //Load the CMOS from the file!
 
+	//i440fxCMOS
+	BIOS_Settings.got_i440fxCMOS = (byte)get_private_profile_uint64("i440fxCMOS", "gotCMOS", 0, inifile); //Gotten an CMOS?
+	loadBIOSCMOS(&BIOS_Settings.i440fxCMOS, "i440fxCMOS", inifile); //Load the CMOS from the file!
+
 	//BIOS settings have been loaded.
 
 	closeinifile(&inifile); //Close the ini file!
@@ -1389,7 +1427,7 @@ int BIOS_SaveData() //Save BIOS settings!
 	memset(&machine_comment, 0, sizeof(machine_comment)); //Init!
 	//safestrcat(machine_comment, sizeof(machine_comment), "cpu: 0=8086/8088, 1=NEC V20/V30, 2=80286, 3=80386, 4=80486, 5=Intel Pentium(without FPU)\n");
 	//safestrcat(machine_comment, sizeof(machine_comment), "databussize: 0=Full sized data bus of 16/32-bits, 1=Reduced data bus size\n");
-	safestrcat(machine_comment, sizeof(machine_comment), "architecture: 0=XT, 1=AT, 2=Compaq Deskpro 386, 3=Compaq Deskpro 386 with PS/2 mouse, 4=i430fx\n");
+	safestrcat(machine_comment, sizeof(machine_comment), "architecture: 0=XT, 1=AT, 2=Compaq Deskpro 386, 3=Compaq Deskpro 386 with PS/2 mouse, 4=i430fx, 5=i440fx\n");
 	safestrcat(machine_comment, sizeof(machine_comment), "executionmode: 0=Use emulator internal BIOS, 1=Run debug directory files, else TESTROM.DAT at 0000:0000, 2=Run TESTROM.DAT at 0000:0000, 3=Debug video card output, 4=Load BIOS from ROM directory as BIOSROM.u* and OPTROM.*, 5=Run sound test\n");
 	//safestrcat(machine_comment, sizeof(machine_comment), "cpuspeed: 0=default, otherwise, limited to n cycles(>=0)\n");
 	safestrcat(machine_comment, sizeof(machine_comment), "showcpuspeed: 0=Don't show, 1=Show\n");
@@ -1702,6 +1740,10 @@ int BIOS_SaveData() //Save BIOS settings!
 	//i430fxCMOS
 	if (!write_private_profile_uint64("i430fxCMOS", cmos_commentused, "gotCMOS", BIOS_Settings.got_i430fxCMOS, inifile)) ABORT_SAVEDATA //Gotten an CMOS?
 	if (!saveBIOSCMOS(&BIOS_Settings.i430fxCMOS, "i430fxCMOS", cmos_commentused,inifile)) ABORT_SAVEDATA //The full saved CMOS!
+
+	//i440fxCMOS
+	if (!write_private_profile_uint64("i440fxCMOS", cmos_commentused, "gotCMOS", BIOS_Settings.got_i440fxCMOS, inifile)) ABORT_SAVEDATA //Gotten an CMOS?
+	if (!saveBIOSCMOS(&BIOS_Settings.i440fxCMOS, "i440fxCMOS", cmos_commentused, inifile)) ABORT_SAVEDATA //The full saved CMOS!
 
 	if (!closeinifile(&inifile)) //Failed to write the ini file?
 	{

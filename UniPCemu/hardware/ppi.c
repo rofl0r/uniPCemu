@@ -210,7 +210,14 @@ byte PPI_writeIO(word port, byte value)
 			platform[2] = 0;
 			if (is_i430fx) //i430fx?
 			{
-				safe_strcpy(&platform[0],sizeof(platform),"i430fx"); //i430fx!
+				if (is_i430fx == 1) //i430fx?
+				{
+					safe_strcpy(&platform[0], sizeof(platform), "i430fx"); //i430fx!
+				}
+				else //i440fx?
+				{
+					safe_strcpy(&platform[0], sizeof(platform), "i440fx"); //i440fx!
+				}
 			}
 			else if (is_XT) //XT?
 			{

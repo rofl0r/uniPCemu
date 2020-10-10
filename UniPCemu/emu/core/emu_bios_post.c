@@ -348,16 +348,33 @@ int EMU_BIOSPOST() //The BIOS (INT19h) POST Loader!
 				{
 					if (is_i430fx) //Try PS/2 architecture first?
 					{
-						if (BIOS_Settings.BIOSROMmode == BIOSROMMODE_DIAGNOSTICS) //Diagnostics mode?
+						if (is_i430fx == 1) //i430fx?
 						{
-							verified = BIOS_load_custom(NULL, "BIOSROM.i430fx.DIAGNOSTICS.BIN"); //Try to load a custom 32-bit BIOS ROM!
-							if (verified) goto loadOPTROMS; //Loaded the BIOS?							
-						}
+							if (BIOS_Settings.BIOSROMmode == BIOSROMMODE_DIAGNOSTICS) //Diagnostics mode?
+							{
+								verified = BIOS_load_custom(NULL, "BIOSROM.i430fx.DIAGNOSTICS.BIN"); //Try to load a custom 32-bit BIOS ROM!
+								if (verified) goto loadOPTROMS; //Loaded the BIOS?							
+							}
 
-						if (BIOS_Settings.BIOSROMmode != BIOSROMMODE_UROMS)
+							if (BIOS_Settings.BIOSROMmode != BIOSROMMODE_UROMS)
+							{
+								verified = BIOS_load_custom(NULL, "BIOSROM.i430fx.BIN"); //Try to load a custom 32-bit BIOS ROM!
+								if (verified) goto loadOPTROMS; //Loaded the BIOS?
+							}
+						}
+						else //i440fx?
 						{
-							verified = BIOS_load_custom(NULL, "BIOSROM.i430fx.BIN"); //Try to load a custom 32-bit BIOS ROM!
-							if (verified) goto loadOPTROMS; //Loaded the BIOS?
+							if (BIOS_Settings.BIOSROMmode == BIOSROMMODE_DIAGNOSTICS) //Diagnostics mode?
+							{
+								verified = BIOS_load_custom(NULL, "BIOSROM.i440fx.DIAGNOSTICS.BIN"); //Try to load a custom 32-bit BIOS ROM!
+								if (verified) goto loadOPTROMS; //Loaded the BIOS?							
+							}
+
+							if (BIOS_Settings.BIOSROMmode != BIOSROMMODE_UROMS)
+							{
+								verified = BIOS_load_custom(NULL, "BIOSROM.i440fx.BIN"); //Try to load a custom 32-bit BIOS ROM!
+								if (verified) goto loadOPTROMS; //Loaded the BIOS?
+							}
 						}
 					}
 					if (is_PS2) //Try PS/2 architecture first?
