@@ -452,10 +452,28 @@ void CPU_CPUID()
 			REG_EDX = 0; //Not reporting!
 			break;
 		default: //Lowest decominator!
+			goto handleCPUIDdefault; //Unknown request!
 			break;
 		}
 		break;
-	default:
+	default: //Unknown? Return CPU reset DX in AX!
+		handleCPUIDdefault:
+		switch (EMULATED_CPU)
+		{
+		case CPU_PENTIUM: //Pentium?
+			REG_EAX = 0x0521; //Reset DX!
+			break;
+		case CPU_PENTIUMPRO: //Pentium Pro?
+			REG_EAX = 0x0621; //Reset DX!
+			break;
+		case CPU_PENTIUM2: //Pentium 2?
+			REG_EAX = 0x0721; //Reset DX!
+			break;
+		default: //Lowest decominator!
+		case CPU_80486: //80486?
+			REG_EAX = 0x0421; //Reset DX!
+			break;
+		}
 		break;
 	}
 }
