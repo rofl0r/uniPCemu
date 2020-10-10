@@ -2517,6 +2517,8 @@ extern byte input_buffer_mouse; //Mouse button input also supported!
 
 byte BIOS_InputText(byte x, byte y, char *filename, uint_32 maxlength)
 {
+	char ending[2] = { '_',0 };
+	ending[0] = (char)219; //Ending character!
 	delay(100000); //Wait a bit to make sure nothing's pressed!
 	enableKeyboard(2); //Buffer input!
 	char input[256];
@@ -2612,7 +2614,7 @@ byte BIOS_InputText(byte x, byte y, char *filename, uint_32 maxlength)
 				EMU_textcolor(BIOS_ATTR_TEXT);
 				GPU_EMU_printscreen(x, y, "%s", filename); //Show the filename!
 				EMU_textcolor(BIOS_ATTR_ACTIVE); //Active color!
-				GPU_EMU_printscreen(-1, -1, "_"); //Cursor indicator!
+				GPU_EMU_printscreen(-1, -1, ending); //Cursor indicator!
 				EMU_textcolor(BIOS_ATTR_TEXT); //Back to text!
 				GPU_EMU_printscreen(-1, -1, " "); //Clear output after!
 				EMU_unlocktext();
@@ -2631,6 +2633,8 @@ byte BIOS_InputText(byte x, byte y, char *filename, uint_32 maxlength)
 
 byte BIOS_InputAddressWithMode(byte x, byte y, char *filename, uint_32 maxlength, byte allowModeAndAddressIgnore, byte allowsegment, byte allowSingleStep)
 {
+	char ending[2] = { '_',0 };
+	ending[0] = (char)219; //Ending character!
 	delay(100000); //Wait a bit to make sure nothing's pressed!
 	enableKeyboard(2); //Buffer input!
 	char input[256];
@@ -2820,7 +2824,7 @@ byte BIOS_InputAddressWithMode(byte x, byte y, char *filename, uint_32 maxlength
 				EMU_textcolor(BIOS_ATTR_TEXT);
 				GPU_EMU_printscreen(x, y, "%s", filename); //Show the filename!
 				EMU_textcolor(BIOS_ATTR_ACTIVE); //Active color!
-				GPU_EMU_printscreen(-1, -1, "_"); //Cursor indicator!
+				GPU_EMU_printscreen(-1, -1, ending); //Cursor indicator!
 				EMU_textcolor(BIOS_ATTR_TEXT); //Back to text!
 				GPU_EMU_printscreen(-1, -1, " "); //Clear output after!
 				EMU_unlocktext();
