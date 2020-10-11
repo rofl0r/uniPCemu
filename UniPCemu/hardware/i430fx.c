@@ -35,8 +35,8 @@ byte SMRAM_data = 1; //SMRAM responds to data accesses?
 byte SMRAM_locked = 0; //Are we locked?
 byte SMRAM_SMIACT = 0; //SMI activated
 extern byte MMU_memoryholespec; //memory hole specification? 0=Normal, 1=512K, 2=15M.
-byte i430fx_previousDRAM[5]; //Previous DRAM values
-byte i430fx_DRAMsettings[5]; //Previous DRAM values
+byte i430fx_previousDRAM[8]; //Previous DRAM values
+byte i430fx_DRAMsettings[8]; //Previous DRAM values
 typedef struct
 {
 	byte DRAMsettings[8]; //All 5 DRAM settings to load!
@@ -94,11 +94,26 @@ void i430fx_resetPCIConfiguration()
 {
 	i430fx_configuration[0x00] = 0x86;
 	i430fx_configuration[0x01] = 0x80; //Intel
-	i430fx_configuration[0x02] = 0x2D;
-	i430fx_configuration[0x03] = 0x12; //SB82437FX-66
+	if (is_i430fx == 1) //i430fx
+	{
+		i430fx_configuration[0x02] = 0x2D;
+		i430fx_configuration[0x03] = 0x12; //SB82437FX-66
+	}
+	else //i440fx?
+	{
+		i430fx_configuration[0x02] = 0x37;
+		i430fx_configuration[0x03] = 0x12; //???
+	}
 	i430fx_configuration[0x04] = 0x06;
 	i430fx_configuration[0x05] = 0x00;
-	i430fx_configuration[0x06] = 0x00;
+	if (is_i430fx == 1) //i430fx?
+	{
+		i430fx_configuration[0x06] = 0x00;
+	}
+	else //i440fx?
+	{
+		i430fx_configuration[0x06] = 0x80;
+	}
 	i430fx_configuration[0x07] = 0x02; //ROM set is a 430FX?
 	i430fx_configuration[0x08] = 0x00; //A0 stepping
 	i430fx_configuration[0x09] = 0x00;
@@ -263,14 +278,15 @@ void i430fx_PCIConfigurationChangeHandler(uint_32 address, byte device, byte fun
 		i430fx_mapRAMROM((address<<1), 1, (i430fx_configuration[address+0x5A] & 0xF)); //Set it up!
 		i430fx_mapRAMROM(((address<<1)|1), 1, (i430fx_configuration[address+0x5A] >> 4)); //Set it up!
 		break;
+	case 0x65:
+	case 0x66:
+	case 0x67: //3 more on i440fx?
+		if (!(is_i430fx == 1)) break; //Not i440fx?
 	case 0x60:
 	case 0x61:
 	case 0x62:
 	case 0x63:
 	case 0x64:
-	//case 0x65:
-	//case 0x66:
-	//case 0x67:
 		//DRAM module detection?
 		i430fx_configuration[address] &= 0x3F; //Only 6 bits/row!
 		/*
@@ -286,7 +302,14 @@ void i430fx_PCIConfigurationChangeHandler(uint_32 address, byte device, byte fun
 		i430fx_previousDRAM[address - 0x60] = i430fx_configuration[address]; //Change detection!
 		*/
 		//DRAM auto detection!
-		memcpy(&i430fx_configuration[0x60], &i430fx_DRAMsettings, 5); //Set all DRAM setting registers to the to be detected value!
+		if (is_i430fx == 2) //i440fx?
+		{
+			memcpy(&i430fx_configuration[0x60], &i430fx_DRAMsettings, 8); //Set all DRAM setting registers to the to be detected value!
+		}
+		else //i430fx?
+		{
+			memcpy(&i430fx_configuration[0x60], &i430fx_DRAMsettings, 5); //Set all DRAM setting registers to the to be detected value!
+		}
 		break;
 	case 0x72: //SMRAM?
 		i430fx_updateSMRAM();
@@ -479,6 +502,16 @@ void i430fx_hardreset()
 	i430fx_resetPCIConfiguration(); //Initialize/reset the configuration!
 	i430fx_piix_resetPCIConfiguration(); //Initialize/reset the configuration!
 	i430fx_ide_resetPCIConfiguration(); //Initialize/reset the configuration!
+
+	if (is_i430fx!=1) //i440fx?
+	{
+		i430fx_configuration[0x51] = 0x01;
+		i430fx_configuration[0x58] = 0x10;
+		i430fx_configuration[0xB4] = 0x00;
+		i430fx_configuration[0xB9] = 0x00;
+		i430fx_configuration[0xBA] = 0x00;
+		i430fx_configuration[0xBB] = 0x00;
+	}
 
 	//Initialize DRAM module detection!
 	memset(&i430fx_configuration[0x60], 2, 5); //Initialize the DRAM settings!
@@ -692,18 +725,56 @@ byte i430fx_piix_portremapper(word *port, byte size, byte isread)
 
 void i430fx_MMUready()
 {
+	byte b;
+	byte i440fx_types[3] = { 128, 32, 8 };
+	word i440fx_row; //Currently processing row!
+	byte i440fx_DRBval; //Last DRB value!
+	byte i440fx_rowtype;
 	byte memorydetection;
+	uint_32 i440fx_ramsize;
+	uint_32 i440fx_divideresult;
 	//First, detect the DRAM settings to use!
-	effectiveDRAMsettings = 0; //Default DRAM settings is the first entry!
-	for (memorydetection = 0; memorydetection < NUMITEMS(i430fx_DRAMsettingslookup); ++memorydetection) //Check all possible memory sizes!
+	if (is_i430fx==1) //i430fx? Perform the lookup style calculation!
 	{
-		if (MEMsize() <= (i430fx_DRAMsettingslookup[memorydetection].maxmemorysize<<20U)) //Within the limits of the maximum memory size?
+		memset(&i430fx_DRAMsettings, 0, sizeof(i430fx_DRAMsettings)); //Initialize the variable!
+		effectiveDRAMsettings = 0; //Default DRAM settings is the first entry!
+		for (memorydetection = 0; memorydetection < NUMITEMS(i430fx_DRAMsettingslookup); ++memorydetection) //Check all possible memory sizes!
 		{
-			effectiveDRAMsettings = memorydetection; //Use this memory size information!
+			if (MEMsize() <= (i430fx_DRAMsettingslookup[memorydetection].maxmemorysize << 20U)) //Within the limits of the maximum memory size?
+			{
+				effectiveDRAMsettings = memorydetection; //Use this memory size information!
+			}
+		}
+		//effectiveDRAMsettings now points to the DRAM information to use!
+		memcpy(&i430fx_DRAMsettings, &i430fx_DRAMsettingslookup[effectiveDRAMsettings], sizeof(i430fx_DRAMsettings)); //Setup the DRAM settings to use!
+	}
+	else if (is_i430fx==2) //i440fx? Calculate the rows!
+	{
+		memset(&i430fx_DRAMsettings, 0, sizeof(i430fx_DRAMsettings)); //Initialize to 0MB detected!
+		i440fx_ramsize = MEMsize(); //The size of the installed RAM!
+		i440fx_ramsize >>= 20; //In MB!
+		i440fx_ramsize = LIMITRANGE(i440fx_ramsize, 8, 1024); //At least 8MB, at most 1GB!
+		i440fx_DRBval = 0;
+		i440fx_row = 0;
+		i440fx_rowtype = 0;
+		for (; i440fx_ramsize && (i440fx_row < 8) && (i440fx_rowtype < 3);) //Left to process?
+		{
+			i440fx_divideresult = i440fx_ramsize / i440fx_types[i440fx_rowtype]; //How many times inside the type!
+			i440fx_ramsize = SAFEMOD(i440fx_ramsize, i440fx_types[i440fx_rowtype]); //How much is left to process!
+			for (b = 0; b < i440fx_divideresult; ++b)
+			{
+				i440fx_DRBval += (i440fx_types[i440fx_rowtype] >> 3); //Add multiples of 8MB!
+				i430fx_DRAMsettings[i440fx_row++] = i440fx_DRBval; //Set a new row that's detected!
+				if (i440fx_row == 8) goto finishi440fxBankDetection; //Finish up if needed!
+			}
+			++i440fx_rowtype; //Next rowtype to try!
+		}
+		finishi440fxBankDetection:
+		for (; i440fx_row < 8;) //Not fully filled?
+		{
+			i430fx_DRAMsettings[i440fx_row++] = i440fx_DRBval; //Fill the remainder with more of the last used row to indicate nothing is added anymore!
 		}
 	}
-	//effectiveDRAMsettings now points to the DRAM information to use!
-	memcpy(&i430fx_DRAMsettings, &i430fx_DRAMsettingslookup[effectiveDRAMsettings], sizeof(i430fx_DRAMsettings)); //Setup the DRAM settings to use!
 }
 
 void init_i430fx()
