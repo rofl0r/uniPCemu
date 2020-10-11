@@ -221,6 +221,7 @@ void i430fx_mapRAMROM(byte start, byte size, byte setting)
 }
 
 extern byte PCI_transferring;
+void i430fx_hardreset(); //Prototype for register 93h on the i440fx.
 
 void i430fx_PCIConfigurationChangeHandler(uint_32 address, byte device, byte function, byte size)
 {
@@ -329,6 +330,23 @@ void i430fx_PCIConfigurationChangeHandler(uint_32 address, byte device, byte fun
 		break;
 	case 0x72: //SMRAM?
 		i430fx_updateSMRAM();
+		break;
+	case 0x93: //Turbo Reset Control Register (i440fx)
+		if (is_i430fx == 2) //i440fx?
+		{
+			//Same behaviour for bits 2 and 1 as with the CF9 register.
+			if (i430fx_configuration[0x93] & 4) //Set while not set yet during a direct access?
+			{
+				//Should reset all PCI devices?
+				if (i430fx_configuration[0x93] & 2) //Hard reset?
+				{
+					i430fx_hardreset(); //Perform a full hard reset of the hardware!
+					//CPU bist mode can be enabled as well(bit 3 of this register) with a hard reset!
+				}
+				CPU[activeCPU].resetPending = 1 | 4; //Start pending reset!
+				i430fx_configuration[0x93] &= ~4; //Cannot be read as a 1, according to documentation!
+			}
+		}
 		break;
 	default: //Not emulated?
 		break; //Ignore!
@@ -527,6 +545,7 @@ void i430fx_hardreset()
 		i430fx_configuration[0xB9] = 0x00;
 		i430fx_configuration[0xBA] = 0x00;
 		i430fx_configuration[0xBB] = 0x00;
+		i430fx_configuration[0x93] = 0x00; //Turbo Reset Control register
 	}
 
 	//Initialize DRAM module detection!
