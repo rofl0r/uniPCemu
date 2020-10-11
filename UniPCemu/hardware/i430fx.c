@@ -594,10 +594,10 @@ void i430fx_hardreset()
 	PCI_unusedBAR(config_piix, 4); //Unused!
 	PCI_unusedBAR(config_piix, 5); //Unused!
 	PCI_unusedBAR(config_piix, 6); //Unused!
-	PCI_unusedBAR(config_ide, 0); //Unused!
-	PCI_unusedBAR(config_ide, 1); //Unused!
-	PCI_unusedBAR(config_ide, 2); //Unused!
-	PCI_unusedBAR(config_ide, 3); //Unused!
+	//PCI_unusedBAR(config_ide, 0); //Unused!
+	//PCI_unusedBAR(config_ide, 1); //Unused!
+	//PCI_unusedBAR(config_ide, 2); //Unused!
+	//PCI_unusedBAR(config_ide, 3); //Unused!
 	PCI_unusedBAR(config_ide, 4); //Unused!
 	PCI_unusedBAR(config_ide, 5); //Unused!
 	PCI_unusedBAR(config_ide, 6); //Unused!
