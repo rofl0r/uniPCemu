@@ -627,6 +627,17 @@ void setPITMode(byte channel, byte mode)
 	PITchannels[channel].reload = 0; //Init to be sure!
 	PITchannels[channel].gatewenthigh = 0; //Reset gate status to be sure, since we're reset!
 	PITchannels[channel].gatelistening = PITchannels[channel].reloadlistening = 0; //Not listening to anything right now!
+	switch (PITchannels[channel].mode) //Are we to start listening?
+	{
+	case 0: //We're listening?
+	case 2: //We're listening?
+	case 3: //We're listening?
+	case 4: //We're listening?
+		PITchannels[channel].reloadlistening = 1; //Not listening to anything right now!
+		break;
+	default: //Not listening!
+		break;
+	}
 	PITchannels[channel].nullcount = 1; //We're not loaded into the divider yet!
 }
 
