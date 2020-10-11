@@ -131,8 +131,16 @@ void i430fx_piix_resetPCIConfiguration()
 {
 	i430fx_piix_configuration[0x00] = 0x86;
 	i430fx_piix_configuration[0x01] = 0x80; //Intel
-	i430fx_piix_configuration[0x02] = 0x2E;
-	i430fx_piix_configuration[0x03] = 0x12; //PIIX
+	if (is_i430fx == 1) //i430fx?
+	{
+		i430fx_piix_configuration[0x02] = 0x2E;
+		i430fx_piix_configuration[0x03] = 0x12; //PIIX
+	}
+	else //i440fx?
+	{
+		i430fx_piix_configuration[0x02] = 0x00;
+		i430fx_piix_configuration[0x03] = 0x70; //PIIX3
+	}
 	i430fx_piix_configuration[0x04] = 0x07|(i430fx_piix_configuration[0x04]&0x08);
 	i430fx_piix_configuration[0x05] = 0x00;
 	i430fx_piix_configuration[0x08] = 0x02; //A-1 stepping
@@ -146,8 +154,16 @@ void i430fx_ide_resetPCIConfiguration()
 {
 	i430fx_ide_configuration[0x00] = 0x86;
 	i430fx_ide_configuration[0x01] = 0x80; //Intel
-	i430fx_ide_configuration[0x02] = 0x30;
-	i430fx_ide_configuration[0x03] = 0x12; //PIIX
+	if (is_i430fx == 1) //i430fx?
+	{
+		i430fx_ide_configuration[0x02] = 0x30;
+		i430fx_ide_configuration[0x03] = 0x12; //PIIX IDE
+	}
+	else //i440fx?
+	{
+		i430fx_ide_configuration[0x02] = 0x10;
+		i430fx_ide_configuration[0x03] = 0x70; //PIIX3 IDE
+	}
 	i430fx_ide_configuration[0x04] = 0x05&1; //Limited use(bit 2=Bus master function, which is masked off to be disabled)
 	i430fx_ide_configuration[0x05] = 0x00;
 	i430fx_ide_configuration[0x08] = 0x02; //A-1 stepping
