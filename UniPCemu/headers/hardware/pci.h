@@ -25,7 +25,8 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 
 typedef void (*PCIConfigurationChangeHandler)(uint_32 address, byte device, byte function, byte size);
 
-typedef struct
+#include "headers/packed.h" //Packed structure!
+typedef struct PACKED
 {
 	word VendorID;
 	word DeviceID;
@@ -43,16 +44,21 @@ typedef struct
 	uint_32 CardBusCISPointer;
 	word SubsystemVendorID;
 	word SubsystemID;
-	uint_32 ExpensionROMBaseAddress;
+	uint_32 ExpansionROMBaseAddress; //Header type 00 only!
 	byte CapabilitiesPointer;
 	word ReservedLow;
 	byte ReservedHigh;
-	uint_32 Reserved;
+	union
+	{
+		uint_32 Reserved; //Header type 00 only!
+		uint_32 PCIBridgeExpansionROMBaseAddress; //Header type 01 only!
+	};
 	byte InterruptLine;
 	byte InterruptPIN;
 	byte MinGrant;
 	byte MaxLatency;
 } PCI_GENERALCONFIG; //The entire PCI data structure!
+#include "headers/endpacked.h" //End of packed structure!
 
 /*
 

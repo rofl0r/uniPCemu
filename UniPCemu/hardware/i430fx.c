@@ -254,6 +254,10 @@ void i430fx_PCIConfigurationChangeHandler(uint_32 address, byte device, byte fun
 	case 0x25:
 	case 0x26:
 	case 0x27: //BAR?
+	case 0x30:
+	case 0x31:
+	case 0x32:
+	case 0x33: //Expansion ROM address?
 		if (PCI_transferring == 0) //Finished transferring data for an entry?
 		{
 			PCI_unusedBAR(config, 0); //Unused
@@ -262,6 +266,7 @@ void i430fx_PCIConfigurationChangeHandler(uint_32 address, byte device, byte fun
 			PCI_unusedBAR(config, 3); //Unused
 			PCI_unusedBAR(config, 4); //Unused
 			PCI_unusedBAR(config, 5); //Unused
+			PCI_unusedBAR(config, 6); //Unused
 		}
 		break;
 	case 0x57: //DRAMC - DRAM control register
@@ -400,6 +405,10 @@ void i430fx_piix_PCIConfigurationChangeHandler(uint_32 address, byte device, byt
 	case 0x25:
 	case 0x26:
 	case 0x27: //BAR?
+	case 0x30:
+	case 0x31:
+	case 0x32:
+	case 0x33: //Expansion ROM address?
 		if (PCI_transferring == 0) //Finished transferring data for an entry?
 		{
 			PCI_unusedBAR(config, 0); //Unused
@@ -408,6 +417,7 @@ void i430fx_piix_PCIConfigurationChangeHandler(uint_32 address, byte device, byt
 			PCI_unusedBAR(config, 3); //Unused
 			PCI_unusedBAR(config, 4); //Unused
 			PCI_unusedBAR(config, 5); //Unused
+			PCI_unusedBAR(config, 6); //Unused
 		}
 		break;
 	case 0x4C: //ISA Recovery I/O timer register
@@ -569,18 +579,28 @@ void i430fx_hardreset()
 
 	PCI_GENERALCONFIG* config = (PCI_GENERALCONFIG*)&i430fx_configuration; //Configuration generic handling!
 	PCI_GENERALCONFIG* config_piix = (PCI_GENERALCONFIG*)&i430fx_piix_configuration; //Configuration generic handling!
+	PCI_GENERALCONFIG* config_ide = (PCI_GENERALCONFIG*)&i430fx_ide_configuration; //Configuration generic handling!
 	PCI_unusedBAR(config, 0); //Unused!
 	PCI_unusedBAR(config, 1); //Unused!
 	PCI_unusedBAR(config, 2); //Unused!
 	PCI_unusedBAR(config, 3); //Unused!
 	PCI_unusedBAR(config, 4); //Unused!
 	PCI_unusedBAR(config, 5); //Unused!
+	PCI_unusedBAR(config, 6); //Unused!
 	PCI_unusedBAR(config_piix, 0); //Unused!
 	PCI_unusedBAR(config_piix, 1); //Unused!
 	PCI_unusedBAR(config_piix, 2); //Unused!
 	PCI_unusedBAR(config_piix, 3); //Unused!
 	PCI_unusedBAR(config_piix, 4); //Unused!
 	PCI_unusedBAR(config_piix, 5); //Unused!
+	PCI_unusedBAR(config_piix, 6); //Unused!
+	PCI_unusedBAR(config_ide, 0); //Unused!
+	PCI_unusedBAR(config_ide, 1); //Unused!
+	PCI_unusedBAR(config_ide, 2); //Unused!
+	PCI_unusedBAR(config_ide, 3); //Unused!
+	PCI_unusedBAR(config_ide, 4); //Unused!
+	PCI_unusedBAR(config_ide, 5); //Unused!
+	PCI_unusedBAR(config_ide, 6); //Unused!
 
 	//Initalize all mappings!
 	for (address = 0x59; address <= 0x5F; ++address) //Initialize us!

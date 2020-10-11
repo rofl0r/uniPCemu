@@ -5822,7 +5822,9 @@ void ATA_ConfigurationSpaceChanged(uint_32 address, byte device, byte function, 
 	byte *addr;
 	//Ignore device,function: we only have one!
 	addr = (((byte *)activePCI_IDE)+address); //Actual update location?
-	if ((addr<(byte *)&activePCI_IDE->BAR[0]) || (addr>=((byte *)&activePCI_IDE->BAR[5]+sizeof(PCI_IDE.BAR[5])))) //Unsupported update to unsupported location?
+	if (((addr<(byte *)&activePCI_IDE->BAR[0]) || (addr>=((byte *)&activePCI_IDE->BAR[5]+sizeof(PCI_IDE.BAR[5])))) && //Not a BAR?
+		((addr < (byte*)&activePCI_IDE->ExpansionROMBaseAddress) || (addr >= ((byte*)&activePCI_IDE->ExpansionROMBaseAddress + sizeof(PCI_IDE.ExpansionROMBaseAddress)))) //Not the CIS pointer?
+			) //Unsupported update to unsupported location?
 	{
 		switch (address) //What setting is changed?
 		{
@@ -5845,12 +5847,21 @@ void ATA_ConfigurationSpaceChanged(uint_32 address, byte device, byte function, 
 	else if (PCI_transferring==0) //Finished transferring data for an entry?
 	{
 		//Fix BAR reserved bits! The lower unchangable bits are the size of the BAR.
+		/*
 		activePCI_IDE->BAR[0] = ((activePCI_IDE->BAR[0]&((~7)&0xFFFFU))|1); //IO BAR! 8 bytes of IO space!
 		activePCI_IDE->BAR[1] = ((activePCI_IDE->BAR[1]&((~3)&0xFFFFU))|1); //IO BAR! 4 bytes of IO space!
 		activePCI_IDE->BAR[2] = ((activePCI_IDE->BAR[2]&((~7)&0xFFFFU))|1); //IO BAR! 8 bytes of IO space!
 		activePCI_IDE->BAR[3] = ((activePCI_IDE->BAR[3]&((~3)&0xFFFFU))|1); //IO BAR! 4 bytes of IO space!
 		activePCI_IDE->BAR[4] = ((activePCI_IDE->BAR[4]&((~0xF)&0xFFFFU))|1); //IO BAR! 8 bytes of IO space!
 		activePCI_IDE->BAR[5] = ((activePCI_IDE->BAR[5]&((~3)&0xFFFFU))|1); //IO BAR! Unused!
+		*/
+		PCI_unusedBAR(activePCI_IDE, 0); //Unused!
+		PCI_unusedBAR(activePCI_IDE, 1); //Unused!
+		PCI_unusedBAR(activePCI_IDE, 2); //Unused!
+		PCI_unusedBAR(activePCI_IDE, 3); //Unused!
+		PCI_unusedBAR(activePCI_IDE, 4); //Unused!
+		PCI_unusedBAR(activePCI_IDE, 5); //Unused!
+		PCI_unusedBAR(activePCI_IDE, 6); //Unused!
 	}
 	resetPCISpaceIDE(); //For read-only fields!
 }
@@ -6367,6 +6378,13 @@ void initATA()
 	{
 		register_PCI(&PCI_IDE, 1, 0, (sizeof(PCI_IDE) >> 2), &ATA_ConfigurationSpaceChanged); //Register the PCI data area!
 		activePCI_IDE = &PCI_IDE; //Use the IDE handler!
+		PCI_unusedBAR(activePCI_IDE, 0); //Unused!
+		PCI_unusedBAR(activePCI_IDE, 1); //Unused!
+		PCI_unusedBAR(activePCI_IDE, 2); //Unused!
+		PCI_unusedBAR(activePCI_IDE, 3); //Unused!
+		PCI_unusedBAR(activePCI_IDE, 4); //Unused!
+		PCI_unusedBAR(activePCI_IDE, 5); //Unused!
+		PCI_unusedBAR(activePCI_IDE, 6); //Unused!
 	}
 	ATA_ConfigurationSpaceChanged(0x9, 1, 0, 1); //Make sure that the setting is up-to-date!
 	//Initialise our data area!

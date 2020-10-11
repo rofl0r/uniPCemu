@@ -245,6 +245,20 @@ void initPCI()
 
 void PCI_unusedBAR(PCI_GENERALCONFIG* config, byte BAR)
 {
-	if (BAR > 5) return; //Invalid BAR!
-	config->BAR[BAR] = 0; //Unused BAR!
+	if (BAR > 6) return; //Invalid BAR!
+	if (BAR == 6) //ROM?
+	{
+		if ((config->HeaderType&0x7F) == 0x01) //PCI-to-PCI bridge?
+		{
+			config->PCIBridgeExpansionROMBaseAddress = 0; //Unused BAR!
+		}
+		else //Normal device?
+		{
+			config->ExpansionROMBaseAddress = 0; //Unused BAR!
+		}
+	}
+	else
+	{
+		config->BAR[BAR] = 0; //Unused BAR!
+	}
 }
