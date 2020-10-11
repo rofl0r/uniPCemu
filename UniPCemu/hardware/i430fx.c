@@ -310,7 +310,10 @@ void i430fx_PCIConfigurationChangeHandler(uint_32 address, byte device, byte fun
 	case 0x63:
 	case 0x64:
 		//DRAM module detection?
-		i430fx_configuration[address] &= 0x3F; //Only 6 bits/row!
+		if (is_i430fx==1) //i430fx?
+		{
+			i430fx_configuration[address] &= 0x3F; //Only 6 bits/row!
+		}
 		/*
 		if (((i430fx_configuration[0x60] +
 			((i430fx_configuration[0x61] > i430fx_configuration[0x60])?i430fx_configuration[0x61] - i430fx_configuration[0x60]:0) +
@@ -559,7 +562,14 @@ void i430fx_hardreset()
 	}
 
 	//Initialize DRAM module detection!
-	memset(&i430fx_configuration[0x60], 2, 5); //Initialize the DRAM settings!
+	if (is_i430fx==1) //i430fx?
+	{
+		memset(&i430fx_configuration[0x60], 2, 5); //Initialize the DRAM settings!
+	}
+	else //i440fx?
+	{
+		memset(&i430fx_configuration[0x60], 1, 8); //Initialize the DRAM settings!
+	}
 
 	MMU_memoryholespec = 1; //Default: disabled!
 	i430fx_configuration[0x59] = 0xF; //Default configuration setting when reset!
