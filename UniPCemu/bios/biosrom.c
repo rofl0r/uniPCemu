@@ -85,19 +85,23 @@ extern byte is_i430fx; //Are we emulating a i430fx architecture?
 void scanROM(char *device, char *filename, uint_32 size)
 {
 	//Special case: 32-bit uses Compaq ROMs!
-	snprintf(filename, size, "%s/%s.%s.BIN", ROMpath, device,  ((is_i430fx) ? ((is_i430fx==1)?"i430fx":"i440fx") : (is_PS2 ? "PS2" : (is_Compaq ? "32" : (is_XT ? "XT" : "AT"))))); //Create the filename for the ROM for the architecture!
+	snprintf(filename, size, "%s/%s.%s.BIN", ROMpath, device, ((is_i430fx) ? ((is_i430fx == 1) ? "i430fx" : "i440fx") : (is_PS2 ? "PS2" : (is_Compaq ? "32" : (is_XT ? "XT" : "AT"))))); //Create the filename for the ROM for the architecture!
 	if (!file_exists(filename)) //This version doesn't exist? Then try the other version!
 	{
-		snprintf(filename, size, "%s/%s.%s.BIN", ROMpath, device, (is_PS2 ? "PS2" : (is_Compaq ? "32" : (is_XT ? "XT" : "AT")))); //Create the filename for the ROM for the architecture!
+		snprintf(filename, size, "%s/%s.%s.BIN", ROMpath, device, ((is_i430fx) ? "i430fx" : (is_PS2 ? "PS2" : (is_Compaq ? "32" : (is_XT ? "XT" : "AT"))))); //Create the filename for the ROM for the architecture!
 		if (!file_exists(filename)) //This version doesn't exist? Then try the other version!
 		{
-			snprintf(filename, size, "%s/%s.%s.BIN", ROMpath, device, (is_Compaq ? "32" : (is_XT ? "XT" : "AT"))); //Create the filename for the ROM for the architecture!
+			snprintf(filename, size, "%s/%s.%s.BIN", ROMpath, device, (is_PS2 ? "PS2" : (is_Compaq ? "32" : (is_XT ? "XT" : "AT")))); //Create the filename for the ROM for the architecture!
 			if (!file_exists(filename)) //This version doesn't exist? Then try the other version!
 			{
-				snprintf(filename, size, "%s/%s.%s.BIN", ROMpath, device, is_XT ? "XT" : "AT"); //Create the filename for the ROM for the architecture!
+				snprintf(filename, size, "%s/%s.%s.BIN", ROMpath, device, (is_Compaq ? "32" : (is_XT ? "XT" : "AT"))); //Create the filename for the ROM for the architecture!
 				if (!file_exists(filename)) //This version doesn't exist? Then try the other version!
 				{
-					snprintf(filename, size, "%s/%s.BIN", ROMpath, device); //CGA ROM!
+					snprintf(filename, size, "%s/%s.%s.BIN", ROMpath, device, is_XT ? "XT" : "AT"); //Create the filename for the ROM for the architecture!
+					if (!file_exists(filename)) //This version doesn't exist? Then try the other version!
+					{
+						snprintf(filename, size, "%s/%s.BIN", ROMpath, device); //CGA ROM!
+					}
 				}
 			}
 		}
@@ -127,25 +131,29 @@ byte BIOS_checkOPTROMS() //Check and load Option ROMs!
 		if (i) //Not Graphics Adapter ROM?
 		{
 			//Default!
-			snprintf(filename, sizeof(filename), "%s/OPTROM.%s.%u.BIN", ROMpath, (is_i430fx ? ((is_i430fx==1)?"i430fx":"i440fx") : (is_PS2 ? "PS2" : (is_Compaq ? "32" : (is_XT ? "XT" : "AT")))), i); //Create the filename for the ROM for the architecture!
+			snprintf(filename, sizeof(filename), "%s/OPTROM.%s.%u.BIN", ROMpath, (is_i430fx ? ((is_i430fx == 1) ? "i430fx" : "i440fx") : (is_PS2 ? "PS2" : (is_Compaq ? "32" : (is_XT ? "XT" : "AT")))), i); //Create the filename for the ROM for the architecture!
 			if (!file_exists(filename)) //This version doesn't exist? Then try the other version!
 			{
-				snprintf(filename, sizeof(filename), "%s/OPTROM.%s.%u.BIN", ROMpath, (is_PS2 ? "PS2" : (is_Compaq ? "32" : (is_XT ? "XT" : "AT"))), i); //Create the filename for the ROM for the architecture!
+				snprintf(filename, sizeof(filename), "%s/OPTROM.%s.%u.BIN", ROMpath, (is_i430fx ? "i430fx" : (is_PS2 ? "PS2" : (is_Compaq ? "32" : (is_XT ? "XT" : "AT")))), i); //Create the filename for the ROM for the architecture!
 				if (!file_exists(filename)) //This version doesn't exist? Then try the other version!
 				{
-					snprintf(filename, sizeof(filename), "%s/OPTROM.%s.%u.BIN", ROMpath, (is_PS2 ? "32" : (is_Compaq ? "32" : (is_XT ? "XT" : "AT"))), i); //Create the filename for the ROM for the architecture!
+					snprintf(filename, sizeof(filename), "%s/OPTROM.%s.%u.BIN", ROMpath, (is_PS2 ? "PS2" : (is_Compaq ? "32" : (is_XT ? "XT" : "AT"))), i); //Create the filename for the ROM for the architecture!
 					if (!file_exists(filename)) //This version doesn't exist? Then try the other version!
 					{
-						snprintf(filename, sizeof(filename), "%s/OPTROM.%s.%u.BIN", ROMpath, ((is_Compaq ? "32" : (is_XT ? "XT" : "AT"))), i); //Create the filename for the ROM for the architecture!
+						snprintf(filename, sizeof(filename), "%s/OPTROM.%s.%u.BIN", ROMpath, (is_PS2 ? "32" : (is_Compaq ? "32" : (is_XT ? "XT" : "AT"))), i); //Create the filename for the ROM for the architecture!
 						if (!file_exists(filename)) //This version doesn't exist? Then try the other version!
 						{
-							snprintf(filename, sizeof(filename), "%s/OPTROM.%s.%u.BIN", ROMpath, is_XT ? "XT" : "AT", i); //Create the filename for the ROM for the architecture!
+							snprintf(filename, sizeof(filename), "%s/OPTROM.%s.%u.BIN", ROMpath, ((is_Compaq ? "32" : (is_XT ? "XT" : "AT"))), i); //Create the filename for the ROM for the architecture!
 							if (!file_exists(filename)) //This version doesn't exist? Then try the other version!
 							{
-								snprintf(filename, sizeof(filename), "%s/OPTROM.%s.%u.BIN", ROMpath, "XT", i); //Create the filename for the ROM for the architecture!
+								snprintf(filename, sizeof(filename), "%s/OPTROM.%s.%u.BIN", ROMpath, is_XT ? "XT" : "AT", i); //Create the filename for the ROM for the architecture!
 								if (!file_exists(filename)) //This version doesn't exist? Then try the other version!
 								{
-									snprintf(filename, sizeof(filename), "%s/OPTROM.%u.BIN", ROMpath, i); //Create the filename for the ROM!
+									snprintf(filename, sizeof(filename), "%s/OPTROM.%s.%u.BIN", ROMpath, "XT", i); //Create the filename for the ROM for the architecture!
+									if (!file_exists(filename)) //This version doesn't exist? Then try the other version!
+									{
+										snprintf(filename, sizeof(filename), "%s/OPTROM.%u.BIN", ROMpath, i); //Create the filename for the ROM!
+									}
 								}
 							}
 						}
