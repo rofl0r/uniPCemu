@@ -937,7 +937,15 @@ void autoDetectMemorySize(int tosave) //Auto detect memory size (tosave=save BIO
 	}
 	else if (EMULATED_CPU<=CPU_80286) //80286-? We don't need more than 16MB memory(unusable memory)!
 	{
-		if (*archmem>=0xF00000) *archmem = 0x1000000; //16MB memory max!
+		if (*archmem>=0xF00000) *archmem = 0xF00000; //16MB memory max!
+	}
+	else if (is_i430fx==1) //i430fx is limited to 128MB
+	{
+		if (*archmem >= 0x8000000) *archmem = 0x8000000; //128MB memory max!
+	}
+	else if (is_i430fx==2) //i440fx is limited to 1GB
+	{
+		if (*archmem >= 0x40000000) *archmem = 0x40000000; //1GB memory max!
 	}
 	//dolog("BIOS","Detected memory: %u bytes",*(getarchmem()));
 
