@@ -21,7 +21,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #ifndef SOFTDEBUGGER_H
 #define SOFTDEBUGGER_H
 
-void BIOS_initDebugger(); //Init software debugger!
+void BIOS_initDebugger(byte log_qemu); //Init software debugger!
 void BIOS_doneDebugger(); //Finish debugger!
 
 #endif

@@ -397,6 +397,7 @@ byte is_Compaq = 0; //Are we emulating an Compaq architecture?
 byte non_Compaq = 1; //Are we emulating an Compaq architecture?
 byte is_PS2 = 0; //Are we emulating PS/2 architecture extensions?
 byte is_i430fx = 0; //Are we an i430fx motherboard?
+byte emu_log_qemu = 0; //Logging qemu style enabled?
 
 extern BIU_type BIU[MAXCPUS]; //The BIU for the BUS activity reset!
 
@@ -635,7 +636,7 @@ void initEMU(int full) //Init!
 	initATA();
 
 	debugrow("Initialising port E9 hack and emulator support functionality...");
-	BIOS_initDebugger(); //Initialise the port E9 hack and emulator support functionality!
+	BIOS_initDebugger(emu_log_qemu); //Initialise the port E9 hack and emulator support functionality!
 
 	debugrow("Initialising joystick...");
 	joystickInit();

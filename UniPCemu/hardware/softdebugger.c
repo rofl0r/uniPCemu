@@ -21,12 +21,15 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/types.h" //Basic types!
 #include "headers/hardware/ports.h" //Port support!
 #include "headers/support/log.h" //Logging support!
+#include "headers/hardware/i430fx.h" //i430fx support!
 
 //Are we disabled?
 #define __HW_DISABLED 0
 
 //Default filename for the port E9 outout to log to.
 #define SOFTDEBUGGER_DEFAULTFILENAME "porte9"
+
+byte debugger_logqemu = 0;
 
 //Identifier readback!
 char debugger_identifier[22] = "COMMAND:SFHB_UniPCemu"; //Our identifier during standard debugger operations!
@@ -441,7 +444,18 @@ OPTINLINE void debugger_writecharacter(byte c) //Write a character to the debugg
 byte PORT_writeDebugger(word port, byte data)
 {
 	if (__HW_DISABLED) return 0; //Abort!
-	if (port != 0xE9) return 0; //Not our port!
+	if (port != 0xE9)
+	{
+		if (is_i430fx && debugger_logqemu) //Logging Qemu style enabled?
+		{
+			if (port == 0x402) //Debugger output port?
+			{
+				goto dowritecharacter;
+			}
+		}
+		return 0; //Not our port!
+	}
+	dowritecharacter:
 	debugger_writecharacter(data); //Write the character to the debugger!
 	return 1; //OK!
 }
@@ -488,7 +502,7 @@ byte PORT_readCommand(word port, byte *result) //Read from the debugger port! Un
 }
 
 //Initialisation of the debugger!
-void BIOS_initDebugger() //Init software debugger!
+void BIOS_initDebugger(byte log_qemu) //Init software debugger!
 {
 	if (__HW_DISABLED) return; //Abort!
 	//First: initialise all hardware ports for emulating!
@@ -500,6 +514,7 @@ void BIOS_initDebugger() //Init software debugger!
 	cleardata(&softdebugger.data.outputfilename[0],sizeof(softdebugger.data.outputfilename)); //Init output filename!
 	safestrcpy(softdebugger.data.outputfilename,sizeof(softdebugger.data.outputfilename),SOFTDEBUGGER_DEFAULTFILENAME); //We're logging to debugger by default!
 	quitdebugger(); //First controller reset!
+	debugger_logqemu = log_qemu; //Logging Qemu-style?
 }
 
 void BIOS_doneDebugger() //Finish debugger!
