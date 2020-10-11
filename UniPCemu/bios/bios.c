@@ -64,7 +64,7 @@ char UniPCEmu_root_dir[256] = DEFAULT_ROOT_PATH; //Our root path!
 byte UniPCEmu_root_dir_setting = 0; //The current root setting to be viewed!
 
 //Android memory limit, in MB.
-#define ANDROID_MEMORY_LIMIT 128
+#define ANDROID_MEMORY_LIMIT 1024
 
 //All seperate paths used by the emulator!
 extern char diskpath[256];
