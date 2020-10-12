@@ -261,7 +261,6 @@ byte PPI_writeIO(word port, byte value)
 			dolog("debugger", "POST Code: %02X%s%s", value,beforetranslation,codetranslation); //Log the new value!
 		}
 
-		skipfile: //File not found or aborted?
 		breakpoint_comparison = (sword)value; //Save into the comparison for new changes!
 		diagnosticsportoutput = value; //Save it to the diagnostics display!
 		break;
