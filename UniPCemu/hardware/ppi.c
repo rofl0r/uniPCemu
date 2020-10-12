@@ -237,9 +237,9 @@ byte PPI_writeIO(word port, byte value)
 			memset(&codetranslation,0,sizeof(codetranslation)); //Initialize to no code!
 			beforetranslation[0] = beforetranslation[1] = 0; //Init to none!
 			f = fopen(platformfile,"rb"); //Open the platform file!
-			if (f==NULL) goto skipfile;
+			if (f==NULL) goto notfoundpostcode;
 			nextentry: //Check for a next entry?
-			if (feof(f)) goto finishfile; //Finished?
+			if (feof(f)) goto notfoundpostcode; //EOF: not found?
 			//Try to read an entry!
 			if (fscanf(f,"%2X %[^\r\n]255c\r\n",&rawcode,&codetranslation[0])==2) //Correctly read!
 			{
@@ -250,10 +250,14 @@ byte PPI_writeIO(word port, byte value)
 				}
 				goto nextentry; //Try the next entry!
 			}
+			notfoundpostcode:
 			//Not found or invalid entry?
 			memset(&codetranslation,0,sizeof(codetranslation)); //Initialize to no code!
 			finishfile: //Finished?
-			fclose(f); //Finished?
+			if (f)
+			{
+				fclose(f); //Finished?
+			}
 			dolog("debugger", "POST Code: %02X%s%s", value,beforetranslation,codetranslation); //Log the new value!
 		}
 
