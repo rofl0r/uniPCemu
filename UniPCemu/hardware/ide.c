@@ -5523,7 +5523,10 @@ byte outATA8(word port, byte value)
 			value = (ATA[ATA_channel].Drive[ATA_activeDrive(ATA_channel)].PARAMETERS.drivehead&(~0x10)) | (value & 0x10); //ROM all but drive bit!
 		}
 		*/
-		ATA[ATA_channel].Drive[ATA_activeDrive(ATA_channel)].PARAMETERS.drivehead = value; //Set drive head!
+		ATA[ATA_channel].Drive[0].PARAMETERS.drivehead = 0xA0; //Set drive head!
+		ATA[ATA_channel].Drive[1].PARAMETERS.drivehead = 0xA0; //Set drive head!
+		ATA[ATA_channel].Drive[0].PARAMETERS.drivehead |= (value&0x4F); //Set drive head and LBA mode!
+		ATA[ATA_channel].Drive[1].PARAMETERS.drivehead |= ((value&0x4F)|0x10); //Set drive head and LBA mode!
 		return 1; //OK!
 		break;
 	case 7: //Command?
