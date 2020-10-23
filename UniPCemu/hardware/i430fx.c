@@ -581,6 +581,7 @@ void i430fx_hardreset()
 	i430fx_configuration[0x53] = 0x14; //ROM set is a 430FX?
 	i430fx_configuration[0x56] = 0x52; //ROM set is a 430FX? DRAM control
 	i430fx_configuration[0x57] = 0x01;
+	i430fx_PCIConfigurationChangeHandler(0x57, 3, 0, 1); //Initialize all memory hole settings!
 	i430fx_configuration[0x69] = 0x03; //ROM set is a 430FX?
 	i430fx_configuration[0x70] = 0x20; //ROM set is a 430FX?
 	i430fx_configuration[0x72] = 0x02;
