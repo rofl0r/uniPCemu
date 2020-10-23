@@ -312,6 +312,7 @@ OPTINLINE void ACNIR(byte PIC, byte IR, byte source) //Acnowledge request!
 	if (PIC) //Slave connected to Master?
 	{
 		lowerirq(0x802); //INTA lowers INTRQ!
+		i8259.intreqtracking[1] = 0; //Not tracking INTREQ!
 	}
 }
 
