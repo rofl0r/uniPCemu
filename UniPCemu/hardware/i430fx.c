@@ -276,7 +276,14 @@ void i430fx_PCIConfigurationChangeHandler(uint_32 address, byte device, byte fun
 			MMU_memoryholespec = 1; //Disabled!
 			break;
 		case 1: //512K-640K?
-			MMU_memoryholespec = 2; //512K memory hole!
+			if (is_i430fx == 1) //i430fx?
+			{
+				MMU_memoryholespec = 2; //512K memory hole!
+			}
+			else //i440fx? Won't run properly with it enabled?
+			{
+				MMU_memoryholespec = 1; //Disabled!
+			}
 			break;
 		case 2: //15-16MB?
 			MMU_memoryholespec = 3; //15M memory hole!
