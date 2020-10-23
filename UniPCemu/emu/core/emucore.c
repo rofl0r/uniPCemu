@@ -149,10 +149,14 @@ which is at the first row of the IBM AT POST3 function.
 #define CPU80386_COMPAQ_CLOCK 16000000.0L
 //Compaq Deskpro 486DX/33M runs at 33MHz.
 #define CPU80486_COMPAQ_CLOCK 33000000.0L
+//440FX runs at 50MHz.
+#define CPU440FX_CLOCK 66000000.0L
 #else
 #define CPU80386_COMPAQ_CLOCK 16000000.0
 //Compaq Deskpro 486DX/33M runs at 33MHz.
 #define CPU80486_COMPAQ_CLOCK 33000000.0
+//440FX runs at 50MHz.
+#define CPU440FX_CLOCK 66000000.0
 #endif
 //Timeout CPU time and instruction interval! 44100Hz or 1ms!
 #define TIMEOUT_INTERVAL 100
@@ -929,12 +933,12 @@ void updateSpeedLimit()
 						setCPUCycles(7800); //Supported so far! Default cycles!
 						break;
 					case CPU_80486: //80486 66MHz?
-						setCPUCycles(26800); //Supported so far! Default cycles!
+						setCPUCycles(10000); //Supported so far! Default cycles! Originally 26.8MIPS!
 						break;
 					case CPU_PENTIUM: //Pentium 100MHz?
 					case CPU_PENTIUMPRO: //Pentium Pro 100MHz?
 					case CPU_PENTIUM2: //Pentium II 100MHz?
-						setCPUCycles(77000); //Supported so far! Default cycles!
+						setCPUCycles(10000); //Supported so far! Default cycles! Original 77MIPS. Now 10MIPs!
 						break;
 					default: //Unknown?
 						setCPUCycles(3000); //Unsupported so far! Default to 3000 cycles!
@@ -989,11 +993,22 @@ void updateSpeedLimit()
 							#endif
 							if (EMULATED_CPU>=CPU_80486) //80486 default clock instead (Pentium too)?
 							{
-								#ifdef IS_LONGDOUBLE
-								CPU_speed_cycle = 1000000000.0L / CPU80486_COMPAQ_CLOCK; //80486 33MHz!
-								#else
-								CPU_speed_cycle = 1000000000.0 / CPU80486_COMPAQ_CLOCK; //80486 33MHz!
-								#endif
+								if (is_i430fx == 2) //i440fx?
+								{
+									#ifdef IS_LONGDOUBLE
+									CPU_speed_cycle = 1000000000.0L / CPU440FX_CLOCK; //80486 33MHz!
+									#else
+									CPU_speed_cycle = 1000000000.0 / CPU440FX_CLOCK; //80486 33MHz!
+									#endif
+								}
+								else
+								{
+									#ifdef IS_LONGDOUBLE
+									CPU_speed_cycle = 1000000000.0L / CPU80486_COMPAQ_CLOCK; //80486 33MHz!
+									#else
+									CPU_speed_cycle = 1000000000.0 / CPU80486_COMPAQ_CLOCK; //80486 33MHz!
+									#endif
+								}
 							}
 						}
 						//Use AT speed for AT compatiblity for AT architectures!
