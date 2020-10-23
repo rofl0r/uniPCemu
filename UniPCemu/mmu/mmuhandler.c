@@ -578,7 +578,10 @@ resetmmu:
 	MMU_precalcMemoryHoles(); //Precalculate the memory hole information!
 	updateBUShandler(); //Set the new bus handler!
 	MMU_calcIndexPrecalcs(); //Calculate the index precalcs!
-	memory_directwb(0x80C00000,0xFF); //Init to all bits set when emulated!
+	if (emulateCompaqMMURegisters && (is_i430fx == 0)) //Emulating the Compaq MMU registers?
+	{
+		writeCompaqMMUregister(0x80C00000, 0xFF); //Init to all bits set when emulated! Don't count this as a memory access!
+	}
 	if (is_i430fx) //i430fx motberboard? Leave the higher memory block intact!
 	{
 		MMU_seti430fx(); //Enable the i430fx-required mapping!
