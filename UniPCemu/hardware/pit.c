@@ -243,8 +243,8 @@ void tickPIT(DOUBLE timepassed, uint_32 MHZ14passed) //Ticks all PIT timers avai
 					{
 					case 0: //Output goes low/high?
 						PITchannels[channel].channel_status = mode; //We're high when mode 1, else low with mode 0!
-						PITchannels[channel].reloadlistening = 1; //We're listening to reloads!
-						if (PITchannels[channel].reload)
+						PITchannels[channel].reloadlistening |= 1; //We're listening to reloads!
+						if (PITchannels[channel].reload && ((PITchannels[channel].reloadlistening&2)==0)) //Ready to reload?
 						{
 							PITchannels[channel].gatelistening = mode; //We're listening to gate with mode 1!
 							PITchannels[channel].status = 1; //Skip to 1: we're ready to run already!
@@ -617,6 +617,18 @@ void setPITFrequency(byte channel, word frequency) //Set the new frequency!
 	if (__HW_DISABLED) return; //Abort!
 	PITchannels[channel].frequency = frequency;
 	PITchannels[channel].reload |= PITchannels[channel].reloadlistening; //We've been reloaded!
+	if ((PITchannels[channel].reloadlistening & 2) && (PITchannels[channel].mode==0)) //Immediately load it into the counter?
+	{
+		if (PITchannels[channel].reload) //Reload requested?
+		{
+			PITchannels[channel].gatelistening = PITchannels[channel].mode; //We're listening to gate with mode 1!
+			PITchannels[channel].status = 1; //Skip to 1: we're ready to run already!
+			PITchannels[channel].reload = 0; //Not reloading anymore!
+			PITchannels[channel].channel_status = 0; //Lower output!
+			reloadticker(channel); //Reload the counter!
+		}
+	}
+	PITchannels[channel].reloadlistening &= ~2; //We're reloaded now!
 }
 
 void setPITMode(byte channel, byte mode)
@@ -636,6 +648,14 @@ void setPITMode(byte channel, byte mode)
 		PITchannels[channel].reloadlistening = 1; //Not listening to anything right now!
 		break;
 	default: //Not listening!
+		break;
+	}
+	switch (PITchannels[channel].mode) //Are we to start listening?
+	{
+	case 0: //We're listening?
+		PITchannels[channel].reloadlistening |= 2; //Wait to start counting until loaded!
+		break;
+	default: //Not listening?
 		break;
 	}
 	PITchannels[channel].nullcount = 1; //We're not loaded into the divider yet!
