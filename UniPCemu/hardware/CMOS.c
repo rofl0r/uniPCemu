@@ -617,23 +617,26 @@ uint_32 getGenericCMOSRate()
 	}
 }
 
-OPTINLINE void CMOS_onWrite(byte oldSRB) //When written to CMOS!
+OPTINLINE void CMOS_onWrite(byte oldSRB, byte isExt) //When written to CMOS!
 {
-	if ((CMOS.ADDR==0xB) || (CMOS.ADDR==0xA)) //Might have changed IRQ8 functions!
+	if (isExt == 0) //Normal CMOS?
 	{
-		updatedividerchain(); //Update the divider chain setting!
-		CMOS.RateDivider = getGenericCMOSRate(); //Generic rate!
-	}
-	else if (CMOS.ADDR < 0xA) //Date/time might have been updated?
-	{
-		if ((CMOS.ADDR>5) || ((CMOS.ADDR&1)==0)) //Date/Time has been updated(not Alarm being set)?
+		if ((CMOS.ADDR == 0xB) || (CMOS.ADDR == 0xA)) //Might have changed IRQ8 functions!
+		{
+			updatedividerchain(); //Update the divider chain setting!
+			CMOS.RateDivider = getGenericCMOSRate(); //Generic rate!
+		}
+		else if (CMOS.ADDR < 0xA) //Date/time might have been updated?
+		{
+			if ((CMOS.ADDR > 5) || ((CMOS.ADDR & 1) == 0)) //Date/Time has been updated(not Alarm being set)?
+			{
+				updateTimeDivergeance(); //Update the relative time compared to current time!
+			}
+		}
+		else if (CMOS.ADDR == 0x32) //Century has been updated?
 		{
 			updateTimeDivergeance(); //Update the relative time compared to current time!
 		}
-	}
-	else if (CMOS.ADDR==0x32) //Century has been updated?
-	{
-		updateTimeDivergeance(); //Update the relative time compared to current time!
 	}
 	CMOS.Loaded = 1; //We're loaded now!
 }
@@ -866,6 +869,10 @@ byte PORT_readCMOS(word port, byte *result) //Read from a port/register!
 		if (is_XT) return 0; //Not existant on XT systems!
 		*result = CMOS.ADDR|(NMI<<7); //Give the address and NMI!
 		return 1;
+	case 0x72: //CMOS_extADDR
+		if (is_XT) return 0; //Not existant on XT systems!
+		*result = CMOS.extADDR | 0x80; //Give the address and always set bit!
+		return 1;
 	case 0x71:
 		if (is_XT) return 0; //Not existant on XT systems!
 		readXTRTC: //XT RTC read compatibility
@@ -902,6 +909,12 @@ byte PORT_readCMOS(word port, byte *result) //Read from a port/register!
 			CMOS.DATA.DATA80.data[0x0C] = 0x00; //Clear the interrupt raised flags to allow new interrupts to fire! Used to be &=0xF, but according to Bochs, the entire register is cleared!
 		}
 		CMOS.ADDR = 0xD; //Reset address!
+		*result = data; //Give the data!
+		return 1;
+	case 0x73: //EXT data?
+		if (is_XT) return 0; //Not existant on XT systems!
+		data = CMOS.DATA.DATA80.data[CMOS.extADDR]; //Give the data from the CMOS!
+		//CMOS.extADDR = 0xD; //Reset address!
 		*result = data; //Give the data!
 		return 1;
 	//XT RTC support? MM58167B chip!
@@ -991,6 +1004,11 @@ byte PORT_writeCMOS(word port, byte value) //Write to a port/register!
 		NMI = ((value&0x80)>>7); //NMI?
 		return 1;
 		break;
+	case 0x72: //CMOS extADDR
+		if (is_XT) return 0; //Not existant on XT systems!
+		CMOS.extADDR = (value & 0x7F) | 0x80; //Take the value! Highest bit is always set!
+		return 1;
+		break;
 	case 0x71:
 		if (is_XT) return 0; //Not existant on XT systems!
 		writeXTRTC: //XT RTC write compatibility
@@ -1040,8 +1058,17 @@ byte PORT_writeCMOS(word port, byte value) //Write to a port/register!
 				break;
 			}
 		}
-		CMOS_onWrite(oldSRB); //On write!
+		CMOS_onWrite(oldSRB,0); //On write (normal CMOS)!
 		CMOS.ADDR = 0xD; //Reset address!		
+		return 1;
+		break;
+	case 0x73: //extended data
+		if (is_XT) return 0; //Not existant on XT systems!
+
+		//Write back the destination data!
+		CMOS.DATA.DATA80.data[CMOS.extADDR] = value; //Give the data from the CMOS!
+		CMOS_onWrite(CMOS.DATA.DATA80.info.STATUSREGISTERB,1); //On write (extended CMOS)!
+		//CMOS.extADDR = 0xD; //Reset address!		
 		return 1;
 		break;
 	//XT RTC support!
@@ -1121,6 +1148,7 @@ byte PORT_writeCMOS(word port, byte value) //Write to a port/register!
 void initCMOS() //Initialises CMOS (apply solid init settings&read init if possible)!
 {
 	CMOS.ADDR = 0; //Reset!
+	CMOS.extADDR = 0x80; //Reset!
 	NMI = 1; //Reset: Disable NMI interrupts!
 	memset(&CMOS,0,sizeof(CMOS)); //Make sure we're fully initialized always!
 	loadCMOS(); //Load the CMOS from disk OR defaults!

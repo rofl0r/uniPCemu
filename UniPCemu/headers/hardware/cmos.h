@@ -50,7 +50,7 @@ typedef struct
 
 			byte unused2[0x4D]; //Unused registers, high range!
 		} info;
-		byte data[0x80]; //CMOS Data!
+		byte data[0x100]; //CMOS Data!
 	} DATA80; //The normal CMOS data!
 	int_64 timedivergeance; //Time divergeance in seconds!
 	int_64 timedivergeance2; //Time diveargeance in us!
@@ -75,6 +75,7 @@ typedef struct
 	CMOSDATA DATA;
 	byte Loaded; //CMOS loaded?
 	byte ADDR; //Internal address in CMOS (7 bits used, 8th bit set=NMI Disable)
+	byte extADDR; //Internal address in CMOS (7 bits used, 8th bit always set)
 
 	uint_32 RateDivider; //Rate divider, usually set to 1024Hz. Used for Square Wave output and Periodic Interrupt!
 	uint_32 currentRate; //The current rate divider outputs(22-bits)!
