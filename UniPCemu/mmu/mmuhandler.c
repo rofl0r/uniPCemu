@@ -511,6 +511,10 @@ struct
 
 void MMU_seti430fx(); //Prototype!
 
+byte emulateCompaqMMURegisters = 0; //Emulate Compaq MMU registers?
+
+void writeCompaqMMUregister(uint_32 originaladdress, byte value); //Prototype for below!
+
 void resetMMU()
 {
 	void *memorycheckdummy;
@@ -861,8 +865,6 @@ void MMU_seti430fx()
 }
 
 BUShandler bushandler = NULL; //Remember the last access?
-
-byte emulateCompaqMMURegisters = 0; //Emulate Compaq MMU registers?
 
 //Direct memory access (for the entire emulator)
 byte MMU_INTERNAL_directrb_debugger(uint_32 realaddress, word index, uint_32 *result) //Direct read from real memory (with real data direct)!
