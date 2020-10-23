@@ -111,8 +111,10 @@ void CPU_initMSRnumbers()
 	}
 	if (EMULATED_CPU>=CPU_PENTIUMPRO) //Pentium Pro and up MSRs!
 	{
+		MSRnumbers[0x17] = ++MSRstorage; //MSR 17h?
 		MSRnumbers[0x1B] = ++MSRstorage; //MSR xxh!
 		MSRnumbers[0x2A] = ++MSRstorage; //MSR xxh!
+		MSRnumbers[0x33] = ++MSRstorage; //MSR 33h?
 		MSRnumbers[0x79] = ++MSRstorage; //MSR xxh!
 	}
 	if (EMULATED_CPU >= CPU_PENTIUM2) //Pentium II and up MSRs!
@@ -135,8 +137,19 @@ void CPU_initMSRnumbers()
 		MSRnumbers[0x89] = ++MSRstorage; //MSR xxh!
 		MSRnumbers[0x8A] = ++MSRstorage; //MSR xxh!
 		MSRnumbers[0x116] = ++MSRstorage; //MSR xxh!
+	}
+
+	if (EMULATED_CPU >= CPU_PENTIUM2) //Pentium II MSRs!
+	{
 		MSRnumbers[0x118] = ++MSRstorage; //MSR xxh!
+	}
+
+	if (EMULATED_CPU >= CPU_PENTIUMPRO) //Pentium Pro MSRs?
+	{
 		MSRnumbers[0x119] = ++MSRstorage; //MSR xxh!
+	}
+	if (EMULATED_CPU >= CPU_PENTIUM2) //Pentium II MSRs!
+	{
 		MSRnumbers[0x11A] = ++MSRstorage; //MSR xxh!
 		MSRnumbers[0x11B] = ++MSRstorage; //MSR xxh!
 		MSRnumbers[0x11E] = ++MSRstorage; //MSR xxh!
