@@ -61,6 +61,7 @@ typedef struct
 	byte datawritesizeexpected; //What to expect for a data size for a write!
 	byte newtransfer; //First byte of the transfer is this?
 	byte newtransfer_size; //Size of the transfer!
+	byte terminationpending; //Termination is still pending?
 } BIU_type;
 
 void CPU_initBIU(); //Initialize the BIU!
@@ -119,6 +120,7 @@ void BIU_directwdw(uint_32 realaddress, uint_32 value, word index);
 
 byte BIU_getHLDA(); //HLDA raised?
 byte BIU_getcycle(); //What is the current cycle?
+void BIU_terminatemem(); //Terminate memory access!
 
 #ifndef IS_BIU
 extern Handler BIU_handleRequests; //Handle all pending requests at once when to be processed!

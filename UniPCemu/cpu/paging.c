@@ -399,17 +399,21 @@ byte isvalidpage(uint_32 address, byte iswrite, byte CPL, byte isPrefetch, byte 
 	if (PDEUPDATED) //Updated?
 	{
 		memory_BIUdirectwdw(PDEbase + (DIR << PDEsize), PDE); //Update in memory!
+		BIU_terminatemem(); //Terminate memory access!
 		if (PDEsize == 3) //Needs high half too?
 		{
 			memory_BIUdirectwdw(PDEbase + ((DIR << PDEsize) | 4), (PDE>>32)); //Update in memory!
+			BIU_terminatemem(); //Terminate memory access!
 		}
 	}
 	if (PTEUPDATED) //Updated?
 	{
 		memory_BIUdirectwdw(((PDE&PXEsize)>>PXE_ADDRESSSHIFT)+(TABLE<<PTEsize),PTE); //Update in memory!
+		BIU_terminatemem(); //Terminate memory access!
 		if (PDEsize == 3) //Needs high half too?
 		{
 			memory_BIUdirectwdw(((PDE& PXEsize) >> PXE_ADDRESSSHIFT) + ((TABLE << PTEsize) | 4), (PTE>>32)); //Update in memory!
+			BIU_terminatemem(); //Terminate memory access!
 		}
 	}
 	Paging_freeOppositeTLB(address, RW, effectiveUS, (isS == 0) ? ((PTE&PTE_D) ? 1 : 0) : ((PDE&PDE_Dirty) ? 1 : 0), isS); //Clear the opposite TLB entry from existence!

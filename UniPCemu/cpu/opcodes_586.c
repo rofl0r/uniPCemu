@@ -68,6 +68,8 @@ void CPU586_OP0F30() //WRMSR
 	CPUMSR* MSR;
 	uint_32 validbitslo;
 	uint_32 validbitshi;
+	uint_32 ROMbitslo;
+	uint_32 ROMbitshi;
 	uint_32 storagenr;
 	uint_32 mapbase;
 	uint_32 ECXoffset;
@@ -115,8 +117,19 @@ void CPU586_OP0F30() //WRMSR
 
 	MSR = &CPU[activeCPU].registers->genericMSR[storagenr]; //Actual MSR to use!
 
-	MSR->hi = (MSR->hi&MSRmaskwritehigh_readonly[storagenr])|(REG_EDX&~MSRmaskwritehigh_readonly[storagenr]); //Set high!
-	MSR->lo = (MSR->lo&MSRmaskwritelow_readonly[storagenr])|(REG_EAX&~MSRmaskwritelow_readonly[storagenr]); //Set low!
+	ROMbitshi = MSRmaskwritehigh_readonly[storagenr]; //High ROM bits!
+	ROMbitslo = MSRmaskwritelow_readonly[storagenr]; //Low ROM bits!
+	if (unlikely(REG_ECX == 0x1B)) //APIC MSR needs external hardware handling as well?
+	{
+		ROMbitslo |= (MSR->lo & (1 << 11)); //Bit 11 (APIC global enable) is sticky!
+	}
+	MSR->hi = (MSR->hi&MSRmaskwritehigh_readonly[storagenr])|(REG_EDX&~ROMbitshi); //Set high!
+	MSR->lo = (MSR->lo&MSRmaskwritelow_readonly[storagenr])|(REG_EAX&~ROMbitslo); //Set low!
+
+	if (unlikely(REG_ECX == 0x1B)) //APIC MSR needs external hardware handling as well?
+	{
+		APIC_updateWindowMSR(CPU[activeCPU].registers->genericMSR[MSRnumbers[0x1B] - 1].lo, CPU[activeCPU].registers->genericMSR[MSRnumbers[0x1B] - 1].hi); //Update the MSR for the hardware!
+	}
 }
 
 void CPU586_OP0F31() //RDTSC

@@ -240,6 +240,7 @@ void CPU_OP() //Normal CPU opcode execution!
 	currentEUphasehandler(); //Start execution of the current phase in the EU!
 	if (unlikely(CPU[activeCPU].executed))
 	{
+		BIU_terminatemem(); //Terminate memory access pending!
 		currentEUphasehandler = NULL; //Finished instruction!
 	}
 }

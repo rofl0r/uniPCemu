@@ -21,6 +21,8 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/types.h" //Basic type support!
 #include "headers/hardware/pic.h" //Basic data!
 #include "headers/hardware/ports.h" //Port support!
+#include "headers/mmu/mmuhandler.h" //Basic MMU handler support!
+#include "headers/cpu/cpu.h" //Emulated CPU support!
 
 //PIC Info: http://www.brokenthorn.com/Resources/OSDevPic.html
 
@@ -30,6 +32,19 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 
 PIC i8259;
 byte irr3_dirty = 0; //IRR3/IRR3_a is changed?
+
+struct
+{
+	//Basic information?
+	byte enabled; //Is the APIC enabled by the CPU?
+	byte needstermination; //APIC needs termination?
+	//CPU MSR information!
+	uint_32 windowMSRlo;
+	uint_32 windowMSRhi; //Window register that's written in the CPU!
+	//Runtime information!
+	uint_64 baseaddr; //Base address of the APIC!
+	//Remaining variables?
+} APIC; //The APIC that's emulated!
 
 //i8259.irr is the complete status of all 8 interrupt lines at the moment. Any software having raised it's line, raises this. Otherwise, it's lowered(irr3 are all cleared)!
 //i8259.irr2 is the live status of each of the parallel interrupt lines!
@@ -48,6 +63,98 @@ void init8259()
 	i8259.imr[0] = 0xFF; //Mask off all interrupts to start!
 	i8259.imr[1] = 0xFF; //Mask off all interrupts to start!
 	irr3_dirty = 0; //Default: not dirty!
+	APIC.baseaddr = 0xFEE00000; //Default base address!
+	APIC.enabled = 0; //Is the APIC enabled?
+	APIC.needstermination = 0; //Doesn't need termination!
+}
+
+void APIC_handletermination() //Handle termination on the APIC!
+{
+	//Handle any writes to APIC addresses!
+	if (likely(APIC.needstermination == 0)) return; //No termination needed?
+
+	APIC.needstermination = 0; //No termination is needed anymore!
+	//Now, handle the termination of the various registers!
+}
+
+extern byte memory_datawrittensize; //How many bytes have been written to memory during a write!
+byte APIC_memIO_wb(uint_32 offset, byte value)
+{
+	uint_32 temp, tempoffset, storedvalue, ROMbits, address;
+	tempoffset = offset; //Backup!
+	if ((APIC.enabled == 0) || ((offset&0xFFFFFF000ULL) != APIC.baseaddr)) return 0; //Not the APIC memory space addressed?
+	address = (offset & 0xFFC); //What address is addressed?
+	if (1) return 0; //Invalid APIC address?
+	storedvalue = 0; //What value is read at said address?
+	ROMbits = ~0; //All bits are ROM bits?
+	storedvalue = (storedvalue & ((~(0xFF << ((offset & 3) << 3))) | ROMbits)) | (value & ((0xFF << ((offset & 3) << 3)) & ~ROMbits)); //Stored value without the ROM bits!
+	memory_datawrittensize = 1; //Only 1 byte written!
+	return 1; //Data has been written!
+}
+
+extern uint_32 memory_dataread;
+extern byte memory_datasize; //The size of the data that has been read!
+byte APIC_memIO_rb(uint_32 offset, byte index)
+{
+	uint_32 temp, tempoffset, value, address;
+	tempoffset = offset; //Backup!
+	if ((APIC.enabled == 0) || ((offset & 0xFFFFFF000ULL) != APIC.baseaddr)) return 0; //Not the APIC memory space addressed?
+	address = (offset & 0xFFC); //What address is addressed?
+	value = 0; //What value is read at said address?
+	#ifdef USE_MEMORY_CACHING
+	if ((index & 3) == 0)
+	{
+		temp &= 3; //Single DWord read only!
+		tempoffset &= 3; //Single DWord read only!
+		temp = tempoffset; //Backup address!
+		tempoffset &= ~3; //Round down to the dword address!
+		if (likely(((tempoffset | 3) < 0x1000))) //Enough to read a dword?
+		{
+			memory_dataread = SDL_SwapLE32(*((uint_32*)(&value))); //Read the data from the result!
+			memory_datasize = tempoffset = 4 - (temp - tempoffset); //What is read from the whole dword!
+			memory_dataread >>= ((4 - tempoffset) << 3); //Discard the bytes that are not to be read(before the requested address)!
+			return 1; //Done: we've been read!
+		}
+		else
+		{
+			tempoffset = temp; //Restore the original address!
+			tempoffset &= ~1; //Round down to the word address!
+			if (likely(((tempoffset | 1) < 0x1000))) //Enough to read a word, aligned?
+			{
+				memory_dataread = SDL_SwapLE16(*((word*)(&value))); //Read the data from the result!
+				memory_datasize = tempoffset = 2 - (temp - tempoffset); //What is read from the whole word!
+				memory_dataread >>= ((2 - tempoffset) << 3); //Discard the bytes that are not to be read(before the requested address)!
+				return 1; //Done: we've been read!				
+			}
+			else //Enough to read a byte only?
+			{
+				memory_dataread = value>>((tempoffset&3)<<3); //Read the data from the result!
+				memory_datasize = 1; //Only 1 byte!
+				return 1; //Done: we've been read!				
+			}
+		}
+	}
+	else //Enough to read a byte only?
+	#endif
+	{
+		memory_dataread = value>>((tempoffset&3)<<3); //Read the data from the ROM, reversed!
+		memory_datasize = 1; //Only 1 byte!
+		return 1; //Done: we've been read!				
+	}
+	return 0; //Not implemented yet!
+}
+
+void APIC_updateWindowMSR(uint_32 lo, uint_32 hi)
+{
+	//Update the window MSR!
+	APIC.windowMSRhi = hi; //High value of the MSR!
+	APIC.windowMSRlo = lo; //Low value of the MSR!
+	APIC.baseaddr = (uint_64)(APIC.windowMSRlo & 0xFFFFF000); //Base address for the APIC!
+	if (EMULATED_CPU >= CPU_PENTIUMPRO) //4 more pins for the Pentium Pro!
+	{
+		APIC.baseaddr |= (((uint_64)(APIC.windowMSRhi & 0xF)) << 32); //Extra bits from the high MSR on Pentium II and up!
+	}
+	APIC.enabled = ((APIC.windowMSRlo & 0x800) >> 11); //APIC space enabled?
 }
 
 byte readPollingMode(byte pic); //Prototype!

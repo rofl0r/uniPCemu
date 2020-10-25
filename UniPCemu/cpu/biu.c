@@ -35,6 +35,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/mmu/mmuhandler.h" //MMU handling support!
 #include "headers/cpu/easyregs.h" //Easy register support!
 #include "headers/hardware/pci.h" //Bus termination supoort!
+#include "headers/hardware/pic.h" //APIC support!
 
 //Define the below to throw faults on instructions causing an invalid jump somewhere!
 //#define FAULT_INVALID_JUMPS
@@ -122,6 +123,7 @@ void CPU_initBIU()
 	detectBIUactiveCycleHandler(); //Detect the active cycle handler to use!
 	BIU[activeCPU].ready = 1; //We're ready to be used!
 	BIU[activeCPU].PIQ_checked = 0; //Reset to not checked!
+	BIU[activeCPU].terminationpending = 0; //No termination pending!
 	CPU_flushPIQ(-1); //Init us to start!
 	BIU_numcyclesmask = (1 | ((((EMULATED_CPU > CPU_NECV30) & 1) ^ 1) << 1)); //1(80286+) or 3(80(1)86)!
 	if (is_Compaq) //Compaq wrapping instead?
@@ -377,6 +379,17 @@ extern uint_32 memory_dataaddr; //The data address that's cached!
 extern uint_32 memory_dataread;
 extern byte memory_datasize; //The size of the data that has been read!
 
+void BIU_terminatemem()
+{
+	//Terminated a memory access!
+	if (BIU[activeCPU].terminationpending) //Termination is pending?
+	{
+		BIU[activeCPU].terminationpending = 0; //Not pending anymore!
+		//Handle any events requiring termination!
+		APIC_handletermination(); //Handle termination of the APIC writes!
+	}
+}
+
 OPTINLINE byte BIU_directrb(uint_32 realaddress, word index)
 {
 	INLINEREGISTER uint_32 cachedmemorybyte;
@@ -452,6 +465,7 @@ OPTINLINE void BIU_directwb(uint_32 realaddress, byte val, word index) //Access 
 
 	//Normal memory access!
 	MMU_INTERNAL_directwb_realaddr(realaddress,val,(byte)(index&0xFF)); //Set data!
+	BIU[activeCPU].terminationpending = 1; //Termination for this write is now pending!
 }
 
 void BIU_directwb_external(uint_32 realaddress, byte val, word index) //Access physical memory dir
@@ -924,6 +938,7 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates, byte bus_waitstates)
 				{
 					if (BIU_response(1)) //Result given? We're giving OK!
 					{
+						BIU_terminatemem(); //Terminate memory access!
 						BIU[activeCPU].waitstateRAMremaining += memory_waitstates; //Apply the waitstates for the fetch!
 						BIU[activeCPU].currentrequest = REQUEST_NONE; //No request anymore! We're finished!
 					}
@@ -1087,6 +1102,7 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates, byte bus_waitstates)
 							memory_datawritesize = 1; //1 byte only!
 							BIU_directwb(physicaladdress,value,0x100); //Write directly to memory now!
 							BIU[activeCPU].currentrequest = REQUEST_NONE; //No request anymore! We're finished!
+							BIU_terminatemem();
 						}
 						else //Response failed? Try again!
 						{

@@ -45,6 +45,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/cpu/flags.h" //Flag support for IMUL!
 #include "headers/support/log.h" //Logging support!
 #include "headers/cpu/easyregs.h" //Easy register support!
+#include "headers/hardware/pic.h" //APIC support on Pentium and up!
 
 //Waitstate delay on 80286.
 #define CPU286_WAITSTATE_DELAY 1
@@ -1330,6 +1331,12 @@ void resetCPU(byte isInit) //Initialises the currently selected CPU!
 	effectivecpuaddresspins = cpuaddresspins[((EMULATED_CPU<<1)|is_XT)]; //What pins are supported for the current CPU/architecture?
 	protectedModeDebugger_updateBreakpoints(); //Update the breakpoints to use!
 	CPU_executionphase_init(); //Initialize the execution phase to it's initial state!
+	if (EMULATED_CPU >= CPU_PENTIUMPRO) //Has APIC support?
+	{
+		CPU[activeCPU].registers->genericMSR[MSRnumbers[0x1B] - 1].lo = 0xFEE00100; //Initial value! We're the bootstrap processor!
+		CPU[activeCPU].registers->genericMSR[MSRnumbers[0x1B] - 1].hi = 0; //Initial value!
+		APIC_updateWindowMSR(CPU[activeCPU].registers->genericMSR[MSRnumbers[0x1B] - 1].lo, CPU[activeCPU].registers->genericMSR[MSRnumbers[0x1B] - 1].hi); //Update the MSR for the hardware!
+	}
 }
 
 void initCPU() //Initialize CPU for full system reset into known state!
@@ -1337,9 +1344,9 @@ void initCPU() //Initialize CPU for full system reset into known state!
 	MMU_determineAddressWrapping(); //Determine the address wrapping to use!
 	CPU_calcSegmentPrecalcsPrecalcs(); //Calculate the segmentation precalcs that are used!
 	memset(&CPU, 0, sizeof(CPU)); //Reset the CPU fully!
+	CPU_initMSRs(); //Initialize the MSRs and their mappings!
 	resetCPU(1); //Reset normally!
 	Paging_initTLB(); //Initialize the TLB for usage!
-	CPU_initMSRs(); //Initialize the MSRs and their mappings!
 }
 
 void CPU_tickPendingReset()

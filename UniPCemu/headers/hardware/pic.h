@@ -89,4 +89,11 @@ void raiseirq(word irqnum); //Raise IRQ from hardware request!
 void lowerirq(word irqnum); //Lower IRQ from hardware request!
 
 void acnowledgeIRQrequest(byte irqnum); //Acnowledge an IRQ request!
+
+//APIC emulation support!
+void APIC_handletermination(); //Handle termination on the APIC!
+void APIC_updateWindowMSR(uint_32 lo, uint_32 hi); //Update the window MSR of the APIC!
+byte APIC_memIO_rb(uint_32 offset, byte index); //Read handler for the APIC!
+byte APIC_memIO_wb(uint_32 offset, byte value); //Write handler for the APIC!
+
 #endif

@@ -32,6 +32,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/bios/biosrom.h" //BIOS/option ROM support!
 #include "headers/hardware/vga/vga.h" //Video memory support!
 #include "headers/hardware/i430fx.h" //i430fx motherboard support!
+#include "headers/hardware/pic.h" //APIC support!
 
 extern BIOS_Settings_TYPE BIOS_Settings; //Settings!
 extern MMU_type MMU; //MMU for direct access!
@@ -237,6 +238,7 @@ OPTINLINE byte MMU_IO_writehandler(uint_32 offset, byte value, word index)
 	MMU_WHANDLER *list; //Current list item!
 	MMU_WHANDLER current; //Current handler!
 	memory_datawrittensize = 1; //Default to only 1 byte responding!
+	if (APIC_memIO_wb(offset, value)) return 0; //APIC responded! This happens within the CPU, thus has priority over all hardware!
 	if (is_i430fx) //Emulate special memory/PCI split?
 	{
 		if (offset < 0x100000) //Specially mapped memory?
@@ -311,6 +313,8 @@ OPTINLINE byte MMU_IO_readhandler(uint_32 offset, word index)
 	MMU_RHANDLER current; //Current handler!
 	memory_datasize = 0; //Default to a size of invalid!
 	memory_dataaddr = offset; //What address has been cached!
+
+	if (APIC_memIO_rb(offset,index)) return 0; //APIC responded! This happens within the CPU, thus has priority over all hardware!
 
 	if (is_i430fx) //Emulate special memory/PCI split?
 	{
