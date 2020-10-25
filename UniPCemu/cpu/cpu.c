@@ -1333,9 +1333,13 @@ void resetCPU(byte isInit) //Initialises the currently selected CPU!
 	CPU_executionphase_init(); //Initialize the execution phase to it's initial state!
 	if (EMULATED_CPU >= CPU_PENTIUMPRO) //Has APIC support?
 	{
-		CPU[activeCPU].registers->genericMSR[MSRnumbers[0x1B] - 1].lo = 0xFEE00100; //Initial value! We're the bootstrap processor!
+		CPU[activeCPU].registers->genericMSR[MSRnumbers[0x1B] - 1].lo = 0xFEE00100; //Initial value! We're the bootstrap processor! APIC disabled!
 		CPU[activeCPU].registers->genericMSR[MSRnumbers[0x1B] - 1].hi = 0; //Initial value!
 		APIC_updateWindowMSR(CPU[activeCPU].registers->genericMSR[MSRnumbers[0x1B] - 1].lo, CPU[activeCPU].registers->genericMSR[MSRnumbers[0x1B] - 1].hi); //Update the MSR for the hardware!
+	}
+	else
+	{
+		APIC_updateWindowMSR(0, 0); //Update the MSR for the hardware! Disable the APIC!
 	}
 }
 
