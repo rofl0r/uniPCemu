@@ -478,7 +478,7 @@ void CPU_CPUID()
 			REG_EAX = 0x0521; //Reset DX!
 			break;
 		case CPU_PENTIUMPRO: //Pentium Pro?
-			REG_EAX = 0x0621; //Reset DX!
+			REG_EAX = 0x0621|(1<<9); //Reset DX! Set bit 9(APIC emulated)!
 			break;
 		case CPU_PENTIUM2: //Pentium 2?
 			REG_EAX = 0x0721; //Reset DX!
