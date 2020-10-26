@@ -130,7 +130,7 @@ void init8259()
 	APIC.baseaddr = 0xFEE00000; //Default base address!
 	APIC.enabled = 0; //Is the APIC enabled?
 	APIC.needstermination = 0; //Doesn't need termination!
-	APIC.IOAPIC_version_numredirectionentries = 0x00 | ((24 - 1) << 16); //How many IRQs can we handle(24) and version number!
+	APIC.IOAPIC_version_numredirectionentries = 0x11 | ((24 - 1) << 16); //How many IRQs can we handle(24) and version number!
 	resetAPIC(); //Reset the APIC as well!
 }
 
