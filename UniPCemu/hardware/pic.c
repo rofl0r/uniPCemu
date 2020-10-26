@@ -198,6 +198,7 @@ void APIC_handletermination() //Handle termination on the APIC!
 				for (MSb = 23; MSBleft; --MSBleft)
 				{
 					APIC.IOAPIC_redirectionentry[MSb][0] &= ~(1 << 14); //EOI has been received!
+					--MSb; //Next MSb to process!
 				}
 			}
 		}
