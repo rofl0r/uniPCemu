@@ -478,7 +478,7 @@ void CPU_CPUID()
 			REG_EAX = 0x0521; //Reset DX!
 			break;
 		case CPU_PENTIUMPRO: //Pentium Pro?
-			REG_EAX = 0x0621|(1<<9); //Reset DX! Set bit 9(APIC emulated)!
+			REG_EAX = 0x0621|((CPU[activeCPU].registers->genericMSR[MSRnumbers[0x1B] - 1].lo&0x800)>>2); //Reset DX! Set bit 9(APIC emulated and enabled is reported on bit 9)!
 			break;
 		case CPU_PENTIUM2: //Pentium 2?
 			REG_EAX = 0x0721; //Reset DX!
