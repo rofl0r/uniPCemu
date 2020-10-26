@@ -50,6 +50,11 @@ struct
 	//Differential detection
 	uint_32 prevSpuriousInterruptVectorRegister; //The previous value before the write!
 
+	//IRQ detection
+	uint_32 IRRset; //Is the IRR set(1-bit values)
+	uint_32 IMRset; //Is the IMR routine set(1-bit values)
+	uint_32 ISRset; //Is the ISR set(1-bit values)
+
 	//Now, the actual memory for the LAPIC!
 	byte LAPIC_requirestermination[0x400]; //Dword requires termination?
 	byte LAPIC_globalrequirestermination; //Is termination required at all for the Local APIC?
@@ -105,6 +110,7 @@ void resetAPIC()
 	{
 		APIC.IOAPIC_redirectionentry[IRQnr][0] = 0x10000; //Masked, nothing else set yet, edge mode, active high!
 	}
+	APIC.IMRset = ~0; //Mask all set!
 }
 
 void init8259()
@@ -130,6 +136,8 @@ void init8259()
 
 void APIC_handletermination() //Handle termination on the APIC!
 {
+	byte MSb, MSBleft;
+	uint_32 MSBIRQ;
 	//Handle any writes to APIC addresses!
 	if (likely((APIC.needstermination|APIC.IOAPIC_globalrequirestermination|APIC.LAPIC_globalrequirestermination) == 0)) return; //No termination needed?
 
@@ -142,6 +150,28 @@ void APIC_handletermination() //Handle termination on the APIC!
 		}
 	}
 
+	if (APIC.needstermination & 2) //Needs termination due to possible EOI?
+	{
+		if (APIC.EOIregister == 0) //Properly written 0?
+		{
+			if (APIC.ISRset) //Anything set to acnowledge?
+			{
+				MSBleft = 24; //How many are left!
+				MSBIRQ = (1 << 23); //First IRQ to check!
+				for (MSb = 23; MSBleft; --MSBleft)
+				{
+					if (APIC.ISRset & MSBIRQ) //First IRQ found (MSb)?
+					{
+						APIC.ISRset &= ~(MSBIRQ); //Clear said IRQ!
+						goto finishupEOI; //Only acnlowledge the MSb IRQ!
+					}
+					--MSb;
+				}
+			}
+		}
+	}
+
+	finishupEOI:
 	APIC.needstermination = 0; //No termination is needed anymore!
 	APIC.IOAPIC_globalrequirestermination = 0; //No termination is needed anymore!
 	APIC.LAPIC_globalrequirestermination = 0; //No termination is needed anymore!
@@ -328,7 +358,7 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 	case 0x0274:
 	case 0x0278:
 	case 0x027C:
-		whatregister = &APIC.IRR[((address - 0x100) >> 2)]; //ISRs! 0200-0270
+		whatregister = &APIC.IRR[((address - 0x200) >> 2)]; //ISRs! 0200-0270
 		break;
 	case 0x280:
 		whatregister = &APIC.ErrorStatusRegister; //0280
@@ -392,6 +422,10 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 			APIC.prevSpuriousInterruptVectorRegister = APIC.SpuriousInterruptVectorRegister; //Backup the old value for change detection!
 			APIC.needstermination |= 1; //We're in need of termination handling due to possible reset!
 		}
+	}
+	else if (address == 0xB0) //Needs to handle EOI?
+	{
+		APIC.needstermination |= 2; //Handle an EOI?
 	}
 
 	//Get stored value!
@@ -511,6 +545,7 @@ byte APIC_memIO_rb(uint_32 offset, byte index)
 	case 0x0174:
 	case 0x0178:
 	case 0x017C:
+		APIC.ISR[((address - 0x100) >> 2)] = (APIC.ISRset >> (((address - 0x100) >> 2) << 5)); //Update the ISR bits!
 		whatregister = &APIC.ISR[((address-0x100)>>2)]; //ISRs! 0100-0170
 		break;
 	case 0x0180:
@@ -579,7 +614,8 @@ byte APIC_memIO_rb(uint_32 offset, byte index)
 	case 0x0274:
 	case 0x0278:
 	case 0x027C:
-		whatregister = &APIC.IRR[((address - 0x100) >> 2)]; //ISRs! 0200-0270
+		APIC.IRR[((address - 0x200) >> 2)] = (APIC.IRRset >> (((address - 0x200) >> 2)<<5)); //Update the IRR bits!
+		whatregister = &APIC.IRR[((address - 0x200) >> 2)]; //ISRs! 0200-0270
 		break;
 	case 0x280:
 		whatregister = &APIC.ErrorStatusRegister; //0280
@@ -914,6 +950,10 @@ performRecheck:
 byte PICInterrupt() //We have an interrupt ready to process? This is the primary PIC's INTA!
 {
 	if (__HW_DISABLED) return 0; //Abort!
+	if (APIC.IRRset&(~APIC.ISRset)&(~APIC.IMRset) && (APIC.ISRset==0)) //APIC requested?
+	{
+		return 2; //APIC IRQ!
+	}
 	if (getunprocessedinterrupt(0)) //Primary PIC interrupt?
 	{
 		return 1;
@@ -992,11 +1032,34 @@ byte readPollingMode(byte pic)
 
 byte nextintr()
 {
+	uint_32 APIC_IRQsrequested,APIC_requestbit,APIC_requestsleft;
 	if (__HW_DISABLED) return 0; //Abort!
 	byte loopdet=1;
 	byte IR;
 	byte PICnr;
 	byte masterIR;
+
+	//Check APIC first!
+	if (APIC.IRRset&(~APIC.ISRset)&(~APIC.IMRset)) //IRR requested to fire?
+	{
+		APIC_IRQsrequested = APIC.IRRset & (~APIC.ISRset) & (~APIC.IMRset); //What can we handle!
+		APIC_requestbit = 1<<23; //What bit is requested first!
+		APIC_requestsleft = 24; //How many are left!
+		for (IR = 23; APIC_requestsleft; --IR) //Check all requests!
+		{
+			if (APIC_IRQsrequested & APIC_requestbit) //Are we requested to fire?
+			{
+				APIC_IRQsrequested &= ~APIC_requestbit; //Clear the request bit!
+				APIC.ISRset |= APIC_requestbit; //Set the ISR register!
+				//Retrieve the IRQ number!
+				return (APIC.IOAPIC_redirectionentry[IR][0] & 0xFF); //Give the interrupt vector number!
+			}
+			APIC_requestbit >>= 1; //Next bit to check!
+			--APIC_requestsleft; //One processed!
+		}
+	}
+
+	//Not APIC, check the i8259 PIC now!
 	PICnr = 0; //First PIC is connected to CPU INTA!
 	masterIR = 0xFF; //Default: Unknown(=master device only) IR!
 	checkSlave:
@@ -1043,6 +1106,26 @@ byte nextintr()
 	return lastinterrupt; //No result: unk interrupt!
 }
 
+void APIC_raisedIRQ(byte PIC, byte irqnum)
+{
+	//A line has been raised!
+	if ((APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x4000) == 0) //Edge-triggered? Supported!
+	{
+		APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] |= (1 << 12); //Waiting to be delivered!
+		APIC.IRRset |= (1<<(irqnum&0xF)); //Set the IRR?
+	}
+}
+
+void APIC_loweredIRQ(byte PIC, byte irqnum)
+{
+	//A line has been lowered!
+	if ((APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x4000) == 0) //Edge-triggered? Supported!
+	{
+		APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] &= ~(1 << 12); //Not waiting to be delivered!
+		APIC.IRRset &= ~(1<<(irqnum&0xF)); //Clear the IRR?
+	}
+}
+
 void raiseirq(word irqnum)
 {
 	if (__HW_DISABLED) return; //Abort!
@@ -1079,6 +1162,10 @@ void raiseirq(word irqnum)
 
 	if (hasirr && ((hasirr^oldIRR)&1)) //The line is actually raised?
 	{
+		if (irqnum != 2) //Not valid to cascade on the APIC!
+		{
+			APIC_raisedIRQ(PIC, irqnum); //We're raised!
+		}
 		i8259.irr3[PIC][requestingindex] |= (1 << (irqnum & 7)); //Add the IRQ to request because of the rise! This causes us to be the reason during shared IR lines!
 		irr3_dirty = 1; //Dirty!
 	}
@@ -1101,6 +1188,10 @@ void lowerirq(word irqnum)
 		i8259.irr3_a[PIC][requestingindex] &= ~(1 << (irqnum & 7)); //Remove the acnowledge!
 		i8259.irr3_b[PIC][requestingindex] &= ~(1 << (irqnum & 7)); //Remove the acnowledge!
 		irr3_dirty = 1; //Dirty!
+		if (irqnum != 2) //Not valid to cascade on the APIC!
+		{
+			APIC_loweredIRQ(PIC, irqnum); //We're lowered!
+		}
 		if ((lowerirr&lowerirr2)&(1 << (irqnum & 7))) //Were we acnowledged and loaded?
 		{
 			i8259.irr[PIC] &= ~(1<<(irqnum&7)); //Remove the request, if any! New requests can be loaded!
