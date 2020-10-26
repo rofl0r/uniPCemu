@@ -178,6 +178,7 @@ void APIC_handletermination() //Handle termination on the APIC!
 					if (APIC.ISRset & MSBIRQ) //First IRQ found (MSb)?
 					{
 						APIC.ISRset &= ~(MSBIRQ); //Clear said IRQ!
+						APIC.ISR[MSb >> 5] &= ~(1 << (MSb & 0x1F)); //Clear said ISR!
 						goto finishupEOI; //Only acnlowledge the MSb IRQ!
 					}
 					--MSb;
@@ -1086,6 +1087,7 @@ byte nextintr()
 		{
 			APIC_intnr = (IR & 8) ? getint(1, (IR & 7)) : getint(0, (IR & 7)); //Take the IRQ number from the 8259 instead!
 		}
+		APIC.IRR[APIC_intnr >> 5] &= ~(1 << (APIC_intnr & 0x1F)); //Mark the interrupt in-service!
 		APIC.ISR[APIC_intnr >> 5] |= (1 << (APIC_intnr & 0x1F)); //Mark the interrupt in-service!
 		//Retrieve the IRQ number!
 		return APIC_intnr; //Give the interrupt vector number!
@@ -1150,6 +1152,7 @@ void APIC_raisedIRQ(byte PIC, byte irqnum)
 			{
 				APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] &= ~(1 << 12); //Not waiting to be delivered!
 				APIC.IRRset |= (1 << (irqnum & 0xF)); //Set the IRR?
+				APIC.IRR[(APIC.IOAPIC_redirectionentry[(irqnum & 0xF)][0] & 0xFF) >> 5] |= (1 << ((APIC.IOAPIC_redirectionentry[(irqnum & 0xF)][0] & 0xFF) & 0x1F)); //Set the IRR to indicate we're busy with this interrupt!
 			}
 		}
 	}
