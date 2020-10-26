@@ -1234,13 +1234,14 @@ void APIC_raisedIRQ(byte PIC, byte irqnum)
 void APIC_loweredIRQ(byte PIC, byte irqnum)
 {
 	//A line has been lowered!
-	/*
 	if ((APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x4000) == 0) //Edge-triggered? Supported!
 	{
-		APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] &= ~(1 << 12); //Not waiting to be delivered!
-		APIC.IRRset &= ~(1<<(irqnum&0xF)); //Clear the IRR?
+		if (APIC.IOAPIC_IRRset & (1 << (irqnum & 0xF))) //Waiting to be delivered?
+		{
+			APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] &= ~(1 << 12); //Not waiting to be delivered!
+			APIC.IOAPIC_IRRset &= ~(1 << (irqnum & 0xF)); //Clear the IRR?
+		}
 	}
-	*/
 }
 
 void raiseirq(word irqnum)
