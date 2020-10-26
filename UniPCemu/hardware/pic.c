@@ -1226,7 +1226,6 @@ void APIC_raisedIRQ(byte PIC, byte irqnum)
 			{
 				APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] &= ~(1 << 12); //Not waiting to be delivered!
 				APIC.IOAPIC_IRRset |= (1 << (irqnum & 0xF)); //Set the IRR?
-				APIC.IRR[(APIC.IOAPIC_redirectionentry[(irqnum & 0xF)][0] & 0xFF) >> 5] |= (1 << ((APIC.IOAPIC_redirectionentry[(irqnum & 0xF)][0] & 0xFF) & 0x1F)); //Set the IRR to indicate we're busy with this interrupt!
 			}
 		}
 	}
