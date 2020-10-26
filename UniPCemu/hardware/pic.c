@@ -152,7 +152,7 @@ void init8259()
 void APIC_handletermination() //Handle termination on the APIC!
 {
 	byte MSb, MSBleft;
-	uint_32 MSBIRQ;
+	//uint_32 MSBIRQ;
 	//Handle any writes to APIC addresses!
 	if (likely((APIC.needstermination|APIC.IOAPIC_globalrequirestermination|APIC.LAPIC_globalrequirestermination) == 0)) return; //No termination needed?
 
@@ -429,6 +429,8 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 			break;
 		}
 	}
+	else
+		return 0; //Abort!
 
 	if (address == 0xF0) //Needs to handle resetting the APIC?
 	{
@@ -659,6 +661,8 @@ byte APIC_memIO_rb(uint_32 offset, byte index)
 			break;
 		}
 	}
+	else
+		return 0; //Abort!
 
 	value = *whatregister; //Take the register's value that's there!
 
