@@ -123,6 +123,9 @@ void APIC_handletermination() //Handle termination on the APIC!
 }
 
 extern byte memory_datawrittensize; //How many bytes have been written to memory during a write!
+extern uint_32 BIU_cachedmemoryaddr;
+extern byte BIU_cachedmemorysize;
+extern byte memory_datasize; //The size of the data that has been read!
 byte APIC_memIO_wb(uint_32 offset, byte value)
 {
 	uint_32 temp, tempoffset, storedvalue, ROMbits, address;
@@ -361,10 +364,16 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 	storedvalue = *whatregister; //What value is read at said address?
 
 	//Create the value with adjusted data for storing it back!
-	storedvalue = (storedvalue & ((~(0xFF << ((offset & 3) << 3))) | ROMbits)) | (value & ((0xFF << ((offset & 3) << 3)) & ~ROMbits)); //Stored value without the ROM bits!
+	storedvalue = (storedvalue & ((~(0xFF << ((offset & 3) << 3))) | ROMbits)) | ((value<<((offset&3)<<3)) & ((0xFF << ((offset & 3) << 3)) & ~ROMbits)); //Stored value without the ROM bits!
 
 	//Store the value back to the register!
 	*whatregister = storedvalue; //Store the new value inside the register, if allowed to be changed!
+
+	if (unlikely(isoverlappingw((uint_64)offset, 1, (uint_64)BIU_cachedmemoryaddr, BIU_cachedmemorysize))) //Cached?
+	{
+		memory_datasize = 0; //Invalidate the read cache to re-read memory!
+		BIU_cachedmemorysize = 0; //Invalidate the BIU cache as well!
+	}
 
 	memory_datawrittensize = 1; //Only 1 byte written!
 	return 1; //Data has been written!
