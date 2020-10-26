@@ -1041,7 +1041,9 @@ byte readPollingMode(byte pic)
 byte nextintr()
 {
 	byte APIC_intnr;
-	uint_32 APIC_IRQsrequested,APIC_requestbit,APIC_requestsleft;
+	int APIC_highestpriority; //-1=Nothing yet, otherwise, highest priority level detected
+	byte APIC_highestpriorityIR; //Highest priority IR detected!
+	uint_32 APIC_IRQsrequested,APIC_requestbit,APIC_requestsleft, APIC_requestbithighestpriority;
 	if (__HW_DISABLED) return 0; //Abort!
 	byte loopdet=1;
 	byte IR;
@@ -1052,27 +1054,46 @@ byte nextintr()
 	if (APIC.IRRset&(~APIC.ISRset)&(~APIC.IMRset)) //IRR requested to fire?
 	{
 		APIC_IRQsrequested = APIC.IRRset & (~APIC.ISRset) & (~APIC.IMRset); //What can we handle!
+
+		//First, determine the highest priority IR to use!
 		APIC_requestbit = 1; //What bit is requested first!
 		APIC_requestsleft = 24; //How many are left!
+		APIC_requestbithighestpriority = 0; //Default: no highest priority found yet!
+		APIC_highestpriority = -1; //Default: no highest priority level found yet!
+		APIC_highestpriorityIR = 0; //Default: No highest priority IR loaded yet!
+		//Note: this way of handling the priority is done by the LAPIC as well(high nibble of the interrupt vector determines the priority)!
 		for (IR = 0; APIC_requestsleft; ++IR) //Check all requests!
 		{
 			if (APIC_IRQsrequested & APIC_requestbit) //Are we requested to fire?
 			{
-				APIC_IRQsrequested &= ~APIC_requestbit; //Clear the request bit!
-				APIC.ISRset |= APIC_requestbit; //Set the ISR register!
-				APIC.IOAPIC_redirectionentry[IR][0] |= (1 << 14); //The LAPIC has received the request!
-				APIC_intnr = (APIC.IOAPIC_redirectionentry[IR][0] & 0xFF); //What interrupt number?
-				if (APIC_intnr < 0x10) //Invalid?
+				//Priority is based on the high nibble of the interrupt vector. The low nibble is ignored!
+				if ((int)(APIC.IOAPIC_redirectionentry[IR][0] & 0xF0U) >= APIC_highestpriority) //Higher priority found?
 				{
-					APIC_intnr = (IR & 8) ? getint(1, (IR & 7)) : getint(0, (IR & 7)); //Take the IRQ number from the 8259 instead!
+					APIC_highestpriority = (int)(APIC.IOAPIC_redirectionentry[IR][0] & 0xF0U); //New highest priority!
+					APIC_highestpriorityIR = IR; //What IR has the highest priority now!
+					APIC_requestbithighestpriority = APIC_requestbit; //What bit was the highest priority?
 				}
-				APIC.ISR[APIC_intnr >> 5] |= (1 << (APIC_intnr & 0x1F)); //Mark the interrupt in-service!
-				//Retrieve the IRQ number!
-				return APIC_intnr; //Give the interrupt vector number!
 			}
 			APIC_requestbit <<= 1; //Next bit to check!
 			--APIC_requestsleft; //One processed!
 		}
+
+		//Now, we have selected the highest priority IR! Start using it!
+		APIC_requestbit = APIC_requestbithighestpriority; //Highest priority IR bit
+		IR = APIC_highestpriorityIR; //The IR for the highest priority!
+
+		//Now that we've selected the highest priority IR, start firing it!
+		APIC_IRQsrequested &= ~APIC_requestbit; //Clear the request bit!
+		APIC.ISRset |= APIC_requestbit; //Set the ISR register!
+		APIC.IOAPIC_redirectionentry[IR][0] |= (1 << 14); //The LAPIC has received the request!
+		APIC_intnr = (APIC.IOAPIC_redirectionentry[IR][0] & 0xFF); //What interrupt number?
+		if (APIC_intnr < 0x10) //Invalid?
+		{
+			APIC_intnr = (IR & 8) ? getint(1, (IR & 7)) : getint(0, (IR & 7)); //Take the IRQ number from the 8259 instead!
+		}
+		APIC.ISR[APIC_intnr >> 5] |= (1 << (APIC_intnr & 0x1F)); //Mark the interrupt in-service!
+		//Retrieve the IRQ number!
+		return APIC_intnr; //Give the interrupt vector number!
 	}
 
 	//Not APIC, check the i8259 PIC now!
