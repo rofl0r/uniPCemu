@@ -203,6 +203,9 @@ void APIC_handletermination() //Handle termination on the APIC!
 	APIC.LAPIC_globalrequirestermination = 0; //No termination is needed anymore!
 }
 
+uint_32 i440fx_ioapic_base_mask;
+uint_32 i440fx_ioapic_base_match;
+
 extern byte memory_datawrittensize; //How many bytes have been written to memory during a write!
 extern uint_32 BIU_cachedmemoryaddr;
 extern byte BIU_cachedmemorysize;
@@ -219,37 +222,49 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 
 	ROMbits = ~0; //All bits are ROM bits by default?
 
-	switch (address) //What is addressed?
+	if ((offset&i440fx_ioapic_base_mask)==i440fx_ioapic_base_match) //I/O APIC?
 	{
-	case 0x0000: //IOAPIC address?
-		whatregister = &APIC.APIC_address; //Address register!
-		ROMbits = 0; //Fully writable!
-		break;
-	case 0x0010: //IOAPIC data?
-		switch (APIC.APIC_address) //What address is selected?
+		switch (address&0x10) //What is addressed?
 		{
-		case 0x00:
-			whatregister = &APIC.IOAPIC_ID; //ID register!
-			ROMbits = ~(0xF<<24); //Bits 24-27 writable!
+		case 0x0000: //IOAPIC address?
+			whatregister = &APIC.APIC_address; //Address register!
+			ROMbits = 0; //Fully writable!
 			break;
-		case 0x01:
-			whatregister = &APIC.IOAPIC_version_numredirectionentries; //Version/Number of direction entries!
-			break;
-		case 0x02:
-			whatregister = &APIC.IOAPIC_arbitrationpriority; //Arbitration priority register!
-			break;
-		case 0x10: case 0x11: case 0x12: case 0x13: case 0x14: case 0x15: case 0x16: case 0x17: case 0x18: case 0x19: case 0x1A: case 0x1B: case 0x1C: case 0x1D: case 0x1E: case 0x1F:
-		case 0x20: case 0x21: case 0x22: case 0x23: case 0x24: case 0x25: case 0x26: case 0x27: case 0x28: case 0x29: case 0x2A: case 0x2B: case 0x2C: case 0x2D: case 0x2E: case 0x2F:
-		case 0x30: case 0x31: case 0x32: case 0x33: case 0x34: case 0x35: case 0x36: case 0x37: case 0x38: case 0x39: case 0x3A: case 0x3B: case 0x3C: case 0x3D: case 0x3E: case 0x3F:
-			whatregister = &APIC.IOAPIC_redirectionentry[(APIC.APIC_address - 0x10) >> 1][(APIC.APIC_address - 0x10) & 1]; //Redirection entry addressed!
-			ROMbits = (1<<12)|(1<<14)|0xFFFFFFFFE00000ULL; //Fully writable, except bits 12, 14 and 17-55!
-			updateredirection = (((APIC.APIC_address - 0x10) & 1) == 0); //Update status when the first dword is updated!
+		case 0x0010: //IOAPIC data?
+			switch (APIC.APIC_address) //What address is selected?
+			{
+			case 0x00:
+				whatregister = &APIC.IOAPIC_ID; //ID register!
+				ROMbits = ~(0xF<<24); //Bits 24-27 writable!
+				break;
+			case 0x01:
+				whatregister = &APIC.IOAPIC_version_numredirectionentries; //Version/Number of direction entries!
+				break;
+			case 0x02:
+				whatregister = &APIC.IOAPIC_arbitrationpriority; //Arbitration priority register!
+				break;
+			case 0x10: case 0x11: case 0x12: case 0x13: case 0x14: case 0x15: case 0x16: case 0x17: case 0x18: case 0x19: case 0x1A: case 0x1B: case 0x1C: case 0x1D: case 0x1E: case 0x1F:
+			case 0x20: case 0x21: case 0x22: case 0x23: case 0x24: case 0x25: case 0x26: case 0x27: case 0x28: case 0x29: case 0x2A: case 0x2B: case 0x2C: case 0x2D: case 0x2E: case 0x2F:
+			case 0x30: case 0x31: case 0x32: case 0x33: case 0x34: case 0x35: case 0x36: case 0x37: case 0x38: case 0x39: case 0x3A: case 0x3B: case 0x3C: case 0x3D: case 0x3E: case 0x3F:
+				whatregister = &APIC.IOAPIC_redirectionentry[(APIC.APIC_address - 0x10) >> 1][(APIC.APIC_address - 0x10) & 1]; //Redirection entry addressed!
+				ROMbits = (1<<12)|(1<<14)|0xFFFFFFFFE00000ULL; //Fully writable, except bits 12, 14 and 17-55!
+				updateredirection = (((APIC.APIC_address - 0x10) & 1) == 0); //Update status when the first dword is updated!
+				break;
+			default: //Unmapped?
+				goto notIOAPICW;
+				break;
+			}
 			break;
 		default: //Unmapped?
-			return 0; //Unmapped!
+			goto notIOAPICW;
 			break;
 		}
-		break;
+	}
+	else //Not IO APIC?
+	{
+	notIOAPICW:
+	switch (address) //What is addressed?
+	{
 	case 0x0020:
 		whatregister = &APIC.LAPIC_ID; //0020
 		ROMbits = 0; //Fully writable!
@@ -371,6 +386,7 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 		return 0; //Unmapped!
 		break;
 	}
+	}
 
 	if (address == 0xF0) //Needs to handle resetting the APIC?
 	{
@@ -427,34 +443,46 @@ byte APIC_memIO_rb(uint_32 offset, byte index)
 	updateredirection = 0;
 	if ((APIC.enabled == 0) || ((offset & 0xFFFFFF000ULL) != APIC.baseaddr)) return 0; //Not the APIC memory space addressed?
 	address = (offset & 0xFFC); //What address is addressed?
-	switch (address) //What is addressed?
+	if ((offset&i440fx_ioapic_base_mask)==i440fx_ioapic_base_match) //I/O APIC?
 	{
-	case 0x0000: //IOAPIC address?
-		whatregister = &APIC.APIC_address; //Address register!
-		break;
-	case 0x0010: //IOAPIC data?
-		switch (APIC.APIC_address) //What address is selected?
+		switch (address&0x10) //What is addressed?
 		{
-		case 0x00:
-			whatregister = &APIC.IOAPIC_ID; //ID register!
+		case 0x0000: //IOAPIC address?
+			whatregister = &APIC.APIC_address; //Address register!
+			ROMbits = 0; //Fully writable!
 			break;
-		case 0x01:
-			whatregister = &APIC.IOAPIC_version_numredirectionentries; //Version/Number of direction entries!
-			break;
-		case 0x02:
-			whatregister = &APIC.IOAPIC_arbitrationpriority; //Arbitration priority register!
-			break;
-		case 0x10: case 0x11: case 0x12: case 0x13: case 0x14: case 0x15: case 0x16: case 0x17: case 0x18: case 0x19: case 0x1A: case 0x1B: case 0x1C: case 0x1D: case 0x1E: case 0x1F:
-		case 0x20: case 0x21: case 0x22: case 0x23: case 0x24: case 0x25: case 0x26: case 0x27: case 0x28: case 0x29: case 0x2A: case 0x2B: case 0x2C: case 0x2D: case 0x2E: case 0x2F:
-		case 0x30: case 0x31: case 0x32: case 0x33: case 0x34: case 0x35: case 0x36: case 0x37: case 0x38: case 0x39: case 0x3A: case 0x3B: case 0x3C: case 0x3D: case 0x3E: case 0x3F:
-			whatregister = &APIC.IOAPIC_redirectionentry[(APIC.APIC_address - 0x10) >> 1][(APIC.APIC_address - 0x10) & 1]; //Redirection entry addressed!
-			updateredirection = (((APIC.APIC_address - 0x10) & 1) == 0); //Update status when the first dword is updated!
+		case 0x0010: //IOAPIC data?
+			switch (APIC.APIC_address) //What address is selected?
+			{
+			case 0x00:
+				whatregister = &APIC.IOAPIC_ID; //ID register!
+				break;
+			case 0x01:
+				whatregister = &APIC.IOAPIC_version_numredirectionentries; //Version/Number of direction entries!
+				break;
+			case 0x02:
+				whatregister = &APIC.IOAPIC_arbitrationpriority; //Arbitration priority register!
+				break;
+			case 0x10: case 0x11: case 0x12: case 0x13: case 0x14: case 0x15: case 0x16: case 0x17: case 0x18: case 0x19: case 0x1A: case 0x1B: case 0x1C: case 0x1D: case 0x1E: case 0x1F:
+			case 0x20: case 0x21: case 0x22: case 0x23: case 0x24: case 0x25: case 0x26: case 0x27: case 0x28: case 0x29: case 0x2A: case 0x2B: case 0x2C: case 0x2D: case 0x2E: case 0x2F:
+			case 0x30: case 0x31: case 0x32: case 0x33: case 0x34: case 0x35: case 0x36: case 0x37: case 0x38: case 0x39: case 0x3A: case 0x3B: case 0x3C: case 0x3D: case 0x3E: case 0x3F:
+				whatregister = &APIC.IOAPIC_redirectionentry[(APIC.APIC_address - 0x10) >> 1][(APIC.APIC_address - 0x10) & 1]; //Redirection entry addressed!
+				break;
+			default: //Unmapped?
+				goto notIOAPICR;
+				break;
+			}
 			break;
 		default: //Unmapped?
-			return 0; //Unmapped!
+			goto notIOAPICR;
 			break;
 		}
-		break;
+	}
+	else //Not IO APIC?
+	{
+	notIOAPICR:
+	switch (address) //What is addressed?
+	{
 	case 0x0020:
 		whatregister = &APIC.LAPIC_ID; //0020
 		break;

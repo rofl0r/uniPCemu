@@ -369,6 +369,8 @@ void i430fx_PCIConfigurationChangeHandler(uint_32 address, byte device, byte fun
 }
 
 extern byte motherboard_responds_to_shutdown; //Motherboard responds to shutdown?
+uint_32 i440fx_ioapic_base_mask = 0;
+uint_32 i440fx_ioapic_base_match = 0;
 
 void i430fx_piix_PCIConfigurationChangeHandler(uint_32 address, byte device, byte function, byte size)
 {
@@ -464,6 +466,28 @@ void i430fx_piix_PCIConfigurationChangeHandler(uint_32 address, byte device, byt
 	case 0x79: //Programmable Chip-Select control register
 		//bit 15-2: 16-bit I/O address (dword accessed) that causes PCS# to be asserted.
 		//bit 1-0: Address mask? 0=4 bytes, 1=8 bytes, 2=Disabled, 3=16 bytes.
+		break;
+	case 0x80: //PIIX-3: APIC base address register
+		//bit6=Mask A12 off(aliasing)
+		//bit 5-2: x, Compared against bit 15-12
+		//bit 1-0: y, Compared against bit 11-10. Values: 00b=0, 01b=4, 10b=8, 11b=C
+		if (is_i430fx==2) //i440fx?
+		{
+			//Determine address mask!
+			i440fx_ioapic_base_mask = 0xFC0; //Mask against bits 10-15!
+			if (i430fx_piix_configuration[0x80]&0x40) //Mask A12 off?
+			{
+				i440fx_ioapic_base_mask &= ~(1<<12); //Mask A12 off!
+			}
+			//Determine masked match!
+			i440fx_ioapic_base_match = ((i430fx_piix_configuration[0x80]&0x3F)<<10); //What to match against!
+			i440fx_ioapic_base_match &= i440fx_ioapic_base_mask; //Match properly masked!
+		}
+		else //Match default address only on i430fx?
+		{
+			i440fx_ioapic_base_mask = 0xFE0; //Mask against bits 9-15!
+			i440fx_ioapic_base_match = 0; //At the start only! So 000 and 010 only is valid!
+		}
 		break;
 	case 0xA0: //SMI control register
 		//bit 4-3: Fast off timer count granularity. 1=Disabled.
@@ -656,6 +680,8 @@ void i430fx_hardreset()
 	i430fx_piix_configuration[0x77] = 0x0C; //Default value: No DMA F used!
 	i430fx_piix_configuration[0x78] = 0x02; //Default value: PCSC mapping: disabled!
 	i430fx_piix_configuration[0x79] = 0x00; //Default value: PCSC mapping: 0!
+
+	i430fx_piix_PCIConfigurationChangeHandler(0x80, 3, 0, 1); //Initialize all required settings!
 
 	i430fx_piix_configuration[0xA0] = 0x08; //Default value: SMI clock disabled!
 	i430fx_piix_configuration[0xA2] = 0x00; //Default value: SMI disabled!
@@ -853,6 +879,8 @@ void i430fx_MMUready()
 void init_i430fx()
 {
 	effectiveDRAMsettings = 0; //Effective DRAM settings to take effect! Start at the first entry, which is the minimum!
+	i440fx_ioapic_base_mask = 0xFE0; //What bits to match!
+	i440fx_ioapic_base_match = 0; //The value it needs to be!
 
 	//Register PCI configuration space?
 	if (is_i430fx) //Are we enabled?
