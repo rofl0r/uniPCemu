@@ -138,7 +138,7 @@ void init8259()
 		APIC.LAPIC_version |= 0x30000; //4 LVT entries
 		break;
 	case CPU_PENTIUMPRO:
-	case PENTIUM2:
+	case CPU_PENTIUM2:
 		APIC.LAPIC_version |= 0x40000; //5 LVT entries
 		break;
 	default:
