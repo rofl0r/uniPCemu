@@ -47,6 +47,9 @@ struct
 	uint_32 APIC_address; //Address register for the extended memory!
 	uint_32 APIC_data; //Data register for the extended memory!
 
+	//Differential detection
+	uint_32 prevSpuriousInterruptVectorRegister; //The previous value before the write!
+
 	//Now, the actual memory for the LAPIC!
 	byte LAPIC_requirestermination[0x400]; //Dword requires termination?
 	byte LAPIC_globalrequirestermination; //Is termination required at all for the Local APIC?
@@ -85,7 +88,7 @@ struct
 	uint_32 IOAPIC_ID; //00: ID
 	uint_32 IOAPIC_version_numredirectionentries; //01: Version(bits 0-7), # of redirection entries(16-23).
 	uint_32 IOAPIC_arbitrationpriority; //02: Arbitration priority(Bits 24-27), remainder is reserved.
-	uint_32 redirectionentry[24][2]; //10-3F: 2 dwords for each redirection entry setting! Total 48 dwords!
+	uint_32 IOAPIC_redirectionentry[24][2]; //10-3F: 2 dwords for each redirection entry setting! Total 48 dwords!
 	byte IOAPIC_requirestermination[0x40]; //Termination required for this entry?
 	byte IOAPIC_globalrequirestermination; //Is termination required for the IO APIC?
 } APIC; //The APIC that's emulated!
@@ -93,6 +96,16 @@ struct
 //i8259.irr is the complete status of all 8 interrupt lines at the moment. Any software having raised it's line, raises this. Otherwise, it's lowered(irr3 are all cleared)!
 //i8259.irr2 is the live status of each of the parallel interrupt lines!
 //i8259.irr3 is the identifier for request subchannels that are pending to be acnowledged(cleared when acnowledge and the interrupt is fired).
+
+//Handle everything that needs to be done when resetting the APIC!
+void resetAPIC()
+{
+	byte IRQnr;
+	for (IRQnr = 0; IRQnr < NUMITEMS(APIC.IOAPIC_redirectionentry); ++IRQnr) //Handle all IRQ handlers we support!
+	{
+		APIC.IOAPIC_redirectionentry[IRQnr][0] = 0x10000; //Masked, nothing else set yet, edge mode, active high!
+	}
+}
 
 void init8259()
 {
@@ -111,15 +124,27 @@ void init8259()
 	APIC.baseaddr = 0xFEE00000; //Default base address!
 	APIC.enabled = 0; //Is the APIC enabled?
 	APIC.needstermination = 0; //Doesn't need termination!
+	APIC.IOAPIC_version_numredirectionentries = 0x00 | ((24 - 1) << 16); //How many IRQs can we handle(24) and version number!
+	resetAPIC(); //Reset the APIC as well!
 }
 
 void APIC_handletermination() //Handle termination on the APIC!
 {
 	//Handle any writes to APIC addresses!
-	if (likely(APIC.needstermination == 0)) return; //No termination needed?
+	if (likely((APIC.needstermination|APIC.IOAPIC_globalrequirestermination|APIC.LAPIC_globalrequirestermination) == 0)) return; //No termination needed?
+
+	//Now, handle the termination of the various registers!
+	if (APIC.needstermination & 1) //Needs termination due to possible reset?
+	{
+		if (((APIC.SpuriousInterruptVectorRegister & 0x100) == 0) && ((APIC.prevSpuriousInterruptVectorRegister & 0x100))) //Cleared?
+		{
+			resetAPIC(); //Reset the APIC!
+		}
+	}
 
 	APIC.needstermination = 0; //No termination is needed anymore!
-	//Now, handle the termination of the various registers!
+	APIC.IOAPIC_globalrequirestermination = 0; //No termination is needed anymore!
+	APIC.LAPIC_globalrequirestermination = 0; //No termination is needed anymore!
 }
 
 extern byte memory_datawrittensize; //How many bytes have been written to memory during a write!
@@ -158,7 +183,7 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 		case 0x10: case 0x11: case 0x12: case 0x13: case 0x14: case 0x15: case 0x16: case 0x17: case 0x18: case 0x19: case 0x1A: case 0x1B: case 0x1C: case 0x1D: case 0x1E: case 0x1F:
 		case 0x20: case 0x21: case 0x22: case 0x23: case 0x24: case 0x25: case 0x26: case 0x27: case 0x28: case 0x29: case 0x2A: case 0x2B: case 0x2C: case 0x2D: case 0x2E: case 0x2F:
 		case 0x30: case 0x31: case 0x32: case 0x33: case 0x34: case 0x35: case 0x36: case 0x37: case 0x38: case 0x39: case 0x3A: case 0x3B: case 0x3C: case 0x3D: case 0x3E: case 0x3F:
-			whatregister = &APIC.redirectionentry[(APIC.APIC_address - 0x10) >> 1][(APIC.APIC_address - 0x10) & 1]; //Redirection entry addressed!
+			whatregister = &APIC.IOAPIC_redirectionentry[(APIC.APIC_address - 0x10) >> 1][(APIC.APIC_address - 0x10) & 1]; //Redirection entry addressed!
 			ROMbits = (1<<12)|(1<<14)|0xFFFFFFFFE00000ULL; //Fully writable, except bits 12, 14 and 17-55!
 			break;
 		default: //Unmapped?
@@ -360,6 +385,15 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 		break;
 	}
 
+	if (address == 0xF0) //Needs to handle resetting the APIC?
+	{
+		if ((APIC.needstermination & 1) == 0) //Not backed up yet?
+		{
+			APIC.prevSpuriousInterruptVectorRegister = APIC.SpuriousInterruptVectorRegister; //Backup the old value for change detection!
+			APIC.needstermination |= 1; //We're in need of termination handling due to possible reset!
+		}
+	}
+
 	//Get stored value!
 	storedvalue = *whatregister; //What value is read at said address?
 
@@ -408,7 +442,7 @@ byte APIC_memIO_rb(uint_32 offset, byte index)
 		case 0x10: case 0x11: case 0x12: case 0x13: case 0x14: case 0x15: case 0x16: case 0x17: case 0x18: case 0x19: case 0x1A: case 0x1B: case 0x1C: case 0x1D: case 0x1E: case 0x1F:
 		case 0x20: case 0x21: case 0x22: case 0x23: case 0x24: case 0x25: case 0x26: case 0x27: case 0x28: case 0x29: case 0x2A: case 0x2B: case 0x2C: case 0x2D: case 0x2E: case 0x2F:
 		case 0x30: case 0x31: case 0x32: case 0x33: case 0x34: case 0x35: case 0x36: case 0x37: case 0x38: case 0x39: case 0x3A: case 0x3B: case 0x3C: case 0x3D: case 0x3E: case 0x3F:
-			whatregister = &APIC.redirectionentry[(APIC.APIC_address - 0x10) >> 1][(APIC.APIC_address - 0x10) & 1]; //Redirection entry addressed!
+			whatregister = &APIC.IOAPIC_redirectionentry[(APIC.APIC_address - 0x10) >> 1][(APIC.APIC_address - 0x10) & 1]; //Redirection entry addressed!
 			break;
 		default: //Unmapped?
 			return 0; //Unmapped!
