@@ -137,12 +137,14 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 	{
 	case 0x0000: //IOAPIC address?
 		whatregister = &APIC.APIC_address; //Address register!
+		ROMbits = 0; //Fully writable!
 		break;
 	case 0x0010: //IOAPIC data?
 		switch (APIC.APIC_address) //What address is selected?
 		{
 		case 0x00:
 			whatregister = &APIC.IOAPIC_ID; //ID register!
+			ROMbits = ~(0xF<<24); //Bits 24-27 writable!
 			break;
 		case 0x01:
 			whatregister = &APIC.IOAPIC_version_numredirectionentries; //Version/Number of direction entries!
@@ -154,6 +156,7 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 		case 0x20: case 0x21: case 0x22: case 0x23: case 0x24: case 0x25: case 0x26: case 0x27: case 0x28: case 0x29: case 0x2A: case 0x2B: case 0x2C: case 0x2D: case 0x2E: case 0x2F:
 		case 0x30: case 0x31: case 0x32: case 0x33: case 0x34: case 0x35: case 0x36: case 0x37: case 0x38: case 0x39: case 0x3A: case 0x3B: case 0x3C: case 0x3D: case 0x3E: case 0x3F:
 			whatregister = &APIC.redirectionentry[(APIC.APIC_address - 0x10) >> 1][(APIC.APIC_address - 0x10) & 1]; //Redirection entry addressed!
+			ROMbits = (1<<12)|(1<<14)|0xFFFFFFFFE00000ULL; //Fully writable, except bits 12, 14 and 17-55!
 			break;
 		default: //Unmapped?
 			return 0; //Unmapped!
@@ -162,12 +165,14 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 		break;
 	case 0x0020:
 		whatregister = &APIC.LAPIC_ID; //0020
+		ROMbits = 0; //Fully writable!
 		break;
 	case 0x0030:
 		whatregister = &APIC.LAPIC_version; //0030
 		break;
 	case 0x0080:
 		whatregister = &APIC.TaskPriorityRegister; //0080
+		ROMbits = 0; //Fully writable!
 		break;
 	case 0x0090:
 		whatregister = &APIC.ArbitrationPriorityRegister; //0090
@@ -177,18 +182,23 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 		break;
 	case 0x00B0:
 		whatregister = &APIC.EOIregister; //00B0
+		ROMbits = 0; //Fully writable!
+		//Only writable with value 0! Otherwise, #GP(0) is encountered!
 		break;
 	case 0x00C0:
 		whatregister = &APIC.RemoteReadRegister; //00C0
 		break;
 	case 0x00D0:
 		whatregister = &APIC.LogicalDestinationRegister; //00D0
+		ROMbits = 0; //Fully writable!
 		break;
 	case 0x00E0:
 		whatregister = &APIC.DestinationFormatRegister; //00E0
+		ROMbits = 0; //Fully writable!
 		break;
 	case 0x00F0:
 		whatregister = &APIC.SpuriousInterruptVectorRegister; //00F0
+		ROMbits = 0; //Fully writable!
 		break;
 	case 0x0100:
 	case 0x0104:
@@ -297,39 +307,50 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 		break;
 	case 0x2F0:
 		whatregister = &APIC.LVTCorrectedMachineCheckInterruptRegister; //02F0
+		ROMbits = 0; //Fully writable!
 		break;
 	case 0x300:
 		whatregister = &APIC.InterruptCommandRegisterLo; //0300
+		ROMbits = 0; //Fully writable!
 		break;
 	case 0x310:
 		whatregister = &APIC.InterruptCommandRegisterHi; //0310
+		ROMbits = 0; //Fully writable!
 		break;
 	case 0x320:
 		whatregister = &APIC.LVTTimerRegister; //0320
+		ROMbits = 0; //Fully writable!
 		break;
 	case 0x330:
 		whatregister = &APIC.LVTThermalSensorRegister; //0330
+		ROMbits = 0; //Fully writable!
 		break;
 	case 0x340:
 		whatregister = &APIC.LVTPerformanceMonitoringCounterRegister; //0340
+		ROMbits = 0; //Fully writable!
 		break;
 	case 0x350:
 		whatregister = &APIC.LVTLINT0Register; //0350
+		ROMbits = 0; //Fully writable!
 		break;
 	case 0x360:
 		whatregister = &APIC.LVTLINT1Register; //0560
+		ROMbits = 0; //Fully writable!
 		break;
 	case 0x370:
 		whatregister = &APIC.LVTErrorRegister; //0370
+		ROMbits = 0; //Fully writable!
 		break;
 	case 0x380:
 		whatregister = &APIC.InitialCountRegister; //0380
+		ROMbits = 0; //Fully writable!
 		break;
 	case 0x390:
 		whatregister = &APIC.CurrentCountRegistetr; //0390
 		break;
 	case 0x3E0:
 		whatregister = &APIC.DivideConfigurationRegister; //03E0
+		ROMbits = 0; //Fully writable!
 		break;
 	default: //Unmapped?
 		return 0; //Unmapped!
