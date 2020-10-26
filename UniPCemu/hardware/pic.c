@@ -262,130 +262,130 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 	}
 	else //Not IO APIC?
 	{
-	notIOAPICW:
-	switch (address) //What is addressed?
-	{
-	case 0x0020:
-		whatregister = &APIC.LAPIC_ID; //0020
-		ROMbits = 0; //Fully writable!
-		break;
-	case 0x0030:
-		whatregister = &APIC.LAPIC_version; //0030
-		break;
-	case 0x0080:
-		whatregister = &APIC.TaskPriorityRegister; //0080
-		ROMbits = 0; //Fully writable!
-		break;
-	case 0x0090:
-		whatregister = &APIC.ArbitrationPriorityRegister; //0090
-		break;
-	case 0x00A0:
-		whatregister = &APIC.ProcessorPriorityRegister; //00A0
-		break;
-	case 0x00B0:
-		whatregister = &APIC.EOIregister; //00B0
-		ROMbits = 0; //Fully writable!
-		//Only writable with value 0! Otherwise, #GP(0) is encountered!
-		break;
-	case 0x00C0:
-		whatregister = &APIC.RemoteReadRegister; //00C0
-		break;
-	case 0x00D0:
-		whatregister = &APIC.LogicalDestinationRegister; //00D0
-		ROMbits = 0; //Fully writable!
-		break;
-	case 0x00E0:
-		whatregister = &APIC.DestinationFormatRegister; //00E0
-		ROMbits = 0; //Fully writable!
-		break;
-	case 0x00F0:
-		whatregister = &APIC.SpuriousInterruptVectorRegister; //00F0
-		ROMbits = 0; //Fully writable!
-		break;
-	case 0x0100:
-	case 0x0110:
-	case 0x0120:
-	case 0x0130:
-	case 0x0140:
-	case 0x0150:
-	case 0x0160:
-	case 0x0170:
-		whatregister = &APIC.ISR[((address - 0x100) >> 4)]; //ISRs! 0100-0170
-		break;
-	case 0x0180:
-	case 0x0190:
-	case 0x01A0:
-	case 0x01B0:
-	case 0x01C0:
-	case 0x01D0:
-	case 0x01E0:
-	case 0x01F0:
-		whatregister = &APIC.TMR[((address - 0x180) >> 4)]; //TMRs! 0180-01F0
-		break;
-	case 0x0200:
-	case 0x0210:
-	case 0x0220:
-	case 0x0230:
-	case 0x0240:
-	case 0x0250:
-	case 0x0260:
-	case 0x0270:
-		whatregister = &APIC.IRR[((address - 0x200) >> 4)]; //ISRs! 0200-0270
-		break;
-	case 0x280:
-		whatregister = &APIC.ErrorStatusRegister; //0280
-		break;
-	case 0x2F0:
-		whatregister = &APIC.LVTCorrectedMachineCheckInterruptRegister; //02F0
-		ROMbits = 0; //Fully writable!
-		break;
-	case 0x300:
-		whatregister = &APIC.InterruptCommandRegisterLo; //0300
-		ROMbits = 0; //Fully writable!
-		break;
-	case 0x310:
-		whatregister = &APIC.InterruptCommandRegisterHi; //0310
-		ROMbits = 0; //Fully writable!
-		break;
-	case 0x320:
-		whatregister = &APIC.LVTTimerRegister; //0320
-		ROMbits = 0; //Fully writable!
-		break;
-	case 0x330:
-		whatregister = &APIC.LVTThermalSensorRegister; //0330
-		ROMbits = 0; //Fully writable!
-		break;
-	case 0x340:
-		whatregister = &APIC.LVTPerformanceMonitoringCounterRegister; //0340
-		ROMbits = 0; //Fully writable!
-		break;
-	case 0x350:
-		whatregister = &APIC.LVTLINT0Register; //0350
-		ROMbits = 0; //Fully writable!
-		break;
-	case 0x360:
-		whatregister = &APIC.LVTLINT1Register; //0560
-		ROMbits = 0; //Fully writable!
-		break;
-	case 0x370:
-		whatregister = &APIC.LVTErrorRegister; //0370
-		ROMbits = 0; //Fully writable!
-		break;
-	case 0x380:
-		whatregister = &APIC.InitialCountRegister; //0380
-		ROMbits = 0; //Fully writable!
-		break;
-	case 0x390:
-		whatregister = &APIC.CurrentCountRegistetr; //0390
-		break;
-	case 0x3E0:
-		whatregister = &APIC.DivideConfigurationRegister; //03E0
-		ROMbits = 0; //Fully writable!
-		break;
-	default: //Unmapped?
-		return 0; //Unmapped!
-		break;
-	}
+		notIOAPICW:
+		switch (address) //What is addressed?
+		{
+		case 0x0020:
+			whatregister = &APIC.LAPIC_ID; //0020
+			ROMbits = 0; //Fully writable!
+			break;
+		case 0x0030:
+			whatregister = &APIC.LAPIC_version; //0030
+			break;
+		case 0x0080:
+			whatregister = &APIC.TaskPriorityRegister; //0080
+			ROMbits = 0; //Fully writable!
+			break;
+		case 0x0090:
+			whatregister = &APIC.ArbitrationPriorityRegister; //0090
+			break;
+		case 0x00A0:
+			whatregister = &APIC.ProcessorPriorityRegister; //00A0
+			break;
+		case 0x00B0:
+			whatregister = &APIC.EOIregister; //00B0
+			ROMbits = 0; //Fully writable!
+			//Only writable with value 0! Otherwise, #GP(0) is encountered!
+			break;
+		case 0x00C0:
+			whatregister = &APIC.RemoteReadRegister; //00C0
+			break;
+		case 0x00D0:
+			whatregister = &APIC.LogicalDestinationRegister; //00D0
+			ROMbits = 0; //Fully writable!
+			break;
+		case 0x00E0:
+			whatregister = &APIC.DestinationFormatRegister; //00E0
+			ROMbits = 0; //Fully writable!
+			break;
+		case 0x00F0:
+			whatregister = &APIC.SpuriousInterruptVectorRegister; //00F0
+			ROMbits = 0; //Fully writable!
+			break;
+		case 0x0100:
+		case 0x0110:
+		case 0x0120:
+		case 0x0130:
+		case 0x0140:
+		case 0x0150:
+		case 0x0160:
+		case 0x0170:
+			whatregister = &APIC.ISR[((address - 0x100) >> 4)]; //ISRs! 0100-0170
+			break;
+		case 0x0180:
+		case 0x0190:
+		case 0x01A0:
+		case 0x01B0:
+		case 0x01C0:
+		case 0x01D0:
+		case 0x01E0:
+		case 0x01F0:
+			whatregister = &APIC.TMR[((address - 0x180) >> 4)]; //TMRs! 0180-01F0
+			break;
+		case 0x0200:
+		case 0x0210:
+		case 0x0220:
+		case 0x0230:
+		case 0x0240:
+		case 0x0250:
+		case 0x0260:
+		case 0x0270:
+			whatregister = &APIC.IRR[((address - 0x200) >> 4)]; //ISRs! 0200-0270
+			break;
+		case 0x280:
+			whatregister = &APIC.ErrorStatusRegister; //0280
+			break;
+		case 0x2F0:
+			whatregister = &APIC.LVTCorrectedMachineCheckInterruptRegister; //02F0
+			ROMbits = 0; //Fully writable!
+			break;
+		case 0x300:
+			whatregister = &APIC.InterruptCommandRegisterLo; //0300
+			ROMbits = 0; //Fully writable!
+			break;
+		case 0x310:
+			whatregister = &APIC.InterruptCommandRegisterHi; //0310
+			ROMbits = 0; //Fully writable!
+			break;
+		case 0x320:
+			whatregister = &APIC.LVTTimerRegister; //0320
+			ROMbits = 0; //Fully writable!
+			break;
+		case 0x330:
+			whatregister = &APIC.LVTThermalSensorRegister; //0330
+			ROMbits = 0; //Fully writable!
+			break;
+		case 0x340:
+			whatregister = &APIC.LVTPerformanceMonitoringCounterRegister; //0340
+			ROMbits = 0; //Fully writable!
+			break;
+		case 0x350:
+			whatregister = &APIC.LVTLINT0Register; //0350
+			ROMbits = 0; //Fully writable!
+			break;
+		case 0x360:
+			whatregister = &APIC.LVTLINT1Register; //0560
+			ROMbits = 0; //Fully writable!
+			break;
+		case 0x370:
+			whatregister = &APIC.LVTErrorRegister; //0370
+			ROMbits = 0; //Fully writable!
+			break;
+		case 0x380:
+			whatregister = &APIC.InitialCountRegister; //0380
+			ROMbits = 0; //Fully writable!
+			break;
+		case 0x390:
+			whatregister = &APIC.CurrentCountRegistetr; //0390
+			break;
+		case 0x3E0:
+			whatregister = &APIC.DivideConfigurationRegister; //03E0
+			ROMbits = 0; //Fully writable!
+			break;
+		default: //Unmapped?
+			return 0; //Unmapped!
+			break;
+		}
 	}
 
 	if (address == 0xF0) //Needs to handle resetting the APIC?
@@ -449,7 +449,6 @@ byte APIC_memIO_rb(uint_32 offset, byte index)
 		{
 		case 0x0000: //IOAPIC address?
 			whatregister = &APIC.APIC_address; //Address register!
-			ROMbits = 0; //Fully writable!
 			break;
 		case 0x0010: //IOAPIC data?
 			switch (APIC.APIC_address) //What address is selected?
@@ -481,110 +480,111 @@ byte APIC_memIO_rb(uint_32 offset, byte index)
 	else //Not IO APIC?
 	{
 	notIOAPICR:
-	switch (address) //What is addressed?
-	{
-	case 0x0020:
-		whatregister = &APIC.LAPIC_ID; //0020
-		break;
-	case 0x0030:
-		whatregister = &APIC.LAPIC_version; //0030
-		break;
-	case 0x0080:
-		whatregister = &APIC.TaskPriorityRegister; //0080
-		break;
-	case 0x0090:
-		whatregister = &APIC.ArbitrationPriorityRegister; //0090
-		break;
-	case 0x00A0:
-		whatregister = &APIC.ProcessorPriorityRegister; //00A0
-		break;
-	case 0x00B0:
-		whatregister = &APIC.EOIregister; //00B0
-		break;
-	case 0x00C0:
-		whatregister = &APIC.RemoteReadRegister; //00C0
-		break;
-	case 0x00D0:
-		whatregister = &APIC.LogicalDestinationRegister; //00D0
-		break;
-	case 0x00E0:
-		whatregister = &APIC.DestinationFormatRegister; //00E0
-		break;
-	case 0x00F0:
-		whatregister = &APIC.SpuriousInterruptVectorRegister; //00F0
-		break;
-	case 0x0100:
-	case 0x0110:
-	case 0x0120:
-	case 0x0130:
-	case 0x0140:
-	case 0x0150:
-	case 0x0160:
-	case 0x0170:
-		whatregister = &APIC.ISR[((address-0x100)>>4)]; //ISRs! 0100-0170
-		break;
-	case 0x0180:
-	case 0x0190:
-	case 0x01A0:
-	case 0x01B0:
-	case 0x01C0:
-	case 0x01D0:
-	case 0x01E0:
-	case 0x01F0:
-		whatregister = &APIC.TMR[((address - 0x180) >> 4)]; //TMRs! 0180-01F0
-		break;
-	case 0x0200:
-	case 0x0210:
-	case 0x0220:
-	case 0x0230:
-	case 0x0240:
-	case 0x0250:
-	case 0x0260:
-	case 0x0270:
-		whatregister = &APIC.IRR[((address - 0x200) >> 4)]; //ISRs! 0200-0270
-		break;
-	case 0x280:
-		whatregister = &APIC.ErrorStatusRegister; //0280
-		break;
-	case 0x2F0:
-		whatregister = &APIC.LVTCorrectedMachineCheckInterruptRegister; //02F0
-		break;
-	case 0x300:
-		whatregister = &APIC.InterruptCommandRegisterLo; //0300
-		break;
-	case 0x310:
-		whatregister = &APIC.InterruptCommandRegisterHi; //0310
-		break;
-	case 0x320:
-		whatregister = &APIC.LVTTimerRegister; //0320
-		break;
-	case 0x330:
-		whatregister = &APIC.LVTThermalSensorRegister; //0330
-		break;
-	case 0x340:
-		whatregister = &APIC.LVTPerformanceMonitoringCounterRegister; //0340
-		break;
-	case 0x350:
-		whatregister = &APIC.LVTLINT0Register; //0350
-		break;
-	case 0x360:
-		whatregister = &APIC.LVTLINT1Register; //0560
-		break;
-	case 0x370:
-		whatregister = &APIC.LVTErrorRegister; //0370
-		break;
-	case 0x380:
-		whatregister = &APIC.InitialCountRegister; //0380
-		break;
-	case 0x390:
-		whatregister = &APIC.CurrentCountRegistetr; //0390
-		break;
-	case 0x3E0:
-		whatregister = &APIC.DivideConfigurationRegister; //03E0
-		break;
-	default: //Unmapped?
-		return 0; //Unmapped!
-		break;
+		switch (address) //What is addressed?
+		{
+		case 0x0020:
+			whatregister = &APIC.LAPIC_ID; //0020
+			break;
+		case 0x0030:
+			whatregister = &APIC.LAPIC_version; //0030
+			break;
+		case 0x0080:
+			whatregister = &APIC.TaskPriorityRegister; //0080
+			break;
+		case 0x0090:
+			whatregister = &APIC.ArbitrationPriorityRegister; //0090
+			break;
+		case 0x00A0:
+			whatregister = &APIC.ProcessorPriorityRegister; //00A0
+			break;
+		case 0x00B0:
+			whatregister = &APIC.EOIregister; //00B0
+			break;
+		case 0x00C0:
+			whatregister = &APIC.RemoteReadRegister; //00C0
+			break;
+		case 0x00D0:
+			whatregister = &APIC.LogicalDestinationRegister; //00D0
+			break;
+		case 0x00E0:
+			whatregister = &APIC.DestinationFormatRegister; //00E0
+			break;
+		case 0x00F0:
+			whatregister = &APIC.SpuriousInterruptVectorRegister; //00F0
+			break;
+		case 0x0100:
+		case 0x0110:
+		case 0x0120:
+		case 0x0130:
+		case 0x0140:
+		case 0x0150:
+		case 0x0160:
+		case 0x0170:
+			whatregister = &APIC.ISR[((address - 0x100) >> 4)]; //ISRs! 0100-0170
+			break;
+		case 0x0180:
+		case 0x0190:
+		case 0x01A0:
+		case 0x01B0:
+		case 0x01C0:
+		case 0x01D0:
+		case 0x01E0:
+		case 0x01F0:
+			whatregister = &APIC.TMR[((address - 0x180) >> 4)]; //TMRs! 0180-01F0
+			break;
+		case 0x0200:
+		case 0x0210:
+		case 0x0220:
+		case 0x0230:
+		case 0x0240:
+		case 0x0250:
+		case 0x0260:
+		case 0x0270:
+			whatregister = &APIC.IRR[((address - 0x200) >> 4)]; //ISRs! 0200-0270
+			break;
+		case 0x280:
+			whatregister = &APIC.ErrorStatusRegister; //0280
+			break;
+		case 0x2F0:
+			whatregister = &APIC.LVTCorrectedMachineCheckInterruptRegister; //02F0
+			break;
+		case 0x300:
+			whatregister = &APIC.InterruptCommandRegisterLo; //0300
+			break;
+		case 0x310:
+			whatregister = &APIC.InterruptCommandRegisterHi; //0310
+			break;
+		case 0x320:
+			whatregister = &APIC.LVTTimerRegister; //0320
+			break;
+		case 0x330:
+			whatregister = &APIC.LVTThermalSensorRegister; //0330
+			break;
+		case 0x340:
+			whatregister = &APIC.LVTPerformanceMonitoringCounterRegister; //0340
+			break;
+		case 0x350:
+			whatregister = &APIC.LVTLINT0Register; //0350
+			break;
+		case 0x360:
+			whatregister = &APIC.LVTLINT1Register; //0560
+			break;
+		case 0x370:
+			whatregister = &APIC.LVTErrorRegister; //0370
+			break;
+		case 0x380:
+			whatregister = &APIC.InitialCountRegister; //0380
+			break;
+		case 0x390:
+			whatregister = &APIC.CurrentCountRegistetr; //0390
+			break;
+		case 0x3E0:
+			whatregister = &APIC.DivideConfigurationRegister; //03E0
+			break;
+		default: //Unmapped?
+			return 0; //Unmapped!
+			break;
+		}
 	}
 
 	value = *whatregister; //Take the register's value that's there!
