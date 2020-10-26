@@ -152,7 +152,7 @@ void init8259()
 void APIC_handletermination() //Handle termination on the APIC!
 {
 	byte MSb, MSBleft;
-	//uint_32 MSBIRQ;
+	uint_32 MSBIRQ;
 	//Handle any writes to APIC addresses!
 	if (likely((APIC.needstermination|APIC.IOAPIC_globalrequirestermination|APIC.LAPIC_globalrequirestermination) == 0)) return; //No termination needed?
 
@@ -171,7 +171,6 @@ void APIC_handletermination() //Handle termination on the APIC!
 		{
 			if (APIC.ISRset) //Anything set to acnowledge?
 			{
-				/*
 				MSBleft = 24; //How many are left!
 				MSBIRQ = (1 << 23); //First IRQ to check!
 				for (MSb = 23; MSBleft; --MSBleft)
@@ -183,17 +182,8 @@ void APIC_handletermination() //Handle termination on the APIC!
 					}
 					--MSb;
 				}
-				*/
-				APIC.ISRset = 0; //Clear the ISR: we're ready to receive interrupts again!
-			//finishupEOI:
-				APIC.ISR[0] = 0; //Clear ISR!
-				APIC.ISR[1] = 0; //Clear ISR!
-				APIC.ISR[2] = 0; //Clear ISR!
-				APIC.ISR[3] = 0; //Clear ISR!
-				APIC.ISR[4] = 0; //Clear ISR!
-				APIC.ISR[5] = 0; //Clear ISR!
-				APIC.ISR[6] = 0; //Clear ISR!
-				APIC.ISR[7] = 0; //Clear ISR!
+
+			finishupEOI:
 				MSBleft = 24; //How many are left!
 				for (MSb = 23; MSBleft; --MSBleft)
 				{
