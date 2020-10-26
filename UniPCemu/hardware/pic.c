@@ -921,9 +921,9 @@ byte nextintr()
 	if (APIC.IRRset&(~APIC.ISRset)&(~APIC.IMRset)) //IRR requested to fire?
 	{
 		APIC_IRQsrequested = APIC.IRRset & (~APIC.ISRset) & (~APIC.IMRset); //What can we handle!
-		APIC_requestbit = 1<<23; //What bit is requested first!
+		APIC_requestbit = 1; //What bit is requested first!
 		APIC_requestsleft = 24; //How many are left!
-		for (IR = 23; APIC_requestsleft; --IR) //Check all requests!
+		for (IR = 0; APIC_requestsleft; ++IR) //Check all requests!
 		{
 			if (APIC_IRQsrequested & APIC_requestbit) //Are we requested to fire?
 			{
@@ -938,7 +938,7 @@ byte nextintr()
 				//Retrieve the IRQ number!
 				return APIC_intnr; //Give the interrupt vector number!
 			}
-			APIC_requestbit >>= 1; //Next bit to check!
+			APIC_requestbit <<= 1; //Next bit to check!
 			--APIC_requestsleft; //One processed!
 		}
 	}
