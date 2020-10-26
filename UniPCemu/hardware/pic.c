@@ -68,9 +68,9 @@ struct
 	uint_32 LogicalDestinationRegister; //00D0
 	uint_32 DestinationFormatRegister; //00E0
 	uint_32 SpuriousInterruptVectorRegister; //00F0
-	uint_32 ISR[29]; //ISRs! 0100-0170
-	uint_32 TMR[29]; //TMRs! 0180-01F0
-	uint_32 IRR[29]; //IRRs! 0200-0270
+	uint_32 ISR[8]; //ISRs! 0100-0170
+	uint_32 TMR[8]; //TMRs! 0180-01F0
+	uint_32 IRR[8]; //IRRs! 0200-0270
 	uint_32 ErrorStatusRegister; //0280
 	uint_32 LVTCorrectedMachineCheckInterruptRegister; //02F0
 	uint_32 InterruptCommandRegisterLo; //0300
@@ -167,11 +167,19 @@ void APIC_handletermination() //Handle termination on the APIC!
 					}
 					--MSb;
 				}
+			finishupEOI:
+				APIC.ISR[0] = 0; //Clear ISR!
+				APIC.ISR[1] = 0; //Clear ISR!
+				APIC.ISR[2] = 0; //Clear ISR!
+				APIC.ISR[3] = 0; //Clear ISR!
+				APIC.ISR[4] = 0; //Clear ISR!
+				APIC.ISR[5] = 0; //Clear ISR!
+				APIC.ISR[6] = 0; //Clear ISR!
+				APIC.ISR[7] = 0; //Clear ISR!
 			}
 		}
 	}
 
-	finishupEOI:
 	APIC.needstermination = 0; //No termination is needed anymore!
 	APIC.IOAPIC_globalrequirestermination = 0; //No termination is needed anymore!
 	APIC.LAPIC_globalrequirestermination = 0; //No termination is needed anymore!
@@ -262,106 +270,34 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 		ROMbits = 0; //Fully writable!
 		break;
 	case 0x0100:
-	case 0x0104:
-	case 0x0108:
-	case 0x010C:
 	case 0x0110:
-	case 0x0114:
-	case 0x0118:
-	case 0x011C:
 	case 0x0120:
-	case 0x0124:
-	case 0x0128:
-	case 0x012C:
 	case 0x0130:
-	case 0x0134:
-	case 0x0138:
-	case 0x013C:
 	case 0x0140:
-	case 0x0144:
-	case 0x0148:
-	case 0x014C:
 	case 0x0150:
-	case 0x0154:
-	case 0x0158:
-	case 0x015C:
 	case 0x0160:
-	case 0x0164:
-	case 0x0168:
-	case 0x016C:
 	case 0x0170:
-	case 0x0174:
-	case 0x0178:
-	case 0x017C:
-		whatregister = &APIC.ISR[((address - 0x100) >> 2)]; //ISRs! 0100-0170
+		whatregister = &APIC.ISR[((address - 0x100) >> 4)]; //ISRs! 0100-0170
 		break;
 	case 0x0180:
-	case 0x0184:
-	case 0x0188:
-	case 0x018C:
 	case 0x0190:
-	case 0x0194:
-	case 0x0198:
-	case 0x019C:
 	case 0x01A0:
-	case 0x01A4:
-	case 0x01A8:
-	case 0x01AC:
 	case 0x01B0:
-	case 0x01B4:
-	case 0x01B8:
-	case 0x01BC:
 	case 0x01C0:
-	case 0x01C4:
-	case 0x01C8:
-	case 0x01CC:
 	case 0x01D0:
-	case 0x01D4:
-	case 0x01D8:
-	case 0x01DC:
 	case 0x01E0:
-	case 0x01E4:
-	case 0x01E8:
-	case 0x01EC:
 	case 0x01F0:
-	case 0x01F4:
-	case 0x01F8:
-	case 0x01FC:
-		whatregister = &APIC.TMR[((address - 0x180) >> 2)]; //TMRs! 0180-01F0
+		whatregister = &APIC.TMR[((address - 0x180) >> 4)]; //TMRs! 0180-01F0
 		break;
 	case 0x0200:
-	case 0x0204:
-	case 0x0208:
-	case 0x020C:
 	case 0x0210:
-	case 0x0214:
-	case 0x0218:
-	case 0x021C:
 	case 0x0220:
-	case 0x0224:
-	case 0x0228:
-	case 0x022C:
 	case 0x0230:
-	case 0x0234:
-	case 0x0238:
-	case 0x023C:
 	case 0x0240:
-	case 0x0244:
-	case 0x0248:
-	case 0x024C:
 	case 0x0250:
-	case 0x0254:
-	case 0x0258:
-	case 0x025C:
 	case 0x0260:
-	case 0x0264:
-	case 0x0268:
-	case 0x026C:
 	case 0x0270:
-	case 0x0274:
-	case 0x0278:
-	case 0x027C:
-		whatregister = &APIC.IRR[((address - 0x200) >> 2)]; //ISRs! 0200-0270
+		whatregister = &APIC.IRR[((address - 0x200) >> 4)]; //ISRs! 0200-0270
 		break;
 	case 0x280:
 		whatregister = &APIC.ErrorStatusRegister; //0280
@@ -444,11 +380,11 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 	{
 		if (APIC.IOAPIC_redirectionentry[(APIC.APIC_address - 0x10) >> 1][0] & 0x10000) //Mask set?
 		{
-			APIC.IMRset &= ~(1 << ((APIC.APIC_address - 0x10) >> 1)); //Clear the mask!
+			APIC.IMRset |= (1 << ((APIC.APIC_address - 0x10) >> 1)); //Set the mask!
 		}
 		else //Mask cleared?
 		{
-			APIC.IMRset |= ~(1 << ((APIC.APIC_address - 0x10) >> 1)); //Set the mask!
+			APIC.IMRset &= ~(1 << ((APIC.APIC_address - 0x10) >> 1)); //Clear the mask!
 		}
 	}
 
@@ -529,108 +465,34 @@ byte APIC_memIO_rb(uint_32 offset, byte index)
 		whatregister = &APIC.SpuriousInterruptVectorRegister; //00F0
 		break;
 	case 0x0100:
-	case 0x0104:
-	case 0x0108:
-	case 0x010C:
 	case 0x0110:
-	case 0x0114:
-	case 0x0118:
-	case 0x011C:
 	case 0x0120:
-	case 0x0124:
-	case 0x0128:
-	case 0x012C:
 	case 0x0130:
-	case 0x0134:
-	case 0x0138:
-	case 0x013C:
 	case 0x0140:
-	case 0x0144:
-	case 0x0148:
-	case 0x014C:
 	case 0x0150:
-	case 0x0154:
-	case 0x0158:
-	case 0x015C:
 	case 0x0160:
-	case 0x0164:
-	case 0x0168:
-	case 0x016C:
 	case 0x0170:
-	case 0x0174:
-	case 0x0178:
-	case 0x017C:
-		APIC.ISR[((address - 0x100) >> 2)] = (APIC.ISRset >> (((address - 0x100) >> 2) << 5)); //Update the ISR bits!
-		whatregister = &APIC.ISR[((address-0x100)>>2)]; //ISRs! 0100-0170
+		whatregister = &APIC.ISR[((address-0x100)>>4)]; //ISRs! 0100-0170
 		break;
 	case 0x0180:
-	case 0x0184:
-	case 0x0188:
-	case 0x018C:
 	case 0x0190:
-	case 0x0194:
-	case 0x0198:
-	case 0x019C:
 	case 0x01A0:
-	case 0x01A4:
-	case 0x01A8:
-	case 0x01AC:
 	case 0x01B0:
-	case 0x01B4:
-	case 0x01B8:
-	case 0x01BC:
 	case 0x01C0:
-	case 0x01C4:
-	case 0x01C8:
-	case 0x01CC:
 	case 0x01D0:
-	case 0x01D4:
-	case 0x01D8:
-	case 0x01DC:
 	case 0x01E0:
-	case 0x01E4:
-	case 0x01E8:
-	case 0x01EC:
 	case 0x01F0:
-	case 0x01F4:
-	case 0x01F8:
-	case 0x01FC:
-		whatregister = &APIC.TMR[((address - 0x180) >> 2)]; //TMRs! 0180-01F0
+		whatregister = &APIC.TMR[((address - 0x180) >> 4)]; //TMRs! 0180-01F0
 		break;
 	case 0x0200:
-	case 0x0204:
-	case 0x0208:
-	case 0x020C:
 	case 0x0210:
-	case 0x0214:
-	case 0x0218:
-	case 0x021C:
 	case 0x0220:
-	case 0x0224:
-	case 0x0228:
-	case 0x022C:
 	case 0x0230:
-	case 0x0234:
-	case 0x0238:
-	case 0x023C:
 	case 0x0240:
-	case 0x0244:
-	case 0x0248:
-	case 0x024C:
 	case 0x0250:
-	case 0x0254:
-	case 0x0258:
-	case 0x025C:
 	case 0x0260:
-	case 0x0264:
-	case 0x0268:
-	case 0x026C:
 	case 0x0270:
-	case 0x0274:
-	case 0x0278:
-	case 0x027C:
-		APIC.IRR[((address - 0x200) >> 2)] = (APIC.IRRset >> (((address - 0x200) >> 2)<<5)); //Update the IRR bits!
-		whatregister = &APIC.IRR[((address - 0x200) >> 2)]; //ISRs! 0200-0270
+		whatregister = &APIC.IRR[((address - 0x200) >> 4)]; //ISRs! 0200-0270
 		break;
 	case 0x280:
 		whatregister = &APIC.ErrorStatusRegister; //0280
@@ -1047,6 +909,7 @@ byte readPollingMode(byte pic)
 
 byte nextintr()
 {
+	byte APIC_intnr;
 	uint_32 APIC_IRQsrequested,APIC_requestbit,APIC_requestsleft;
 	if (__HW_DISABLED) return 0; //Abort!
 	byte loopdet=1;
@@ -1066,8 +929,14 @@ byte nextintr()
 			{
 				APIC_IRQsrequested &= ~APIC_requestbit; //Clear the request bit!
 				APIC.ISRset |= APIC_requestbit; //Set the ISR register!
+				APIC_intnr = (APIC.IOAPIC_redirectionentry[IR][0] & 0xFF); //What interrupt number?
+				if (APIC_intnr < 0x10) //Invalid?
+				{
+					APIC_intnr = (IR & 8) ? getint(1, (IR & 7)) : getint(0, (IR & 7)); //Take the IRQ number from the 8259 instead!
+				}
+				APIC.ISR[APIC_intnr >> 5] |= (1 << (APIC_intnr & 0x1F)); //Mark the interrupt in-service!
 				//Retrieve the IRQ number!
-				return (APIC.IOAPIC_redirectionentry[IR][0] & 0xFF); //Give the interrupt vector number!
+				return APIC_intnr; //Give the interrupt vector number!
 			}
 			APIC_requestbit >>= 1; //Next bit to check!
 			--APIC_requestsleft; //One processed!
@@ -1127,7 +996,11 @@ void APIC_raisedIRQ(byte PIC, byte irqnum)
 	if ((APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x4000) == 0) //Edge-triggered? Supported!
 	{
 		APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] |= (1 << 12); //Waiting to be delivered!
-		APIC.IRRset |= (1<<(irqnum&0xF)); //Set the IRR?
+		if ((APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x8000) == 0) //Not masked?
+		{
+			APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] &= ~(1 << 12); //Not waiting to be delivered!
+			APIC.IRRset |= (1 << (irqnum & 0xF)); //Set the IRR?
+		}
 	}
 }
 
