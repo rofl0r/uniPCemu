@@ -43,6 +43,7 @@ struct
 	uint_32 windowMSRhi; //Window register that's written in the CPU!
 	//Runtime information!
 	uint_64 baseaddr; //Base address of the APIC!
+	uint_64 IObaseaddr; //Base address of the I/O APIC!
 	//Remaining variables? All memory that's stored in the APIC!
 	uint_32 APIC_address; //Address register for the extended memory!
 	uint_32 APIC_data; //Data register for the extended memory!
@@ -128,6 +129,7 @@ void init8259()
 	i8259.imr[1] = 0xFF; //Mask off all interrupts to start!
 	irr3_dirty = 0; //Default: not dirty!
 	APIC.baseaddr = 0xFEE00000; //Default base address!
+	APIC.IObaseaddr = 0xFEC00000; //Default base address!
 	APIC.enabled = 0; //Is the APIC enabled?
 	APIC.needstermination = 0; //Doesn't need termination!
 	APIC.IOAPIC_version_numredirectionentries = 0x11 | ((24 - 1) << 16); //How many IRQs can we handle(24) and version number!
@@ -212,17 +214,33 @@ extern byte BIU_cachedmemorysize;
 extern byte memory_datasize; //The size of the data that has been read!
 byte APIC_memIO_wb(uint_32 offset, byte value)
 {
+	byte is_internalexternalAPIC;
 	uint_32 tempoffset, storedvalue, ROMbits, address;
 	uint_32* whatregister; //What register is addressed?
 	byte updateredirection;
 	updateredirection = 0; //Init!
 	tempoffset = offset; //Backup!
-	if ((APIC.enabled == 0) || ((offset&0xFFFFFF000ULL) != APIC.baseaddr)) return 0; //Not the APIC memory space addressed?
+
+	is_internalexternalAPIC = 0; //Default: no APIC chip!
+	if (((offset & 0xFFFFFF000ULL) == APIC.baseaddr)) //LAPIC?
+	{
+		is_internalexternalAPIC |= 1; //LAPIC!
+	}
+	if ((((offset & 0xFFFFFF000ULL) == APIC.IObaseaddr))) //IO APIC?
+	{
+		is_internalexternalAPIC |= 2; //IO APIC!
+	}
+	else if (is_internalexternalAPIC==0) //Neither?
+	{
+		return 0; //Neither!
+	}
+
+	if (APIC.enabled == 0) return 0; //Not the APIC memory space enabled?
 	address = (offset & 0xFFC); //What address is addressed?
 
 	ROMbits = ~0; //All bits are ROM bits by default?
 
-	if ((offset&i440fx_ioapic_base_mask)==i440fx_ioapic_base_match) //I/O APIC?
+	if (((offset&i440fx_ioapic_base_mask)==i440fx_ioapic_base_match) && (is_internalexternalAPIC&2)) //I/O APIC?
 	{
 		switch (address&0x10) //What is addressed?
 		{
@@ -258,16 +276,30 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 				updateredirection = (((APIC.APIC_address - 0x10) & 1) == 0); //Update status when the first dword is updated!
 				break;
 			default: //Unmapped?
-				goto notIOAPICW;
+				if (is_internalexternalAPIC & 1) //LAPIC?
+				{
+					goto notIOAPICW;
+				}
+				else
+				{
+					return 0; //Unmapped!
+				}
 				break;
 			}
 			break;
 		default: //Unmapped?
-			goto notIOAPICW;
+			if (is_internalexternalAPIC & 1) //LAPIC?
+			{
+				goto notIOAPICW;
+			}
+			else
+			{
+				return 0; //Unmapped!
+			}
 			break;
 		}
 	}
-	else //Not IO APIC?
+	else if (is_internalexternalAPIC&1) //LAPIC?
 	{
 		notIOAPICW:
 		switch (address) //What is addressed?
@@ -443,14 +475,31 @@ extern uint_32 memory_dataread;
 extern byte memory_datasize; //The size of the data that has been read!
 byte APIC_memIO_rb(uint_32 offset, byte index)
 {
+	byte is_internalexternalAPIC;
 	uint_32 temp, tempoffset, value, address;
 	uint_32* whatregister; //What register is accessed?
 	byte updateredirection;
 	tempoffset = offset; //Backup!
 	updateredirection = 0;
-	if ((APIC.enabled == 0) || ((offset & 0xFFFFFF000ULL) != APIC.baseaddr)) return 0; //Not the APIC memory space addressed?
+
+	is_internalexternalAPIC = 0; //Default: no APIC chip!
+	if (((offset & 0xFFFFFF000ULL) == APIC.baseaddr)) //LAPIC?
+	{
+		is_internalexternalAPIC |= 1; //LAPIC!
+	}
+	if ((((offset & 0xFFFFFF000ULL) == APIC.IObaseaddr))) //IO APIC?
+	{
+		is_internalexternalAPIC |= 2; //IO APIC!
+	}
+	else if (is_internalexternalAPIC == 0) //Neither?
+	{
+		return 0; //Neither!
+	}
+
+	if (APIC.enabled == 0) return 0; //Not the APIC memory space enabled?
 	address = (offset & 0xFFC); //What address is addressed?
-	if ((offset&i440fx_ioapic_base_mask)==i440fx_ioapic_base_match) //I/O APIC?
+
+	if (((offset&i440fx_ioapic_base_mask)==i440fx_ioapic_base_match) && (is_internalexternalAPIC & 2)) //I/O APIC?
 	{
 		switch (address&0x10) //What is addressed?
 		{
@@ -475,18 +524,32 @@ byte APIC_memIO_rb(uint_32 offset, byte index)
 				whatregister = &APIC.IOAPIC_redirectionentry[(APIC.APIC_address - 0x10) >> 1][(APIC.APIC_address - 0x10) & 1]; //Redirection entry addressed!
 				break;
 			default: //Unmapped?
-				goto notIOAPICR;
+				if (is_internalexternalAPIC & 1) //LAPIC?
+				{
+					goto notIOAPICR;
+				}
+				else
+				{
+					return 0; //Unmapped!
+				}
 				break;
 			}
 			break;
 		default: //Unmapped?
-			goto notIOAPICR;
+			if (is_internalexternalAPIC & 1) //LAPIC?
+			{
+				goto notIOAPICR;
+			}
+			else
+			{
+				return 0; //Unmapped!
+			}
 			break;
 		}
 	}
-	else //Not IO APIC?
+	else if (is_internalexternalAPIC & 1) //LAPIC?
 	{
-	notIOAPICR:
+		notIOAPICR:
 		switch (address) //What is addressed?
 		{
 		case 0x0020:
