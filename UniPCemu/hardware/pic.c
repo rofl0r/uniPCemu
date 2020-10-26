@@ -256,6 +256,7 @@ void IOAPIC_pollRequests()
 		{
 			APIC_intnr = (IR & 8) ? getint(1, (IR & 7)) : getint(0, (IR & 7)); //Take the IRQ number from the 8259 instead!
 		}
+		APIC.IOAPIC_IRRset &= ~APIC_requestbit; //Clear the request, because we're firing it up now!
 		APIC.IRR[APIC_intnr >> 5] |= (1 << (APIC_intnr & 0x1F)); //Mark the interrupt requested to fire!
 	}
 }
