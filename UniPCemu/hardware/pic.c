@@ -185,6 +185,8 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 {
 	uint_32 temp, tempoffset, storedvalue, ROMbits, address;
 	uint_32* whatregister; //What register is addressed?
+	byte updateredirection;
+	updateredirection = 0; //Init!
 	tempoffset = offset; //Backup!
 	if ((APIC.enabled == 0) || ((offset&0xFFFFFF000ULL) != APIC.baseaddr)) return 0; //Not the APIC memory space addressed?
 	address = (offset & 0xFFC); //What address is addressed?
@@ -215,6 +217,7 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 		case 0x30: case 0x31: case 0x32: case 0x33: case 0x34: case 0x35: case 0x36: case 0x37: case 0x38: case 0x39: case 0x3A: case 0x3B: case 0x3C: case 0x3D: case 0x3E: case 0x3F:
 			whatregister = &APIC.IOAPIC_redirectionentry[(APIC.APIC_address - 0x10) >> 1][(APIC.APIC_address - 0x10) & 1]; //Redirection entry addressed!
 			ROMbits = (1<<12)|(1<<14)|0xFFFFFFFFE00000ULL; //Fully writable, except bits 12, 14 and 17-55!
+			updateredirection = (((APIC.APIC_address - 0x10) & 1) == 0); //Update status when the first dword is updated!
 			break;
 		default: //Unmapped?
 			return 0; //Unmapped!
@@ -436,6 +439,18 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 
 	//Store the value back to the register!
 	*whatregister = storedvalue; //Store the new value inside the register, if allowed to be changed!
+
+	if (updateredirection) //Update redirection?
+	{
+		if (APIC.IOAPIC_redirectionentry[(APIC.APIC_address - 0x10) >> 1][0] & 0x10000) //Mask set?
+		{
+			APIC.IMRset &= ~(1 << ((APIC.APIC_address - 0x10) >> 1)); //Clear the mask!
+		}
+		else //Mask cleared?
+		{
+			APIC.IMRset |= ~(1 << ((APIC.APIC_address - 0x10) >> 1)); //Set the mask!
+		}
+	}
 
 	if (unlikely(isoverlappingw((uint_64)offset, 1, (uint_64)BIU_cachedmemoryaddr, BIU_cachedmemorysize))) //Cached?
 	{
