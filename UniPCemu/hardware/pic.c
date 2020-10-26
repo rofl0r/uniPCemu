@@ -131,6 +131,19 @@ void init8259()
 	APIC.enabled = 0; //Is the APIC enabled?
 	APIC.needstermination = 0; //Doesn't need termination!
 	APIC.IOAPIC_version_numredirectionentries = 0x11 | ((24 - 1) << 16); //How many IRQs can we handle(24) and version number!
+	APIC.LAPIC_version = 0x0010;
+	switch (EMULATED_CPU)
+	{
+	case CPU_PENTIUM:
+		APIC.LAPIC_version |= 0x30000; //4 LVT entries
+		break;
+	case CPU_PENTIUMPRO:
+	case PENTIUM2:
+		APIC.LAPIC_version |= 0x40000; //5 LVT entries
+		break;
+	default:
+		break;
+	}
 	resetAPIC(); //Reset the APIC as well!
 }
 
