@@ -212,7 +212,7 @@ extern byte BIU_cachedmemorysize;
 extern byte memory_datasize; //The size of the data that has been read!
 byte APIC_memIO_wb(uint_32 offset, byte value)
 {
-	uint_32 temp, tempoffset, storedvalue, ROMbits, address;
+	uint_32 tempoffset, storedvalue, ROMbits, address;
 	uint_32* whatregister; //What register is addressed?
 	byte updateredirection;
 	updateredirection = 0; //Init!
@@ -247,7 +247,14 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 			case 0x20: case 0x21: case 0x22: case 0x23: case 0x24: case 0x25: case 0x26: case 0x27: case 0x28: case 0x29: case 0x2A: case 0x2B: case 0x2C: case 0x2D: case 0x2E: case 0x2F:
 			case 0x30: case 0x31: case 0x32: case 0x33: case 0x34: case 0x35: case 0x36: case 0x37: case 0x38: case 0x39: case 0x3A: case 0x3B: case 0x3C: case 0x3D: case 0x3E: case 0x3F:
 				whatregister = &APIC.IOAPIC_redirectionentry[(APIC.APIC_address - 0x10) >> 1][(APIC.APIC_address - 0x10) & 1]; //Redirection entry addressed!
-				ROMbits = (1<<12)|(1<<14)|0xFFFFFFFFE00000ULL; //Fully writable, except bits 12, 14 and 17-55!
+				if (((APIC.APIC_address - 0x10) & 1) != 0) //High dword?
+				{
+					ROMbits = 0xFFFFFFU;
+				}
+				else //Low DWord?
+				{
+					ROMbits = (1U << 12) | (1U << 14) | 0xFFE00000U; //Fully writable, except bits 12, 14 and 17-55!
+				}
 				updateredirection = (((APIC.APIC_address - 0x10) & 1) == 0); //Update status when the first dword is updated!
 				break;
 			default: //Unmapped?
