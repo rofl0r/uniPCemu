@@ -1156,8 +1156,11 @@ void APIC_raisedIRQ(byte PIC, byte irqnum)
 		APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] |= (1 << 12); //Waiting to be delivered!
 		if ((APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x8000) == 0) //Not masked?
 		{
-			APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] &= ~(1 << 12); //Not waiting to be delivered!
-			APIC.IRRset |= (1 << (irqnum & 0xF)); //Set the IRR?
+			if (!(APIC.IRRset & (1 << (irqnum & 0xF)))) //Not already pending?
+			{
+				APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] &= ~(1 << 12); //Not waiting to be delivered!
+				APIC.IRRset |= (1 << (irqnum & 0xF)); //Set the IRR?
+			}
 		}
 	}
 }
@@ -1165,11 +1168,13 @@ void APIC_raisedIRQ(byte PIC, byte irqnum)
 void APIC_loweredIRQ(byte PIC, byte irqnum)
 {
 	//A line has been lowered!
+	/*
 	if ((APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x4000) == 0) //Edge-triggered? Supported!
 	{
 		APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] &= ~(1 << 12); //Not waiting to be delivered!
 		APIC.IRRset &= ~(1<<(irqnum&0xF)); //Clear the IRR?
 	}
+	*/
 }
 
 void raiseirq(word irqnum)
