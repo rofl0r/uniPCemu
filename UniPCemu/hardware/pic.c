@@ -176,6 +176,11 @@ void APIC_handletermination() //Handle termination on the APIC!
 				APIC.ISR[5] = 0; //Clear ISR!
 				APIC.ISR[6] = 0; //Clear ISR!
 				APIC.ISR[7] = 0; //Clear ISR!
+				MSBleft = 24; //How many are left!
+				for (MSb = 23; MSBleft; --MSBleft)
+				{
+					APIC.IOAPIC_redirectionentry[MSb][0] &= ~(1 << 14); //EOI has been received!
+				}
 			}
 		}
 	}
@@ -941,6 +946,7 @@ byte nextintr()
 			{
 				APIC_IRQsrequested &= ~APIC_requestbit; //Clear the request bit!
 				APIC.ISRset |= APIC_requestbit; //Set the ISR register!
+				APIC.IOAPIC_redirectionentry[IR][0] |= (1 << 14); //The LAPIC has received the request!
 				APIC_intnr = (APIC.IOAPIC_redirectionentry[IR][0] & 0xFF); //What interrupt number?
 				if (APIC_intnr < 0x10) //Invalid?
 				{
