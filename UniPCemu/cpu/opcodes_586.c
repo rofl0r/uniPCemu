@@ -121,7 +121,7 @@ void CPU586_OP0F30() //WRMSR
 	ROMbitslo = MSRmaskwritelow_readonly[storagenr]; //Low ROM bits!
 	if (unlikely(REG_ECX == 0x1B)) //APIC MSR needs external hardware handling as well?
 	{
-		ROMbitslo |= (MSR->lo & (1 << 11)); //Bit 11 (APIC global enable) is sticky!
+		ROMbitslo |= ((~MSR->lo) & (1 << 11)); //Bit 11 (APIC global enable) is sticky when disabled!
 	}
 	MSR->hi = (MSR->hi&MSRmaskwritehigh_readonly[storagenr])|(REG_EDX&~ROMbitshi); //Set high!
 	MSR->lo = (MSR->lo&MSRmaskwritelow_readonly[storagenr])|(REG_EAX&~ROMbitslo); //Set low!
