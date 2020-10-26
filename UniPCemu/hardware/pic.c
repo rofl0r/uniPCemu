@@ -171,6 +171,7 @@ void APIC_handletermination() //Handle termination on the APIC!
 		{
 			if (APIC.ISRset) //Anything set to acnowledge?
 			{
+				/*
 				MSBleft = 24; //How many are left!
 				MSBIRQ = (1 << 23); //First IRQ to check!
 				for (MSb = 23; MSBleft; --MSBleft)
@@ -182,7 +183,9 @@ void APIC_handletermination() //Handle termination on the APIC!
 					}
 					--MSb;
 				}
-			finishupEOI:
+				*/
+				APIC.ISRset = 0; //Clear the ISR: we're ready to receive interrupts again!
+			//finishupEOI:
 				APIC.ISR[0] = 0; //Clear ISR!
 				APIC.ISR[1] = 0; //Clear ISR!
 				APIC.ISR[2] = 0; //Clear ISR!
