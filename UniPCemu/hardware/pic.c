@@ -151,7 +151,6 @@ void init8259()
 void APIC_handletermination() //Handle termination on the APIC!
 {
 	word MSb, MSBleft;
-	uint_32 IRQset;
 	//Handle any writes to APIC addresses!
 	if (likely((APIC.needstermination|APIC.IOAPIC_globalrequirestermination|APIC.LAPIC_globalrequirestermination) == 0)) return; //No termination needed?
 
@@ -1149,9 +1148,6 @@ byte readPollingMode(byte pic)
 byte nextintr()
 {
 	sword result;
-	int APIC_highestpriority; //-1=Nothing yet, otherwise, highest priority level detected
-	byte APIC_highestpriorityIR; //Highest priority IR detected!
-	uint_32 APIC_IRQsrequested,APIC_requestbit,APIC_requestsleft, APIC_requestbithighestpriority;
 	if (__HW_DISABLED) return 0; //Abort!
 	byte loopdet=1;
 	byte IR;
