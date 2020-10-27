@@ -1338,10 +1338,10 @@ void APIC_raisedIRQ(byte PIC, byte irqnum)
 	if (irqnum == 0) irqnum = 2; //IRQ0 is on APIC line 2!
 	else if (irqnum == 2) irqnum = 0; //INTR to APIC line 0!
 	//INTR is also on APIC line 0!
-	if ((APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x4000) == 0) //Edge-triggered? Supported!
+	if ((APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x8000) == 0) //Edge-triggered? Supported!
 	{
 		APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] |= (1 << 12); //Waiting to be delivered!
-		if ((APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x8000) == 0) //Not masked?
+		if ((APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x10000) == 0) //Not masked?
 		{
 			if (!(APIC.IOAPIC_IRRset & (1 << (irqnum & 0xF)))) //Not already pending?
 			{
@@ -1358,7 +1358,7 @@ void APIC_loweredIRQ(byte PIC, byte irqnum)
 	else if (irqnum == 2) irqnum = 0; //INTR to APIC line 0!
 	//INTR is also on APIC line 0!
 	//A line has been lowered!
-	if ((APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x4000) == 0) //Edge-triggered? Supported!
+	if ((APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x8000) == 0) //Edge-triggered? Supported!
 	{
 		if (APIC.IOAPIC_IRRset & (1 << (irqnum & 0xF))) //Waiting to be delivered?
 		{
