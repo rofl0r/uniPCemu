@@ -196,6 +196,11 @@ void APIC_handletermination() //Handle termination on the APIC!
 		}
 	}
 
+	if (APIC.needstermination & 4) //Needs termination due to sending a command?
+	{
+		APIC.InterruptCommandRegisterLo |= (1 << 12); //Start to become pending!
+	}
+
 	APIC.needstermination = 0; //No termination is needed anymore!
 	APIC.IOAPIC_globalrequirestermination = 0; //No termination is needed anymore!
 	APIC.LAPIC_globalrequirestermination = 0; //No termination is needed anymore!
@@ -216,6 +221,57 @@ void IOAPIC_pollRequests()
 	byte APIC_highestpriorityIR; //Highest priority IR detected!
 	uint_32 APIC_IRQsrequested, APIC_requestbit, APIC_requestsleft, APIC_requestbithighestpriority;
 	APIC_IRQsrequested = APIC.IOAPIC_IRRset & (~APIC.IOAPIC_IMRset); //What can we handle!
+	if (APIC.InterruptCommandRegisterLo & 0x1000) //Pending command being sent?
+	{
+		switch ((APIC.InterruptCommandRegisterLo >> 18) & 3) //What destination type?
+		{
+		case 0: //Destination field?
+			if (APIC.InterruptCommandRegisterLo & 0x800) //Logical destination?
+			{
+				if (((APIC.LogicalDestinationRegister >> 24) & 0xF) == ((APIC.InterruptCommandRegisterHi >> 24) & 0xF)) //Match on the logical destination?
+				{
+					goto receiveCommandRegister; //Receive it!
+				}
+			}
+			else //Physical destination?
+			{
+				if (((APIC.InterruptCommandRegisterHi >> 24) & 0xF) == 0) //Ourselves?
+				{
+					goto receiveCommandRegister; //Receive it!
+				}
+			}
+			break;
+		case 1: //To itself?
+		case 2: //All processors?
+			//Receive it!
+			//Handle the request!
+		receiveCommandRegister:
+			switch ((APIC.InterruptCommandRegisterLo >> 8) & 7) //What is requested?
+			{
+			case 0: //Interrupt raise?
+				if ((APIC.IRR[(APIC.InterruptCommandRegisterLo & 0xFF) >> 5] & (1 << ((APIC.InterruptCommandRegisterLo & 0xFF) & 0x1F))) == 0) //Ready to receive?
+				{
+					APIC.InterruptCommandRegisterLo &= ~0x1000; //We're receiving it somewhere!
+					APIC.IRR[(APIC.InterruptCommandRegisterLo & 0xFF) >> 5] |= (1 << ((APIC.InterruptCommandRegisterLo & 0xFF) & 0x1F)); //Raise the interrupt on the Local APIC!
+				}
+				break;
+			case 1: //Lowest priority?
+			case 2: //SMI raised?
+			case 4: //NMI raised?
+			case 5: //INIT or INIT deassert?
+			case 6: //SIPI?
+			default: //Unknown?
+				//Don't handle it!
+				APIC.InterruptCommandRegisterLo &= ~0x1000; //We're receiving it somewhere!
+				break;
+			}
+			break;
+		case 3: //All but ourselves?
+			//Don't handle the request!
+			APIC.InterruptCommandRegisterLo &= ~0x1000; //We're receiving it somewhere!
+			break;
+		}
+	}
 	if (likely(APIC_IRQsrequested == 0)) return; //Nothing to do?
 //First, determine the highest priority IR to use!
 	APIC_requestbit = 1; //What bit is requested first!
@@ -256,11 +312,12 @@ void IOAPIC_pollRequests()
 		APIC_IRQsrequested &= ~APIC_requestbit; //Clear the request bit!
 		APIC.IOAPIC_redirectionentry[IR][0] |= (1 << 14); //The LAPIC has received the request!
 		APIC_intnr = (APIC.IOAPIC_redirectionentry[IR][0] & 0xFF); //What interrupt number?
+		APIC.IOAPIC_IRRset &= ~APIC_requestbit; //Clear the request, because we're firing it up now!
+
 		if (APIC_intnr < 0x10) //Invalid?
 		{
 			APIC_intnr = (IR & 8) ? getint(1, (IR & 7)) : getint(0, (IR & 7)); //Take the IRQ number from the 8259 instead!
 		}
-		APIC.IOAPIC_IRRset &= ~APIC_requestbit; //Clear the request, because we're firing it up now!
 		APIC.IRR[APIC_intnr >> 5] |= (1 << (APIC_intnr & 0x1F)); //Mark the interrupt requested to fire!
 	}
 }
@@ -555,6 +612,10 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 	else if (address == 0xB0) //Needs to handle EOI?
 	{
 		APIC.needstermination |= 2; //Handle an EOI?
+	}
+	else if (address == 0x300) //Needs to send a command?
+	{
+		APIC.needstermination |= 4; //Handle a command?
 	}
 
 	//Get stored value!
