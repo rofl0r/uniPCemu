@@ -82,6 +82,191 @@ extern byte is_Compaq; //Are we emulating a Compaq device?
 extern byte is_PS2; //Are we emulating a Compaq with PS/2 mouse(modern) device?
 extern byte is_i430fx; //Are we emulating a i430fx architecture?
 
+//Extra: Intel Flash ROM support(8-bit) for the MP tables to be supported(not written back to storage yet)!
+enum
+{
+	BLOCK_MAIN1=0,
+	BLOCK_MAIN2=1,
+	BLOCK_DATA1=2,
+	BLOCK_DATA2=3,
+	BLOCK_BOOT=4,
+	BLOCKS_NUM=5
+};
+
+enum
+{
+	CMD_READ_ARRAY = 0xff,
+	CMD_IID = 0x90,
+	CMD_READ_STATUS = 0x70,
+	CMD_CLEAR_STATUS = 0x50,
+	CMD_ERASE_SETUP = 0x20,
+	CMD_ERASE_CONFIRM = 0xd0,
+	CMD_ERASE_SUSPEND = 0xb0,
+	CMD_PROGRAM_SETUP = 0x40,
+	CMD_PROGRAM_SETUP_ALT = 0x10
+};
+
+//Basic state for managing the BIOS ROM
+byte BIOS_flash_enabled = 0;
+struct
+{
+	byte command;
+	byte status;
+	byte pad;
+	byte flags;
+	word flash_id;
+	word pad16;
+	uint_32 program_addr;
+	uint_32 blocks_start[BLOCKS_NUM];
+	uint_32 blocks_end[BLOCKS_NUM];
+	uint_32 blocks_len[BLOCKS_NUM];
+} BIOS_flash;
+
+byte BIOS_flash_read8(byte* ROM, uint_32 offset, byte* result)
+{
+	*result = 0xFF; //Default!
+	switch (BIOS_flash.command) //Active command?
+	{
+	default:
+	case CMD_READ_ARRAY:
+		*result = ROM[offset]; //Plain result!
+		return 1; //Mapped as a byte!
+		break;
+	case CMD_IID:
+		if (offset & 1)
+		{
+			*result = (BIOS_flash.flash_id & 0xFF);
+			return 1; //mapped!
+		}
+		else
+		{
+			*result = 0x89;
+			return 1; //mapped!
+		}
+		break;
+	case CMD_READ_STATUS:
+		*result = BIOS_flash.status;
+		return 1; //Mapped!
+	}
+	return 1; //Safeguard!
+}
+
+byte blocks_backup[0x20000]; //Backup of written data when failed to flash!
+
+void BIOS_flash_write8(byte* ROM, uint_32 offset, char *filename, byte value)
+{
+	BIGFILE* f;
+	byte i;
+	//Hard-coded BIOS mask for 128KB ROM
+	#define bbmask 0x1E000
+	switch (BIOS_flash.command) //What is the active command?
+	{
+	case CMD_ERASE_SETUP:
+		if (value == CMD_ERASE_CONFIRM)
+		{
+			for (i = 0; i < 3; ++i) //First 3 blocks!
+			{
+				if ((offset >= BIOS_flash.blocks_start[i]) && (offset <= BIOS_flash.blocks_end[i])) //Within range of the block?
+				{
+					memcpy(&blocks_backup, &ROM[BIOS_flash.blocks_start[i]], BIOS_flash.blocks_len[i]); //Create a backup copy!
+					memset(&ROM[BIOS_flash.blocks_start[i]], 0xFF, BIOS_flash.blocks_len[i]); //Clear the block!
+					f = emufopen64(filename, "rb+"); //Open the file for updating!
+					if (!f) //Failed to open?
+					{
+						memcpy(&ROM[BIOS_flash.blocks_start[i]], &blocks_backup, BIOS_flash.blocks_len[i]); //Restore the backup copy!
+						emufclose64(f); //Close the file!
+						BIOS_flash.status = 0xFF; //Error!
+						goto finishflashingblock;
+					}
+					else
+					{
+						emufseek64(f, BIOS_flash.blocks_start[i], SEEK_SET);
+						if (emuftell64(f) == BIOS_flash.blocks_start[i]) //Correct position!
+						{
+							if (emufwrite64(&ROM[BIOS_flash.blocks_start[i]], 1, BIOS_flash.blocks_len[i], f) == BIOS_flash.blocks_len[i]) //Succeeded to overwrite?
+							{
+								emufclose64(f); //Close the file!
+								BIOS_flash.status = 0x80; //Success!
+							}
+							else //Failed to properly flash?
+							{
+								memcpy(&ROM[BIOS_flash.blocks_start[i]], &blocks_backup, BIOS_flash.blocks_len[i]); //Restore the backup copy!
+								emufclose64(f); //Close the file!
+								BIOS_flash.status = 0xFF; //Error!
+								goto finishflashingblock;
+							}
+						}
+						else //Failed to flash?
+						{
+							emufclose64(f); //Close the file!
+							BIOS_flash.status = 0xFF; //Error!
+							goto finishflashingblock;
+						}
+					}
+				}
+			}
+		}
+		finishflashingblock:
+		BIOS_flash.command = CMD_READ_STATUS; //Read the resulting status!
+		break;
+	case CMD_PROGRAM_SETUP:
+	case CMD_PROGRAM_SETUP_ALT:
+		if (((offset & bbmask) != (BIOS_flash.blocks_start[4] & bbmask)) && (offset == BIOS_flash.program_addr)) //Flashing a single byte?
+		{
+			f = emufopen64(filename, "rb+"); //Open the file for updating!
+			if (!f) //Failed to open?
+			{
+				emufclose64(f); //Close the file!
+				BIOS_flash.status = 0xFF; //Error!
+				goto finishflashingblock;
+			}
+			else
+			{
+				emufseek64(f, offset, SEEK_SET);
+				if (emuftell64(f) == offset) //Correct position!
+				{
+					if (emufwrite64(&value, 1, 1, f) == 1) //Succeeded to overwrite?
+					{
+						emufclose64(f); //Close the file!
+						ROM[offset] = value; //Write the value directly to the flash!
+						BIOS_flash.status = 0x80; //Success!
+					}
+					else //Failed to properly flash?
+					{
+						emufclose64(f); //Close the file!
+						BIOS_flash.status = 0xFF; //Error!
+						goto finishflashingblock;
+					}
+				}
+				else //Failed to flash?
+				{
+					emufclose64(f); //Close the file!
+					BIOS_flash.status = 0xFF; //Error!
+					goto finishflashingblock;
+				}
+			}
+		}
+		break;
+	default:
+		BIOS_flash.command = value; //The command!
+		switch (value) //What command?
+		{
+		case CMD_CLEAR_STATUS:
+			BIOS_flash.status = 0;
+			break;
+		case CMD_PROGRAM_SETUP:
+		case CMD_PROGRAM_SETUP_ALT: //Start writing the ROM here!
+			BIOS_flash.program_addr = offset;
+			break;
+		default: //Other command?
+			//NOP!
+			break;
+		}
+		break;
+	}
+}
+
+
 void scanROM(char *device, char *filename, uint_32 size)
 {
 	//Special case: 32-bit uses Compaq ROMs!
@@ -1325,6 +1510,7 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 				return 1; //Ignore writes!
 			}
 		}
+
 		if ((EMULATED_CPU>=CPU_80386) && (is_XT==0)) //Compaq compatible?
 		{
 			if (unlikely(tempoffset>=BIOS_custom_ROM_size)) //Doubled copy?
@@ -1335,6 +1521,14 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 		memory_datawrittensize = 1; //Only 1 byte written!
 		if (likely(tempoffset<BIOS_custom_ROM_size)) //Within range?
 		{
+			if (BIOS_custom_ROM_size == 0x20000) //Valid size to use a BIOS flash ROM emulation?
+			{
+				if (likely(BIOS_flash_enabled)) //Enabled?
+				{
+					//Emulate the flash ROM!
+					BIOS_flash_write8(BIOS_custom_ROM, tempoffset, &customROMname[0], value); //Write access!
+				}
+			}
 			return 1; //Ignore writes!
 		}
 		else //Custom ROM, but nothing to give? Special mapping!
@@ -1445,6 +1639,7 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 
 byte BIOS_readhandler(uint_32 offset, byte index) /* A pointer to a handler function */
 {
+	byte flashresult;
 	INLINEREGISTER uint_32 basepos, tempoffset, baseposbackup, temp;
 	uint_64 endpos;
 	basepos = tempoffset = offset;
@@ -1515,6 +1710,19 @@ byte BIOS_readhandler(uint_32 offset, byte index) /* A pointer to a handler func
 			}
 		}
 		tempoffset = (uint_32)(BIOS_custom_ROM_size-(endpos-(tempoffset+baseposbackup))); //Patch to the end block of the ROM instead of the start.
+		if ((BIOS_custom_ROM_size == 0x20000) && (is_i430fx)) //Emulating flash ROM?
+		{
+			//Emulate Intel flash ROM!
+			if (BIOS_flash_enabled)
+			{
+				if (BIOS_flash_read8(BIOS_custom_ROM, tempoffset, &flashresult)) //Flash override?
+				{
+					memory_dataread = flashresult; //Read the data from the ROM, reversed!
+					memory_datasize = 1; //Only 1 byte!
+					return 1; //Done: we've been read!
+				}
+			}
+		}
 		if (likely(tempoffset<BIOS_custom_ROM_size)) //Within range?
 		{
 			#ifdef USE_MEMORY_CACHING
@@ -1790,6 +1998,37 @@ void BIOS_registerROM()
 	MMU_registerReadHandler(&BIOS_readhandler,"BIOSOPTROM");
 	*/
 	//This is called directly now!
+
+	//Initialize flash ROM if used!
+	memset(&BIOS_flash, 0, sizeof(BIOS_flash)); //Initialize the flash ROM!
+	if (is_i430fx && (BIOS_custom_ROM_size==0x20000)) //i430fx/i440fx has correct flash ROM?
+	{
+		BIOS_flash_enabled = 1; //Start emulatihg flash ROM!
+		BIOS_flash.flags = 0; //No flags!
+		BIOS_flash.flash_id = 0x94; //Flash ID!
+		BIOS_flash.blocks_len[BLOCK_MAIN1] = 0x1C000;
+		BIOS_flash.blocks_len[BLOCK_MAIN2] = 0; //No main 2 block
+		BIOS_flash.blocks_len[BLOCK_DATA1] = 0x1000;
+		BIOS_flash.blocks_len[BLOCK_DATA2] = 0x1000;
+		BIOS_flash.blocks_len[BLOCK_BOOT] = 0x2000;
+		BIOS_flash.blocks_start[BLOCK_MAIN1] = 0; //Main block 1
+		BIOS_flash.blocks_end[BLOCK_MAIN1] = 0x1BFFF;
+		BIOS_flash.blocks_start[BLOCK_MAIN2] = 0xFFFFF; //Main block 2
+		BIOS_flash.blocks_end[BLOCK_MAIN2] = 0xFFFFF;
+		BIOS_flash.blocks_start[BLOCK_DATA1] = 0x1C000; //Data area 1 block
+		BIOS_flash.blocks_end[BLOCK_DATA1] = 0x1CFFF;
+		BIOS_flash.blocks_start[BLOCK_DATA2] = 0x1D000; //Data area 2 block
+		BIOS_flash.blocks_end[BLOCK_DATA2] = 0x1DFFF;
+		BIOS_flash.blocks_start[BLOCK_BOOT] = 0x1E000; //Boot block
+		BIOS_flash.blocks_end[BLOCK_BOOT] = 0x1FFFF;
+		BIOS_flash.command = CMD_READ_ARRAY; //Normal mode!
+		BIOS_flash.status = 0;
+		//Ready for usage of the flash ROM!
+	}
+	else
+	{
+		BIOS_flash_enabled = 0; //Disable flash emulation!
+	}
 }
 
 void BIOSROM_dumpBIOS()
