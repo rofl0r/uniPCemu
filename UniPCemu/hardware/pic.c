@@ -170,7 +170,7 @@ void APIC_handletermination() //Handle termination on the APIC!
 
 	if (APIC.needstermination & 2) //Needs termination due to possible EOI?
 	{
-		if (APIC.EOIregister == 0) //Properly written 0?
+		//if (APIC.EOIregister == 0) //Properly written 0?
 		{
 			if (APIC.ISR[0]|APIC.ISR[1]|APIC.ISR[2]|APIC.ISR[3]|APIC.ISR[4]|APIC.ISR[5]|APIC.ISR[6]|APIC.ISR[7]) //Anything set to acnowledge?
 			{
