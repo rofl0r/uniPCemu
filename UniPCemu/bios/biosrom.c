@@ -187,6 +187,7 @@ void BIOS_flash_write8(byte* ROM, uint_32 offset, char *filename, byte value)
 							{
 								emufclose64(f); //Close the file!
 								BIOS_flash.status = 0x80; //Success!
+								goto finishflashingblock;
 							}
 							else //Failed to properly flash?
 							{
@@ -230,6 +231,7 @@ void BIOS_flash_write8(byte* ROM, uint_32 offset, char *filename, byte value)
 						emufclose64(f); //Close the file!
 						ROM[offset] = value; //Write the value directly to the flash!
 						BIOS_flash.status = 0x80; //Success!
+						goto finishflashingblock;
 					}
 					else //Failed to properly flash?
 					{
