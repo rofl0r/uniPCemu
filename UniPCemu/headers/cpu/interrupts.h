@@ -27,5 +27,6 @@ void CPU_IRET();
 
 void BIOS_unkint(); //Unknown/unhandled interrupt (<0x20 only!)
 byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorcode, byte is_interrupt); //Used by soft (below) and exceptions/hardware!
+void CPU_INTERNAL_execNMI();
 
 #endif

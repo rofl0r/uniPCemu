@@ -413,13 +413,10 @@ extern byte SystemControlPortB; //System control port B data!
 extern byte PPI62; //For XT support!
 byte NMI = 1; //NMI Disabled?
 
-byte NMIQueued = 0; //NMI raised to handle?
+byte NMIQueued = 0; //NMI raised to handle? This can be handled by an APIC!
 
-
-byte CPU_handleNMI()
+void CPU_INTERNAL_execNMI()
 {
-	if (NMIQueued == 0) return 1; //No NMI Pending!
-	NMIQueued = 0; //Not anymore, we're handling it!
 	if ((MMU_logging == 1) && advancedlog) //Are we logging?
 	{
 		dolog("debugger", "#NMI fault(-1)!");
@@ -445,6 +442,21 @@ byte CPU_handleNMI()
 		call_hard_inthandler(EXCEPTION_NMI); //Trigger the hardware interrupt-style NMI!
 	}
 	CPU[activeCPU].cycles_HWOP = 50; /* Normal interrupt as hardware interrupt */
+}
+
+extern byte IMCR; //Address selected. 00h=Connect INTR and NMI to the CPU. 01h=Disconnect INTR and NMI from the CPU.
+byte CPU_handleNMI()
+{
+	if (IMCR == 0x01)
+	{
+		return 1; //Don't perform the NMI as part of the NMI interrupt line!
+	}
+
+	if (NMIQueued == 0) return 1; //No NMI Pending!
+	NMIQueued = 0; //Not anymore, we're handling it!
+
+	CPU_INTERNAL_execNMI(); //Perform the NMI!
+
 	return 0; //NMI handled!
 }
 

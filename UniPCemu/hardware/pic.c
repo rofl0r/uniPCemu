@@ -100,6 +100,7 @@ struct
 
 byte addr22 = 0; //Address select of port 22h!
 byte IMCR = 0; //Address selected. 00h=Connect INTR and NMI to the CPU. 01h=Disconnect INTR and NMI from the CPU.
+extern byte NMIQueued; //NMI raised to handle? This can be handled by an Local APIC! This then clears said flag to acnowledge it!
 
 //i8259.irr is the complete status of all 8 interrupt lines at the moment. Any software having raised it's line, raises this. Otherwise, it's lowered(irr3 are all cleared)!
 //i8259.irr2 is the live status of each of the parallel interrupt lines!
