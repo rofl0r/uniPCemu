@@ -96,4 +96,7 @@ void APIC_updateWindowMSR(uint_32 lo, uint_32 hi); //Update the window MSR of th
 byte APIC_memIO_rb(uint_32 offset, byte index); //Read handler for the APIC!
 byte APIC_memIO_wb(uint_32 offset, byte value); //Write handler for the APIC!
 
+void APIC_raisedIRQ(byte PIC, byte irqnum);
+void APIC_loweredIRQ(byte PIC, byte irqnum);
+
 #endif

@@ -98,6 +98,9 @@ struct
 	byte IOAPIC_globalrequirestermination; //Is termination required for the IO APIC?
 } APIC; //The APIC that's emulated!
 
+byte addr22 = 0; //Address select of port 22h!
+byte IMCR = 0; //Address selected. 00h=Connect INTR and NMI to the CPU. 01h=Disconnect INTR and NMI from the CPU.
+
 //i8259.irr is the complete status of all 8 interrupt lines at the moment. Any software having raised it's line, raises this. Otherwise, it's lowered(irr3 are all cleared)!
 //i8259.irr2 is the live status of each of the parallel interrupt lines!
 //i8259.irr3 is the identifier for request subchannels that are pending to be acnowledged(cleared when acnowledge and the interrupt is fired).
@@ -146,6 +149,7 @@ void init8259()
 		break;
 	}
 	resetAPIC(); //Reset the APIC as well!
+	addr22 = IMCR = 0x00; //Default values after powerup for the IMCR and related register!
 }
 
 void APIC_handletermination() //Handle termination on the APIC!
@@ -844,6 +848,24 @@ byte readPollingMode(byte pic); //Prototype!
 byte in8259(word portnum, byte *result)
 {
 	if (__HW_DISABLED) return 0; //Abort!
+	if (portnum == 0x22)
+	{
+		*result = addr22; //Read addr22
+		return 1;
+	}
+	else if (portnum == 0x23)
+	{
+		if (addr22 == 0x70) //Selected IMCR?
+		{
+			*result = IMCR; //Give IMCR!
+			return 1;
+		}
+		else
+		{
+			*result = 0xFF; //Unknown register!
+			return 1;
+		}
+	}
 	byte pic = ((portnum&~1)==0xA0)?1:(((portnum&~1)==0x20)?0:2); //PIC0/1/unknown!
 	if (pic == 2) return 0; //Not our PIC!
 	switch (portnum & 1)
@@ -909,6 +931,23 @@ byte out8259(word portnum, byte value)
 {
 	byte source;
 	if (__HW_DISABLED) return 0; //Abort!
+	if (portnum == 0x22)
+	{
+		addr22 = value; //Write addr22
+		return 1;
+	}
+	else if (portnum == 0x23)
+	{
+		if (addr22 == 0x70) //Selected IMCR?
+		{
+			IMCR = value; //Set IMCR!
+			return 1;
+		}
+		else
+		{
+			return 1; //Unknown register!
+		}
+	}
 	byte pic = ((portnum & ~1) == 0xA0) ? 1 : (((portnum & ~1) == 0x20) ? 0 : 2); //PIC0/1/unknown!
 	if (pic == 2) return 0; //Not our PIC!
 	switch (portnum & 1)
@@ -1011,6 +1050,17 @@ void acnowledgeirrs()
 	byte nonedirty; //None are dirtied?
 	byte recheck;
 	recheck = 0;
+
+	//INTR on the APIC!
+	if (getunprocessedinterrupt(0)) //INTR?
+	{
+		APIC_raisedIRQ(0, 2); //Raised INTR!
+	}
+	else //No INTR?
+	{
+		APIC_loweredIRQ(0, 2); //Raised INTR!
+	}
+
 performRecheck:
 	if (recheck == 0) //Check?
 	{
@@ -1065,6 +1115,16 @@ performRecheck:
 	{
 		irr3_dirty = 0; //Not dirty anymore!
 	}
+
+	//INTR on the APIC!
+	if (getunprocessedinterrupt(0)) //INTR?
+	{
+		APIC_raisedIRQ(0, 2); //Raised INTR!
+	}
+	else //No INTR?
+	{
+		APIC_loweredIRQ(0, 2); //Raised INTR!
+	}
 }
 
 sword APIC_intnr = -1;
@@ -1076,7 +1136,7 @@ byte PICInterrupt() //We have an interrupt ready to process? This is the primary
 	{
 		return 2; //APIC IRQ!
 	}
-	if (getunprocessedinterrupt(0)) //Primary PIC interrupt?
+	if (getunprocessedinterrupt(0) && (IMCR!=0x01)) //Primary PIC interrupt? This is also affected by the IMCR!
 	{
 		return 1;
 	}
@@ -1214,6 +1274,7 @@ void APIC_raisedIRQ(byte PIC, byte irqnum)
 {
 	//A line has been raised!
 	if (irqnum == 0) irqnum = 2; //IRQ0 is on APIC line 2!
+	else if (irqnum == 2) irqnum = 0; //INTR to APIC line 0!
 	//INTR is also on APIC line 0!
 	if ((APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x4000) == 0) //Edge-triggered? Supported!
 	{
@@ -1232,6 +1293,7 @@ void APIC_raisedIRQ(byte PIC, byte irqnum)
 void APIC_loweredIRQ(byte PIC, byte irqnum)
 {
 	if (irqnum == 0) irqnum = 2; //IRQ0 is on APIC line 2!
+	else if (irqnum == 2) irqnum = 0; //INTR to APIC line 0!
 	//INTR is also on APIC line 0!
 	//A line has been lowered!
 	if ((APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x4000) == 0) //Edge-triggered? Supported!
