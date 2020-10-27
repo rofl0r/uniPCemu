@@ -1213,6 +1213,8 @@ byte nextintr()
 void APIC_raisedIRQ(byte PIC, byte irqnum)
 {
 	//A line has been raised!
+	if (irqnum == 0) irqnum = 2; //IRQ0 is on APIC line 2!
+	//INTR is also on APIC line 0!
 	if ((APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x4000) == 0) //Edge-triggered? Supported!
 	{
 		APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] |= (1 << 12); //Waiting to be delivered!
@@ -1229,6 +1231,8 @@ void APIC_raisedIRQ(byte PIC, byte irqnum)
 
 void APIC_loweredIRQ(byte PIC, byte irqnum)
 {
+	if (irqnum == 0) irqnum = 2; //IRQ0 is on APIC line 2!
+	//INTR is also on APIC line 0!
 	//A line has been lowered!
 	if ((APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x4000) == 0) //Edge-triggered? Supported!
 	{
