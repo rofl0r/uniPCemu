@@ -1147,10 +1147,10 @@ byte PORT_writeCMOS(word port, byte value) //Write to a port/register!
 
 void initCMOS() //Initialises CMOS (apply solid init settings&read init if possible)!
 {
+	memset(&CMOS,0,sizeof(CMOS)); //Make sure we're fully initialized always!
 	CMOS.ADDR = 0; //Reset!
 	CMOS.extADDR = 0x80; //Reset!
 	NMI = 1; //Reset: Disable NMI interrupts!
-	memset(&CMOS,0,sizeof(CMOS)); //Make sure we're fully initialized always!
 	loadCMOS(); //Load the CMOS from disk OR defaults!
 
 	//Register our I/O ports!
