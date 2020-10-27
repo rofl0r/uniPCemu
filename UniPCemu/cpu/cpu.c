@@ -438,7 +438,7 @@ void CPU_CPUID()
 			REG_EDX |= 0x0800; //Just SYSENTER/SYSEXIT have been added!
 			//REG_ECX |= 0x00000000; //No features have been added!
 		case CPU_PENTIUMPRO: //Pentium Pro?
-			REG_EDX |= 0xA040; //Just CMOV(but not FCMOV, since the NPU feature bit(bit 0) isn't set), PAE and Page Global Enable have been implemented!
+			REG_EDX |= 0xA240; //Just CMOV(but not FCMOV, since the NPU feature bit(bit 0) isn't set), PAE and Page Global Enable and APIC have been implemented!
 			//REG_ECX |= 0x00000000; //No features have been added!
 		case CPU_PENTIUM: //Pentium?
 			REG_EDX |= 0x13E; //Just VME, Debugging Extensions, Page Size Extensions, TSC, MSR, CMPXCHG8 have been implemented!
