@@ -112,7 +112,7 @@ void resetAPIC()
 	byte IRQnr;
 	for (IRQnr = 0; IRQnr < NUMITEMS(APIC.IOAPIC_redirectionentry); ++IRQnr) //Handle all IRQ handlers we support!
 	{
-		APIC.IOAPIC_redirectionentry[IRQnr][0] = 0x10000; //Masked, nothing else set yet, edge mode, active high!
+		APIC.IOAPIC_redirectionentry[IRQnr][0] |= 0x10000; //Masked, nothing else set yet, edge mode, active high!
 	}
 	APIC.IOAPIC_IMRset = ~0; //Mask all set!
 }
