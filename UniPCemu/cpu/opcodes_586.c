@@ -119,7 +119,7 @@ void CPU586_OP0F30() //WRMSR
 
 	ROMbitshi = MSRmaskwritehigh_readonly[storagenr]; //High ROM bits!
 	ROMbitslo = MSRmaskwritelow_readonly[storagenr]; //Low ROM bits!
-	if (unlikely(REG_ECX == 0x1B)) //APIC MSR needs external hardware handling as well?
+	if (unlikely((REG_ECX == 0x1B) && (EMULATED_CPU==CPU_PENTIUM))) //Sticky bits on this processor?
 	{
 		ROMbitslo |= ((~MSR->lo) & (1 << 11)); //Bit 11 (APIC global enable) is sticky when disabled!
 	}
