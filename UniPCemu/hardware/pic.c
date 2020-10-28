@@ -102,6 +102,7 @@ struct
 byte addr22 = 0; //Address select of port 22h!
 byte IMCR = 0; //Address selected. 00h=Connect INTR and NMI to the CPU. 01h=Disconnect INTR and NMI from the CPU.
 extern byte NMIQueued; //NMI raised to handle? This can be handled by an Local APIC! This then clears said flag to acnowledge it!
+extern byte APICNMIQueued; //APIC-issued NMI queued?
 
 //i8259.irr is the complete status of all 8 interrupt lines at the moment. Any software having raised it's line, raises this. Otherwise, it's lowered(irr3 are all cleared)!
 //i8259.irr2 is the live status of each of the parallel interrupt lines!
@@ -328,19 +329,23 @@ void IOAPIC_pollRequests()
 			switch ((APIC.InterruptCommandRegisterLo >> 8) & 7) //What is requested?
 			{
 			case 0: //Interrupt raise?
+			case 1: //Lowest priority?
 				if ((APIC.IRR[(APIC.InterruptCommandRegisterLo & 0xFF) >> 5] & (1 << ((APIC.InterruptCommandRegisterLo & 0xFF) & 0x1F))) == 0) //Ready to receive?
 				{
 					APIC.IRR[(APIC.InterruptCommandRegisterLo & 0xFF) >> 5] |= (1 << ((APIC.InterruptCommandRegisterLo & 0xFF) & 0x1F)); //Raise the interrupt on the Local APIC!
 				}
 				break;
-			case 1: //Lowest priority?
 			case 2: //SMI raised?
+				break;
 			case 4: //NMI raised?
+				APICNMIQueued = 1; //Queue the APIC NMI!
 				break;
 			case 5: //INIT or INIT deassert?
 				resetCPU(0x80); //Special reset of the CPU: INIT only!
 				break;
 			case 6: //SIPI?
+				//Not implemented yet!
+				break;
 			default: //Unknown?
 				//Don't handle it!
 				break;
@@ -384,15 +389,13 @@ void IOAPIC_pollRequests()
 						APIC_requestbithighestpriority = APIC_requestbit; //What bit was the highest priority?
 					}
 					break;
+				case 2: //SMI?
+				case 4: //NMI?
 				case 5: //INIT or INIT deassert?
+				case 7: //extINT?
 					APIC_highestpriority = (int)(APIC.IOAPIC_redirectionentry[IR][0] & 0xF0U); //New highest priority!
 					APIC_highestpriorityIR = IR; //What IR has the highest priority now!
 					APIC_requestbithighestpriority = APIC_requestbit; //What bit was the highest priority?
-					break;
-				case 2: //SMI?
-				case 4: //NMI?
-				case 7: //extINT?
-					//Unsupported to fire right now! Ignore them! Leave pending!
 					break;
 				}
 			}
@@ -451,11 +454,25 @@ void IOAPIC_pollRequests()
 			}
 			//The IO APIC ignores the received message?
 			break;
+		case 2: //SMI?
+			//Not implemented yet!
+			break;
+		case 4: //NMI?
+			if (isLAPIC == 1) //Local APIC?
+			{
+				APICNMIQueued = 1; //APIC-issued NMI queued!
+			}
+			break;
 		case 5: //INIT or INIT deassert?
 			if (isLAPIC == 1) //Local APIC?
 			{
 				resetCPU(0x80); //Special reset of the CPU: INIT only!
 			}
+			break;
+		case 7: //extINT?
+			//Not implemented yet!
+			break;
+		default: //Unsupported yet?
 			break;
 		}
 	}

@@ -1064,6 +1064,7 @@ byte CPU_segmentOverridden(byte activeCPU);
 void CPU_8086REPPending(byte doReset); //Execute this before CPU_exec!
 
 byte CPU_handleNMI(); //Did we not handle an NMI?
+byte CPU_checkNMIAPIC(); //Check for APIC NMI to fire?
 byte execNMI(byte causeisMemory); //Execute an NMI!
 
 void CPU_unkOP(); //General unknown OPcode handler!

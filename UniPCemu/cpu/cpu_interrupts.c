@@ -414,6 +414,7 @@ extern byte PPI62; //For XT support!
 byte NMI = 1; //NMI Disabled?
 
 byte NMIQueued = 0; //NMI raised to handle? This can be handled by an APIC!
+byte APICNMIQueued = 0; //APIC-issued NMI queued?
 
 void CPU_INTERNAL_execNMI()
 {
@@ -442,6 +443,17 @@ void CPU_INTERNAL_execNMI()
 		call_hard_inthandler(EXCEPTION_NMI); //Trigger the hardware interrupt-style NMI!
 	}
 	CPU[activeCPU].cycles_HWOP = 50; /* Normal interrupt as hardware interrupt */
+}
+
+byte CPU_checkNMIAPIC()
+{
+	if (APICNMIQueued) //APIC NMI queued?
+	{
+		APICNMIQueued = 0; //Not queued anymore!
+		CPU_INTERNAL_execNMI(); //Start it up!
+		return 0; //NNI handled!
+	}
+	return 1; //NMI not handled!
 }
 
 extern byte IMCR; //Address selected. 00h=Connect INTR and NMI to the CPU. 01h=Disconnect INTR and NMI from the CPU.
