@@ -326,6 +326,7 @@ void LAPIC_executeVector(uint_32* vectorlo, byte IR)
 
 void IOAPIC_pollRequests()
 {
+	byte receiver;
 	byte isLAPIC;
 	byte logicaldestination;
 	byte IR;
@@ -334,6 +335,7 @@ void IOAPIC_pollRequests()
 	byte APIC_highestpriorityIR; //Highest priority IR detected!
 	uint_32 APIC_IRQsrequested, APIC_requestbit, APIC_requestsleft, APIC_requestbithighestpriority;
 	APIC_IRQsrequested = APIC.IOAPIC_IRRset & (~APIC.IOAPIC_IMRset); //What can we handle!
+	receiver = 0; //Initialize receivers of the packet!
 	if (APIC.InterruptCommandRegisterLo & 0x1000) //Pending command being sent?
 	{
 		switch ((APIC.InterruptCommandRegisterLo >> 18) & 3) //What destination type?
@@ -344,52 +346,63 @@ void IOAPIC_pollRequests()
 				logicaldestination = ((APIC.InterruptCommandRegisterHi >> 24) & 0xFF); //What is the logical destination?
 				if (isLAPIClogicaldestination(logicaldestination)) //Match on the logical destination?
 				{
-					goto receiveCommandRegister; //Receive it!
+					receiver |= 1; //Received on LAPIC!
 				}
 			}
 			else //Physical destination?
 			{
-				if (isAPICPhysicaldestination(0,((APIC.InterruptCommandRegisterHi >> 24)&0xF))==1) //Local APIC?
+				if (isAPICPhysicaldestination(0, ((APIC.InterruptCommandRegisterHi >> 24) & 0xF)) == 1) //Local APIC?
 				{
-					goto receiveCommandRegister; //Receive it!
+					receiver |= 1; //Receive it on LAPIC!
 				}
-				if (isAPICPhysicaldestination(1, ((APIC.InterruptCommandRegisterHi >> 24) & 0xF))==2) //IO APIC?
+				if (isAPICPhysicaldestination(1, ((APIC.InterruptCommandRegisterHi >> 24) & 0xF)) == 2) //IO APIC?
 				{
-					//Discard it!
+					receiver |= 2; //Received on the IO APIC!
 				}
+			}
+			if (receiver & 1) //Received on the Local APIC?
+			{
+				goto receiveCommandRegister; //Receive it!
 			}
 			//Discard it!
 			APIC.InterruptCommandRegisterLo &= ~0x1000; //We're receiving it somewhere!
 			break;
 		case 1: //To itself?
+			receiver = 1; //Self received!
+			goto receiveCommandRegister; //Receive it!
+			break;
 		case 2: //All processors?
 			//Receive it!
 			//Handle the request!
+			receiver = 3; //All received!
 		receiveCommandRegister:
 			APIC.InterruptCommandRegisterLo &= ~0x1000; //We're receiving it somewhere!
-			switch ((APIC.InterruptCommandRegisterLo >> 8) & 7) //What is requested?
+			if (receiver & 1) //Received on LAPIC?
 			{
-			case 0: //Interrupt raise?
-			case 1: //Lowest priority?
-				if ((APIC.IRR[(APIC.InterruptCommandRegisterLo & 0xFF) >> 5] & (1 << ((APIC.InterruptCommandRegisterLo & 0xFF) & 0x1F))) == 0) //Ready to receive?
+				switch ((APIC.InterruptCommandRegisterLo >> 8) & 7) //What is requested?
 				{
-					APIC.IRR[(APIC.InterruptCommandRegisterLo & 0xFF) >> 5] |= (1 << ((APIC.InterruptCommandRegisterLo & 0xFF) & 0x1F)); //Raise the interrupt on the Local APIC!
+				case 0: //Interrupt raise?
+				case 1: //Lowest priority?
+					if ((APIC.IRR[(APIC.InterruptCommandRegisterLo & 0xFF) >> 5] & (1 << ((APIC.InterruptCommandRegisterLo & 0xFF) & 0x1F))) == 0) //Ready to receive?
+					{
+						APIC.IRR[(APIC.InterruptCommandRegisterLo & 0xFF) >> 5] |= (1 << ((APIC.InterruptCommandRegisterLo & 0xFF) & 0x1F)); //Raise the interrupt on the Local APIC!
+					}
+					break;
+				case 2: //SMI raised?
+					break;
+				case 4: //NMI raised?
+					APICNMIQueued = 1; //Queue the APIC NMI!
+					break;
+				case 5: //INIT or INIT deassert?
+					resetCPU(0x80); //Special reset of the CPU: INIT only!
+					break;
+				case 6: //SIPI?
+					//Not implemented yet!
+					break;
+				default: //Unknown?
+					//Don't handle it!
+					break;
 				}
-				break;
-			case 2: //SMI raised?
-				break;
-			case 4: //NMI raised?
-				APICNMIQueued = 1; //Queue the APIC NMI!
-				break;
-			case 5: //INIT or INIT deassert?
-				resetCPU(0x80); //Special reset of the CPU: INIT only!
-				break;
-			case 6: //SIPI?
-				//Not implemented yet!
-				break;
-			default: //Unknown?
-				//Don't handle it!
-				break;
 			}
 			break;
 		case 3: //All but ourselves?
@@ -453,21 +466,23 @@ void IOAPIC_pollRequests()
 			//Determine destination correct by destination format and logical destination register in the LAPIC!
 			if (isLAPIClogicaldestination(logicaldestination)) //Match on the logical destination?
 			{
-				isLAPIC = 1; //LAPIC!
+				isLAPIC |= 1; //LAPIC!
 				goto receiveIOLAPICCommandRegister; //Receive it!
 			}
 		}
 		else //Physical destination?
 		{
 			logicaldestination = ((APIC.InterruptCommandRegisterHi >> 24) & 0xF); //What destination!
-			if (isAPICPhysicaldestination(0, logicaldestination)==1) //Local APIC?
+			if (isAPICPhysicaldestination(0, logicaldestination) == 1) //Local APIC?
 			{
-				isLAPIC = 1; //LAPIC!
-				goto receiveIOLAPICCommandRegister; //Receive it!
+				isLAPIC |= 1; //LAPIC received!
 			}
 			if (isAPICPhysicaldestination(1, logicaldestination)==2) //IO APIC?
 			{
-				isLAPIC = 0; //Not the LAPIC!
+				isLAPIC |= 2; //IO APIC received!
+			}
+			if (isLAPIC) //Received?
+			{
 				goto receiveIOLAPICCommandRegister; //Receive it!
 			}
 		}
@@ -478,7 +493,7 @@ void IOAPIC_pollRequests()
 		IR = APIC_highestpriorityIR; //The IR for the highest priority!
 		APIC_IRQsrequested &= ~APIC_requestbit; //Clear the request bit!
 		APIC.IOAPIC_IRRset &= ~APIC_requestbit; //Clear the request, because we're firing it up now!
-		if (isLAPIC) //Local APIC?
+		if (isLAPIC&1) //Local APIC received?
 		{
 			LAPIC_executeVector(&APIC.IOAPIC_redirectionentry[IR][0], IR); //Execute this vector!
 		}
