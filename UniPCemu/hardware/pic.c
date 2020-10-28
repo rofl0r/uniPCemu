@@ -52,6 +52,7 @@ struct
 	uint_32 prevSpuriousInterruptVectorRegister; //The previous value before the write!
 
 	//IRQ detection
+	uint_32 IOAPIC_IRRreq; //Is the IRR requested, but masked(1-bit values)
 	uint_32 IOAPIC_IRRset; //Is the IRR set(1-bit values)
 	uint_32 IOAPIC_IMRset; //Is the IMR routine set(1-bit values)
 
@@ -115,6 +116,7 @@ void resetAPIC()
 		APIC.IOAPIC_redirectionentry[IRQnr][0] |= 0x10000; //Masked, nothing else set yet, edge mode, active high!
 	}
 	APIC.IOAPIC_IMRset = ~0; //Mask all set!
+	APIC.IOAPIC_IRRreq = 0; //Remove all pending requests!
 }
 
 void init8259()
@@ -165,6 +167,10 @@ void APIC_handletermination() //Handle termination on the APIC!
 		if (((APIC.SpuriousInterruptVectorRegister & 0x100) == 0) && ((APIC.prevSpuriousInterruptVectorRegister & 0x100))) //Cleared?
 		{
 			resetAPIC(); //Reset the APIC!
+		}
+		else if (((APIC.prevSpuriousInterruptVectorRegister & 0x100) == 0) && ((APIC.SpuriousInterruptVectorRegister & 0x100))) //Set?
+		{
+			APIC.IOAPIC_IRRreq = 0; //Remove all pending!
 		}
 	}
 
@@ -1107,6 +1113,7 @@ OPTINLINE byte getunprocessedinterrupt(byte PIC)
 	return result; //Give the result!
 }
 
+void IOAPIC_raisepending(); //Prototype!
 void acnowledgeirrs()
 {
 	byte nonedirty; //None are dirtied?
@@ -1126,6 +1133,7 @@ void acnowledgeirrs()
 performRecheck:
 	if (recheck == 0) //Check?
 	{
+		IOAPIC_raisepending(); //Raise all pending!
 		IOAPIC_pollRequests(); //Poll the APIC for possible requests!
 		if (getunprocessedinterrupt(1)) //Slave connected to master?
 		{
@@ -1347,6 +1355,37 @@ void APIC_raisedIRQ(byte PIC, byte irqnum)
 			{
 				APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] &= ~(1 << 12); //Not waiting to be delivered!
 				APIC.IOAPIC_IRRset |= (1 << (irqnum & 0xF)); //Set the IRR?
+			}
+		}
+		else
+		{
+			APIC.IOAPIC_IRRreq |= (1 << (irqnum & 0xF))); //Requested to fire!
+		}
+	}
+}
+
+void IOAPIC_raisepending()
+{
+	if (!(APIC.IOAPIC_IRRreq&~(APIC.IOAPIC_IMRset)&~(APIC.IOAPIC_IRRset))) return; //Nothing to do?
+	byte irqnum;
+	for (irqnum=0;irqnum<24;++irqnum) //Check all!
+	{
+		if ((APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x8000) == 0) //Edge-triggered? Supported!
+		{
+			if (APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & (1 << 12)) //Waiting to be delivered!
+			{
+				if ((APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x10000) == 0) //Not masked?
+				{
+					if (!(APIC.IOAPIC_IRRset & (1 << (irqnum & 0xF)))) //Not already pending?
+					{
+						if ((APIC.IOAPIC_IRRreq & (1 << (irqnum & 0xF)))) //Pending requested?
+						{
+							APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] &= ~(1 << 12); //Not waiting to be delivered!
+							APIC.IOAPIC_IRRset |= (1 << (irqnum & 0xF)); //Set the IRR?
+							APIC.IOAPIC_IRRreq &= ~(1 << (irqnum & 0xF)); //Requested to fire!
+						}
+					}
+				}
 			}
 		}
 	}
