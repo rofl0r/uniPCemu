@@ -61,6 +61,7 @@ struct
 	//Now, the actual memory for the LAPIC!
 	byte LAPIC_requirestermination[0x400]; //Dword requires termination?
 	byte LAPIC_globalrequirestermination; //Is termination required at all for the Local APIC?
+	uint_32 LAPIC_arbitrationIDregister; //Arbitration ID, set at INIT deassert and RESET!
 	uint_32 LAPIC_ID; //0020
 	uint_32 LAPIC_version; //0030
 	uint_32 TaskPriorityRegister; //0080
@@ -136,6 +137,11 @@ void resetAPIC()
 	APIC.IOAPIC_IRRreq = 0; //Remove all pending requests!
 }
 
+void updateAPICArbitrationIDregister()
+{
+	APIC.LAPIC_arbitrationIDregister = APIC.LAPIC_ID & (0xFF << 24); //Load the Arbitration ID register from the Local APIC ID register! All 8-bits are loaded!
+}
+
 void init8259()
 {
 	if (__HW_DISABLED) return; //Abort!
@@ -173,6 +179,7 @@ void init8259()
 	resetAPIC(); //Reset the APIC as well!
 	addr22 = IMCR = 0x00; //Default values after powerup for the IMCR and related register!
 	updateLAPICTimerSpeed(); //Update the used timer speed!
+	updateLAPICArbitrationIDregister(); //Update the Arbitration ID register with it's defaults!
 }
 
 void APIC_errorTrigger(); //Error has been triggered! Prototype!
@@ -514,7 +521,16 @@ void IOAPIC_pollRequests()
 					APICNMIQueued = 1; //Queue the APIC NMI!
 					break;
 				case 5: //INIT or INIT deassert?
-					resetCPU(0x80); //Special reset of the CPU: INIT only!
+					if (((APIC.InterruptCommandRegisterLo >> 14) & 3) == 2) //De-assert?
+					{
+						//Setup Arbitration ID registers on all APICs!
+						//Operation on Pentium and P6: Arbitration ID register = APIC ID register.
+						updateLAPICArbitrationIDregister(); //Update the register!
+					}
+					else //INIT?
+					{
+						resetCPU(0x80); //Special reset of the CPU: INIT only!
+					}
 					break;
 				case 6: //SIPI?
 					if ((APIC.InterruptCommandRegisterLo & 0xFF) < 0x10) //Invalid vector?
