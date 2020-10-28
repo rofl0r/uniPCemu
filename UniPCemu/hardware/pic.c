@@ -314,37 +314,35 @@ void IOAPIC_pollRequests()
 				if (isAPICPhysicaldestination(1, ((APIC.InterruptCommandRegisterHi >> 24) & 0xF))==2) //IO APIC?
 				{
 					//Discard it!
-					APIC.InterruptCommandRegisterLo &= ~0x1000; //We're receiving it somewhere!
 				}
 			}
+			//Discard it!
+			APIC.InterruptCommandRegisterLo &= ~0x1000; //We're receiving it somewhere!
 			break;
 		case 1: //To itself?
 		case 2: //All processors?
 			//Receive it!
 			//Handle the request!
 		receiveCommandRegister:
+			APIC.InterruptCommandRegisterLo &= ~0x1000; //We're receiving it somewhere!
 			switch ((APIC.InterruptCommandRegisterLo >> 8) & 7) //What is requested?
 			{
 			case 0: //Interrupt raise?
 				if ((APIC.IRR[(APIC.InterruptCommandRegisterLo & 0xFF) >> 5] & (1 << ((APIC.InterruptCommandRegisterLo & 0xFF) & 0x1F))) == 0) //Ready to receive?
 				{
-					APIC.InterruptCommandRegisterLo &= ~0x1000; //We're receiving it somewhere!
 					APIC.IRR[(APIC.InterruptCommandRegisterLo & 0xFF) >> 5] |= (1 << ((APIC.InterruptCommandRegisterLo & 0xFF) & 0x1F)); //Raise the interrupt on the Local APIC!
 				}
 				break;
 			case 1: //Lowest priority?
 			case 2: //SMI raised?
 			case 4: //NMI raised?
-				//APIC.InterruptCommandRegisterLo &= ~0x1000; //We're receiving it somewhere!
 				break;
 			case 5: //INIT or INIT deassert?
 				resetCPU(0x80); //Special reset of the CPU: INIT only!
-				APIC.InterruptCommandRegisterLo &= ~0x1000; //We're receiving it somewhere!
 				break;
 			case 6: //SIPI?
 			default: //Unknown?
 				//Don't handle it!
-				APIC.InterruptCommandRegisterLo &= ~0x1000; //We're receiving it somewhere!
 				break;
 			}
 			break;
