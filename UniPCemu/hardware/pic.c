@@ -50,6 +50,8 @@ struct
 
 	//Differential detection
 	uint_32 prevSpuriousInterruptVectorRegister; //The previous value before the write!
+	uint_64 LAPIC_timerremainder; //How much time remained?
+	byte LAPIC_timerdivider; //The divider of the timer!
 
 	//IRQ detection
 	uint_32 IOAPIC_IRRreq; //Is the IRR requested, but masked(1-bit values)
@@ -83,7 +85,7 @@ struct
 	uint_32 LVTLINT1Register; //0560
 	uint_32 LVTErrorRegister; //0370
 	uint_32 InitialCountRegister; //0380
-	uint_32 CurrentCountRegistetr; //0390
+	uint_32 CurrentCountRegister; //0390
 	uint_32 DivideConfigurationRegister; //03E0
 
 	//IO APIC address registers!
@@ -107,6 +109,20 @@ extern byte APICNMIQueued; //APIC-issued NMI queued?
 //i8259.irr is the complete status of all 8 interrupt lines at the moment. Any software having raised it's line, raises this. Otherwise, it's lowered(irr3 are all cleared)!
 //i8259.irr2 is the live status of each of the parallel interrupt lines!
 //i8259.irr3 is the identifier for request subchannels that are pending to be acnowledged(cleared when acnowledge and the interrupt is fired).
+
+void updateLAPICTimerSpeed()
+{
+	byte divider;
+	divider = (APIC.DivideConfigurationRegister & 3) | ((APIC.DivideConfigurationRegister & 8) >> 1); //Divider set!
+	if (divider == 7) //Actually 1?
+	{
+		APIC.LAPIC_timerdivider = 0; //Divide by 1!
+	}
+	else //2^n
+	{
+		APIC.LAPIC_timerdivider = 1+divider; //Calculate it!
+	}
+}
 
 //Handle everything that needs to be done when resetting the APIC!
 void resetAPIC()
@@ -156,7 +172,10 @@ void init8259()
 	}
 	resetAPIC(); //Reset the APIC as well!
 	addr22 = IMCR = 0x00; //Default values after powerup for the IMCR and related register!
+	updateLAPICTimerSpeed(); //Update the used timer speed!
 }
+
+void APIC_errorTrigger(); //Error has been triggered! Prototype!
 
 void APIC_handletermination() //Handle termination on the APIC!
 {
@@ -213,6 +232,31 @@ void APIC_handletermination() //Handle termination on the APIC!
 	if (APIC.needstermination & 8) //Error status register needs termination?
 	{
 		APIC.ErrorStatusRegister = 0; //Clear the status register for new errors to be reported!
+	}
+
+	if (APIC.needstermination & 0x10) //Initial count register is written?
+	{
+		if (APIC.InitialCountRegister == 0) //Stop the timer?
+		{
+			APIC.CurrentCountRegister = 0; //Stop the timer!
+		}
+		else //Timer started?
+		{
+			APIC.CurrentCountRegister = APIC.InitialCountRegister; //Load the current count and start timing!
+		}
+	}
+
+	if (APIC.needstermination & 0x20) //Divide configuationregister is written?
+	{
+		updateLAPICTimerSpeed(); //Update the timer speed!
+	}
+
+	if (APIC.needstermination & 0x40) //Error Status Interrupt is written?
+	{
+		if (APIC.ErrorStatusRegister && ((APIC.LVTErrorRegister&0x10000)==0)) //Error marked and interrupt enabled?
+		{
+			APIC_errorTrigger(); //Error interrupt is triggered!
+		}
 	}
 
 	APIC.needstermination = 0; //No termination is needed anymore!
@@ -302,6 +346,7 @@ void LAPIC_executeVector(uint_32* vectorlo, byte IR)
 		if (APIC_intnr < 0x10) //Invalid?
 		{
 			APIC.ErrorStatusRegister |= (1 << 6); //Report an illegal vector being received!
+			APIC_errorTrigger(); //Error has been triggered!
 			return; //Abort!
 		}
 		APIC.IRR[APIC_intnr >> 5] |= (1 << (APIC_intnr & 0x1F)); //Mark the interrupt requested to fire!
@@ -323,6 +368,69 @@ void LAPIC_executeVector(uint_32* vectorlo, byte IR)
 		break;
 	default: //Unsupported yet?
 		break;
+	}
+}
+
+void updateAPIC(uint_64 clockspassed)
+{
+	uint_64 remainingclocks;
+	if (!clockspassed) return; //Nothing passed?
+	if (APIC.CurrentCountRegister) //Count busy?
+	{
+		//First, divide up!
+		APIC.LAPIC_timerremainder += clockspassed; //How much more is passed!
+		if (APIC.LAPIC_timerremainder >> APIC.LAPIC_timerdivider) //Something passed?
+		{
+			clockspassed = (APIC.LAPIC_timerremainder >> APIC.LAPIC_timerdivider); //How much passed!
+			APIC.LAPIC_timerremainder -= clockspassed << APIC.LAPIC_timerdivider; //How much time is left!
+		}
+		else
+		{
+			return; //Nothing is ticked! So, abort!
+		}
+		//Now, the clocks
+
+		if (APIC.CurrentCountRegister > clockspassed) //Still timing more than what's needed?
+		{
+			APIC.CurrentCountRegister -= clockspassed; //Time some clocks!
+		}
+		else //Finished counting?
+		{
+			clockspassed -= APIC.CurrentCountRegister; //Time until 0!
+
+			for (; clockspassed >= APIC.InitialCountRegister;) //Multiple blocks?
+			{
+				clockspassed -= APIC.InitialCountRegister; //What is the remaining time?
+			}
+			APIC.CurrentCountRegister = clockspassed; //How many clocks are left!
+			if (!(APIC.LVTTimerRegister & 0x20000)) //One-shot mode?
+			{
+				APIC.CurrentCountRegister = 0; //Stop(ped) counting!
+			}
+			else if (APIC.CurrentCountRegister == 0) //Needs to load a new value, otherwise already set! Otherwise, still counting on!
+			{
+				APIC.CurrentCountRegister = APIC.InitialCountRegister; //Reload the initial count!
+			}
+
+			if (APIC.LVTTimerRegister & 0x10000) //Not masked?
+			{
+				if ((APIC.LVTTimerRegister & (1 << 14)) == 0) //The IO or Local APIC can receive the request!
+				{
+					APIC.LVTTimerRegister |= (1 << 14); //Start pending!
+				}
+			}
+		}
+	}
+}
+
+void APIC_errorTrigger() //Error has been triggered!
+{
+	if ((APIC.LVTErrorRegister & 0x10000)==0) //Not masked?
+	{
+		if ((APIC.LVTErrorRegister & (1 << 14)) == 0) //The IO or Local APIC can receive the request!
+		{
+			APIC.LVTErrorRegister |= (1 << 14); //Start pending!
+		}
 	}
 }
 
@@ -369,6 +477,7 @@ void IOAPIC_pollRequests()
 			else if ((receiver & ~3) == 0) //No receiver?
 			{
 				APIC.ErrorStatusRegister |= (1 << 2); //Report an send accept error! Nothing responded on the bus!
+				APIC_errorTrigger(); //Error has been triggered!
 			}
 			//Discard it!
 			APIC.InterruptCommandRegisterLo &= ~0x1000; //We're receiving it somewhere!
@@ -392,6 +501,7 @@ void IOAPIC_pollRequests()
 					if ((APIC.InterruptCommandRegisterLo & 0xFF) < 0x10) //Invalid vector?
 					{
 						APIC.ErrorStatusRegister |= (1 << 5); //Report an illegal vector being sent!
+						APIC_errorTrigger(); //Error has been triggered!
 					}
 					else if ((APIC.IRR[(APIC.InterruptCommandRegisterLo & 0xFF) >> 5] & (1 << ((APIC.InterruptCommandRegisterLo & 0xFF) & 0x1F))) == 0) //Ready to receive?
 					{
@@ -410,6 +520,7 @@ void IOAPIC_pollRequests()
 					if ((APIC.InterruptCommandRegisterLo & 0xFF) < 0x10) //Invalid vector?
 					{
 						APIC.ErrorStatusRegister |= (1 << 5); //Report an illegal vector being sent!
+						APIC_errorTrigger(); //Error has been triggered!
 					}
 					else //Valid vector!
 					{
@@ -486,6 +597,7 @@ void IOAPIC_pollRequests()
 			else //No receivers?
 			{
 				APIC.ErrorStatusRegister |= (1 << 3); //Report an receive accept error!
+				APIC_errorTrigger(); //Error has been triggered!
 			}
 		}
 		else //Physical destination?
@@ -506,6 +618,7 @@ void IOAPIC_pollRequests()
 			else //No receivers?
 			{
 				APIC.ErrorStatusRegister |= (1 << 3); //Report an receive accept error!
+				APIC_errorTrigger(); //Error has been triggered!
 			}
 		}
 		return; //Abort: invalid destination!
@@ -522,6 +635,7 @@ void IOAPIC_pollRequests()
 		else //No receivers?
 		{
 			APIC.ErrorStatusRegister |= (1 << 3); //Report an receive accept error!
+			APIC_errorTrigger(); //Error has been triggered!
 		}
 	}
 }
@@ -542,6 +656,14 @@ sword LAPIC_pollRequests()
 	APIC_IRQsrequested[5] = APIC.IRR[5] & (~APIC.ISR[5]); //What can we handle!
 	APIC_IRQsrequested[6] = APIC.IRR[6] & (~APIC.ISR[6]); //What can we handle!
 	APIC_IRQsrequested[7] = APIC.IRR[7] & (~APIC.ISR[7]); //What can we handle!
+	if (APIC.LVTErrorRegister & (1 << 12)) //Timer is pending?
+	{
+		LAPIC_executeVector(&APIC.LVTErrorRegister, 0xFF); //Start the timer interrupt!
+	}
+	if (APIC.LVTTimerRegister & (1 << 12)) //Timer is pending?
+	{
+		LAPIC_executeVector(&APIC.LVTTimerRegister, 0xFF); //Start the timer interrupt!
+	}
 	if (!(APIC_IRQsrequested[0] | APIC_IRQsrequested[1] | APIC_IRQsrequested[2] | APIC_IRQsrequested[3] | APIC_IRQsrequested[4] | APIC_IRQsrequested[5] | APIC_IRQsrequested[6] | APIC_IRQsrequested[7]))
 	{
 		return -1; //Nothing to do!
@@ -791,7 +913,7 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 			ROMbits = 0; //Fully writable!
 			break;
 		case 0x390:
-			whatregister = &APIC.CurrentCountRegistetr; //0390
+			whatregister = &APIC.CurrentCountRegister; //0390
 			break;
 		case 0x3E0:
 			whatregister = &APIC.DivideConfigurationRegister; //03E0
@@ -836,6 +958,18 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 		else if (address == 0x280) //Error status register?
 		{
 			APIC.needstermination |= 8; //Error status register is written!
+		}
+		else if (address == 0x380) //Initial count register?
+		{
+			APIC.needstermination |= 0x10; //Initial count register is written!
+		}
+		else if (address == 0x3E0) //Divide configuration register?
+		{
+			APIC.needstermination |= 0x20; //Divide configuration register is written!
+		}
+		else if (address == 0x370) //Error register?
+		{
+			APIC.needstermination |= 0x40; //Error register is written!
 		}
 	}
 
@@ -1036,7 +1170,7 @@ byte APIC_memIO_rb(uint_32 offset, byte index)
 			whatregister = &APIC.InitialCountRegister; //0380
 			break;
 		case 0x390:
-			whatregister = &APIC.CurrentCountRegistetr; //0390
+			whatregister = &APIC.CurrentCountRegister; //0390
 			break;
 		case 0x3E0:
 			whatregister = &APIC.DivideConfigurationRegister; //03E0

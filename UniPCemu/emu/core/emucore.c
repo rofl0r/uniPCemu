@@ -1326,6 +1326,7 @@ OPTINLINE byte coreHandler()
 			clocks = (uint_64)floor(CPU[activeCPU].TSCtiming / Pentiumtick); //How much to tick!
 			CPU[activeCPU].TSCtiming -= clocks * Pentiumtick; //Rest the time to keep us constant!
 			CPU[activeCPU].TSC += clocks; //Tick the clocks to keep us running!
+			updateAPIC(clocks); //Clock the APIC as well!
 		}
 
 		last_timing += instructiontime; //Increase CPU time executed!
