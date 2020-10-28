@@ -210,6 +210,11 @@ void APIC_handletermination() //Handle termination on the APIC!
 		APIC.InterruptCommandRegisterLo |= (1 << 12); //Start to become pending!
 	}
 
+	if (APIC.needstermination & 8) //Error status register needs termination?
+	{
+		APIC.ErrorStatusRegister = 0; //Clear the status register for new errors to be reported!
+	}
+
 	APIC.needstermination = 0; //No termination is needed anymore!
 	APIC.IOAPIC_globalrequirestermination = 0; //No termination is needed anymore!
 	APIC.LAPIC_globalrequirestermination = 0; //No termination is needed anymore!
@@ -296,11 +301,8 @@ void LAPIC_executeVector(uint_32* vectorlo, byte IR)
 	//Now, we have selected the highest priority IR! Start using it!
 		if (APIC_intnr < 0x10) //Invalid?
 		{
-			if (IR == 0xFF) //Unknown?
-			{
-				return; //Abort!
-			}
-			APIC_intnr = (IR & 8) ? getint(1, (IR & 7)) : getint(0, (IR & 7)); //Take the IRQ number from the 8259 instead!
+			APIC.ErrorStatusRegister |= (1 << 6); //Report an illegal vector being received!
+			return; //Abort!
 		}
 		APIC.IRR[APIC_intnr >> 5] |= (1 << (APIC_intnr & 0x1F)); //Mark the interrupt requested to fire!
 		//The IO APIC ignores the received message?
@@ -364,6 +366,10 @@ void IOAPIC_pollRequests()
 			{
 				goto receiveCommandRegister; //Receive it!
 			}
+			else if ((receiver & ~3) == 0) //No receiver?
+			{
+				APIC.ErrorStatusRegister |= (1 << 2); //Report an send accept error! Nothing responded on the bus!
+			}
 			//Discard it!
 			APIC.InterruptCommandRegisterLo &= ~0x1000; //We're receiving it somewhere!
 			break;
@@ -383,7 +389,11 @@ void IOAPIC_pollRequests()
 				{
 				case 0: //Interrupt raise?
 				case 1: //Lowest priority?
-					if ((APIC.IRR[(APIC.InterruptCommandRegisterLo & 0xFF) >> 5] & (1 << ((APIC.InterruptCommandRegisterLo & 0xFF) & 0x1F))) == 0) //Ready to receive?
+					if ((APIC.InterruptCommandRegisterLo & 0xFF) < 0x10) //Invalid vector?
+					{
+						APIC.ErrorStatusRegister |= (1 << 5); //Report an illegal vector being sent!
+					}
+					else if ((APIC.IRR[(APIC.InterruptCommandRegisterLo & 0xFF) >> 5] & (1 << ((APIC.InterruptCommandRegisterLo & 0xFF) & 0x1F))) == 0) //Ready to receive?
 					{
 						APIC.IRR[(APIC.InterruptCommandRegisterLo & 0xFF) >> 5] |= (1 << ((APIC.InterruptCommandRegisterLo & 0xFF) & 0x1F)); //Raise the interrupt on the Local APIC!
 					}
@@ -397,7 +407,14 @@ void IOAPIC_pollRequests()
 					resetCPU(0x80); //Special reset of the CPU: INIT only!
 					break;
 				case 6: //SIPI?
-					CPU[activeCPU].SIPIreceived = 100|(APIC.InterruptCommandRegisterLo & 0xFF); //We've received a SIPI!
+					if ((APIC.InterruptCommandRegisterLo & 0xFF) < 0x10) //Invalid vector?
+					{
+						APIC.ErrorStatusRegister |= (1 << 5); //Report an illegal vector being sent!
+					}
+					else //Valid vector!
+					{
+						CPU[activeCPU].SIPIreceived = 100 | (APIC.InterruptCommandRegisterLo & 0xFF); //We've received a SIPI!
+					}
 					break;
 				default: //Unknown?
 					//Don't handle it!
@@ -408,6 +425,7 @@ void IOAPIC_pollRequests()
 		case 3: //All but ourselves?
 			//Don't handle the request!
 			APIC.InterruptCommandRegisterLo &= ~0x1000; //We're receiving it somewhere!
+			//Send no error because there are no other APICs to receive it! Only the IO APIC receives it, which isn't using it!
 			break;
 		}
 	}
@@ -428,10 +446,6 @@ void IOAPIC_pollRequests()
 			{
 				//Determinate the interrupt number for the priority!
 				APIC_intnr = (APIC.IOAPIC_redirectionentry[IR][0] & 0xFF); //What interrupt number?
-				if (APIC_intnr < 0x10) //Invalid?
-				{
-					APIC_intnr = (IR & 8) ? getint(1, (IR & 7)) : getint(0, (IR & 7)); //Take the IRQ number from the 8259 instead!
-				}
 				switch ((APIC.IOAPIC_redirectionentry[IR][0] >> 8) & 7) //What destination mode?
 				{
 				case 0: //Interrupt?
@@ -469,6 +483,10 @@ void IOAPIC_pollRequests()
 				isLAPIC |= 1; //LAPIC!
 				goto receiveIOLAPICCommandRegister; //Receive it!
 			}
+			else //No receivers?
+			{
+				APIC.ErrorStatusRegister |= (1 << 3); //Report an receive accept error!
+			}
 		}
 		else //Physical destination?
 		{
@@ -485,6 +503,10 @@ void IOAPIC_pollRequests()
 			{
 				goto receiveIOLAPICCommandRegister; //Receive it!
 			}
+			else //No receivers?
+			{
+				APIC.ErrorStatusRegister |= (1 << 3); //Report an receive accept error!
+			}
 		}
 		return; //Abort: invalid destination!
 	receiveIOLAPICCommandRegister:
@@ -496,6 +518,10 @@ void IOAPIC_pollRequests()
 		if (isLAPIC&1) //Local APIC received?
 		{
 			LAPIC_executeVector(&APIC.IOAPIC_redirectionentry[IR][0], IR); //Execute this vector!
+		}
+		else //No receivers?
+		{
+			APIC.ErrorStatusRegister |= (1 << 3); //Report an receive accept error!
 		}
 	}
 }
@@ -806,6 +832,10 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 		{
 			APIC.InterruptCommandRegisterLo &= ~(1 << 12); //Not sent yet is kept cleared!
 			APIC.needstermination |= 4; //Handle a command?
+		}
+		else if (address == 0x280) //Error status register?
+		{
+			APIC.needstermination |= 8; //Error status register is written!
 		}
 	}
 
