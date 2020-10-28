@@ -139,6 +139,8 @@ void init8259()
 	APIC.needstermination = 0; //Doesn't need termination!
 	APIC.IOAPIC_version_numredirectionentries = 0x11 | ((24 - 1) << 16); //How many IRQs can we handle(24) and version number!
 	APIC.LAPIC_version = 0x0010;
+	APIC.DestinationFormatRegister = (0x11 << 24); //Cluster 0 APIC 0!
+	APIC.IOAPIC_ID = 0x00; //Default IO APIC phyiscal ID!
 	switch (EMULATED_CPU)
 	{
 	case CPU_PENTIUM:
@@ -219,8 +221,71 @@ OPTINLINE byte getint(byte PIC, byte IR) //Get interrupt!
 	return ((i8259.icw[PIC][1] & 0xF8) | (realir & 0x7)); //Get interrupt!
 }
 
+byte isLAPIClogicaldestination(byte logicaldestination)
+{
+	byte ourid;
+	switch (APIC.DestinationFormatRegister >> 28 & 0xFF) //What destination mode?
+	{
+	case 0: //Cluster model?
+		//high 4 bits are encoded address of destination cluster
+		//low 4 bits are the 4 APICs within the cluster.
+		//the matching is done like with flat model, but on both the destination cluster and APIC number!
+		ourid = ((APIC.DestinationFormatRegister >> 24) & (logicaldestination << 24)); //Simply logical AND on both the destination cluster and selected APIC!
+		return (ourid != 0); //Received?
+		break;
+	case 0xF: //Flat model?
+		ourid = ((APIC.DestinationFormatRegister >> 24) & (logicaldestination << 24)); //Simply logical AND!
+		return (ourid != 0); //Received?
+		break;
+	default: //Unknown model?
+		break;
+	}
+	return 0; //Default: not the selected destination!
+}
+
+//isLAPICorIOAPIC=0: LAPIC, 1=APIC! result: 0=No match. 1=Local APIC, 2=IO APIC.
+byte isAPICPhysicaldestination(byte isLAPICorIOAPIC, byte physicaldestination)
+{
+	switch (isLAPICorIOAPIC) //Which chip is addressed?
+	{
+	case 0: //LAPIC?
+		if (physicaldestination == 0xF) //Broadcast?
+		{
+			return 1; //Match!
+		}
+		else if (physicaldestination == ((APIC.LAPIC_ID >> 24) & 0xF)) //Match?
+		{
+			return 1;
+		}
+		else //No match!
+		{
+			return 0; //Not matched!
+		}
+		break;
+	case 1: //IO APIC?
+		if (physicaldestination == 0xF) //Broadcast?
+		{
+			return 2; //Match!
+		}
+		else if (physicaldestination == ((APIC.IOAPIC_ID >> 24) & 0xF)) //Match?
+		{
+			return 2; //Match!
+		}
+		else //No match!
+		{
+			return 0; //Not matched!
+		}
+		break;
+	default: //Unknown?
+		break;
+	}
+	return 0; //No match!
+}
+
 void IOAPIC_pollRequests()
 {
+	byte isLAPIC;
+	byte logicaldestination;
 	byte IR;
 	byte APIC_intnr;
 	int APIC_highestpriority; //-1=Nothing yet, otherwise, highest priority level detected
@@ -234,16 +299,22 @@ void IOAPIC_pollRequests()
 		case 0: //Destination field?
 			if (APIC.InterruptCommandRegisterLo & 0x800) //Logical destination?
 			{
-				if (((APIC.LogicalDestinationRegister >> 24) & 0xF) == ((APIC.InterruptCommandRegisterHi >> 24) & 0xF)) //Match on the logical destination?
+				logicaldestination = ((APIC.InterruptCommandRegisterHi >> 24) & 0xFF); //What is the logical destination?
+				if (isLAPIClogicaldestination(logicaldestination)) //Match on the logical destination?
 				{
 					goto receiveCommandRegister; //Receive it!
 				}
 			}
 			else //Physical destination?
 			{
-				if (((APIC.InterruptCommandRegisterHi >> 24) & 0xF) == 0) //Ourselves?
+				if (isAPICPhysicaldestination(0,((APIC.InterruptCommandRegisterHi >> 24)&0xF))==1) //Local APIC?
 				{
 					goto receiveCommandRegister; //Receive it!
+				}
+				if (isAPICPhysicaldestination(1, ((APIC.InterruptCommandRegisterHi >> 24) & 0xF))==2) //IO APIC?
+				{
+					//Discard it!
+					APIC.InterruptCommandRegisterLo &= ~0x1000; //We're receiving it somewhere!
 				}
 			}
 			break;
@@ -264,7 +335,12 @@ void IOAPIC_pollRequests()
 			case 1: //Lowest priority?
 			case 2: //SMI raised?
 			case 4: //NMI raised?
+				//APIC.InterruptCommandRegisterLo &= ~0x1000; //We're receiving it somewhere!
+				break;
 			case 5: //INIT or INIT deassert?
+				resetCPU(0x80); //Special reset of the CPU: INIT only!
+				APIC.InterruptCommandRegisterLo &= ~0x1000; //We're receiving it somewhere!
+				break;
 			case 6: //SIPI?
 			default: //Unknown?
 				//Don't handle it!
@@ -299,11 +375,27 @@ void IOAPIC_pollRequests()
 				{
 					APIC_intnr = (IR & 8) ? getint(1, (IR & 7)) : getint(0, (IR & 7)); //Take the IRQ number from the 8259 instead!
 				}
-				if ((APIC.IRR[APIC_intnr >> 5] & (1 << (APIC_intnr & 0x1F))) == 0) //Not requested yet? Able to accept said message!
+				switch ((APIC.IOAPIC_redirectionentry[IR][0] >> 8) & 7) //What destination mode?
 				{
+				case 0: //Interrupt?
+				case 1: //Lowest priority?
+					if ((APIC.IRR[APIC_intnr >> 5] & (1 << (APIC_intnr & 0x1F))) == 0) //Not requested yet? Able to accept said message!
+					{
+						APIC_highestpriority = (int)(APIC.IOAPIC_redirectionentry[IR][0] & 0xF0U); //New highest priority!
+						APIC_highestpriorityIR = IR; //What IR has the highest priority now!
+						APIC_requestbithighestpriority = APIC_requestbit; //What bit was the highest priority?
+					}
+					break;
+				case 5: //INIT or INIT deassert?
 					APIC_highestpriority = (int)(APIC.IOAPIC_redirectionentry[IR][0] & 0xF0U); //New highest priority!
 					APIC_highestpriorityIR = IR; //What IR has the highest priority now!
 					APIC_requestbithighestpriority = APIC_requestbit; //What bit was the highest priority?
+					break;
+				case 2: //SMI?
+				case 4: //NMI?
+				case 7: //extINT?
+					//Unsupported to fire right now! Ignore them! Leave pending!
+					break;
 				}
 			}
 		}
@@ -312,19 +404,62 @@ void IOAPIC_pollRequests()
 	}
 	if (APIC_requestbithighestpriority) //Found anything to handle?
 	{
-		//Now, we have selected the highest priority IR! Start using it!
+		isLAPIC = 0; //Default: not the LAPIC!
+		if (APIC.IOAPIC_redirectionentry[IR][0] & 0x800) //Logical destination?
+		{
+			logicaldestination = ((APIC.IOAPIC_redirectionentry[IR][0] >> 24) & 0xFF); //What is the logical destination?
+			//Determine destination correct by destination format and logical destination register in the LAPIC!
+			if (isLAPIClogicaldestination(logicaldestination)) //Match on the logical destination?
+			{
+				isLAPIC = 1; //LAPIC!
+				goto receiveIOLAPICCommandRegister; //Receive it!
+			}
+		}
+		else //Physical destination?
+		{
+			logicaldestination = ((APIC.InterruptCommandRegisterHi >> 24) & 0xF); //What destination!
+			if (isAPICPhysicaldestination(0, logicaldestination)==1) //Local APIC?
+			{
+				isLAPIC = 1; //LAPIC!
+				goto receiveIOLAPICCommandRegister; //Receive it!
+			}
+			if (isAPICPhysicaldestination(1, logicaldestination)==2) //IO APIC?
+			{
+				isLAPIC = 0; //Not the LAPIC!
+				goto receiveIOLAPICCommandRegister; //Receive it!
+			}
+		}
+		return; //Abort: invalid destination!
+	receiveIOLAPICCommandRegister:
+		//Received something from the IO APIC redirection targetting the main CPU?
 		APIC_requestbit = APIC_requestbithighestpriority; //Highest priority IR bit
 		IR = APIC_highestpriorityIR; //The IR for the highest priority!
 		APIC_IRQsrequested &= ~APIC_requestbit; //Clear the request bit!
-		APIC.IOAPIC_redirectionentry[IR][0] |= (1 << 14); //The LAPIC has received the request!
+		APIC.IOAPIC_redirectionentry[IR][0] |= (1 << 14); //The IO or Local APIC has received the request!
 		APIC_intnr = (APIC.IOAPIC_redirectionentry[IR][0] & 0xFF); //What interrupt number?
 		APIC.IOAPIC_IRRset &= ~APIC_requestbit; //Clear the request, because we're firing it up now!
-
-		if (APIC_intnr < 0x10) //Invalid?
+		switch ((APIC.IOAPIC_redirectionentry[IR][0] >> 8) & 7) //What destination mode?
 		{
-			APIC_intnr = (IR & 8) ? getint(1, (IR & 7)) : getint(0, (IR & 7)); //Take the IRQ number from the 8259 instead!
+		case 0: //Interrupt?
+		case 1: //Lowest priority?
+		//Now, we have selected the highest priority IR! Start using it!
+			if (isLAPIC == 1) //Local APIC? Parse it!
+			{
+				if (APIC_intnr < 0x10) //Invalid?
+				{
+					APIC_intnr = (IR & 8) ? getint(1, (IR & 7)) : getint(0, (IR & 7)); //Take the IRQ number from the 8259 instead!
+				}
+				APIC.IRR[APIC_intnr >> 5] |= (1 << (APIC_intnr & 0x1F)); //Mark the interrupt requested to fire!
+			}
+			//The IO APIC ignores the received message?
+			break;
+		case 5: //INIT or INIT deassert?
+			if (isLAPIC == 1) //Local APIC?
+			{
+				resetCPU(0x80); //Special reset of the CPU: INIT only!
+			}
+			break;
 		}
-		APIC.IRR[APIC_intnr >> 5] |= (1 << (APIC_intnr & 0x1F)); //Mark the interrupt requested to fire!
 	}
 }
 
