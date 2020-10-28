@@ -170,7 +170,7 @@ void APIC_handletermination() //Handle termination on the APIC!
 		}
 		else if (((APIC.prevSpuriousInterruptVectorRegister & 0x100) == 0) && ((APIC.SpuriousInterruptVectorRegister & 0x100))) //Set?
 		{
-			APIC.IOAPIC_IRRreq = 0; //Remove all pending!
+			//APIC.IOAPIC_IRRreq = 0; //Remove all pending!
 		}
 	}
 
@@ -449,7 +449,7 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 				}
 				else //Low DWord?
 				{
-					ROMbits = (1U << 12) | (1U << 14) | 0xFFE00000U; //Fully writable, except bits 12, 14 and 17-55!
+					ROMbits = (1U << 12) | (1U << 14) | 0xFFFE0000U; //Fully writable, except bits 12, 14 and 17-55!
 				}
 				updateredirection = (((APIC.APIC_address - 0x10) & 1) == 0); //Update status when the first dword is updated!
 				break;
