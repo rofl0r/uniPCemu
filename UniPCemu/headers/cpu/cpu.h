@@ -732,6 +732,8 @@ typedef struct
 	uint_32 hi; //High dword!
 } CPUMSR;
 
+#define CPU_NUMMSRS 0x5C
+
 typedef struct //The registers!
 {
 	//First, the General Purpose registers!
@@ -790,7 +792,7 @@ typedef struct //The registers!
 	DTR_PTR GDTR; //GDTR pointer (48-bits) Global Descriptor Table Register
 	DTR_PTR IDTR; //IDTR pointer (48-bits) Interrupt Descriptor Table Register
 
-	CPUMSR genericMSR[0x5C]; //Generic, unnamed MSR containers!
+	CPUMSR genericMSR[CPU_NUMMSRS]; //Generic, unnamed MSR containers!
 
 	//MSR registers (Pentium II and up)
 	CPUMSR IA32_SYSENTER_CS;

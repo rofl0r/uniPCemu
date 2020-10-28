@@ -1095,13 +1095,23 @@ OPTINLINE void free_CPUregisters()
 	}
 }
 
+//isInit: bit 8 means that the INIT pin is raised without the RESET pin!
 OPTINLINE void CPU_initRegisters(byte isInit) //Init the registers!
 {
+	uint_32 MSRbackup[CPU_NUMMSRS];
 	uint_32 CSBase; //Base of CS!
 	byte CSAccessRights; //Default CS access rights, overwritten during first software reset!
 	if (CPU[activeCPU].registers) //Already allocated?
 	{
 		CSAccessRights = CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].desc.AccessRights; //Save old CS acccess rights to use now (after first reset)!
+		if ((isInit&0x80)==0)
+		{
+			memcpy(&MSRbackup, &CPU[activeCPU].registers->genericMSR, sizeof(MSRbackup)); //Backup the MSRs!
+		}
+		else
+		{
+			memset(&MSRbackup, 0, sizeof(MSRbackup)); //Cleared MSRs!
+		}
 		free_CPUregisters(); //Free the CPU registers!
 	}
 	else
@@ -1294,6 +1304,7 @@ uint_32 cpuaddresspins[16] = { //Bit0=XT, Bit1+=CPU
 							0xFFFFFFFF //80786 XT
 }; //CPU address wrapping lookup table!
 
+//isInit: bit 8 means that the INIT pin is raised without the RESET pin!
 void resetCPU(byte isInit) //Initialises the currently selected CPU!
 {
 	byte i;
@@ -1319,7 +1330,10 @@ void resetCPU(byte isInit) //Initialises the currently selected CPU!
 	#ifdef CPU_USECYCLES
 	CPU_useCycles = 1; //Are we using cycle-accurate emulation?
 	#endif
-	EMU_onCPUReset(isInit); //Make sure all hardware, like CPU A20 is updated for the reset!
+	if ((isInit & 0x80) == 0) //Not just init?
+	{
+		EMU_onCPUReset(isInit); //Make sure all hardware, like CPU A20 is updated for the reset!
+	}
 	CPU[activeCPU].D_B_Mask = (EMULATED_CPU>=CPU_80386)?1:0; //D_B mask when applyable!
 	CPU[activeCPU].G_Mask = (EMULATED_CPU >= CPU_80386) ? 1 : 0; //G mask when applyable!
 	CPU[activeCPU].is_reset = 1; //We're reset!
