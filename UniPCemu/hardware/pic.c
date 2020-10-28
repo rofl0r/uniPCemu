@@ -730,7 +730,7 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 			break;
 		case 0x300:
 			whatregister = &APIC.InterruptCommandRegisterLo; //0300
-			ROMbits = (1<<14); //Fully writable! Pending to send isn't writable!
+			ROMbits = (1<<12); //Fully writable! Pending to send isn't writable!
 			break;
 		case 0x310:
 			whatregister = &APIC.InterruptCommandRegisterHi; //0310
