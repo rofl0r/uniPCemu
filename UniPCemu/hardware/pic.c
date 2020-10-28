@@ -478,8 +478,10 @@ void IOAPIC_pollRequests()
 		IR = APIC_highestpriorityIR; //The IR for the highest priority!
 		APIC_IRQsrequested &= ~APIC_requestbit; //Clear the request bit!
 		APIC.IOAPIC_IRRset &= ~APIC_requestbit; //Clear the request, because we're firing it up now!
-
-		LAPIC_executeVector(&APIC.IOAPIC_redirectionentry[IR][0],IR); //Execute this vector!
+		if (isLAPIC) //Local APIC?
+		{
+			LAPIC_executeVector(&APIC.IOAPIC_redirectionentry[IR][0], IR); //Execute this vector!
+		}
 	}
 }
 
