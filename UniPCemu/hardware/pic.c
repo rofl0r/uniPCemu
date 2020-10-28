@@ -283,6 +283,47 @@ byte isAPICPhysicaldestination(byte isLAPICorIOAPIC, byte physicaldestination)
 	return 0; //No match!
 }
 
+//Execute a requested vector on the Local APIC! Specify IR=0xFF for no actual IR!
+void LAPIC_executeVector(uint_32* vectorlo, byte IR)
+{
+	byte APIC_intnr;
+	*vectorlo |= (1 << 14); //The IO or Local APIC has received the request!
+	APIC_intnr = (*vectorlo & 0xFF); //What interrupt number?
+	switch ((APIC.IOAPIC_redirectionentry[IR][0] >> 8) & 7) //What destination mode?
+	{
+	case 0: //Interrupt?
+	case 1: //Lowest priority?
+	//Now, we have selected the highest priority IR! Start using it!
+		if (APIC_intnr < 0x10) //Invalid?
+		{
+			if (IR == 0xFF) //Unknown?
+			{
+				return; //Abort!
+			}
+			APIC_intnr = (IR & 8) ? getint(1, (IR & 7)) : getint(0, (IR & 7)); //Take the IRQ number from the 8259 instead!
+		}
+		APIC.IRR[APIC_intnr >> 5] |= (1 << (APIC_intnr & 0x1F)); //Mark the interrupt requested to fire!
+		//The IO APIC ignores the received message?
+		break;
+	case 2: //SMI?
+		//Not implemented yet!
+		//Can't be masked, bypasses IRR/ISR!
+		break;
+	case 4: //NMI?
+		APICNMIQueued = 1; //APIC-issued NMI queued!
+		//Can't be masked, bypasses IRR/ISR!
+		break;
+	case 5: //INIT or INIT deassert?
+		resetCPU(0x80); //Special reset of the CPU: INIT only!
+		break;
+	case 7: //extINT?
+		//Not implemented yet!
+		break;
+	default: //Unsupported yet?
+		break;
+	}
+}
+
 void IOAPIC_pollRequests()
 {
 	byte isLAPIC;
@@ -436,45 +477,9 @@ void IOAPIC_pollRequests()
 		APIC_requestbit = APIC_requestbithighestpriority; //Highest priority IR bit
 		IR = APIC_highestpriorityIR; //The IR for the highest priority!
 		APIC_IRQsrequested &= ~APIC_requestbit; //Clear the request bit!
-		APIC.IOAPIC_redirectionentry[IR][0] |= (1 << 14); //The IO or Local APIC has received the request!
-		APIC_intnr = (APIC.IOAPIC_redirectionentry[IR][0] & 0xFF); //What interrupt number?
 		APIC.IOAPIC_IRRset &= ~APIC_requestbit; //Clear the request, because we're firing it up now!
-		switch ((APIC.IOAPIC_redirectionentry[IR][0] >> 8) & 7) //What destination mode?
-		{
-		case 0: //Interrupt?
-		case 1: //Lowest priority?
-		//Now, we have selected the highest priority IR! Start using it!
-			if (isLAPIC == 1) //Local APIC? Parse it!
-			{
-				if (APIC_intnr < 0x10) //Invalid?
-				{
-					APIC_intnr = (IR & 8) ? getint(1, (IR & 7)) : getint(0, (IR & 7)); //Take the IRQ number from the 8259 instead!
-				}
-				APIC.IRR[APIC_intnr >> 5] |= (1 << (APIC_intnr & 0x1F)); //Mark the interrupt requested to fire!
-			}
-			//The IO APIC ignores the received message?
-			break;
-		case 2: //SMI?
-			//Not implemented yet!
-			break;
-		case 4: //NMI?
-			if (isLAPIC == 1) //Local APIC?
-			{
-				APICNMIQueued = 1; //APIC-issued NMI queued!
-			}
-			break;
-		case 5: //INIT or INIT deassert?
-			if (isLAPIC == 1) //Local APIC?
-			{
-				resetCPU(0x80); //Special reset of the CPU: INIT only!
-			}
-			break;
-		case 7: //extINT?
-			//Not implemented yet!
-			break;
-		default: //Unsupported yet?
-			break;
-		}
+
+		LAPIC_executeVector(&APIC.IOAPIC_redirectionentry[IR][0],IR); //Execute this vector!
 	}
 }
 
