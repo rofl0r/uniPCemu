@@ -795,6 +795,7 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 		}
 		else if (address == 0x300) //Needs to send a command?
 		{
+			APIC.InterruptCommandRegisterLo &= ~(1 << 12); //Not sent yet is kept cleared!
 			APIC.needstermination |= 4; //Handle a command?
 		}
 	}
