@@ -1177,6 +1177,11 @@ OPTINLINE byte coreHandler()
 				//Execute using actual CPU clocks!
 				CPU[activeCPU].cycles = 1; //HLT takes 1 cycle for now, since it's unknown!
 			}
+			if (CPU[activeCPU].SIPIreceived) //Received a command to leave HLT mode?
+			{
+				CPU[activeCPU].halt = 0; //Interrupt->Resume from HLT
+				goto resumeFromHLT; //We're resuming from HLT state!
+			}
 			if (unlikely(CPU[activeCPU].halt==1)) //Normal halt?
 			{
 				//Increase the instruction counter every instruction/HLT time!
