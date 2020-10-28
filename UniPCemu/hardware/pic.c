@@ -424,14 +424,14 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 		{
 		case 0x0000: //IOAPIC address?
 			whatregister = &APIC.APIC_address; //Address register!
-			ROMbits = 0; //Fully writable!
+			ROMbits = ~0xFF; //Upper 24 bits are reserved!
 			break;
 		case 0x0010: //IOAPIC data?
 			switch (APIC.APIC_address) //What address is selected?
 			{
 			case 0x00:
 				whatregister = &APIC.IOAPIC_ID; //ID register!
-				ROMbits = ~(0xF<<24); //Bits 24-27 writable!
+				ROMbits = ~(0xFU<<24); //Bits 24-27 writable!
 				break;
 			case 0x01:
 				whatregister = &APIC.IOAPIC_version_numredirectionentries; //Version/Number of direction entries!
@@ -607,21 +607,24 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 	else
 		return 0; //Abort!
 
-	if (address == 0xF0) //Needs to handle resetting the APIC?
+	if (is_internalexternalAPIC & 1) //LAPIC?
 	{
-		if ((APIC.needstermination & 1) == 0) //Not backed up yet?
+		if (address == 0xF0) //Needs to handle resetting the APIC?
 		{
-			APIC.prevSpuriousInterruptVectorRegister = APIC.SpuriousInterruptVectorRegister; //Backup the old value for change detection!
-			APIC.needstermination |= 1; //We're in need of termination handling due to possible reset!
+			if ((APIC.needstermination & 1) == 0) //Not backed up yet?
+			{
+				APIC.prevSpuriousInterruptVectorRegister = APIC.SpuriousInterruptVectorRegister; //Backup the old value for change detection!
+				APIC.needstermination |= 1; //We're in need of termination handling due to possible reset!
+			}
 		}
-	}
-	else if (address == 0xB0) //Needs to handle EOI?
-	{
-		APIC.needstermination |= 2; //Handle an EOI?
-	}
-	else if (address == 0x300) //Needs to send a command?
-	{
-		APIC.needstermination |= 4; //Handle a command?
+		else if (address == 0xB0) //Needs to handle EOI?
+		{
+			APIC.needstermination |= 2; //Handle an EOI?
+		}
+		else if (address == 0x300) //Needs to send a command?
+		{
+			APIC.needstermination |= 4; //Handle a command?
+		}
 	}
 
 	//Get stored value!
@@ -844,14 +847,6 @@ byte APIC_memIO_rb(uint_32 offset, byte index)
 		return 0; //Abort!
 
 	value = *whatregister; //Take the register's value that's there!
-
-	if (updateredirection) //Add the active IRQ line bit?
-	{
-		if (APIC.IOAPIC_IRRset & (1 << ((APIC.APIC_address - 0x10) >> 1))) //Are we requested?
-		{
-			value |= (1 << 12); //Set the IRQ being pending, but not received because it's masked or unchecked!
-		}
-	}
 
 	tempoffset = (offset & 3); //What DWord byte is addressed?
 	temp = tempoffset;
@@ -1355,6 +1350,7 @@ void APIC_raisedIRQ(byte PIC, byte irqnum)
 			{
 				APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] &= ~(1 << 12); //Not waiting to be delivered!
 				APIC.IOAPIC_IRRset |= (1 << (irqnum & 0xF)); //Set the IRR?
+				APIC.IOAPIC_IRRreq &= ~(1 << (irqnum & 0xF)); //Acnowledged if pending!
 			}
 		}
 		else
