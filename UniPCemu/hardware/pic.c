@@ -397,7 +397,7 @@ void IOAPIC_pollRequests()
 					resetCPU(0x80); //Special reset of the CPU: INIT only!
 					break;
 				case 6: //SIPI?
-					CPU[activeCPU].SIPIreceived = 1; //We've received a SIPI!
+					CPU[activeCPU].SIPIreceived = 100|(APIC.InterruptCommandRegisterLo & 0xFF); //We've received a SIPI!
 					break;
 				default: //Unknown?
 					//Don't handle it!

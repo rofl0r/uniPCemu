@@ -923,7 +923,7 @@ typedef struct
 	uint_32 InterruptReturnEIP; //Interrupt return EIP!
 	word nextCS; //Next instruction CS
 	uint_32 nextEIP; //Next instruction EIP
-	byte SIPIreceived; //SIPI received?
+	word SIPIreceived; //SIPI received?
 } CPU_type;
 
 #ifndef IS_CPU
