@@ -1359,7 +1359,7 @@ void APIC_raisedIRQ(byte PIC, byte irqnum)
 		}
 		else
 		{
-			APIC.IOAPIC_IRRreq |= (1 << (irqnum & 0xF))); //Requested to fire!
+			APIC.IOAPIC_IRRreq |= (1 << (irqnum & 0xF)); //Requested to fire!
 		}
 	}
 }
