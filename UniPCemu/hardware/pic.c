@@ -339,6 +339,8 @@ byte isAPICPhysicaldestination(byte isLAPICorIOAPIC, byte physicaldestination)
 	return 0; //No match!
 }
 
+byte i8259_INTA(); //Prototype for the vector execution of the LAPIC for ExtINT modes!
+
 //Execute a requested vector on the Local APIC! Specify IR=0xFF for no actual IR!
 void LAPIC_executeVector(uint_32* vectorlo, byte IR)
 {
@@ -371,7 +373,8 @@ void LAPIC_executeVector(uint_32* vectorlo, byte IR)
 		resetCPU(0x80); //Special reset of the CPU: INIT only!
 		break;
 	case 7: //extINT?
-		//Not implemented yet!
+		APIC_intnr = i8259_INTA(); //Perform an INTA-style interrupt retrieval!
+		APIC.IRR[APIC_intnr >> 5] |= (1 << (APIC_intnr & 0x1F)); //Mark the interrupt requested to fire!
 		break;
 	default: //Unsupported yet?
 		break;
@@ -1623,41 +1626,29 @@ byte readPollingMode(byte pic)
 	return 0x00; //No interrupt available!
 }
 
-byte nextintr()
+byte i8259_INTA()
 {
-	sword result;
-	if (__HW_DISABLED) return 0; //Abort!
-	byte loopdet=1;
+	byte loopdet = 1;
 	byte IR;
 	byte PICnr;
 	byte masterIR;
-
-	//Check APIC first!
-	if (APIC_intnr!=-1) //APIC interrupt requested to fire?
-	{
-		result = APIC_intnr; //Accept!
-		APIC_intnr = -1; //Invalidate!
-		//Now that we've selected the highest priority IR, start firing it!
-		return (byte)result; //Give the interrupt vector number!
-	}
-
 	//Not APIC, check the i8259 PIC now!
 	PICnr = 0; //First PIC is connected to CPU INTA!
 	masterIR = 0xFF; //Default: Unknown(=master device only) IR!
-	checkSlave:
+checkSlave:
 	//First, process first PIC!
-	for (IR=0; IR<8; IR++) //Process all IRs for this chip!
+	for (IR = 0; IR < 8; IR++) //Process all IRs for this chip!
 	{
-		byte realIR = (IR&7); //What IR within the PIC?
+		byte realIR = (IR & 7); //What IR within the PIC?
 		byte srcIndex;
-		for (srcIndex=0;srcIndex<0x10;++srcIndex) //Check all indexes!
+		for (srcIndex = 0; srcIndex < 0x10; ++srcIndex) //Check all indexes!
 		{
-			if (IRRequested(PICnr,realIR,srcIndex)) //Requested?
+			if (IRRequested(PICnr, realIR, srcIndex)) //Requested?
 			{
-				if (respondMasterSlave(PICnr,masterIR)) //PIC responds as a master or slave?
+				if (respondMasterSlave(PICnr, masterIR)) //PIC responds as a master or slave?
 				{
-					ACNIR(PICnr, realIR,srcIndex); //Acnowledge it!
-					if (startSlaveMode(PICnr,realIR)) //Start slave processing for this? Let the slave give the IRQ!
+					ACNIR(PICnr, realIR, srcIndex); //Acnowledge it!
+					if (startSlaveMode(PICnr, realIR)) //Start slave processing for this? Let the slave give the IRQ!
 					{
 						if (loopdet) //Loop detection?
 						{
@@ -1681,11 +1672,28 @@ byte nextintr()
 		}
 	}
 
-	unknownSlaveIR: //Slave has exited out to prevent looping!
+unknownSlaveIR: //Slave has exited out to prevent looping!
 	i8259.lastinterruptIR[PICnr] = 7; //Last IR!
-	lastinterrupt = getint(PICnr,7); //Unknown, dispatch through IR7 of the used PIC!
+	lastinterrupt = getint(PICnr, 7); //Unknown, dispatch through IR7 of the used PIC!
 	interruptsaved = 1; //Gotten!
 	return lastinterrupt; //No result: unk interrupt!
+}
+
+byte nextintr()
+{
+	sword result;
+	if (__HW_DISABLED) return 0; //Abort!
+
+	//Check APIC first!
+	if (APIC_intnr!=-1) //APIC interrupt requested to fire?
+	{
+		result = APIC_intnr; //Accept!
+		APIC_intnr = -1; //Invalidate!
+		//Now that we've selected the highest priority IR, start firing it!
+		return (byte)result; //Give the interrupt vector number!
+	}
+
+	return i8259_INTA(); //Perform a normal INTA and give the interrupt number!
 }
 
 void APIC_raisedIRQ(byte PIC, byte irqnum)
