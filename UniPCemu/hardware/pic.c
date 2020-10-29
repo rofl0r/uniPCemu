@@ -100,12 +100,7 @@ struct
 	uint_32 IOAPIC_redirectionentry[24][2]; //10-3F: 2 dwords for each redirection entry setting! Total 48 dwords!
 	byte IOAPIC_requirestermination[0x40]; //Termination required for this entry?
 	byte IOAPIC_globalrequirestermination; //Is termination required for the IO APIC?
-
-	//Connected i8259 support!
-	sword SINTPENDING; //Any PIC mapped interrupt is pending?
-	uint_32* SINTPENDINGVECTORLO; //The vector pointed to when pending an interrupt!
-	byte SINTIR; //IR of the pending SINT!
-	byte SINTisIOAPIC; //Is IO APIC of pending SINT!
+	sword LAPIC_extIntPending;
 } APIC; //The APIC that's emulated!
 
 byte addr22 = 0; //Address select of port 22h!
@@ -141,7 +136,6 @@ void resetAPIC()
 	}
 	APIC.IOAPIC_IMRset = ~0; //Mask all set!
 	APIC.IOAPIC_IRRreq = 0; //Remove all pending requests!
-	APIC.SINTPENDING = -1; //Nothing is pending!
 }
 
 void updateLAPICArbitrationIDregister()
@@ -190,6 +184,7 @@ void init8259()
 
 	APIC.LVTLINT0Register = 0x10000; //Reset LINT0 register!
 	APIC.LVTLINT1Register = 0x10000; //Reset LINT1 register!
+	APIC.LAPIC_extIntPending = -1; //No external interrupt pending yet!
 }
 
 void APIC_errorTrigger(); //Error has been triggered! Prototype!
@@ -355,37 +350,6 @@ byte i8259_INTA(); //Prototype for the vector execution of the LAPIC for ExtINT 
 void LAPIC_executeVector(uint_32* vectorlo, byte IR, byte isIOAPIC)
 {
 	byte APIC_intnr;
-	if (((*vectorlo >> 8) & 7) == 7) //What destination mode? Using 8259 PIC?
-	{
-		if (APIC.SINTPENDING == -1) //Nothing pending yet?
-		{
-			APIC.SINTPENDING = (sword)i8259_INTA(); //Perform an INTA-style interrupt retrieval!
-			APIC.SINTIR = IR; //What IR!
-			APIC.SINTisIOAPIC = isIOAPIC; //IO APIC is the source?
-			APIC.SINTPENDINGVECTORLO = vectorlo; //The connected vector that's pending!
-			APIC_intnr = APIC.SINTPENDING; //The pending interrupt!
-			if ((APIC.IRR[APIC_intnr >> 5] & (1 << (APIC_intnr & 0x1F))) == 0) //Not ready yet to accept?
-			{
-				APIC.SINTPENDING = -1; //Not pending anymore!
-				APIC.IRR[APIC_intnr >> 5] |= (1 << (APIC_intnr & 0x1F)); //Mark the interrupt requested to fire!
-			}
-			else return; //Wait for it to become available!
-		}
-		else //Don't accept it yet, as some 8259 PIC request is still pending!
-		{
-			APIC_intnr = (byte)APIC.SINTPENDING; //The pending interrupt!
-			if ((APIC.IRR[APIC_intnr >> 5] & (1 << (APIC_intnr & 0x1F))) == 0) //Not ready yet to accept?
-			{
-				APIC.SINTPENDING = -1; //Not pending anymore!
-				APIC.IRR[APIC_intnr >> 5] |= (1 << (APIC_intnr & 0x1F)); //Mark the interrupt requested to fire!
-			}
-			else return; //Wait for it to become available!
-		}
-	}
-	else
-	{
-		APIC.SINTPENDING = -1; //Nothing pending anymore!
-	}
 	*vectorlo &= ~(1 << 12); //The IO or Local APIC has received the request!
 	if (isIOAPIC) //IO APIC?
 	{
@@ -418,7 +382,9 @@ void LAPIC_executeVector(uint_32* vectorlo, byte IR, byte isIOAPIC)
 		resetCPU(0x80); //Special reset of the CPU: INIT only!
 		break;
 	case 7: //extINT?
-		//Handled above!
+		APIC_intnr = (sword)i8259_INTA(); //Perform an INTA-style interrupt retrieval!
+		//Execute immediately!
+		APIC.LAPIC_extIntPending = (sword)APIC_intnr; //We're pending now!
 		break;
 	default: //Unsupported yet?
 		break;
@@ -513,14 +479,7 @@ void IOAPIC_pollRequests()
 		}
 	}
 
-	if (APIC.SINTPENDING != -1) //i8259 Interrupt pending to finish handling?
-	{
-		LAPIC_executeVector(APIC.SINTPENDINGVECTORLO, APIC.SINTIR, APIC.SINTisIOAPIC); //Execute the vector!
-		if (APIC.SINTPENDING != -1) //Still pending?
-		{
-			return; //Keep waiting to finish up!
-		}
-	}
+	if (APIC.LAPIC_extIntPending != -1) return; //Prevent any more interrupts until the extInt is properly parsed!
 
 	receiver = 0; //Initialize receivers of the packet!
 	if (APIC.InterruptCommandRegisterLo & 0x1000) //Pending command being sent?
@@ -626,25 +585,22 @@ void IOAPIC_pollRequests()
 			break;
 		}
 	}
+
 	if (APIC.LVTErrorRegister & (1 << 12)) //Timer is pending?
 	{
 		LAPIC_executeVector(&APIC.LVTErrorRegister, 0xFF, 0); //Start the timer interrupt!
-		if (APIC.SINTPENDING != -1) return; //Abort when pending interrupt!
 	}
 	if (APIC.LVTTimerRegister & (1 << 12)) //Timer is pending?
 	{
 		LAPIC_executeVector(&APIC.LVTTimerRegister, 0xFF, 0); //Start the timer interrupt!
-		if (APIC.SINTPENDING != -1) return; //Abort when pending interrupt!
 	}
 	if (APIC.LVTLINT0Register & (1 << 12)) //LINT0 is pending?
 	{
 		LAPIC_executeVector(&APIC.LVTLINT0Register, 0xFF, 0); //Start the LINT0 interrupt!
-		if (APIC.SINTPENDING != -1) return; //Abort when pending interrupt!
 	}
 	if (APIC.LVTLINT1Register & (1 << 12)) //LINT1 is pending?
 	{
 		LAPIC_executeVector(&APIC.LVTLINT1Register, 0xFF, 0); //Start the LINT0 interrupt!
-		if (APIC.SINTPENDING != -1) return; //Abort when pending interrupt!
 	}
 
 	if (likely(APIC_IRQsrequested == 0)) return; //Nothing to do?
@@ -1658,6 +1614,14 @@ sword APIC_currentintnr = -1;
 byte PICInterrupt() //We have an interrupt ready to process? This is the primary PIC's INTA!
 {
 	if (__HW_DISABLED) return 0; //Abort!
+
+	if (APIC.LAPIC_extIntPending != -1) //ExtInt pending?
+	{
+		APIC_currentintnr = APIC.LAPIC_extIntPending; //Acnowledge!
+		APIC.LAPIC_extIntPending = -1; //Not anymore!
+		return 2; //APIC IRQ from 8259!
+	}
+
 	if ((APIC_currentintnr = LAPIC_pollRequests())!=-1) //APIC requested?
 	{
 		return 2; //APIC IRQ!
