@@ -1370,6 +1370,9 @@ OPTINLINE void EOI(byte PIC, byte source) //Process and (Automatic) EOI send to 
 
 extern byte is_XT; //Are we emulating a XT architecture?
 
+void LINT0_raiseIRQ(); //Prototype!
+void LINT0_lowerIRQ(); //Prototype!
+
 byte out8259(word portnum, byte value)
 {
 	byte source;
@@ -1385,19 +1388,17 @@ byte out8259(word portnum, byte value)
 		{
 			if ((IMCR == 0) && (value == 1)) //Disconnect NMI and INTR from the CPU/
 			{
-				if (APIC.LVTLINT0Register & (1 << 12)) //Raised?
-				{
-					APIC.LVTLINT0Register &= ~(1 << 12); //Remove LINT0!
-				}
+				LINT0_lowerIRQ(); //IRQ line is disconnected, so lowered!
 			}
 			else //Reconnect NMI and INTR to the CPU?
 			{
 				if (APIC.IOAPIC_liveIRR & 1) //Already raised?
 				{
-					if ((APIC.LVTLINT0Register & 0x10000) == 0) //Not masked?
-					{
-						APIC.LVTLINT0Register |= (1 << 12); //Perform LINT0!
-					}
+					LINT0_raiseIRQ(); //Raised!
+				}
+				else //Not raised!
+				{
+					LINT0_lowerIRQ(); //Lowered!
 				}
 				//NMI is handled automatically!
 			}
@@ -1738,6 +1739,44 @@ byte nextintr()
 	return i8259_INTA(); //Perform a normal INTA and give the interrupt number!
 }
 
+void LINT0_raiseIRQ()
+{
+	if ((APIC.LVTLINT0Register & 0x10000) == 0) //Not masked?
+	{
+		switch ((APIC.LVTLINT0Register >> 8) & 7) //What mode?
+		{
+		case 0: //Interrupt? Also named Fixed!
+		case 1: //Lowest priority?
+			if ((APIC.LVTLINT0Register & 0x8000) == 0) //Edge-triggered? Supported!
+			{
+				if ((APIC.IOAPIC_liveIRR & 1) == 0) //Not yet raised? Rising edge!
+				{
+					APIC.LVTLINT0Register |= (1 << 12); //Perform LINT0!
+				}
+			}
+			else
+			{
+				APIC.LVTLINT0Register |= (1 << 12); //Perform LINT0!
+			}
+			break;
+		case 2: //SMI?
+		case 4: //NMI?
+		case 5: //INIT or INIT deassert?
+			//Edge mode only! Don't do anything when lowered!
+			if ((APIC.IOAPIC_liveIRR & 1) == 0) //Not yet raised? Rising edge!
+			{
+				APIC.LVTLINT0Register |= (1 << 12); //Perform LINT0!
+			}
+			break;
+		case 7: //extINT? Level only!
+			//Always assume that the live IRR doesn't match to keep it live on the triggering!
+			APIC.LVTLINT0Register |= (1 << 12); //Perform LINT0!
+			break;
+		}
+	}
+	APIC.IOAPIC_liveIRR |= 1; //Live status!
+}
+
 void APIC_raisedIRQ(byte PIC, byte irqnum)
 {
 	//A line has been raised!
@@ -1749,39 +1788,7 @@ void APIC_raisedIRQ(byte PIC, byte irqnum)
 		//Always assume live doesn't match! So that the LINT0 register keeps being up-to-date!
 		if (IMCR == 0) //Connected to the CPU?
 		{
-			if ((APIC.LVTLINT0Register & 0x10000) == 0) //Not masked?
-			{
-				switch ((APIC.LVTLINT0Register >> 8) & 7) //What mode?
-				{
-				case 0: //Interrupt? Also named Fixed!
-				case 1: //Lowest priority?
-					if ((APIC.LVTLINT0Register & 0x8000)==0) //Edge-triggered? Supported!
-					{
-						if ((APIC.IOAPIC_liveIRR & (1 << (irqnum & 0xF))) == 0) //Not yet raised? Rising edge!
-						{
-							APIC.LVTLINT0Register |= (1 << 12); //Perform LINT0!
-						}
-					}
-					else
-					{
-						APIC.LVTLINT0Register |= (1 << 12); //Perform LINT0!
-					}
-					break;
-				case 2: //SMI?
-				case 4: //NMI?
-				case 5: //INIT or INIT deassert?
-					//Edge mode only! Don't do anything when lowered!
-					if ((APIC.IOAPIC_liveIRR & (1 << (irqnum & 0xF))) == 0) //Not yet raised? Rising edge!
-					{
-						APIC.LVTLINT0Register |= (1 << 12); //Perform LINT0!
-					}
-					break;
-				case 7: //extINT? Level only!
-					//Always assume that the live IRR doesn't match to keep it live on the triggering!
-					APIC.LVTLINT0Register |= (1 << 12); //Perform LINT0!
-					break;
-				}
-			}
+			LINT0_raiseIRQ(); //Raise LINT0 input!
 		}
 	}
 	if ((APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x8000) == 0) //Edge-triggered? Supported!
@@ -1831,6 +1838,30 @@ void IOAPIC_raisepending()
 	}
 }
 
+void LINT0_lowerIRQ()
+{
+	switch ((APIC.LVTLINT0Register >> 8) & 7) //What mode?
+	{
+	case 0: //Interrupt? Also named Fixed!
+	case 1: //Lowest priority?
+		if (APIC.LVTLINT0Register & 0x8000) //Level-triggered? Supported!
+		{
+			APIC.LVTLINT0Register &= ~(1 << 12); //Clear LINT0!
+		}
+		break;
+	case 2: //SMI?
+	case 4: //NMI?
+	case 5: //INIT or INIT deassert?
+		//Edge mode only! Don't do anything when lowered!
+		break;
+	case 7: //extINT? Level only!
+		//Always assume that the live IRR doesn't match to keep it live on the triggering!
+		APIC.LVTLINT0Register &= ~(1 << 12); //Clear LINT0!
+		break;
+	}
+	APIC.IOAPIC_liveIRR &= ~1; //Live status!
+}
+
 void APIC_loweredIRQ(byte PIC, byte irqnum)
 {
 	if (irqnum == 0) irqnum = 2; //IRQ0 is on APIC line 2!
@@ -1847,25 +1878,7 @@ void APIC_loweredIRQ(byte PIC, byte irqnum)
 	}
 	if (irqnum == 0) //Since we're also connected to the CPU, raise LINT properly!
 	{
-		switch ((APIC.LVTLINT0Register >> 8) & 7) //What mode?
-		{
-		case 0: //Interrupt? Also named Fixed!
-		case 1: //Lowest priority?
-			if (APIC.LVTLINT0Register & 0x8000) //Level-triggered? Supported!
-			{
-				APIC.LVTLINT0Register &= ~(1 << 12); //Clear LINT0!
-			}
-			break;
-		case 2: //SMI?
-		case 4: //NMI?
-		case 5: //INIT or INIT deassert?
-			//Edge mode only! Don't do anything when lowered!
-			break;
-		case 7: //extINT? Level only!
-				//Always assume that the live IRR doesn't match to keep it live on the triggering!
-				APIC.LVTLINT0Register &= ~(1 << 12); //Clear LINT0!
-				break;
-		}
+		LINT0_lowerIRQ();
 	}
 	APIC.IOAPIC_liveIRR &= ~(1 << (irqnum & 0xF)); //Live status!
 }
