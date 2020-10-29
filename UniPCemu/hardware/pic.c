@@ -691,6 +691,10 @@ void IOAPIC_pollRequests()
 	handleExtIntPriority:
 	if (APIC_requestbithighestpriority) //Found anything to handle?
 	{
+		//First, determine what to receive!
+		APIC_requestbit = APIC_requestbithighestpriority; //Highest priority IR bit
+		IR = APIC_highestpriorityIR; //The IR for the highest priority!
+		//Now, receive the IO APIC entry at the destination!
 		isLAPIC = 0; //Default: not the LAPIC!
 		if (APIC.IOAPIC_redirectionentry[IR][0] & 0x800) //Logical destination?
 		{
@@ -731,8 +735,6 @@ void IOAPIC_pollRequests()
 		return; //Abort: invalid destination!
 	receiveIOLAPICCommandRegister:
 		//Received something from the IO APIC redirection targetting the main CPU?
-		APIC_requestbit = APIC_requestbithighestpriority; //Highest priority IR bit
-		IR = APIC_highestpriorityIR; //The IR for the highest priority!
 		APIC_IRQsrequested &= ~APIC_requestbit; //Clear the request bit!
 		APIC.IOAPIC_IRRset &= ~APIC_requestbit; //Clear the request, because we're firing it up now!
 		if (isLAPIC&1) //Local APIC received?
