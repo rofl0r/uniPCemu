@@ -345,10 +345,14 @@ byte isAPICPhysicaldestination(byte isLAPICorIOAPIC, byte physicaldestination)
 byte i8259_INTA(); //Prototype for the vector execution of the LAPIC for ExtINT modes!
 
 //Execute a requested vector on the Local APIC! Specify IR=0xFF for no actual IR!
-void LAPIC_executeVector(uint_32* vectorlo, byte IR)
+void LAPIC_executeVector(uint_32* vectorlo, byte IR, byte isIOAPIC)
 {
 	byte APIC_intnr;
-	*vectorlo |= (1 << 14); //The IO or Local APIC has received the request!
+	*vectorlo &= ~(1 << 12); //The IO or Local APIC has received the request!
+	if (isIOAPIC) //IO APIC?
+	{
+		*vectorlo |= (1 << 14); //The IO or Local APIC has received the request for servicing!
+	}
 	APIC_intnr = (*vectorlo & 0xFF); //What interrupt number?
 	switch ((*vectorlo >> 8) & 7) //What destination mode?
 	{
@@ -427,9 +431,9 @@ void updateAPIC(uint_64 clockspassed)
 
 			if (APIC.LVTTimerRegister & 0x10000) //Not masked?
 			{
-				if ((APIC.LVTTimerRegister & (1 << 14)) == 0) //The IO or Local APIC can receive the request!
+				if ((APIC.LVTTimerRegister & (1 << 12)) == 0) //The IO or Local APIC can receive the request!
 				{
-					APIC.LVTTimerRegister |= (1 << 14); //Start pending!
+					APIC.LVTTimerRegister |= (1 << 12); //Start pending!
 				}
 			}
 		}
@@ -440,9 +444,9 @@ void APIC_errorTrigger() //Error has been triggered!
 {
 	if ((APIC.LVTErrorRegister & 0x10000)==0) //Not masked?
 	{
-		if ((APIC.LVTErrorRegister & (1 << 14)) == 0) //The IO or Local APIC can receive the request!
+		if ((APIC.LVTErrorRegister & (1 << 12)) == 0) //The IO or Local APIC can receive the request!
 		{
-			APIC.LVTErrorRegister |= (1 << 14); //Start pending!
+			APIC.LVTErrorRegister |= (1 << 12); //Start pending!
 		}
 	}
 }
@@ -665,7 +669,7 @@ void IOAPIC_pollRequests()
 		APIC.IOAPIC_IRRset &= ~APIC_requestbit; //Clear the request, because we're firing it up now!
 		if (isLAPIC&1) //Local APIC received?
 		{
-			LAPIC_executeVector(&APIC.IOAPIC_redirectionentry[IR][0], IR); //Execute this vector!
+			LAPIC_executeVector(&APIC.IOAPIC_redirectionentry[IR][0], IR, 1); //Execute this vector from IO APIC!
 		}
 		else //No receivers?
 		{
@@ -693,19 +697,19 @@ sword LAPIC_pollRequests()
 	APIC_IRQsrequested[7] = APIC.IRR[7] & (~APIC.ISR[7]); //What can we handle!
 	if (APIC.LVTErrorRegister & (1 << 12)) //Timer is pending?
 	{
-		LAPIC_executeVector(&APIC.LVTErrorRegister, 0xFF); //Start the timer interrupt!
+		LAPIC_executeVector(&APIC.LVTErrorRegister, 0xFF, 0); //Start the timer interrupt!
 	}
 	if (APIC.LVTTimerRegister & (1 << 12)) //Timer is pending?
 	{
-		LAPIC_executeVector(&APIC.LVTTimerRegister, 0xFF); //Start the timer interrupt!
+		LAPIC_executeVector(&APIC.LVTTimerRegister, 0xFF, 0); //Start the timer interrupt!
 	}
 	if (APIC.LVTLINT0Register & (1 << 12)) //LINT0 is pending?
 	{
-		LAPIC_executeVector(&APIC.LVTLINT0Register, 0xFF); //Start the LINT0 interrupt!
+		LAPIC_executeVector(&APIC.LVTLINT0Register, 0xFF, 0); //Start the LINT0 interrupt!
 	}
 	if (APIC.LVTLINT1Register & (1 << 12)) //LINT1 is pending?
 	{
-		LAPIC_executeVector(&APIC.LVTLINT1Register, 0xFF); //Start the LINT0 interrupt!
+		LAPIC_executeVector(&APIC.LVTLINT1Register, 0xFF, 0); //Start the LINT0 interrupt!
 	}
 	if (!(APIC_IRQsrequested[0] | APIC_IRQsrequested[1] | APIC_IRQsrequested[2] | APIC_IRQsrequested[3] | APIC_IRQsrequested[4] | APIC_IRQsrequested[5] | APIC_IRQsrequested[6] | APIC_IRQsrequested[7]))
 	{
@@ -1791,11 +1795,76 @@ void APIC_raisedIRQ(byte PIC, byte irqnum)
 			LINT0_raiseIRQ(); //Raise LINT0 input!
 		}
 	}
-	if ((APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x8000) == 0) //Edge-triggered? Supported!
+
+	switch ((APIC.LVTLINT0Register >> 8) & 7) //What mode?
 	{
-		APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] |= (1 << 12); //Waiting to be delivered!
+	case 0: //Interrupt? Also named Fixed!
+	case 1: //Lowest priority?
+		if ((APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x8000) == 0) //Edge-triggered? Supported!
+		{
+			if ((APIC.IOAPIC_liveIRR & (1 << (irqnum & 0xF))) == 0) //Not yet raised? Rising edge!
+			{
+				if ((APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x10000) == 0) //Not masked?
+				{
+					APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] |= (1 << 12); //Waiting to be delivered!
+					if (!(APIC.IOAPIC_IRRset & (1 << (irqnum & 0xF)))) //Not already pending?
+					{
+						APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] &= ~(1 << 12); //Not waiting to be delivered!
+						APIC.IOAPIC_IRRset |= (1 << (irqnum & 0xF)); //Set the IRR?
+						APIC.IOAPIC_IRRreq &= ~(1 << (irqnum & 0xF)); //Acnowledged if pending!
+					}
+				}
+				else //Masked?
+				{
+					APIC.IOAPIC_IRRreq |= (1 << (irqnum & 0xF)); //Requested to fire!
+				}
+			}
+		}
+		else
+		{
+			if ((APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x10000) == 0) //Not masked?
+			{
+				APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] |= (1 << 12); //Waiting to be delivered!
+				if (!(APIC.IOAPIC_IRRset & (1 << (irqnum & 0xF)))) //Not already pending?
+				{
+					APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] &= ~(1 << 12); //Not waiting to be delivered!
+					APIC.IOAPIC_IRRset |= (1 << (irqnum & 0xF)); //Set the IRR?
+					APIC.IOAPIC_IRRreq &= ~(1 << (irqnum & 0xF)); //Acnowledged if pending!
+				}
+			}
+			else //Masked?
+			{
+				APIC.IOAPIC_IRRreq |= (1 << (irqnum & 0xF)); //Requested to fire!
+			}
+		}
+		break;
+	case 2: //SMI?
+	case 4: //NMI?
+	case 5: //INIT or INIT deassert?
+		//Edge mode only! Don't do anything when lowered!
+		if ((APIC.IOAPIC_liveIRR & (1 << (irqnum & 0xF))) == 0) //Not yet raised? Rising edge!
+		{
+			if ((APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x10000) == 0) //Not masked?
+			{
+				APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] |= (1 << 12); //Waiting to be delivered!
+				if (!(APIC.IOAPIC_IRRset & (1 << (irqnum & 0xF)))) //Not already pending?
+				{
+					APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] &= ~(1 << 12); //Not waiting to be delivered!
+					APIC.IOAPIC_IRRset |= (1 << (irqnum & 0xF)); //Set the IRR?
+					APIC.IOAPIC_IRRreq &= ~(1 << (irqnum & 0xF)); //Acnowledged if pending!
+				}
+			}
+			else //Masked?
+			{
+				APIC.IOAPIC_IRRreq |= (1 << (irqnum & 0xF)); //Requested to fire!
+			}
+		}
+		break;
+	case 7: //extINT? Level only!
+		//Always assume that the live IRR doesn't match to keep it live on the triggering!
 		if ((APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x10000) == 0) //Not masked?
 		{
+			APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] |= (1 << 12); //Waiting to be delivered!
 			if (!(APIC.IOAPIC_IRRset & (1 << (irqnum & 0xF)))) //Not already pending?
 			{
 				APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] &= ~(1 << 12); //Not waiting to be delivered!
@@ -1803,10 +1872,11 @@ void APIC_raisedIRQ(byte PIC, byte irqnum)
 				APIC.IOAPIC_IRRreq &= ~(1 << (irqnum & 0xF)); //Acnowledged if pending!
 			}
 		}
-		else
+		else //Masked?
 		{
 			APIC.IOAPIC_IRRreq |= (1 << (irqnum & 0xF)); //Requested to fire!
 		}
+		break;
 	}
 	APIC.IOAPIC_liveIRR |= (1 << (irqnum & 0xF)); //Live status!
 }
@@ -1870,10 +1940,46 @@ void APIC_loweredIRQ(byte PIC, byte irqnum)
 	//A line has been lowered!
 	if ((APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x8000) == 0) //Edge-triggered? Supported!
 	{
-		if (APIC.IOAPIC_IRRset & (1 << (irqnum & 0xF))) //Waiting to be delivered?
+		switch ((APIC.LVTLINT0Register >> 8) & 7) //What mode?
 		{
+		case 0: //Interrupt? Also named Fixed!
+		case 1: //Lowest priority?
+			//Don't do anything for edge triggered! Lowering on edge mode has no effect on the pending status!
+			break;
+		case 2: //SMI?
+		case 4: //NMI?
+		case 5: //INIT or INIT deassert?
+			//Edge mode only! Don't do anything when lowered!
+			break;
+		case 7: //extINT? Level only!
+			//Always assume that the live IRR doesn't match to keep it live on the triggering!
+			if (APIC.IOAPIC_IRRset & (1 << (irqnum & 0xF))) //Waiting to be delivered?
+			{
+				APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] &= ~(1 << 12); //Not waiting to be delivered!
+				APIC.IOAPIC_IRRset &= ~(1 << (irqnum & 0xF)); //Clear the IRR?
+			}
+			break;
+		}
+	}
+	else //Level-triggered?
+	{
+		switch ((APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] >> 8) & 7) //What mode?
+		{
+		case 0: //Interrupt? Also named Fixed!
+		case 1: //Lowest priority?
 			APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] &= ~(1 << 12); //Not waiting to be delivered!
 			APIC.IOAPIC_IRRset &= ~(1 << (irqnum & 0xF)); //Clear the IRR?
+			break;
+		case 2: //SMI?
+		case 4: //NMI?
+		case 5: //INIT or INIT deassert?
+			//Edge mode only! Don't do anything when lowered!
+			break;
+		case 7: //extINT? Level only!
+			//Always assume that the live IRR doesn't match to keep it live on the triggering!
+			APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] &= ~(1 << 12); //Not waiting to be delivered!
+			APIC.IOAPIC_IRRset &= ~(1 << (irqnum & 0xF)); //Clear the IRR?
+			break;
 		}
 	}
 	if (irqnum == 0) //Since we're also connected to the CPU, raise LINT properly!
