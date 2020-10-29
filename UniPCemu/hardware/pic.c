@@ -1386,7 +1386,7 @@ byte out8259(word portnum, byte value)
 	{
 		if (addr22 == 0x70) //Selected IMCR?
 		{
-			if ((IMCR == 0) && (value == 1)) //Disconnect NMI and INTR from the CPU/
+			if ((IMCR == 0) && (value == 1)) //Disconnect NMI and INTR from the CPU?
 			{
 				LINT0_lowerIRQ(); //IRQ line is disconnected, so lowered!
 			}
