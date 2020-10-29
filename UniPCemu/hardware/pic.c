@@ -286,18 +286,20 @@ OPTINLINE byte getint(byte PIC, byte IR) //Get interrupt!
 byte isLAPIClogicaldestination(byte logicaldestination)
 {
 	byte ourid;
+	byte idtomatch;
 	switch (APIC.DestinationFormatRegister >> 28 & 0xFF) //What destination mode?
 	{
 	case 0: //Cluster model?
 		//high 4 bits are encoded address of destination cluster
 		//low 4 bits are the 4 APICs within the cluster.
 		//the matching is done like with flat model, but on both the destination cluster and APIC number!
-		ourid = ((APIC.DestinationFormatRegister >> 24) & (logicaldestination << 24)); //Simply logical AND on both the destination cluster and selected APIC!
-		return (ourid != 0); //Received?
+		ourid = ((APIC.DestinationFormatRegister >> 24) & logicaldestination); //Simply logical AND!
+		idtomatch = (APIC.DestinationFormatRegister >> 24); //ID to match!
+		return ((ourid != 0) && ((idtomatch & 0xF0) == (logicaldestination & 0xF0))); //Received?
 		break;
 	case 0xF: //Flat model?
-		ourid = ((APIC.DestinationFormatRegister >> 24) & (logicaldestination << 24)); //Simply logical AND!
-		return (ourid != 0); //Received?
+		ourid = ((APIC.DestinationFormatRegister >> 24) & logicaldestination); //Simply logical AND on both the destination cluster and selected APIC!
+		return (ourid!=0); //Received on the single APIC?
 		break;
 	default: //Unknown model?
 		break;
@@ -510,7 +512,7 @@ void IOAPIC_pollRequests()
 			{
 				goto receiveCommandRegister; //Receive it!
 			}
-			else if ((receiver & ~3) == 0) //No receiver?
+			else if (receiver == 0) //No receiver?
 			{
 				APIC.ErrorStatusRegister |= (1 << 2); //Report an send accept error! Nothing responded on the bus!
 				APIC_errorTrigger(); //Error has been triggered!
@@ -581,7 +583,10 @@ void IOAPIC_pollRequests()
 		case 3: //All but ourselves?
 			//Don't handle the request!
 			APIC.InterruptCommandRegisterLo &= ~0x1000; //We're receiving it somewhere!
-			//Send no error because there are no other APICs to receive it! Only the IO APIC receives it, which isn't using it!
+			//Send no error because there are no other APICs to receive it! Only the IO APIC receives it, which isn't using it?
+			//Error out the write access!
+			APIC.ErrorStatusRegister |= (1 << 2); //Report an send accept error! Nothing responded on the bus!
+			APIC_errorTrigger(); //Error has been triggered!
 			break;
 		}
 	}
