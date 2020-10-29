@@ -168,7 +168,8 @@ void init8259()
 	APIC.needstermination = 0; //Doesn't need termination!
 	APIC.IOAPIC_version_numredirectionentries = 0x11 | ((24 - 1) << 16); //How many IRQs can we handle(24) and version number!
 	APIC.LAPIC_version = 0x0010;
-	APIC.DestinationFormatRegister = (0x11 << 24); //Cluster 0 APIC 0!
+	APIC.DestinationFormatRegister = ~0; //All bits set!
+	APIC.SpuriousInterruptVectorRegister = 0xFF; //Needs to be 0xFF!
 	APIC.IOAPIC_ID = 0x00; //Default IO APIC phyiscal ID!
 	switch (EMULATED_CPU)
 	{
