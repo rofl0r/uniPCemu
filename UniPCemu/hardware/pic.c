@@ -190,6 +190,10 @@ void init8259()
 
 	APIC.LVTLINT0Register = 0x10000; //Reset LINT0 register!
 	APIC.LVTLINT1Register = 0x10000; //Reset LINT1 register!
+	APIC.LVTCorrectedMachineCheckInterruptRegister = 0x10000; //Reset CMCI register!
+	APIC.LVTErrorRegister = 0x10000; //Reset Error register!
+	APIC.LVTPerformanceMonitoringCounterRegister = 0x10000; //Performance monitoring counter register!
+	APIC.LVTThermalSensorRegister = 0x10000; //Thermal sensor register!
 	APIC.LAPIC_extIntPending = -1; //No external interrupt pending yet!
 }
 
