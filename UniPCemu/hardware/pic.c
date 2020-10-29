@@ -305,18 +305,18 @@ byte isLAPIClogicaldestination(byte logicaldestination)
 {
 	byte ourid;
 	byte idtomatch;
-	switch (APIC.DestinationFormatRegister >> 28 & 0xFF) //What destination mode?
+	switch ((APIC.DestinationFormatRegister >> 28) & 0xF) //What destination mode?
 	{
 	case 0: //Cluster model?
 		//high 4 bits are encoded address of destination cluster
 		//low 4 bits are the 4 APICs within the cluster.
 		//the matching is done like with flat model, but on both the destination cluster and APIC number!
-		ourid = ((APIC.DestinationFormatRegister >> 24) & logicaldestination); //Simply logical AND!
-		idtomatch = (APIC.DestinationFormatRegister >> 24); //ID to match!
+		ourid = ((APIC.LogicalDestinationRegister >> 24) & logicaldestination); //Simply logical AND!
+		idtomatch = (APIC.LogicalDestinationRegister >> 24); //ID to match!
 		return ((ourid != 0) && ((idtomatch & 0xF0) == (logicaldestination & 0xF0))); //Received?
 		break;
 	case 0xF: //Flat model?
-		ourid = ((APIC.DestinationFormatRegister >> 24) & logicaldestination); //Simply logical AND on both the destination cluster and selected APIC!
+		ourid = ((APIC.LogicalDestinationRegister >> 24) & logicaldestination); //Simply logical AND on both the destination cluster and selected APIC!
 		return (ourid!=0); //Received on the single APIC?
 		break;
 	default: //Unknown model?
