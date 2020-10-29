@@ -1375,7 +1375,7 @@ OPTINLINE void EOI(byte PIC, byte source) //Process and (Automatic) EOI send to 
 
 extern byte is_XT; //Are we emulating a XT architecture?
 
-void LINT0_raiseIRQ(); //Prototype!
+void LINT0_raiseIRQ(byte updatelivestatus); //Prototype!
 void LINT0_lowerIRQ(); //Prototype!
 
 byte out8259(word portnum, byte value)
@@ -1399,7 +1399,7 @@ byte out8259(word portnum, byte value)
 			{
 				if (APIC.IOAPIC_liveIRR & 1) //Already raised?
 				{
-					LINT0_raiseIRQ(); //Raised!
+					LINT0_raiseIRQ(1); //Raised!
 				}
 				else //Not raised!
 				{
@@ -1596,17 +1596,21 @@ performRecheck:
 	}
 }
 
-sword APIC_intnr = -1;
+sword APIC_currentintnr = -1;
 
 byte PICInterrupt() //We have an interrupt ready to process? This is the primary PIC's INTA!
 {
 	if (__HW_DISABLED) return 0; //Abort!
-	if ((APIC_intnr = LAPIC_pollRequests())!=-1) //APIC requested?
+	if ((APIC_currentintnr = LAPIC_pollRequests())!=-1) //APIC requested?
 	{
 		return 2; //APIC IRQ!
 	}
 	if (getunprocessedinterrupt(0) && (IMCR!=0x01)) //Primary PIC interrupt? This is also affected by the IMCR!
 	{
+		if (APIC.enabled && (APIC.SpuriousInterruptVectorRegister & 0x100) && ((APIC.LVTLINT0Register & 0x10F00) == 7)) //APIC enabled and taken control of the interrupt pin?
+		{
+			return 0; //The connection from the INTR pin to the local APIC is active! Disable the normal interrupts(redirected to the LVT LINT0 register)!
+		}
 		return 1;
 	}
 	//Slave PICs are handled when encountered from the Master PIC!
@@ -1733,10 +1737,10 @@ byte nextintr()
 	if (__HW_DISABLED) return 0; //Abort!
 
 	//Check APIC first!
-	if (APIC_intnr!=-1) //APIC interrupt requested to fire?
+	if (APIC_currentintnr!=-1) //APIC interrupt requested to fire?
 	{
-		result = APIC_intnr; //Accept!
-		APIC_intnr = -1; //Invalidate!
+		result = APIC_currentintnr; //Accept!
+		APIC_currentintnr = -1; //Invalidate!
 		//Now that we've selected the highest priority IR, start firing it!
 		return (byte)result; //Give the interrupt vector number!
 	}
@@ -1744,7 +1748,7 @@ byte nextintr()
 	return i8259_INTA(); //Perform a normal INTA and give the interrupt number!
 }
 
-void LINT0_raiseIRQ()
+void LINT0_raiseIRQ(byte updatelivestatus)
 {
 	if ((APIC.LVTLINT0Register & 0x10000) == 0) //Not masked?
 	{
@@ -1779,7 +1783,10 @@ void LINT0_raiseIRQ()
 			break;
 		}
 	}
-	APIC.IOAPIC_liveIRR |= 1; //Live status!
+	if (updatelivestatus)
+	{
+		APIC.IOAPIC_liveIRR |= 1; //Live status!
+	}
 }
 
 void APIC_raisedIRQ(byte PIC, byte irqnum)
@@ -1793,11 +1800,11 @@ void APIC_raisedIRQ(byte PIC, byte irqnum)
 		//Always assume live doesn't match! So that the LINT0 register keeps being up-to-date!
 		if (IMCR == 0) //Connected to the CPU?
 		{
-			LINT0_raiseIRQ(); //Raise LINT0 input!
+			LINT0_raiseIRQ(1); //Raise LINT0 input!
 		}
 	}
 
-	switch ((APIC.LVTLINT0Register >> 8) & 7) //What mode?
+	switch ((APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] >> 8) & 7) //What mode?
 	{
 	case 0: //Interrupt? Also named Fixed!
 	case 1: //Lowest priority?
@@ -1941,7 +1948,7 @@ void APIC_loweredIRQ(byte PIC, byte irqnum)
 	//A line has been lowered!
 	if ((APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x8000) == 0) //Edge-triggered? Supported!
 	{
-		switch ((APIC.LVTLINT0Register >> 8) & 7) //What mode?
+		switch ((APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] >> 8) & 7) //What mode?
 		{
 		case 0: //Interrupt? Also named Fixed!
 		case 1: //Lowest priority?
