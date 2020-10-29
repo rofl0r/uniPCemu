@@ -281,7 +281,7 @@ void APIC_handletermination() //Handle termination on the APIC!
 		}
 	}
 
-	if (APIC.needstermination & 0x80) //IO APIC needs termination on entry writes?
+	if (APIC.IOAPIC_globalrequirestermination & 0x8) //IO APIC needs termination on entry writes?
 	{
 		memset(&APIC.IOAPIC_requirestermination, 0, sizeof(APIC.IOAPIC_requirestermination)); //Not requiring termination anymore!
 	}
@@ -653,33 +653,35 @@ void IOAPIC_pollRequests()
 			//Priority is based on the high nibble of the interrupt vector. The low nibble is ignored!
 			if ((int)(APIC.IOAPIC_redirectionentry[IR][0] & 0xF0U) >= APIC_highestpriority) //Higher priority found?
 			{
-				if (APIC.IOAPIC_requirestermination[IR]) continue; //Skip entries that are marked dirty(still processing there)!
-				//Determinate the interrupt number for the priority!
-				APIC_intnr = (APIC.IOAPIC_redirectionentry[IR][0] & 0xFF); //What interrupt number?
-				switch ((APIC.IOAPIC_redirectionentry[IR][0] >> 8) & 7) //What destination mode?
+				if (APIC.IOAPIC_requirestermination[IR] == 0) //Skip entries that are marked dirty(still processing there)!
 				{
-				case 0: //Interrupt?
-				case 1: //Lowest priority?
-					if ((APIC.IRR[APIC_intnr >> 5] & (1 << (APIC_intnr & 0x1F))) == 0) //Not requested yet? Able to accept said message!
+					//Determinate the interrupt number for the priority!
+					APIC_intnr = (APIC.IOAPIC_redirectionentry[IR][0] & 0xFF); //What interrupt number?
+					switch ((APIC.IOAPIC_redirectionentry[IR][0] >> 8) & 7) //What destination mode?
 					{
+					case 0: //Interrupt?
+					case 1: //Lowest priority?
+						if ((APIC.IRR[APIC_intnr >> 5] & (1 << (APIC_intnr & 0x1F))) == 0) //Not requested yet? Able to accept said message!
+						{
+							APIC_highestpriority = (int)(APIC.IOAPIC_redirectionentry[IR][0] & 0xF0U); //New highest priority!
+							APIC_highestpriorityIR = IR; //What IR has the highest priority now!
+							APIC_requestbithighestpriority = APIC_requestbit; //What bit was the highest priority?
+						}
+						break;
+					case 2: //SMI?
+					case 4: //NMI?
+					case 5: //INIT or INIT deassert?
 						APIC_highestpriority = (int)(APIC.IOAPIC_redirectionentry[IR][0] & 0xF0U); //New highest priority!
 						APIC_highestpriorityIR = IR; //What IR has the highest priority now!
 						APIC_requestbithighestpriority = APIC_requestbit; //What bit was the highest priority?
+						break;
+					case 7: //extINT?
+						APIC_highestpriority = (int)(APIC.IOAPIC_redirectionentry[IR][0] & 0xF0U); //New highest priority!
+						APIC_highestpriorityIR = IR; //What IR has the highest priority now!
+						APIC_requestbithighestpriority = APIC_requestbit; //What bit was the highest priority?
+						goto handleExtIntPriority; //Top priority!
+						break;
 					}
-					break;
-				case 2: //SMI?
-				case 4: //NMI?
-				case 5: //INIT or INIT deassert?
-					APIC_highestpriority = (int)(APIC.IOAPIC_redirectionentry[IR][0] & 0xF0U); //New highest priority!
-					APIC_highestpriorityIR = IR; //What IR has the highest priority now!
-					APIC_requestbithighestpriority = APIC_requestbit; //What bit was the highest priority?
-					break;
-				case 7: //extINT?
-					APIC_highestpriority = (int)(APIC.IOAPIC_redirectionentry[IR][0] & 0xF0U); //New highest priority!
-					APIC_highestpriorityIR = IR; //What IR has the highest priority now!
-					APIC_requestbithighestpriority = APIC_requestbit; //What bit was the highest priority?
-					goto handleExtIntPriority; //Top priority!
-					break;
 				}
 			}
 		}
@@ -868,7 +870,7 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 				{
 					ROMbits = (1U << 12) | (1U << 14) | 0xFFFE0000U; //Fully writable, except bits 12, 14 and 17-55!
 				}
-				APIC.IOAPIC_globalrequirestermination |= 0x80; //Needs termination to finish below's value!
+				APIC.IOAPIC_globalrequirestermination |= 0x8; //Needs termination to finish below's value!
 				APIC.IOAPIC_requirestermination[(APIC.APIC_address - 0x10) >> 1] = 1; //Dirtied and currently unusable!
 				updateredirection = (((APIC.APIC_address - 0x10) & 1) == 0); //Update status when the first dword is updated!
 				break;
