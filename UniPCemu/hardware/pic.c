@@ -864,11 +864,11 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 				whatregister = &APIC.IOAPIC_redirectionentry[(APIC.APIC_address - 0x10) >> 1][(APIC.APIC_address - 0x10) & 1]; //Redirection entry addressed!
 				if (((APIC.APIC_address - 0x10) & 1) != 0) //High dword?
 				{
-					ROMbits = 0xFFFFFFU;
+					ROMbits = 0; //Fully writable?
 				}
 				else //Low DWord?
 				{
-					ROMbits = (1U << 12) | (1U << 14) | 0xFFFE0000U; //Fully writable, except bits 12, 14 and 17-55!
+					ROMbits = (1U << 12) | (1U << 14); //Fully writable, except bits 12, 14 and 17-55(writable?)!
 				}
 				APIC.IOAPIC_globalrequirestermination |= 0x8; //Needs termination to finish below's value!
 				APIC.IOAPIC_requirestermination[(APIC.APIC_address - 0x10) >> 1] = 1; //Dirtied and currently unusable!
