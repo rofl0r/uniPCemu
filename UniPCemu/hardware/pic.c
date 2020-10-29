@@ -579,6 +579,23 @@ void IOAPIC_pollRequests()
 		}
 	}
 
+	if (APIC.LVTErrorRegister & (1 << 12)) //Timer is pending?
+	{
+		LAPIC_executeVector(&APIC.LVTErrorRegister, 0xFF, 0); //Start the timer interrupt!
+	}
+	if (APIC.LVTTimerRegister & (1 << 12)) //Timer is pending?
+	{
+		LAPIC_executeVector(&APIC.LVTTimerRegister, 0xFF, 0); //Start the timer interrupt!
+	}
+	if (APIC.LVTLINT0Register & (1 << 12)) //LINT0 is pending?
+	{
+		LAPIC_executeVector(&APIC.LVTLINT0Register, 0xFF, 0); //Start the LINT0 interrupt!
+	}
+	if (APIC.LVTLINT1Register & (1 << 12)) //LINT1 is pending?
+	{
+		LAPIC_executeVector(&APIC.LVTLINT1Register, 0xFF, 0); //Start the LINT0 interrupt!
+	}
+
 	if (likely(APIC_IRQsrequested == 0)) return; //Nothing to do?
 //First, determine the highest priority IR to use!
 	APIC_requestbit = 1; //What bit is requested first!
@@ -695,22 +712,6 @@ sword LAPIC_pollRequests()
 	APIC_IRQsrequested[5] = APIC.IRR[5] & (~APIC.ISR[5]); //What can we handle!
 	APIC_IRQsrequested[6] = APIC.IRR[6] & (~APIC.ISR[6]); //What can we handle!
 	APIC_IRQsrequested[7] = APIC.IRR[7] & (~APIC.ISR[7]); //What can we handle!
-	if (APIC.LVTErrorRegister & (1 << 12)) //Timer is pending?
-	{
-		LAPIC_executeVector(&APIC.LVTErrorRegister, 0xFF, 0); //Start the timer interrupt!
-	}
-	if (APIC.LVTTimerRegister & (1 << 12)) //Timer is pending?
-	{
-		LAPIC_executeVector(&APIC.LVTTimerRegister, 0xFF, 0); //Start the timer interrupt!
-	}
-	if (APIC.LVTLINT0Register & (1 << 12)) //LINT0 is pending?
-	{
-		LAPIC_executeVector(&APIC.LVTLINT0Register, 0xFF, 0); //Start the LINT0 interrupt!
-	}
-	if (APIC.LVTLINT1Register & (1 << 12)) //LINT1 is pending?
-	{
-		LAPIC_executeVector(&APIC.LVTLINT1Register, 0xFF, 0); //Start the LINT0 interrupt!
-	}
 	if (!(APIC_IRQsrequested[0] | APIC_IRQsrequested[1] | APIC_IRQsrequested[2] | APIC_IRQsrequested[3] | APIC_IRQsrequested[4] | APIC_IRQsrequested[5] | APIC_IRQsrequested[6] | APIC_IRQsrequested[7]))
 	{
 		return -1; //Nothing to do!
