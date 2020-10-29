@@ -26,7 +26,6 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 
 //PIC Info: http://www.brokenthorn.com/Resources/OSDevPic.html
 
-
 //Are we disabled?
 #define __HW_DISABLED 0
 
@@ -54,6 +53,7 @@ struct
 	byte LAPIC_timerdivider; //The divider of the timer!
 
 	//IRQ detection
+	uint_32 IOAPIC_liveIRR; //Live IRR status!
 	uint_32 IOAPIC_IRRreq; //Is the IRR requested, but masked(1-bit values)
 	uint_32 IOAPIC_IRRset; //Is the IRR set(1-bit values)
 	uint_32 IOAPIC_IMRset; //Is the IMR routine set(1-bit values)
@@ -82,8 +82,8 @@ struct
 	uint_32 LVTTimerRegister; //0320
 	uint_32 LVTThermalSensorRegister; //0330
 	uint_32 LVTPerformanceMonitoringCounterRegister; //0340
-	uint_32 LVTLINT0Register; //0350
-	uint_32 LVTLINT1Register; //0560
+	uint_32 LVTLINT0Register; //0350. Connected to PIC master.
+	uint_32 LVTLINT1Register; //0560. Connectd to NMI pin.
 	uint_32 LVTErrorRegister; //0370
 	uint_32 InitialCountRegister; //0380
 	uint_32 CurrentCountRegister; //0390
@@ -137,7 +137,7 @@ void resetAPIC()
 	APIC.IOAPIC_IRRreq = 0; //Remove all pending requests!
 }
 
-void updateAPICArbitrationIDregister()
+void updateLAPICArbitrationIDregister()
 {
 	APIC.LAPIC_arbitrationIDregister = APIC.LAPIC_ID & (0xFF << 24); //Load the Arbitration ID register from the Local APIC ID register! All 8-bits are loaded!
 }
@@ -180,6 +180,9 @@ void init8259()
 	addr22 = IMCR = 0x00; //Default values after powerup for the IMCR and related register!
 	updateLAPICTimerSpeed(); //Update the used timer speed!
 	updateLAPICArbitrationIDregister(); //Update the Arbitration ID register with it's defaults!
+
+	APIC.LVTLINT0Register = 0x10000; //Reset LINT0 register!
+	APIC.LVTLINT1Register = 0x10000; //Reset LINT1 register!
 }
 
 void APIC_errorTrigger(); //Error has been triggered! Prototype!
@@ -559,6 +562,18 @@ void IOAPIC_pollRequests()
 			break;
 		}
 	}
+	if (NMIQueued) //NMI has been queued?
+	{
+		if ((APIC.LVTLINT1Register & (1 << 12)) == 0) //Not waiting to be delivered!
+		{
+			if ((APIC.LVTLINT1Register & 0x10000) == 0) //Not masked?
+			{
+				NMIQueued = 0; //Not queued anymore!
+				APIC.LVTLINT1Register |= (1 << 12); //Start pending!
+			}
+		}
+	}
+
 	if (likely(APIC_IRQsrequested == 0)) return; //Nothing to do?
 //First, determine the highest priority IR to use!
 	APIC_requestbit = 1; //What bit is requested first!
@@ -682,6 +697,14 @@ sword LAPIC_pollRequests()
 	if (APIC.LVTTimerRegister & (1 << 12)) //Timer is pending?
 	{
 		LAPIC_executeVector(&APIC.LVTTimerRegister, 0xFF); //Start the timer interrupt!
+	}
+	if (APIC.LVTLINT0Register & (1 << 12)) //LINT0 is pending?
+	{
+		LAPIC_executeVector(&APIC.LVTLINT0Register, 0xFF); //Start the LINT0 interrupt!
+	}
+	if (APIC.LVTLINT1Register & (1 << 12)) //LINT1 is pending?
+	{
+		LAPIC_executeVector(&APIC.LVTLINT1Register, 0xFF); //Start the LINT0 interrupt!
 	}
 	if (!(APIC_IRQsrequested[0] | APIC_IRQsrequested[1] | APIC_IRQsrequested[2] | APIC_IRQsrequested[3] | APIC_IRQsrequested[4] | APIC_IRQsrequested[5] | APIC_IRQsrequested[6] | APIC_IRQsrequested[7]))
 	{
@@ -1705,6 +1728,13 @@ void APIC_raisedIRQ(byte PIC, byte irqnum)
 	if ((APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x8000) == 0) //Edge-triggered? Supported!
 	{
 		APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] |= (1 << 12); //Waiting to be delivered!
+		if (irqnum == 0) //Since we're also connected to the CPU, raise LINT properly!
+		{
+			if ((APIC.IOAPIC_liveIRR & (1 << (irqnum & 0xF))) == 0) //Not already set?
+			{
+				APIC.LVTLINT0Register |= (1 << 12); //Perform LINT0!
+			}
+		}
 		if ((APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x10000) == 0) //Not masked?
 		{
 			if (!(APIC.IOAPIC_IRRset & (1 << (irqnum & 0xF)))) //Not already pending?
@@ -1719,6 +1749,7 @@ void APIC_raisedIRQ(byte PIC, byte irqnum)
 			APIC.IOAPIC_IRRreq |= (1 << (irqnum & 0xF)); //Requested to fire!
 		}
 	}
+	APIC.IOAPIC_liveIRR |= (1 << (irqnum & 0xF)); //Live status!
 }
 
 void IOAPIC_raisepending()
@@ -1762,6 +1793,14 @@ void APIC_loweredIRQ(byte PIC, byte irqnum)
 			APIC.IOAPIC_IRRset &= ~(1 << (irqnum & 0xF)); //Clear the IRR?
 		}
 	}
+	if (irqnum == 0) //Since we're also connected to the CPU, raise LINT properly!
+	{
+		if (APIC.IOAPIC_liveIRR & (1 << (irqnum & 0xF))) //Was set?
+		{
+			APIC.LVTLINT0Register &= ~(1 << 12); //Clear LINT0!
+		}
+	}
+	APIC.IOAPIC_liveIRR &= ~(1 << (irqnum & 0xF)); //Live status!
 }
 
 void raiseirq(word irqnum)
