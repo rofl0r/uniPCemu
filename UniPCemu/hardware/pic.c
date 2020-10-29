@@ -413,7 +413,6 @@ void LAPIC_executeVector(uint_32* vectorlo, byte IR, byte isIOAPIC)
 
 void updateAPIC(uint_64 clockspassed)
 {
-	uint_64 remainingclocks;
 	if (!clockspassed) return; //Nothing passed?
 	if (APIC.CurrentCountRegister) //Count busy?
 	{
