@@ -350,7 +350,7 @@ void LAPIC_executeVector(uint_32* vectorlo, byte IR)
 	byte APIC_intnr;
 	*vectorlo |= (1 << 14); //The IO or Local APIC has received the request!
 	APIC_intnr = (*vectorlo & 0xFF); //What interrupt number?
-	switch ((APIC.IOAPIC_redirectionentry[IR][0] >> 8) & 7) //What destination mode?
+	switch ((*vectorlo >> 8) & 7) //What destination mode?
 	{
 	case 0: //Interrupt?
 	case 1: //Lowest priority?
