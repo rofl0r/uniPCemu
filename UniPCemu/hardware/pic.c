@@ -698,7 +698,7 @@ void IOAPIC_pollRequests()
 		isLAPIC = 0; //Default: not the LAPIC!
 		if (APIC.IOAPIC_redirectionentry[IR][0] & 0x800) //Logical destination?
 		{
-			logicaldestination = ((APIC.IOAPIC_redirectionentry[IR][0] >> 24) & 0xFF); //What is the logical destination?
+			logicaldestination = ((APIC.IOAPIC_redirectionentry[IR][1] >> 24) & 0xFF); //What is the logical destination?
 			//Determine destination correct by destination format and logical destination register in the LAPIC!
 			if (isLAPIClogicaldestination(logicaldestination)) //Match on the logical destination?
 			{
@@ -713,7 +713,7 @@ void IOAPIC_pollRequests()
 		}
 		else //Physical destination?
 		{
-			logicaldestination = ((APIC.InterruptCommandRegisterHi >> 24) & 0xF); //What destination!
+			logicaldestination = ((APIC.IOAPIC_redirectionentry[IR][1] >> 24) & 0xF); //What destination!
 			if (isAPICPhysicaldestination(0, logicaldestination) == 1) //Local APIC?
 			{
 				isLAPIC |= 1; //LAPIC received!
