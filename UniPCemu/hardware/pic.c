@@ -311,7 +311,8 @@ byte isLAPIClogicaldestination(byte logicaldestination)
 		//high 4 bits are encoded address of destination cluster
 		//low 4 bits are the 4 APICs within the cluster.
 		//the matching is done like with flat model, but on both the destination cluster and APIC number!
-		ourid = ((APIC.LogicalDestinationRegister >> 24) & logicaldestination); //Simply logical AND!
+		if (logicaldestination == 0xFF) return 1; //Broadcast?
+		ourid = (((APIC.LogicalDestinationRegister >> 24) & logicaldestination)&0xF); //Simply logical AND of the APICs within the cluster!
 		idtomatch = (APIC.LogicalDestinationRegister >> 24); //ID to match!
 		return ((ourid != 0) && ((idtomatch & 0xF0) == (logicaldestination & 0xF0))); //Received?
 		break;
