@@ -843,7 +843,7 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 		{
 		case 0x0000: //IOAPIC address?
 			whatregister = &APIC.APIC_address; //Address register!
-			ROMbits = ~0xFF; //Upper 24 bits are reserved!
+			ROMbits = 0; //Upper 24 bits are reserved!
 			break;
 		case 0x0010: //IOAPIC data?
 			switch (APIC.APIC_address) //What address is selected?
