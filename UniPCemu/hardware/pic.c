@@ -1382,6 +1382,24 @@ byte out8259(word portnum, byte value)
 	{
 		if (addr22 == 0x70) //Selected IMCR?
 		{
+			if ((IMCR == 0) && (value == 1)) //Disconnect NMI and INTR from the CPU/
+			{
+				if (APIC.LVTLINT0Register & (1 << 12)) //Raised?
+				{
+					APIC.LVTLINT0Register &= ~(1 << 12); //Remove LINT0!
+				}
+			}
+			else //Reconnect NMI and INTR to the CPU?
+			{
+				if (APIC.IOAPIC_liveIRR & 1) //Already raised?
+				{
+					if ((APIC.LVTLINT0Register & 0x10000) == 0) //Not masked?
+					{
+						APIC.LVTLINT0Register |= (1 << 12); //Perform LINT0!
+					}
+				}
+				//NMI is handled automatically!
+			}
 			IMCR = value; //Set IMCR!
 			return 1;
 		}
@@ -1725,16 +1743,20 @@ void APIC_raisedIRQ(byte PIC, byte irqnum)
 	if (irqnum == 0) irqnum = 2; //IRQ0 is on APIC line 2!
 	else if (irqnum == 2) irqnum = 0; //INTR to APIC line 0!
 	//INTR is also on APIC line 0!
-	if ((APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x8000) == 0) //Edge-triggered? Supported!
+	if (irqnum == 0) //Since we're also connected to the CPU, raise LINT properly!
 	{
-		APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] |= (1 << 12); //Waiting to be delivered!
-		if (irqnum == 0) //Since we're also connected to the CPU, raise LINT properly!
+		//Always assume live doesn't match! So that the LINT0 register keeps being up-to-date!
+		if (IMCR == 0) //Connected to the CPU?
 		{
-			if ((APIC.IOAPIC_liveIRR & (1 << (irqnum & 0xF))) == 0) //Not already set?
+			if ((APIC.LVTLINT0Register & 0x10000) == 0) //Not masked?
 			{
 				APIC.LVTLINT0Register |= (1 << 12); //Perform LINT0!
 			}
 		}
+	}
+	if ((APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x8000) == 0) //Edge-triggered? Supported!
+	{
+		APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] |= (1 << 12); //Waiting to be delivered!
 		if ((APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x10000) == 0) //Not masked?
 		{
 			if (!(APIC.IOAPIC_IRRset & (1 << (irqnum & 0xF)))) //Not already pending?
@@ -1795,10 +1817,8 @@ void APIC_loweredIRQ(byte PIC, byte irqnum)
 	}
 	if (irqnum == 0) //Since we're also connected to the CPU, raise LINT properly!
 	{
-		if (APIC.IOAPIC_liveIRR & (1 << (irqnum & 0xF))) //Was set?
-		{
-			APIC.LVTLINT0Register &= ~(1 << 12); //Clear LINT0!
-		}
+		//Always assume that the live IRR doesn't match to keep it live on the triggering!
+		APIC.LVTLINT0Register &= ~(1 << 12); //Clear LINT0!
 	}
 	APIC.IOAPIC_liveIRR &= ~(1 << (irqnum & 0xF)); //Live status!
 }
