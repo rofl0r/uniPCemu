@@ -36,7 +36,7 @@ struct
 {
 	//Basic information?
 	byte enabled; //Is the APIC enabled by the CPU?
-	byte needstermination; //APIC needs termination?
+	word needstermination; //APIC needs termination?
 	//CPU MSR information!
 	uint_32 windowMSRlo;
 	uint_32 windowMSRhi; //Window register that's written in the CPU!
@@ -281,10 +281,13 @@ void APIC_handletermination() //Handle termination on the APIC!
 		memset(&APIC.IOAPIC_requirestermination, 0, sizeof(APIC.IOAPIC_requirestermination)); //Not requiring termination anymore!
 	}
 
-	APIC.LVTTimerRegisterDirty = 0; //Ready for use!
-	APIC.LVTLINT0RegisterDirty = 0; //Ready for use!
-	APIC.LVTLINT1RegisterDirty = 0; //Ready for use!
-	APIC.LVTErrorRegisterDirty = 0; //Ready for use!
+	if (APIC.needstermination & 0x100) //Needs termination?
+	{
+		APIC.LVTTimerRegisterDirty = 0; //Ready for use!
+		APIC.LVTLINT0RegisterDirty = 0; //Ready for use!
+		APIC.LVTLINT1RegisterDirty = 0; //Ready for use!
+		APIC.LVTErrorRegisterDirty = 0; //Ready for use!
+	}
 
 	APIC.needstermination = 0; //No termination is needed anymore!
 	APIC.IOAPIC_globalrequirestermination = 0; //No termination is needed anymore!
@@ -979,6 +982,7 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 			whatregister = &APIC.LVTTimerRegister; //0320
 			ROMbits = (1<<12); //Fully writable!
 			APIC.LVTTimerRegisterDirty = 1; //Dirty!
+			APIC.needstermination = 0x100; //Needs termination!
 			break;
 		case 0x330:
 			whatregister = &APIC.LVTThermalSensorRegister; //0330
@@ -992,16 +996,19 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 			whatregister = &APIC.LVTLINT0Register; //0350
 			ROMbits = (1<<12); //Fully writable!
 			APIC.LVTLINT0RegisterDirty = 1; //Dirty!
+			APIC.needstermination = 0x100; //Needs termination!
 			break;
 		case 0x360:
 			whatregister = &APIC.LVTLINT1Register; //0560
 			ROMbits = (1<<12); //Fully writable!
 			APIC.LVTLINT1RegisterDirty = 1; //Dirty!
+			APIC.needstermination = 0x100; //Needs termination!
 			break;
 		case 0x370:
 			whatregister = &APIC.LVTErrorRegister; //0370
 			ROMbits = (1<<12); //Fully writable!
 			APIC.LVTErrorRegisterDirty = 1; //Dirty!
+			APIC.needstermination = 0x100; //Needs termination!
 			break;
 		case 0x380:
 			whatregister = &APIC.InitialCountRegister; //0380
