@@ -227,6 +227,152 @@ void init8259()
 
 void APIC_errorTrigger(byte whichCPU); //Error has been triggered! Prototype!
 
+byte APIC_getISRV(byte whichCPU)
+{
+	byte IRgroup;
+	byte IR;
+	byte APIC_intnr;
+	int APIC_highestpriority; //-1=Nothing yet, otherwise, highest priority level detected
+	byte APIC_highestpriorityIR; //Highest priority IR detected!
+	uint_32 APIC_IRQsrequested[8], APIC_requestbit, APIC_requestsleft, APIC_requestbithighestpriority;
+	//Determine PPR from ISRV(highest ISR vector number) and TPR.
+
+	//First, find the MSb of the ISR to get the ISRV!
+	APIC_IRQsrequested[0] = LAPIC[whichCPU].ISR[0]; //What can we handle!
+	APIC_IRQsrequested[1] = LAPIC[whichCPU].ISR[1]; //What can we handle!
+	APIC_IRQsrequested[2] = LAPIC[whichCPU].ISR[2]; //What can we handle!
+	APIC_IRQsrequested[3] = LAPIC[whichCPU].ISR[3]; //What can we handle!
+	APIC_IRQsrequested[4] = LAPIC[whichCPU].ISR[4]; //What can we handle!
+	APIC_IRQsrequested[5] = LAPIC[whichCPU].ISR[5]; //What can we handle!
+	APIC_IRQsrequested[6] = LAPIC[whichCPU].ISR[6]; //What can we handle!
+	APIC_IRQsrequested[7] = LAPIC[whichCPU].ISR[7]; //What can we handle!
+	if (!(APIC_IRQsrequested[0] | APIC_IRQsrequested[1] | APIC_IRQsrequested[2] | APIC_IRQsrequested[3] | APIC_IRQsrequested[4] | APIC_IRQsrequested[5] | APIC_IRQsrequested[6] | APIC_IRQsrequested[7]))
+	{
+		//No active ISR!
+		IRgroup = IR = 0; //Nothing!
+		goto foundPrioritizedISRV; //Found the vector!
+	}
+	//Find the most prioritized interrupt to fire!
+	for (IRgroup = 7;; --IRgroup) //Process all possible groups to handle!
+	{
+		if (APIC_IRQsrequested[IRgroup]) //Something requested here?
+		{
+			//First, determine the highest priority IR to use!
+			APIC_requestbit = (1U << 31); //What bit is requested first!
+			APIC_requestsleft = 32; //How many are left!
+			APIC_requestbithighestpriority = 0; //Default: no highest priority found yet!
+			APIC_highestpriority = -1; //Default: no highest priority level found yet!
+			APIC_highestpriorityIR = 0; //Default: No highest priority IR loaded yet!
+			//Note: this way of handling the priority is done by the LAPIC as well(high nibble of the interrupt vector determines the priority)!
+			for (IR = 31; APIC_requestsleft; --IR) //Check all requests!
+			{
+				if (APIC_IRQsrequested[IRgroup] & APIC_requestbit) //Are we requested to fire?
+				{
+					//Priority is based on the high nibble of the interrupt vector. The low nibble is ignored!
+					APIC_highestpriorityIR = IR; //What IR has the highest priority now!
+					APIC_requestbithighestpriority = APIC_requestbit; //What bit was the highest priority?
+					goto foundPrioritizedISRV; //handle it!
+				}
+				APIC_requestbit >>= 1; //Next bit to check!
+				--APIC_requestsleft; //One processed!
+			}
+		}
+	}
+foundPrioritizedISRV: //No ISR found?
+	return (IRgroup << 5) | IR; //The interrupt that was fired!
+}
+
+byte APIC_getIRRV(byte whichCPU)
+{
+	byte IRgroup;
+	byte IR;
+	byte APIC_intnr;
+	int APIC_highestpriority; //-1=Nothing yet, otherwise, highest priority level detected
+	byte APIC_highestpriorityIR; //Highest priority IR detected!
+	uint_32 APIC_IRQsrequested[8], APIC_requestbit, APIC_requestsleft, APIC_requestbithighestpriority;
+	//Determine PPR from ISRV(highest ISR vector number) and TPR.
+
+	//First, find the MSb of the ISR to get the ISRV!
+	APIC_IRQsrequested[0] = LAPIC[whichCPU].IRR[0]; //What can we handle!
+	APIC_IRQsrequested[1] = LAPIC[whichCPU].IRR[1]; //What can we handle!
+	APIC_IRQsrequested[2] = LAPIC[whichCPU].IRR[2]; //What can we handle!
+	APIC_IRQsrequested[3] = LAPIC[whichCPU].IRR[3]; //What can we handle!
+	APIC_IRQsrequested[4] = LAPIC[whichCPU].IRR[4]; //What can we handle!
+	APIC_IRQsrequested[5] = LAPIC[whichCPU].IRR[5]; //What can we handle!
+	APIC_IRQsrequested[6] = LAPIC[whichCPU].IRR[6]; //What can we handle!
+	APIC_IRQsrequested[7] = LAPIC[whichCPU].IRR[7]; //What can we handle!
+	if (!(APIC_IRQsrequested[0] | APIC_IRQsrequested[1] | APIC_IRQsrequested[2] | APIC_IRQsrequested[3] | APIC_IRQsrequested[4] | APIC_IRQsrequested[5] | APIC_IRQsrequested[6] | APIC_IRQsrequested[7]))
+	{
+		//No active ISR!
+		IRgroup = IR = 0; //Nothing!
+		goto foundPrioritizedIRRV; //Found the vector!
+	}
+	//Find the most prioritized interrupt to fire!
+	for (IRgroup = 7;; --IRgroup) //Process all possible groups to handle!
+	{
+		if (APIC_IRQsrequested[IRgroup]) //Something requested here?
+		{
+			//First, determine the highest priority IR to use!
+			APIC_requestbit = (1U << 31); //What bit is requested first!
+			APIC_requestsleft = 32; //How many are left!
+			APIC_requestbithighestpriority = 0; //Default: no highest priority found yet!
+			APIC_highestpriority = -1; //Default: no highest priority level found yet!
+			APIC_highestpriorityIR = 0; //Default: No highest priority IR loaded yet!
+			//Note: this way of handling the priority is done by the LAPIC as well(high nibble of the interrupt vector determines the priority)!
+			for (IR = 31; APIC_requestsleft; --IR) //Check all requests!
+			{
+				if (APIC_IRQsrequested[IRgroup] & APIC_requestbit) //Are we requested to fire?
+				{
+					//Priority is based on the high nibble of the interrupt vector. The low nibble is ignored!
+					APIC_highestpriorityIR = IR; //What IR has the highest priority now!
+					APIC_requestbithighestpriority = APIC_requestbit; //What bit was the highest priority?
+					goto foundPrioritizedIRRV; //handle it!
+				}
+				APIC_requestbit >>= 1; //Next bit to check!
+				--APIC_requestsleft; //One processed!
+			}
+		}
+	}
+foundPrioritizedIRRV: //No ISR found?
+	return (IRgroup << 5) | IR; //The interrupt that was fired!
+}
+
+//Updated for ISR changes!
+void LAPIC_updatedISR(byte whichCPU)
+{
+	byte ISRV;
+	ISRV = APIC_getISRV(whichCPU); //Get the ISRV!
+	//Now, we have selected the highest priority IR! Start using it!
+	LAPIC[whichCPU].ProcessorPriorityRegister = MAX((ISRV & 0xF0), (LAPIC[whichCPU].TaskPriorityRegister & 0xF0)); //Maximum of the two is Processor Priority Class
+	//Determine the Processor Priority Sub-class
+	if ((LAPIC[whichCPU].TaskPriorityRegister & 0xF0) > (ISRV & 0xF0)) //Use TPR 3:0!
+	{
+		LAPIC[whichCPU].ProcessorPriorityRegister |= (LAPIC[whichCPU].TaskPriorityRegister & 0xF); //TPR 3:0!
+	}
+	else if ((LAPIC[whichCPU].TaskPriorityRegister & 0xF0) == (ISRV & 0xF0)) //Equal? TPR 3:0 or 0? Model-specific!
+	{
+		LAPIC[whichCPU].ProcessorPriorityRegister |= (LAPIC[whichCPU].TaskPriorityRegister & 0xF); //TPR 3:0!
+	}
+	//Otherwise, zero!
+}
+
+//Updated for IRR and ISR changes!
+void LAPIC_updatedIRRISR(byte whichCPU)
+{
+	byte IRRV, ISRV;
+	IRRV = APIC_getIRRV(whichCPU); //Get the IRRV!
+	ISRV = APIC_getISRV(whichCPU); //Get the ISRV!
+
+	if (((LAPIC[whichCPU].TaskPriorityRegister & 0xF0) >= (IRRV & 0xF0)) && ((LAPIC[whichCPU].TaskPriorityRegister & 0xF0) > (ISRV & 0xF0))) //TPR is at least request and more than service?
+	{
+		LAPIC[whichCPU].ArbitrationPriorityRegister = (LAPIC[whichCPU].TaskPriorityRegister&0xFF); //It's the TPR!
+	}
+	else
+	{
+		LAPIC[whichCPU].ArbitrationPriorityRegister = MAX((LAPIC[whichCPU].TaskPriorityRegister & 0xF0), MAX((IRRV & 0xF0), (ISRV & 0xF0))); //Maximum of IRR, ISR and TPR! Lower 3 bits are 0!
+	}
+}
+
 void LAPIC_handletermination() //Handle termination on the APIC!
 {
 	word MSb, MSBleft;
@@ -258,6 +404,8 @@ void LAPIC_handletermination() //Handle termination on the APIC!
 					if (LAPIC[activeCPU].ISR[MSb >> 5] & (1 << (MSb&0x1F))) //Highest IRQ found (MSb)?
 					{
 						LAPIC[activeCPU].ISR[MSb >> 5] &= ~(1 << (MSb & 0x1F)); //Clear said ISR!
+						LAPIC_updatedISR(activeCPU); //Update the ISR!
+						LAPIC_updatedIRRISR(activeCPU); //Update the ISR!
 						goto finishupEOI; //Only acnlowledge the MSb IRQ!
 					}
 					--MSb;
@@ -308,6 +456,12 @@ void LAPIC_handletermination() //Handle termination on the APIC!
 		{
 			APIC_errorTrigger(activeCPU); //Error interrupt is triggered!
 		}
+	}
+
+	if (LAPIC[activeCPU].needstermination & 0x80) //TPR needs termination?
+	{
+		LAPIC_updatedISR(activeCPU); //Update the values depending on it!
+		LAPIC_updatedIRRISR(activeCPU); //Update the values depending on it!
 	}
 
 	if (LAPIC[activeCPU].needstermination & 0x100) //Needs termination?
@@ -438,6 +592,7 @@ byte LAPIC_executeVector(byte whichCPU, uint_32* vectorlo, byte IR, byte isIOAPI
 		}
 		//Accept it!
 		LAPIC[whichCPU].IRR[APIC_intnr >> 5] |= (1 << (APIC_intnr & 0x1F)); //Mark the interrupt requested to fire!
+		LAPIC_updatedIRRISR(whichCPU); //Updated the IIR!
 		//The IO APIC ignores the received message?
 		break;
 	case 2: //SMI?
@@ -626,6 +781,7 @@ void LAPIC_pollRequests(byte whichCPU)
 					else if ((LAPIC[destinationCPU].IRR[(LAPIC[whichCPU].InterruptCommandRegisterLo & 0xFF) >> 5] & (1 << ((LAPIC[whichCPU].InterruptCommandRegisterLo & 0xFF) & 0x1F))) == 0) //Ready to receive?
 					{
 						LAPIC[destinationCPU].IRR[(LAPIC[whichCPU].InterruptCommandRegisterLo & 0xFF) >> 5] |= (1 << ((LAPIC[whichCPU].InterruptCommandRegisterLo & 0xFF) & 0x1F)); //Raise the interrupt on the Local APIC!
+						LAPIC_updatedIRRISR(destinationCPU); //Updated the IRR!
 					}
 					//Otherwise, busy? Execute retry status?
 					else
@@ -893,6 +1049,8 @@ firePrioritizedIR: //Fire the IR that has the most priority!
 	APIC_intnr = (IRgroup << 5) | IR; //The interrupt to fire!
 	LAPIC[whichCPU].IRR[IRgroup] &= ~APIC_requestbit; //Mark the interrupt in-service!
 	LAPIC[whichCPU].ISR[IRgroup] |= APIC_requestbit; //Mark the interrupt in-service!
+	LAPIC_updatedISR(whichCPU); //Updated the ISR!
+	LAPIC_updatedIRRISR(whichCPU); //Updated the IRR and ISR!
 	return (sword)APIC_intnr; //Give the interrupt number to fire!
 }
 
@@ -1006,6 +1164,7 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 			break;
 		case 0x0080:
 			whatregister = &LAPIC[activeCPU].TaskPriorityRegister; //0080
+			LAPIC[activeCPU].needstermination |= 0x80; //Task priority has been updated!
 			ROMbits = 0; //Fully writable!
 			break;
 		case 0x0090:
