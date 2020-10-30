@@ -200,6 +200,7 @@ void init8259()
 	default:
 		break;
 	}
+	LAPIC[0].LAPIC_version |= (1 << 24); //Broadcast EOI suppression supported!
 
 	//External INTR support!
 	addr22 = IMCR = 0x00; //Default values after powerup for the IMCR and related register!
@@ -373,6 +374,19 @@ void LAPIC_updatedIRRISR(byte whichCPU)
 	}
 }
 
+void LAPIC_broadcastEOI(byte whichCPU, byte vectornumber)
+{
+	byte intnr;
+	//Do something with it on the IO APIC?
+	for (intnr = 0; intnr < 24; ++intnr) //Check all
+	{
+		if ((IOAPIC.IOAPIC_redirectionentry[intnr][0] & 0xFF) == vectornumber) //Found a matching vector?
+		{
+			IOAPIC.IOAPIC_redirectionentry[intnr][0] &= ~(1 << 14); //Clear bit 14: EOI received!
+		}
+	}
+}
+
 void LAPIC_handletermination() //Handle termination on the APIC!
 {
 	word MSb, MSBleft;
@@ -406,23 +420,22 @@ void LAPIC_handletermination() //Handle termination on the APIC!
 						LAPIC[activeCPU].ISR[MSb >> 5] &= ~(1 << (MSb & 0x1F)); //Clear said ISR!
 						LAPIC_updatedISR(activeCPU); //Update the ISR!
 						LAPIC_updatedIRRISR(activeCPU); //Update the ISR!
+						if ((LAPIC[activeCPU].SpuriousInterruptVectorRegister & (1 << 12)) == 0) //Not suppressed broadcast EOI?
+						{
+							if (LAPIC[activeCPU].TMR[MSb >> 5] & (1 << (MSb & 0x1F))) //Send an EOI to the IO APIC when the TMR is set!
+							{
+								LAPIC_broadcastEOI(activeCPU, MSb); //Broadcast the EOI!
+							}
+						}
 						goto finishupEOI; //Only acnlowledge the MSb IRQ!
 					}
 					--MSb;
-				}
-
-			finishupEOI:
-				//Special communication with the IO APIC!
-				MSBleft = 24; //How many are left!
-				for (MSb = 23; MSBleft; --MSBleft)
-				{
-					IOAPIC.IOAPIC_redirectionentry[MSb][0] &= ~(1 << 14); //EOI has been received!
-					--MSb; //Next MSb to process!
 				}
 			}
 		}
 	}
 
+	finishupEOI: //Finish up an EOI comand: continue onwards!
 	if (LAPIC[activeCPU].needstermination & 4) //Needs termination due to sending a command?
 	{
 		LAPIC[activeCPU].InterruptCommandRegisterLo |= (1 << 12); //Start to become pending!
@@ -592,6 +605,14 @@ byte LAPIC_executeVector(byte whichCPU, uint_32* vectorlo, byte IR, byte isIOAPI
 		}
 		//Accept it!
 		LAPIC[whichCPU].IRR[APIC_intnr >> 5] |= (1 << (APIC_intnr & 0x1F)); //Mark the interrupt requested to fire!
+		if (*vectorlo & 0x8000) //Level triggered?
+		{
+			LAPIC[whichCPU].TMR[APIC_intnr >> 5] |= (1 << (APIC_intnr & 0x1F)); //Mark the interrupt requested to fire!
+		}
+		else //Edge triggered?
+		{
+			LAPIC[whichCPU].TMR[APIC_intnr >> 5] &= ~(1 << (APIC_intnr & 0x1F)); //Mark the interrupt requested to fire!
+		}
 		LAPIC_updatedIRRISR(whichCPU); //Updated the IIR!
 		//The IO APIC ignores the received message?
 		break;
@@ -623,7 +644,10 @@ byte LAPIC_executeVector(byte whichCPU, uint_32* vectorlo, byte IR, byte isIOAPI
 	*vectorlo &= ~(1 << 12); //The IO or Local APIC has received the request!
 	if (isIOAPIC) //IO APIC?
 	{
-		*vectorlo |= (1 << 14); //The IO or Local APIC has received the request for servicing!
+		if (*vectorlo & 0x8000) //Level triggered?
+		{
+			*vectorlo |= (1 << 14); //The IO or Local APIC has received the request for servicing!
+		}
 	}
 	return 1; //Accepted!
 }
@@ -781,6 +805,14 @@ void LAPIC_pollRequests(byte whichCPU)
 					else if ((LAPIC[destinationCPU].IRR[(LAPIC[whichCPU].InterruptCommandRegisterLo & 0xFF) >> 5] & (1 << ((LAPIC[whichCPU].InterruptCommandRegisterLo & 0xFF) & 0x1F))) == 0) //Ready to receive?
 					{
 						LAPIC[destinationCPU].IRR[(LAPIC[whichCPU].InterruptCommandRegisterLo & 0xFF) >> 5] |= (1 << ((LAPIC[whichCPU].InterruptCommandRegisterLo & 0xFF) & 0x1F)); //Raise the interrupt on the Local APIC!
+						if (LAPIC[whichCPU].InterruptCommandRegisterLo & 0x8000) //Level triggered?
+						{
+							LAPIC[whichCPU].TMR[(LAPIC[whichCPU].InterruptCommandRegisterLo & 0xFF) >> 5] |= (1 << ((LAPIC[whichCPU].InterruptCommandRegisterLo & 0xFF) & 0x1F)); //Mark the interrupt requested to fire!
+						}
+						else //Edge triggered?
+						{
+							LAPIC[whichCPU].TMR[(LAPIC[whichCPU].InterruptCommandRegisterLo & 0xFF) >> 5] &= ~(1 << ((LAPIC[whichCPU].InterruptCommandRegisterLo & 0xFF) & 0x1F)); //Mark the interrupt requested to fire!
+						}
 						LAPIC_updatedIRRISR(destinationCPU); //Updated the IRR!
 					}
 					//Otherwise, busy? Execute retry status?
