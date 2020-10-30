@@ -32,10 +32,11 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 PIC i8259;
 byte irr3_dirty = 0; //IRR3/IRR3_a is changed?
 
+byte APIC_enabled; //APICs enabled?
+
 struct
 {
 	//Basic information?
-	byte enabled; //Is the APIC enabled by the CPU?
 	word needstermination; //APIC needs termination?
 	//CPU MSR information!
 	uint_32 windowMSRlo;
@@ -51,13 +52,6 @@ struct
 	uint_32 prevSpuriousInterruptVectorRegister; //The previous value before the write!
 	uint_64 LAPIC_timerremainder; //How much time remained?
 	byte LAPIC_timerdivider; //The divider of the timer!
-
-	//IRQ detection
-	uint_32 IOAPIC_currentliveIRR; //Real live IRR status!
-	uint_32 IOAPIC_liveIRR; //Live IRR status!
-	uint_32 IOAPIC_IRRreq; //Is the IRR requested, but masked(1-bit values)
-	uint_32 IOAPIC_IRRset; //Is the IRR set(1-bit values)
-	uint_32 IOAPIC_IMRset; //Is the IMR routine set(1-bit values)
 
 	//Now, the actual memory for the LAPIC!
 	byte LAPIC_requirestermination[0x400]; //Dword requires termination?
@@ -94,6 +88,25 @@ struct
 	uint_32 CurrentCountRegister; //0390
 	uint_32 DivideConfigurationRegister; //03E0
 
+	sword LAPIC_extIntPending;
+} LAPIC[MAXCPUS]; //The Local APIC that's emulated!
+
+struct
+{
+	//Basic information?
+	word needstermination; //APIC needs termination?
+	uint_64 IObaseaddr; //Base address of the I/O APIC!
+	//Remaining variables? All memory that's stored in the APIC!
+	uint_32 APIC_address; //Address register for the extended memory!
+	uint_32 APIC_data; //Data register for the extended memory!
+
+	//IRQ detection
+	uint_32 IOAPIC_currentliveIRR; //Real live IRR status!
+	uint_32 IOAPIC_liveIRR; //Live IRR status!
+	uint_32 IOAPIC_IRRreq; //Is the IRR requested, but masked(1-bit values)
+	uint_32 IOAPIC_IRRset; //Is the IRR set(1-bit values)
+	uint_32 IOAPIC_IMRset; //Is the IMR routine set(1-bit values)
+
 	//IO APIC address registers!
 	uint_32 IOAPIC_Address; //Address register for the IOAPIC registers! 0000
 	uint_32 IOAPIC_Value; //Value register for the IOAPIC registers! 0010
@@ -105,8 +118,7 @@ struct
 	uint_32 IOAPIC_redirectionentry[24][2]; //10-3F: 2 dwords for each redirection entry setting! Total 48 dwords!
 	byte IOAPIC_requirestermination[0x40]; //Termination required for this entry?
 	byte IOAPIC_globalrequirestermination; //Is termination required for the IO APIC?
-	sword LAPIC_extIntPending;
-} APIC; //The APIC that's emulated!
+} IOAPIC; //Only 1 IO APIC is possible?
 
 byte addr22 = 0; //Address select of port 22h!
 byte IMCR = 0; //Address selected. 00h=Connect INTR and NMI to the CPU. 01h=Disconnect INTR and NMI from the CPU.
@@ -120,39 +132,40 @@ extern byte APICNMIQueued; //APIC-issued NMI queued?
 void updateLAPICTimerSpeed()
 {
 	byte divider;
-	divider = (APIC.DivideConfigurationRegister & 3) | ((APIC.DivideConfigurationRegister & 8) >> 1); //Divider set!
+	divider = (LAPIC[activeCPU].DivideConfigurationRegister & 3) | ((LAPIC[activeCPU].DivideConfigurationRegister & 8) >> 1); //Divider set!
 	if (divider == 7) //Actually 1?
 	{
-		APIC.LAPIC_timerdivider = 0; //Divide by 1!
+		LAPIC[activeCPU].LAPIC_timerdivider = 0; //Divide by 1!
 	}
 	else //2^n
 	{
-		APIC.LAPIC_timerdivider = 1+divider; //Calculate it!
+		LAPIC[activeCPU].LAPIC_timerdivider = 1+divider; //Calculate it!
 	}
 }
 
 //Handle everything that needs to be done when resetting the APIC!
-void resetAPIC()
+void resetAPIC(byte whichCPU)
 {
 	byte IRQnr;
-	for (IRQnr = 0; IRQnr < NUMITEMS(APIC.IOAPIC_redirectionentry); ++IRQnr) //Handle all IRQ handlers we support!
+	for (IRQnr = 0; IRQnr < NUMITEMS(IOAPIC.IOAPIC_redirectionentry); ++IRQnr) //Handle all IRQ handlers we support!
 	{
-		APIC.IOAPIC_redirectionentry[IRQnr][0] |= 0x10000; //Masked, nothing else set yet, edge mode, active high!
+		IOAPIC.IOAPIC_redirectionentry[IRQnr][0] |= 0x10000; //Masked, nothing else set yet, edge mode, active high!
 	}
-	APIC.IOAPIC_IMRset = ~0; //Mask all set!
-	APIC.IOAPIC_IRRreq = 0; //Remove all pending requests!
+	IOAPIC.IOAPIC_IMRset = ~0; //Mask all set!
+	IOAPIC.IOAPIC_IRRreq = 0; //Remove all pending requests!
 }
 
-void updateLAPICArbitrationIDregister()
+void updateLAPICArbitrationIDregister(byte whichCPU)
 {
-	APIC.LAPIC_arbitrationIDregister = APIC.LAPIC_ID & (0xFF << 24); //Load the Arbitration ID register from the Local APIC ID register! All 8-bits are loaded!
+	LAPIC[whichCPU].LAPIC_arbitrationIDregister = LAPIC[whichCPU].LAPIC_ID & (0xFF << 24); //Load the Arbitration ID register from the Local APIC ID register! All 8-bits are loaded!
 }
 
 void init8259()
 {
 	if (__HW_DISABLED) return; //Abort!
 	memset(&i8259, 0, sizeof(i8259));
-	memset(&APIC, 0, sizeof(APIC));
+	memset(&LAPIC, 0, sizeof(LAPIC));
+	memset(&IOAPIC, 0, sizeof(IOAPIC));
 	//Now the port handling!
 	//PIC0!
 	register_PORTOUT(&out8259);
@@ -162,141 +175,169 @@ void init8259()
 	i8259.imr[0] = 0xFF; //Mask off all interrupts to start!
 	i8259.imr[1] = 0xFF; //Mask off all interrupts to start!
 	irr3_dirty = 0; //Default: not dirty!
-	APIC.baseaddr = 0xFEE00000; //Default base address!
-	APIC.IObaseaddr = 0xFEC00000; //Default base address!
-	APIC.enabled = 0; //Is the APIC enabled?
-	APIC.needstermination = 0; //Doesn't need termination!
-	APIC.IOAPIC_version_numredirectionentries = 0x11 | ((24 - 1) << 16); //How many IRQs can we handle(24) and version number!
-	APIC.LAPIC_version = 0x0010;
-	APIC.DestinationFormatRegister = ~0; //All bits set!
-	APIC.SpuriousInterruptVectorRegister = 0xFF; //Needs to be 0xFF!
-	APIC.IOAPIC_ID = 0x00; //Default IO APIC phyiscal ID!
+
+	//Initialize APIC and IO APIC!
+	APIC_enabled = 0; //Is the APIC enabled?
+
+	//Initialize only 1 Local APIC!
+	LAPIC[0].baseaddr = 0xFEE00000; //Default base address!
+	LAPIC[0].needstermination = 0; //Doesn't need termination!
+	LAPIC[0].LAPIC_version = 0x0010;
+	LAPIC[0].DestinationFormatRegister = ~0; //All bits set!
+	LAPIC[0].SpuriousInterruptVectorRegister = 0xFF; //Needs to be 0xFF!
 	switch (EMULATED_CPU)
 	{
 	case CPU_PENTIUM:
-		APIC.LAPIC_version |= 0x30000; //4 LVT entries
+		LAPIC[0].LAPIC_version |= 0x30000; //4 LVT entries
 		break;
 	case CPU_PENTIUMPRO:
 	case CPU_PENTIUM2:
-		APIC.LAPIC_version |= 0x40000; //5 LVT entries
+		LAPIC[0].LAPIC_version |= 0x40000; //5 LVT entries
 		break;
 	default:
 		break;
 	}
-	resetAPIC(); //Reset the APIC as well!
-	addr22 = IMCR = 0x00; //Default values after powerup for the IMCR and related register!
-	updateLAPICTimerSpeed(); //Update the used timer speed!
-	updateLAPICArbitrationIDregister(); //Update the Arbitration ID register with it's defaults!
 
-	APIC.LVTLINT0Register = 0x10000; //Reset LINT0 register!
-	APIC.LVTLINT1Register = 0x10000; //Reset LINT1 register!
-	APIC.LVTCorrectedMachineCheckInterruptRegister = 0x10000; //Reset CMCI register!
-	APIC.LVTErrorRegister = 0x10000; //Reset Error register!
-	APIC.LVTPerformanceMonitoringCounterRegister = 0x10000; //Performance monitoring counter register!
-	APIC.LVTThermalSensorRegister = 0x10000; //Thermal sensor register!
-	APIC.LAPIC_extIntPending = -1; //No external interrupt pending yet!
+	//External INTR support!
+	addr22 = IMCR = 0x00; //Default values after powerup for the IMCR and related register!
+
+	//Initialize the IO APIC!
+	IOAPIC.IObaseaddr = 0xFEC00000; //Default base address!
+	IOAPIC.needstermination = 0; //Doesn't need termination!
+	IOAPIC.IOAPIC_version_numredirectionentries = 0x11 | ((24 - 1) << 16); //How many IRQs can we handle(24) and version number!
+	IOAPIC.IOAPIC_ID = 0x00; //Default IO APIC phyiscal ID!
+
+	//Update only 1 Local APIC!
+	resetAPIC(0); //Reset the APIC as well!
+	updateLAPICTimerSpeed(0); //Update the used timer speed!
+	updateLAPICArbitrationIDregister(0); //Update the Arbitration ID register with it's defaults!
+	
+	//Local APIC interrupt support!
+	LAPIC[0].LVTLINT0Register = 0x10000; //Reset LINT0 register!
+	LAPIC[0].LVTLINT1Register = 0x10000; //Reset LINT1 register!
+	LAPIC[0].LVTCorrectedMachineCheckInterruptRegister = 0x10000; //Reset CMCI register!
+	LAPIC[0].LVTErrorRegister = 0x10000; //Reset Error register!
+	LAPIC[0].LVTPerformanceMonitoringCounterRegister = 0x10000; //Performance monitoring counter register!
+	LAPIC[0].LVTThermalSensorRegister = 0x10000; //Thermal sensor register!
+	LAPIC[0].LAPIC_extIntPending = -1; //No external interrupt pending yet!
 }
 
-void APIC_errorTrigger(); //Error has been triggered! Prototype!
+void APIC_errorTrigger(byte whichCPU); //Error has been triggered! Prototype!
 
-void APIC_handletermination() //Handle termination on the APIC!
+void LAPIC_handletermination() //Handle termination on the APIC!
 {
 	word MSb, MSBleft;
 	//Handle any writes to APIC addresses!
-	if (likely((APIC.needstermination|APIC.IOAPIC_globalrequirestermination|APIC.LAPIC_globalrequirestermination) == 0)) return; //No termination needed?
+	if (likely((LAPIC[activeCPU].needstermination|LAPIC[activeCPU].LAPIC_globalrequirestermination) == 0)) return; //No termination needed?
 
 	//Now, handle the termination of the various registers!
-	if (APIC.needstermination & 1) //Needs termination due to possible reset?
+	if (LAPIC[activeCPU].needstermination & 1) //Needs termination due to possible reset?
 	{
-		if (((APIC.SpuriousInterruptVectorRegister & 0x100) == 0) && ((APIC.prevSpuriousInterruptVectorRegister & 0x100))) //Cleared?
+		if (((LAPIC[activeCPU].SpuriousInterruptVectorRegister & 0x100) == 0) && ((LAPIC[activeCPU].prevSpuriousInterruptVectorRegister & 0x100))) //Cleared?
 		{
-			resetAPIC(); //Reset the APIC!
+			resetAPIC(activeCPU); //Reset the APIC!
 		}
-		else if (((APIC.prevSpuriousInterruptVectorRegister & 0x100) == 0) && ((APIC.SpuriousInterruptVectorRegister & 0x100))) //Set?
+		else if (((LAPIC[activeCPU].prevSpuriousInterruptVectorRegister & 0x100) == 0) && ((LAPIC[activeCPU].SpuriousInterruptVectorRegister & 0x100))) //Set?
 		{
-			//APIC.IOAPIC_IRRreq = 0; //Remove all pending!
+			//LAPIC[activeCPU].IOAPIC_IRRreq = 0; //Remove all pending!
 		}
 	}
 
-	if (APIC.needstermination & 2) //Needs termination due to possible EOI?
+	if (LAPIC[activeCPU].needstermination & 2) //Needs termination due to possible EOI?
 	{
-		//if (APIC.EOIregister == 0) //Properly written 0?
+		//if (LAPIC[activeCPU].EOIregister == 0) //Properly written 0?
 		{
-			if (APIC.ISR[0]|APIC.ISR[1]|APIC.ISR[2]|APIC.ISR[3]|APIC.ISR[4]|APIC.ISR[5]|APIC.ISR[6]|APIC.ISR[7]) //Anything set to acnowledge?
+			if (LAPIC[activeCPU].ISR[0]|LAPIC[activeCPU].ISR[1]|LAPIC[activeCPU].ISR[2]|LAPIC[activeCPU].ISR[3]|LAPIC[activeCPU].ISR[4]|LAPIC[activeCPU].ISR[5]|LAPIC[activeCPU].ISR[6]|LAPIC[activeCPU].ISR[7]) //Anything set to acnowledge?
 			{
 				MSBleft = 256; //How many are left!
 				for (MSb = 255; MSBleft; --MSBleft) //Check all possible interrupts!
 				{
-					if (APIC.ISR[MSb >> 5] & (1 << (MSb&0x1F))) //Highest IRQ found (MSb)?
+					if (LAPIC[activeCPU].ISR[MSb >> 5] & (1 << (MSb&0x1F))) //Highest IRQ found (MSb)?
 					{
-						APIC.ISR[MSb >> 5] &= ~(1 << (MSb & 0x1F)); //Clear said ISR!
+						LAPIC[activeCPU].ISR[MSb >> 5] &= ~(1 << (MSb & 0x1F)); //Clear said ISR!
 						goto finishupEOI; //Only acnlowledge the MSb IRQ!
 					}
 					--MSb;
 				}
 
 			finishupEOI:
+				//Special communication with the IO APIC!
 				MSBleft = 24; //How many are left!
 				for (MSb = 23; MSBleft; --MSBleft)
 				{
-					APIC.IOAPIC_redirectionentry[MSb][0] &= ~(1 << 14); //EOI has been received!
+					IOAPIC.IOAPIC_redirectionentry[MSb][0] &= ~(1 << 14); //EOI has been received!
 					--MSb; //Next MSb to process!
 				}
 			}
 		}
 	}
 
-	if (APIC.needstermination & 4) //Needs termination due to sending a command?
+	if (LAPIC[activeCPU].needstermination & 4) //Needs termination due to sending a command?
 	{
-		APIC.InterruptCommandRegisterLo |= (1 << 12); //Start to become pending!
+		LAPIC[activeCPU].InterruptCommandRegisterLo |= (1 << 12); //Start to become pending!
 	}
 
-	if (APIC.needstermination & 8) //Error status register needs termination?
+	if (LAPIC[activeCPU].needstermination & 8) //Error status register needs termination?
 	{
-		APIC.ErrorStatusRegister = 0; //Clear the status register for new errors to be reported!
+		LAPIC[activeCPU].ErrorStatusRegister = 0; //Clear the status register for new errors to be reported!
 	}
 
-	if (APIC.needstermination & 0x10) //Initial count register is written?
+	if (LAPIC[activeCPU].needstermination & 0x10) //Initial count register is written?
 	{
-		if (APIC.InitialCountRegister == 0) //Stop the timer?
+		if (LAPIC[activeCPU].InitialCountRegister == 0) //Stop the timer?
 		{
-			APIC.CurrentCountRegister = 0; //Stop the timer!
+			LAPIC[activeCPU].CurrentCountRegister = 0; //Stop the timer!
 		}
 		else //Timer started?
 		{
-			APIC.CurrentCountRegister = APIC.InitialCountRegister; //Load the current count and start timing!
+			LAPIC[activeCPU].CurrentCountRegister = LAPIC[activeCPU].InitialCountRegister; //Load the current count and start timing!
 		}
 	}
 
-	if (APIC.needstermination & 0x20) //Divide configuationregister is written?
+	if (LAPIC[activeCPU].needstermination & 0x20) //Divide configuationregister is written?
 	{
-		updateLAPICTimerSpeed(); //Update the timer speed!
+		updateLAPICTimerSpeed(activeCPU); //Update the timer speed!
 	}
 
-	if (APIC.needstermination & 0x40) //Error Status Interrupt is written?
+	if (LAPIC[activeCPU].needstermination & 0x40) //Error Status Interrupt is written?
 	{
-		if (APIC.ErrorStatusRegister && ((APIC.LVTErrorRegister&0x10000)==0)) //Error marked and interrupt enabled?
+		if (LAPIC[activeCPU].ErrorStatusRegister && ((LAPIC[activeCPU].LVTErrorRegister&0x10000)==0)) //Error marked and interrupt enabled?
 		{
-			APIC_errorTrigger(); //Error interrupt is triggered!
+			APIC_errorTrigger(activeCPU); //Error interrupt is triggered!
 		}
 	}
 
-	if (APIC.IOAPIC_globalrequirestermination & 0x8) //IO APIC needs termination on entry writes?
+	if (LAPIC[activeCPU].needstermination & 0x100) //Needs termination?
 	{
-		memset(&APIC.IOAPIC_requirestermination, 0, sizeof(APIC.IOAPIC_requirestermination)); //Not requiring termination anymore!
+		LAPIC[activeCPU].LVTTimerRegisterDirty = 0; //Ready for use!
+		LAPIC[activeCPU].LVTLINT0RegisterDirty = 0; //Ready for use!
+		LAPIC[activeCPU].LVTLINT1RegisterDirty = 0; //Ready for use!
+		LAPIC[activeCPU].LVTErrorRegisterDirty = 0; //Ready for use!
 	}
 
-	if (APIC.needstermination & 0x100) //Needs termination?
+	LAPIC[activeCPU].needstermination = 0; //No termination is needed anymore!
+	LAPIC[activeCPU].LAPIC_globalrequirestermination = 0; //No termination is needed anymore!
+}
+
+void IOAPIC_handletermination() //Handle termination on the APIC!
+{
+	word MSb, MSBleft;
+	//Handle any writes to APIC addresses!
+	if (likely((IOAPIC.IOAPIC_globalrequirestermination) == 0)) return; //No termination needed?
+
+	if (IOAPIC.IOAPIC_globalrequirestermination & 0x8) //IO APIC needs termination on entry writes?
 	{
-		APIC.LVTTimerRegisterDirty = 0; //Ready for use!
-		APIC.LVTLINT0RegisterDirty = 0; //Ready for use!
-		APIC.LVTLINT1RegisterDirty = 0; //Ready for use!
-		APIC.LVTErrorRegisterDirty = 0; //Ready for use!
+		memset(&IOAPIC.IOAPIC_requirestermination, 0, sizeof(IOAPIC.IOAPIC_requirestermination)); //Not requiring termination anymore!
 	}
 
-	APIC.needstermination = 0; //No termination is needed anymore!
-	APIC.IOAPIC_globalrequirestermination = 0; //No termination is needed anymore!
-	APIC.LAPIC_globalrequirestermination = 0; //No termination is needed anymore!
+	IOAPIC.needstermination = 0; //No termination is needed anymore!
+	IOAPIC.IOAPIC_globalrequirestermination = 0; //No termination is needed anymore!
+}
+
+void APIC_handletermination()
+{
+	LAPIC_handletermination(); //Handle termination of the local APIC!
+	IOAPIC_handletermination(); //Handle termination of the IO APIC!
 }
 
 OPTINLINE byte getint(byte PIC, byte IR) //Get interrupt!
@@ -306,23 +347,23 @@ OPTINLINE byte getint(byte PIC, byte IR) //Get interrupt!
 	return ((i8259.icw[PIC][1] & 0xF8) | (realir & 0x7)); //Get interrupt!
 }
 
-byte isLAPIClogicaldestination(byte logicaldestination)
+byte isLAPIClogicaldestination(byte whichCPU, byte logicaldestination)
 {
 	byte ourid;
 	byte idtomatch;
-	switch ((APIC.DestinationFormatRegister >> 28) & 0xF) //What destination mode?
+	switch ((LAPIC[whichCPU].DestinationFormatRegister >> 28) & 0xF) //What destination mode?
 	{
 	case 0: //Cluster model?
 		//high 4 bits are encoded address of destination cluster
 		//low 4 bits are the 4 APICs within the cluster.
 		//the matching is done like with flat model, but on both the destination cluster and APIC number!
 		if (logicaldestination == 0xFF) return 1; //Broadcast?
-		ourid = (((APIC.LogicalDestinationRegister >> 24) & logicaldestination)&0xF); //Simply logical AND of the APICs within the cluster!
-		idtomatch = (APIC.LogicalDestinationRegister >> 24); //ID to match!
+		ourid = (((LAPIC[whichCPU].LogicalDestinationRegister >> 24) & logicaldestination)&0xF); //Simply logical AND of the APICs within the cluster!
+		idtomatch = (LAPIC[whichCPU].LogicalDestinationRegister >> 24); //ID to match!
 		return ((ourid != 0) && ((idtomatch & 0xF0) == (logicaldestination & 0xF0))); //Received?
 		break;
 	case 0xF: //Flat model?
-		ourid = ((APIC.LogicalDestinationRegister >> 24) & logicaldestination); //Simply logical AND on both the destination cluster and selected APIC!
+		ourid = ((LAPIC[whichCPU].LogicalDestinationRegister >> 24) & logicaldestination); //Simply logical AND on both the destination cluster and selected APIC!
 		return (ourid!=0); //Received on the single APIC?
 		break;
 	default: //Unknown model?
@@ -332,7 +373,7 @@ byte isLAPIClogicaldestination(byte logicaldestination)
 }
 
 //isLAPICorIOAPIC=0: LAPIC, 1=APIC! result: 0=No match. 1=Local APIC, 2=IO APIC.
-byte isAPICPhysicaldestination(byte isLAPICorIOAPIC, byte physicaldestination)
+byte isAPICPhysicaldestination(byte whichCPU, byte isLAPICorIOAPIC, byte physicaldestination)
 {
 	switch (isLAPICorIOAPIC) //Which chip is addressed?
 	{
@@ -341,7 +382,7 @@ byte isAPICPhysicaldestination(byte isLAPICorIOAPIC, byte physicaldestination)
 		{
 			return 1; //Match!
 		}
-		else if (physicaldestination == ((APIC.LAPIC_ID >> 24) & 0xF)) //Match?
+		else if (physicaldestination == ((LAPIC[whichCPU].LAPIC_ID >> 24) & 0xF)) //Match?
 		{
 			return 1;
 		}
@@ -355,7 +396,7 @@ byte isAPICPhysicaldestination(byte isLAPICorIOAPIC, byte physicaldestination)
 		{
 			return 2; //Match!
 		}
-		else if (physicaldestination == ((APIC.IOAPIC_ID >> 24) & 0xF)) //Match?
+		else if (physicaldestination == ((IOAPIC.IOAPIC_ID >> 24) & 0xF)) //Match?
 		{
 			return 2; //Match!
 		}
@@ -373,7 +414,7 @@ byte isAPICPhysicaldestination(byte isLAPICorIOAPIC, byte physicaldestination)
 byte i8259_INTA(); //Prototype for the vector execution of the LAPIC for ExtINT modes!
 
 //Execute a requested vector on the Local APIC! Specify IR=0xFF for no actual IR!
-void LAPIC_executeVector(uint_32* vectorlo, byte IR, byte isIOAPIC)
+void LAPIC_executeVector(byte whichCPU, uint_32* vectorlo, byte IR, byte isIOAPIC)
 {
 	byte APIC_intnr;
 	*vectorlo &= ~(1 << 12); //The IO or Local APIC has received the request!
@@ -389,11 +430,11 @@ void LAPIC_executeVector(uint_32* vectorlo, byte IR, byte isIOAPIC)
 	//Now, we have selected the highest priority IR! Start using it!
 		if (APIC_intnr < 0x10) //Invalid?
 		{
-			APIC.ErrorStatusRegister |= (1 << 6); //Report an illegal vector being received!
-			APIC_errorTrigger(); //Error has been triggered!
+			LAPIC[whichCPU].ErrorStatusRegister |= (1 << 6); //Report an illegal vector being received!
+			APIC_errorTrigger(whichCPU); //Error has been triggered!
 			return; //Abort!
 		}
-		APIC.IRR[APIC_intnr >> 5] |= (1 << (APIC_intnr & 0x1F)); //Mark the interrupt requested to fire!
+		LAPIC[whichCPU].IRR[APIC_intnr >> 5] |= (1 << (APIC_intnr & 0x1F)); //Mark the interrupt requested to fire!
 		//The IO APIC ignores the received message?
 		break;
 	case 2: //SMI?
@@ -410,7 +451,7 @@ void LAPIC_executeVector(uint_32* vectorlo, byte IR, byte isIOAPIC)
 	case 7: //extINT?
 		APIC_intnr = (sword)i8259_INTA(); //Perform an INTA-style interrupt retrieval!
 		//Execute immediately!
-		APIC.LAPIC_extIntPending = (sword)APIC_intnr; //We're pending now!
+		LAPIC[whichCPU].LAPIC_extIntPending = (sword)APIC_intnr; //We're pending now!
 		break;
 	default: //Unsupported yet?
 		break;
@@ -420,14 +461,14 @@ void LAPIC_executeVector(uint_32* vectorlo, byte IR, byte isIOAPIC)
 void updateAPIC(uint_64 clockspassed)
 {
 	if (!clockspassed) return; //Nothing passed?
-	if (APIC.CurrentCountRegister) //Count busy?
+	if (LAPIC[activeCPU].CurrentCountRegister) //Count busy?
 	{
 		//First, divide up!
-		APIC.LAPIC_timerremainder += clockspassed; //How much more is passed!
-		if (APIC.LAPIC_timerremainder >> APIC.LAPIC_timerdivider) //Something passed?
+		LAPIC[activeCPU].LAPIC_timerremainder += clockspassed; //How much more is passed!
+		if (LAPIC[activeCPU].LAPIC_timerremainder >> LAPIC[activeCPU].LAPIC_timerdivider) //Something passed?
 		{
-			clockspassed = (APIC.LAPIC_timerremainder >> APIC.LAPIC_timerdivider); //How much passed!
-			APIC.LAPIC_timerremainder -= clockspassed << APIC.LAPIC_timerdivider; //How much time is left!
+			clockspassed = (LAPIC[activeCPU].LAPIC_timerremainder >> LAPIC[activeCPU].LAPIC_timerdivider); //How much passed!
+			LAPIC[activeCPU].LAPIC_timerremainder -= clockspassed << LAPIC[activeCPU].LAPIC_timerdivider; //How much time is left!
 		}
 		else
 		{
@@ -435,35 +476,35 @@ void updateAPIC(uint_64 clockspassed)
 		}
 		//Now, the clocks
 
-		if (APIC.CurrentCountRegister > clockspassed) //Still timing more than what's needed?
+		if (LAPIC[activeCPU].CurrentCountRegister > clockspassed) //Still timing more than what's needed?
 		{
-			APIC.CurrentCountRegister -= clockspassed; //Time some clocks!
+			LAPIC[activeCPU].CurrentCountRegister -= clockspassed; //Time some clocks!
 		}
 		else //Finished counting?
 		{
-			clockspassed -= APIC.CurrentCountRegister; //Time until 0!
+			clockspassed -= LAPIC[activeCPU].CurrentCountRegister; //Time until 0!
 
-			for (; clockspassed >= APIC.InitialCountRegister;) //Multiple blocks?
+			for (; clockspassed >= LAPIC[activeCPU].InitialCountRegister;) //Multiple blocks?
 			{
-				clockspassed -= APIC.InitialCountRegister; //What is the remaining time?
+				clockspassed -= LAPIC[activeCPU].InitialCountRegister; //What is the remaining time?
 			}
-			APIC.CurrentCountRegister = clockspassed; //How many clocks are left!
-			if (!(APIC.LVTTimerRegister & 0x20000)) //One-shot mode?
+			LAPIC[activeCPU].CurrentCountRegister = clockspassed; //How many clocks are left!
+			if (!(LAPIC[activeCPU].LVTTimerRegister & 0x20000)) //One-shot mode?
 			{
-				APIC.CurrentCountRegister = 0; //Stop(ped) counting!
+				LAPIC[activeCPU].CurrentCountRegister = 0; //Stop(ped) counting!
 			}
-			else if (APIC.CurrentCountRegister == 0) //Needs to load a new value, otherwise already set! Otherwise, still counting on!
+			else if (LAPIC[activeCPU].CurrentCountRegister == 0) //Needs to load a new value, otherwise already set! Otherwise, still counting on!
 			{
-				APIC.CurrentCountRegister = APIC.InitialCountRegister; //Reload the initial count!
+				LAPIC[activeCPU].CurrentCountRegister = LAPIC[activeCPU].InitialCountRegister; //Reload the initial count!
 			}
 
-			if (APIC.LVTTimerRegisterDirty == 0) //Ready to parse?
+			if (LAPIC[activeCPU].LVTTimerRegisterDirty == 0) //Ready to parse?
 			{
-				if (APIC.LVTTimerRegister & 0x10000) //Not masked?
+				if (LAPIC[activeCPU].LVTTimerRegister & 0x10000) //Not masked?
 				{
-					if ((APIC.LVTTimerRegister & (1 << 12)) == 0) //The IO or Local APIC can receive the request!
+					if ((LAPIC[activeCPU].LVTTimerRegister & (1 << 12)) == 0) //The IO or Local APIC can receive the request!
 					{
-						APIC.LVTTimerRegister |= (1 << 12); //Start pending!
+						LAPIC[activeCPU].LVTTimerRegister |= (1 << 12); //Start pending!
 					}
 				}
 			}
@@ -471,18 +512,167 @@ void updateAPIC(uint_64 clockspassed)
 	}
 }
 
-void APIC_errorTrigger() //Error has been triggered!
+void APIC_errorTrigger(byte whichCPU) //Error has been triggered!
 {
-	if ((APIC.LVTErrorRegister & 0x10000)==0) //Not masked?
+	if ((LAPIC[whichCPU].LVTErrorRegister & 0x10000)==0) //Not masked?
 	{
-		if ((APIC.LVTErrorRegister & (1 << 12)) == 0) //The IO or Local APIC can receive the request!
+		if ((LAPIC[whichCPU].LVTErrorRegister & (1 << 12)) == 0) //The IO or Local APIC can receive the request!
 		{
-			APIC.LVTErrorRegister |= (1 << 12); //Start pending!
+			LAPIC[whichCPU].LVTErrorRegister |= (1 << 12); //Start pending!
 		}
 	}
 }
 
 void updateAPICliveIRRs(); //Update the live IRRs as needed!
+
+//Updates local APIC requests!
+void LAPIC_pollRequests(byte whichCPU)
+{
+	byte receiver;
+	byte isLAPIC;
+	byte logicaldestination;
+	byte APIC_intnr;
+
+	if (NMIQueued && (LAPIC[whichCPU].LVTLINT1RegisterDirty == 0)) //NMI has been queued?
+	{
+		if ((LAPIC[whichCPU].LVTLINT1Register & (1 << 12)) == 0) //Not waiting to be delivered!
+		{
+			if ((LAPIC[whichCPU].LVTLINT1Register & 0x10000) == 0) //Not masked?
+			{
+				NMIQueued = 0; //Not queued anymore!
+				LAPIC[whichCPU].LVTLINT1Register |= (1 << 12); //Start pending!
+				//Edge: raised when set(done here already). Lowered has weird effects for level-sensitive modes? So ignore them!
+			}
+		}
+	}
+
+	if (LAPIC[whichCPU].LAPIC_extIntPending != -1) return; //Prevent any more interrupts until the extInt is properly parsed!
+
+	receiver = 0; //Initialize receivers of the packet!
+	if (LAPIC[whichCPU].InterruptCommandRegisterLo & 0x1000) //Pending command being sent?
+	{
+		switch ((LAPIC[whichCPU].InterruptCommandRegisterLo >> 18) & 3) //What destination type?
+		{
+		case 0: //Destination field?
+			if (LAPIC[whichCPU].InterruptCommandRegisterLo & 0x800) //Logical destination?
+			{
+				logicaldestination = ((LAPIC[whichCPU].InterruptCommandRegisterHi >> 24) & 0xFF); //What is the logical destination?
+				if (isLAPIClogicaldestination(whichCPU,logicaldestination)) //Match on the logical destination?
+				{
+					receiver |= 1; //Received on LAPIC!
+				}
+			}
+			else //Physical destination?
+			{
+				if (isAPICPhysicaldestination(whichCPU, 0, ((LAPIC[whichCPU].InterruptCommandRegisterHi >> 24) & 0xF)) == 1) //Local APIC?
+				{
+					receiver |= 1; //Receive it on LAPIC!
+				}
+				if (isAPICPhysicaldestination(whichCPU, 1, ((LAPIC[whichCPU].InterruptCommandRegisterHi >> 24) & 0xF)) == 2) //IO APIC?
+				{
+					receiver |= 2; //Received on the IO APIC!
+				}
+			}
+			if (receiver & 1) //Received on the Local APIC?
+			{
+				goto receiveCommandRegister; //Receive it!
+			}
+			else if (receiver == 0) //No receiver?
+			{
+				LAPIC[whichCPU].ErrorStatusRegister |= (1 << 2); //Report an send accept error! Nothing responded on the bus!
+				APIC_errorTrigger(whichCPU); //Error has been triggered!
+			}
+			//Discard it!
+			LAPIC[whichCPU].InterruptCommandRegisterLo &= ~0x1000; //We're receiving it somewhere!
+			break;
+		case 1: //To itself?
+			receiver = 1; //Self received!
+			goto receiveCommandRegister; //Receive it!
+			break;
+		case 2: //All processors?
+			//Receive it!
+			//Handle the request!
+			receiver = 3; //All received!
+		receiveCommandRegister:
+			LAPIC[whichCPU].InterruptCommandRegisterLo &= ~0x1000; //We're receiving it somewhere!
+			if (receiver & 1) //Received on LAPIC?
+			{
+				switch ((LAPIC[whichCPU].InterruptCommandRegisterLo >> 8) & 7) //What is requested?
+				{
+				case 0: //Interrupt raise?
+				case 1: //Lowest priority?
+					if ((LAPIC[whichCPU].InterruptCommandRegisterLo & 0xFF) < 0x10) //Invalid vector?
+					{
+						LAPIC[whichCPU].ErrorStatusRegister |= (1 << 5); //Report an illegal vector being sent!
+						APIC_errorTrigger(whichCPU); //Error has been triggered!
+					}
+					else if ((LAPIC[whichCPU].IRR[(LAPIC[whichCPU].InterruptCommandRegisterLo & 0xFF) >> 5] & (1 << ((LAPIC[whichCPU].InterruptCommandRegisterLo & 0xFF) & 0x1F))) == 0) //Ready to receive?
+					{
+						LAPIC[whichCPU].IRR[(LAPIC[whichCPU].InterruptCommandRegisterLo & 0xFF) >> 5] |= (1 << ((LAPIC[whichCPU].InterruptCommandRegisterLo & 0xFF) & 0x1F)); //Raise the interrupt on the Local APIC!
+					}
+					break;
+				case 2: //SMI raised?
+					break;
+				case 4: //NMI raised?
+					APICNMIQueued = 1; //Queue the APIC NMI!
+					break;
+				case 5: //INIT or INIT deassert?
+					if (((LAPIC[whichCPU].InterruptCommandRegisterLo >> 14) & 3) == 2) //De-assert?
+					{
+						//Setup Arbitration ID registers on all APICs!
+						//Operation on Pentium and P6: Arbitration ID register = APIC ID register.
+						updateLAPICArbitrationIDregister(whichCPU); //Update the register!
+					}
+					else //INIT?
+					{
+						resetCPU(0x80); //Special reset of the CPU: INIT only!
+					}
+					break;
+				case 6: //SIPI?
+					if ((LAPIC[whichCPU].InterruptCommandRegisterLo & 0xFF) < 0x10) //Invalid vector?
+					{
+						LAPIC[whichCPU].ErrorStatusRegister |= (1 << 5); //Report an illegal vector being sent!
+						APIC_errorTrigger(whichCPU); //Error has been triggered!
+					}
+					else //Valid vector!
+					{
+						CPU[activeCPU].SIPIreceived = 100 | (LAPIC[whichCPU].InterruptCommandRegisterLo & 0xFF); //We've received a SIPI!
+					}
+					break;
+				default: //Unknown?
+					//Don't handle it!
+					break;
+				}
+			}
+			break;
+		case 3: //All but ourselves?
+			//Don't handle the request!
+			LAPIC[whichCPU].InterruptCommandRegisterLo &= ~0x1000; //We're receiving it somewhere!
+			//Send no error because there are no other APICs to receive it! Only the IO APIC receives it, which isn't using it?
+			//Error out the write access!
+			LAPIC[whichCPU].ErrorStatusRegister |= (1 << 2); //Report an send accept error! Nothing responded on the bus!
+			APIC_errorTrigger(whichCPU); //Error has been triggered!
+			break;
+		}
+	}
+
+	if ((LAPIC[whichCPU].LVTErrorRegister & (1 << 12)) && (LAPIC[whichCPU].LVTErrorRegisterDirty == 0)) //Timer is pending?
+	{
+		LAPIC_executeVector(whichCPU, &LAPIC[whichCPU].LVTErrorRegister, 0xFF, 0); //Start the error interrupt!
+	}
+	if ((LAPIC[whichCPU].LVTTimerRegister & (1 << 12)) && (LAPIC[whichCPU].LVTTimerRegisterDirty == 0)) //Timer is pending?
+	{
+		LAPIC_executeVector(whichCPU, &LAPIC[whichCPU].LVTTimerRegister, 0xFF, 0); //Start the timer interrupt!
+	}
+	if ((LAPIC[whichCPU].LVTLINT0Register & (1 << 12)) && (LAPIC[whichCPU].LVTLINT0RegisterDirty == 0)) //LINT0 is pending?
+	{
+		LAPIC_executeVector(whichCPU, &LAPIC[whichCPU].LVTLINT0Register, 0xFF, 0); //Start the LINT0 interrupt!
+	}
+	if ((LAPIC[whichCPU].LVTLINT1Register & (1 << 12)) && (LAPIC[whichCPU].LVTLINT1RegisterDirty == 0)) //LINT1 is pending?
+	{
+		LAPIC_executeVector(whichCPU, &LAPIC[whichCPU].LVTLINT1Register, 0xFF, 0); //Start the LINT0 interrupt!
+	}
+}
 
 void IOAPIC_pollRequests()
 {
@@ -494,149 +684,11 @@ void IOAPIC_pollRequests()
 	int APIC_highestpriority; //-1=Nothing yet, otherwise, highest priority level detected
 	byte APIC_highestpriorityIR; //Highest priority IR detected!
 	uint_32 APIC_IRQsrequested, APIC_requestbit, APIC_requestsleft, APIC_requestbithighestpriority;
-	APIC_IRQsrequested = APIC.IOAPIC_IRRset & (~APIC.IOAPIC_IMRset); //What can we handle!
+	APIC_IRQsrequested = IOAPIC.IOAPIC_IRRset & (~IOAPIC.IOAPIC_IMRset); //What can we handle!
 
 	updateAPICliveIRRs(); //Update the live IRRs!
 
-	if (NMIQueued && (APIC.LVTLINT1RegisterDirty==0)) //NMI has been queued?
-	{
-		if ((APIC.LVTLINT1Register & (1 << 12)) == 0) //Not waiting to be delivered!
-		{
-			if ((APIC.LVTLINT1Register & 0x10000) == 0) //Not masked?
-			{
-				NMIQueued = 0; //Not queued anymore!
-				APIC.LVTLINT1Register |= (1 << 12); //Start pending!
-				//Edge: raised when set(done here already). Lowered has weird effects for level-sensitive modes? So ignore them!
-			}
-		}
-	}
-
-	if (APIC.LAPIC_extIntPending != -1) return; //Prevent any more interrupts until the extInt is properly parsed!
-
-	receiver = 0; //Initialize receivers of the packet!
-	if (APIC.InterruptCommandRegisterLo & 0x1000) //Pending command being sent?
-	{
-		switch ((APIC.InterruptCommandRegisterLo >> 18) & 3) //What destination type?
-		{
-		case 0: //Destination field?
-			if (APIC.InterruptCommandRegisterLo & 0x800) //Logical destination?
-			{
-				logicaldestination = ((APIC.InterruptCommandRegisterHi >> 24) & 0xFF); //What is the logical destination?
-				if (isLAPIClogicaldestination(logicaldestination)) //Match on the logical destination?
-				{
-					receiver |= 1; //Received on LAPIC!
-				}
-			}
-			else //Physical destination?
-			{
-				if (isAPICPhysicaldestination(0, ((APIC.InterruptCommandRegisterHi >> 24) & 0xF)) == 1) //Local APIC?
-				{
-					receiver |= 1; //Receive it on LAPIC!
-				}
-				if (isAPICPhysicaldestination(1, ((APIC.InterruptCommandRegisterHi >> 24) & 0xF)) == 2) //IO APIC?
-				{
-					receiver |= 2; //Received on the IO APIC!
-				}
-			}
-			if (receiver & 1) //Received on the Local APIC?
-			{
-				goto receiveCommandRegister; //Receive it!
-			}
-			else if (receiver == 0) //No receiver?
-			{
-				APIC.ErrorStatusRegister |= (1 << 2); //Report an send accept error! Nothing responded on the bus!
-				APIC_errorTrigger(); //Error has been triggered!
-			}
-			//Discard it!
-			APIC.InterruptCommandRegisterLo &= ~0x1000; //We're receiving it somewhere!
-			break;
-		case 1: //To itself?
-			receiver = 1; //Self received!
-			goto receiveCommandRegister; //Receive it!
-			break;
-		case 2: //All processors?
-			//Receive it!
-			//Handle the request!
-			receiver = 3; //All received!
-		receiveCommandRegister:
-			APIC.InterruptCommandRegisterLo &= ~0x1000; //We're receiving it somewhere!
-			if (receiver & 1) //Received on LAPIC?
-			{
-				switch ((APIC.InterruptCommandRegisterLo >> 8) & 7) //What is requested?
-				{
-				case 0: //Interrupt raise?
-				case 1: //Lowest priority?
-					if ((APIC.InterruptCommandRegisterLo & 0xFF) < 0x10) //Invalid vector?
-					{
-						APIC.ErrorStatusRegister |= (1 << 5); //Report an illegal vector being sent!
-						APIC_errorTrigger(); //Error has been triggered!
-					}
-					else if ((APIC.IRR[(APIC.InterruptCommandRegisterLo & 0xFF) >> 5] & (1 << ((APIC.InterruptCommandRegisterLo & 0xFF) & 0x1F))) == 0) //Ready to receive?
-					{
-						APIC.IRR[(APIC.InterruptCommandRegisterLo & 0xFF) >> 5] |= (1 << ((APIC.InterruptCommandRegisterLo & 0xFF) & 0x1F)); //Raise the interrupt on the Local APIC!
-					}
-					break;
-				case 2: //SMI raised?
-					break;
-				case 4: //NMI raised?
-					APICNMIQueued = 1; //Queue the APIC NMI!
-					break;
-				case 5: //INIT or INIT deassert?
-					if (((APIC.InterruptCommandRegisterLo >> 14) & 3) == 2) //De-assert?
-					{
-						//Setup Arbitration ID registers on all APICs!
-						//Operation on Pentium and P6: Arbitration ID register = APIC ID register.
-						updateLAPICArbitrationIDregister(); //Update the register!
-					}
-					else //INIT?
-					{
-						resetCPU(0x80); //Special reset of the CPU: INIT only!
-					}
-					break;
-				case 6: //SIPI?
-					if ((APIC.InterruptCommandRegisterLo & 0xFF) < 0x10) //Invalid vector?
-					{
-						APIC.ErrorStatusRegister |= (1 << 5); //Report an illegal vector being sent!
-						APIC_errorTrigger(); //Error has been triggered!
-					}
-					else //Valid vector!
-					{
-						CPU[activeCPU].SIPIreceived = 100 | (APIC.InterruptCommandRegisterLo & 0xFF); //We've received a SIPI!
-					}
-					break;
-				default: //Unknown?
-					//Don't handle it!
-					break;
-				}
-			}
-			break;
-		case 3: //All but ourselves?
-			//Don't handle the request!
-			APIC.InterruptCommandRegisterLo &= ~0x1000; //We're receiving it somewhere!
-			//Send no error because there are no other APICs to receive it! Only the IO APIC receives it, which isn't using it?
-			//Error out the write access!
-			APIC.ErrorStatusRegister |= (1 << 2); //Report an send accept error! Nothing responded on the bus!
-			APIC_errorTrigger(); //Error has been triggered!
-			break;
-		}
-	}
-
-	if ((APIC.LVTErrorRegister & (1 << 12)) && (APIC.LVTErrorRegisterDirty==0)) //Timer is pending?
-	{
-		LAPIC_executeVector(&APIC.LVTErrorRegister, 0xFF, 0); //Start the timer interrupt!
-	}
-	if ((APIC.LVTTimerRegister & (1 << 12)) && (APIC.LVTTimerRegisterDirty==0)) //Timer is pending?
-	{
-		LAPIC_executeVector(&APIC.LVTTimerRegister, 0xFF, 0); //Start the timer interrupt!
-	}
-	if ((APIC.LVTLINT0Register & (1 << 12)) && (APIC.LVTLINT0RegisterDirty==0)) //LINT0 is pending?
-	{
-		LAPIC_executeVector(&APIC.LVTLINT0Register, 0xFF, 0); //Start the LINT0 interrupt!
-	}
-	if ((APIC.LVTLINT1Register & (1 << 12)) && (APIC.LVTLINT1RegisterDirty==0)) //LINT1 is pending?
-	{
-		LAPIC_executeVector(&APIC.LVTLINT1Register, 0xFF, 0); //Start the LINT0 interrupt!
-	}
+	if (LAPIC[0].LAPIC_extIntPending != -1) return; //Prevent any more interrupts until the extInt is properly parsed!
 
 	if (likely(APIC_IRQsrequested == 0)) return; //Nothing to do?
 //First, determine the highest priority IR to use!
@@ -651,19 +703,19 @@ void IOAPIC_pollRequests()
 		if (APIC_IRQsrequested & APIC_requestbit) //Are we requested to fire?
 		{
 			//Priority is based on the high nibble of the interrupt vector. The low nibble is ignored!
-			if ((int)(APIC.IOAPIC_redirectionentry[IR][0] & 0xF0U) >= APIC_highestpriority) //Higher priority found?
+			if ((int)(IOAPIC.IOAPIC_redirectionentry[IR][0] & 0xF0U) >= APIC_highestpriority) //Higher priority found?
 			{
-				if (APIC.IOAPIC_requirestermination[IR] == 0) //Skip entries that are marked dirty(still processing there)!
+				if (IOAPIC.IOAPIC_requirestermination[IR] == 0) //Skip entries that are marked dirty(still processing there)!
 				{
 					//Determinate the interrupt number for the priority!
-					APIC_intnr = (APIC.IOAPIC_redirectionentry[IR][0] & 0xFF); //What interrupt number?
-					switch ((APIC.IOAPIC_redirectionentry[IR][0] >> 8) & 7) //What destination mode?
+					APIC_intnr = (IOAPIC.IOAPIC_redirectionentry[IR][0] & 0xFF); //What interrupt number?
+					switch ((IOAPIC.IOAPIC_redirectionentry[IR][0] >> 8) & 7) //What destination mode?
 					{
 					case 0: //Interrupt?
 					case 1: //Lowest priority?
-						if ((APIC.IRR[APIC_intnr >> 5] & (1 << (APIC_intnr & 0x1F))) == 0) //Not requested yet? Able to accept said message!
+						if ((LAPIC[0].IRR[APIC_intnr >> 5] & (1 << (APIC_intnr & 0x1F))) == 0) //Not requested yet? Able to accept said message!
 						{
-							APIC_highestpriority = (int)(APIC.IOAPIC_redirectionentry[IR][0] & 0xF0U); //New highest priority!
+							APIC_highestpriority = (int)(IOAPIC.IOAPIC_redirectionentry[IR][0] & 0xF0U); //New highest priority!
 							APIC_highestpriorityIR = IR; //What IR has the highest priority now!
 							APIC_requestbithighestpriority = APIC_requestbit; //What bit was the highest priority?
 						}
@@ -671,12 +723,12 @@ void IOAPIC_pollRequests()
 					case 2: //SMI?
 					case 4: //NMI?
 					case 5: //INIT or INIT deassert?
-						APIC_highestpriority = (int)(APIC.IOAPIC_redirectionentry[IR][0] & 0xF0U); //New highest priority!
+						APIC_highestpriority = (int)(IOAPIC.IOAPIC_redirectionentry[IR][0] & 0xF0U); //New highest priority!
 						APIC_highestpriorityIR = IR; //What IR has the highest priority now!
 						APIC_requestbithighestpriority = APIC_requestbit; //What bit was the highest priority?
 						break;
 					case 7: //extINT?
-						APIC_highestpriority = (int)(APIC.IOAPIC_redirectionentry[IR][0] & 0xF0U); //New highest priority!
+						APIC_highestpriority = (int)(IOAPIC.IOAPIC_redirectionentry[IR][0] & 0xF0U); //New highest priority!
 						APIC_highestpriorityIR = IR; //What IR has the highest priority now!
 						APIC_requestbithighestpriority = APIC_requestbit; //What bit was the highest priority?
 						goto handleExtIntPriority; //Top priority!
@@ -696,29 +748,29 @@ void IOAPIC_pollRequests()
 		IR = APIC_highestpriorityIR; //The IR for the highest priority!
 		//Now, receive the IO APIC entry at the destination!
 		isLAPIC = 0; //Default: not the LAPIC!
-		if (APIC.IOAPIC_redirectionentry[IR][0] & 0x800) //Logical destination?
+		if (IOAPIC.IOAPIC_redirectionentry[IR][0] & 0x800) //Logical destination?
 		{
-			logicaldestination = ((APIC.IOAPIC_redirectionentry[IR][1] >> 24) & 0xFF); //What is the logical destination?
+			logicaldestination = ((IOAPIC.IOAPIC_redirectionentry[IR][1] >> 24) & 0xFF); //What is the logical destination?
 			//Determine destination correct by destination format and logical destination register in the LAPIC!
-			if (isLAPIClogicaldestination(logicaldestination)) //Match on the logical destination?
+			if (isLAPIClogicaldestination(0, logicaldestination)) //Match on the logical destination?
 			{
 				isLAPIC |= 1; //LAPIC!
 				goto receiveIOLAPICCommandRegister; //Receive it!
 			}
 			else //No receivers?
 			{
-				APIC.ErrorStatusRegister |= (1 << 3); //Report an receive accept error!
-				APIC_errorTrigger(); //Error has been triggered!
+				LAPIC[0].ErrorStatusRegister |= (1 << 3); //Report an receive accept error!
+				APIC_errorTrigger(0); //Error has been triggered!
 			}
 		}
 		else //Physical destination?
 		{
-			logicaldestination = ((APIC.IOAPIC_redirectionentry[IR][1] >> 24) & 0xF); //What destination!
-			if (isAPICPhysicaldestination(0, logicaldestination) == 1) //Local APIC?
+			logicaldestination = ((IOAPIC.IOAPIC_redirectionentry[IR][1] >> 24) & 0xF); //What destination!
+			if (isAPICPhysicaldestination(0, 0, logicaldestination) == 1) //Local APIC?
 			{
 				isLAPIC |= 1; //LAPIC received!
 			}
-			if (isAPICPhysicaldestination(1, logicaldestination)==2) //IO APIC?
+			if (isAPICPhysicaldestination(0, 1, logicaldestination)==2) //IO APIC?
 			{
 				isLAPIC |= 2; //IO APIC received!
 			}
@@ -728,28 +780,29 @@ void IOAPIC_pollRequests()
 			}
 			else //No receivers?
 			{
-				APIC.ErrorStatusRegister |= (1 << 3); //Report an receive accept error!
-				APIC_errorTrigger(); //Error has been triggered!
+				LAPIC[0].ErrorStatusRegister |= (1 << 3); //Report an receive accept error!
+				APIC_errorTrigger(0); //Error has been triggered!
 			}
 		}
 		return; //Abort: invalid destination!
 	receiveIOLAPICCommandRegister:
 		//Received something from the IO APIC redirection targetting the main CPU?
 		APIC_IRQsrequested &= ~APIC_requestbit; //Clear the request bit!
-		APIC.IOAPIC_IRRset &= ~APIC_requestbit; //Clear the request, because we're firing it up now!
+		IOAPIC.IOAPIC_IRRset &= ~APIC_requestbit; //Clear the request, because we're firing it up now!
 		if (isLAPIC&1) //Local APIC received?
 		{
-			LAPIC_executeVector(&APIC.IOAPIC_redirectionentry[IR][0], IR, 1); //Execute this vector from IO APIC!
+			LAPIC_executeVector(0, &IOAPIC.IOAPIC_redirectionentry[IR][0], IR, 1); //Execute this vector from IO APIC!
 		}
 		else //No receivers?
 		{
-			APIC.ErrorStatusRegister |= (1 << 3); //Report an receive accept error!
-			APIC_errorTrigger(); //Error has been triggered!
+			LAPIC[0].ErrorStatusRegister |= (1 << 3); //Report an receive accept error!
+			APIC_errorTrigger(0); //Error has been triggered!
 		}
 	}
 }
 
-sword LAPIC_pollRequests()
+//Acnowledge an INTA style interrupt from the local APIC!
+sword LAPIC_acnowledgeRequests(byte whichCPU)
 {
 	byte IRgroup;
 	byte IR;
@@ -757,14 +810,14 @@ sword LAPIC_pollRequests()
 	int APIC_highestpriority; //-1=Nothing yet, otherwise, highest priority level detected
 	byte APIC_highestpriorityIR; //Highest priority IR detected!
 	uint_32 APIC_IRQsrequested[8], APIC_requestbit, APIC_requestsleft, APIC_requestbithighestpriority;
-	APIC_IRQsrequested[0] = APIC.IRR[0] & (~APIC.ISR[0]); //What can we handle!
-	APIC_IRQsrequested[1] = APIC.IRR[1] & (~APIC.ISR[1]); //What can we handle!
-	APIC_IRQsrequested[2] = APIC.IRR[2] & (~APIC.ISR[2]); //What can we handle!
-	APIC_IRQsrequested[3] = APIC.IRR[3] & (~APIC.ISR[3]); //What can we handle!
-	APIC_IRQsrequested[4] = APIC.IRR[4] & (~APIC.ISR[4]); //What can we handle!
-	APIC_IRQsrequested[5] = APIC.IRR[5] & (~APIC.ISR[5]); //What can we handle!
-	APIC_IRQsrequested[6] = APIC.IRR[6] & (~APIC.ISR[6]); //What can we handle!
-	APIC_IRQsrequested[7] = APIC.IRR[7] & (~APIC.ISR[7]); //What can we handle!
+	APIC_IRQsrequested[0] = LAPIC[whichCPU].IRR[0] & (~LAPIC[whichCPU].ISR[0]); //What can we handle!
+	APIC_IRQsrequested[1] = LAPIC[whichCPU].IRR[1] & (~LAPIC[whichCPU].ISR[1]); //What can we handle!
+	APIC_IRQsrequested[2] = LAPIC[whichCPU].IRR[2] & (~LAPIC[whichCPU].ISR[2]); //What can we handle!
+	APIC_IRQsrequested[3] = LAPIC[whichCPU].IRR[3] & (~LAPIC[whichCPU].ISR[3]); //What can we handle!
+	APIC_IRQsrequested[4] = LAPIC[whichCPU].IRR[4] & (~LAPIC[whichCPU].ISR[4]); //What can we handle!
+	APIC_IRQsrequested[5] = LAPIC[whichCPU].IRR[5] & (~LAPIC[whichCPU].ISR[5]); //What can we handle!
+	APIC_IRQsrequested[6] = LAPIC[whichCPU].IRR[6] & (~LAPIC[whichCPU].ISR[6]); //What can we handle!
+	APIC_IRQsrequested[7] = LAPIC[whichCPU].IRR[7] & (~LAPIC[whichCPU].ISR[7]); //What can we handle!
 	if (!(APIC_IRQsrequested[0] | APIC_IRQsrequested[1] | APIC_IRQsrequested[2] | APIC_IRQsrequested[3] | APIC_IRQsrequested[4] | APIC_IRQsrequested[5] | APIC_IRQsrequested[6] | APIC_IRQsrequested[7]))
 	{
 		return -1; //Nothing to do!
@@ -799,8 +852,8 @@ sword LAPIC_pollRequests()
 firePrioritizedIR: //Fire the IR that has the most priority!
 //Now, we have selected the highest priority IR! Start using it!
 	APIC_intnr = (IRgroup << 5) | IR; //The interrupt to fire!
-	APIC.IRR[IRgroup] &= ~APIC_requestbit; //Mark the interrupt in-service!
-	APIC.ISR[IRgroup] |= APIC_requestbit; //Mark the interrupt in-service!
+	LAPIC[whichCPU].IRR[IRgroup] &= ~APIC_requestbit; //Mark the interrupt in-service!
+	LAPIC[whichCPU].ISR[IRgroup] |= APIC_requestbit; //Mark the interrupt in-service!
 	return (sword)APIC_intnr; //Give the interrupt number to fire!
 }
 
@@ -821,11 +874,11 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 	tempoffset = offset; //Backup!
 
 	is_internalexternalAPIC = 0; //Default: no APIC chip!
-	if (((offset & 0xFFFFFF000ULL) == APIC.baseaddr)) //LAPIC?
+	if (((offset & 0xFFFFFF000ULL) == LAPIC[activeCPU].baseaddr)) //LAPIC?
 	{
 		is_internalexternalAPIC |= 1; //LAPIC!
 	}
-	if ((((offset & 0xFFFFFF000ULL) == APIC.IObaseaddr))) //IO APIC?
+	if ((((offset & 0xFFFFFF000ULL) == IOAPIC.IObaseaddr))) //IO APIC?
 	{
 		is_internalexternalAPIC |= 2; //IO APIC!
 	}
@@ -834,7 +887,7 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 		return 0; //Neither!
 	}
 
-	if (APIC.enabled == 0) return 0; //Not the APIC memory space enabled?
+	if (APIC_enabled == 0) return 0; //Not the APIC memory space enabled?
 	address = (offset & 0xFFC); //What address is addressed?
 
 	ROMbits = ~0; //All bits are ROM bits by default?
@@ -844,27 +897,27 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 		switch (address&0x10) //What is addressed?
 		{
 		case 0x0000: //IOAPIC address?
-			whatregister = &APIC.APIC_address; //Address register!
+			whatregister = &IOAPIC.APIC_address; //Address register!
 			ROMbits = 0; //Upper 24 bits are reserved!
 			break;
 		case 0x0010: //IOAPIC data?
-			switch (APIC.APIC_address&0xFF) //What address is selected (8-bits)?
+			switch (IOAPIC.APIC_address&0xFF) //What address is selected (8-bits)?
 			{
 			case 0x00:
-				whatregister = &APIC.IOAPIC_ID; //ID register!
+				whatregister = &IOAPIC.IOAPIC_ID; //ID register!
 				ROMbits = ~(0xFU<<24); //Bits 24-27 writable!
 				break;
 			case 0x01:
-				whatregister = &APIC.IOAPIC_version_numredirectionentries; //Version/Number of direction entries!
+				whatregister = &IOAPIC.IOAPIC_version_numredirectionentries; //Version/Number of direction entries!
 				break;
 			case 0x02:
-				whatregister = &APIC.IOAPIC_arbitrationpriority; //Arbitration priority register!
+				whatregister = &IOAPIC.IOAPIC_arbitrationpriority; //Arbitration priority register!
 				break;
 			case 0x10: case 0x11: case 0x12: case 0x13: case 0x14: case 0x15: case 0x16: case 0x17: case 0x18: case 0x19: case 0x1A: case 0x1B: case 0x1C: case 0x1D: case 0x1E: case 0x1F:
 			case 0x20: case 0x21: case 0x22: case 0x23: case 0x24: case 0x25: case 0x26: case 0x27: case 0x28: case 0x29: case 0x2A: case 0x2B: case 0x2C: case 0x2D: case 0x2E: case 0x2F:
 			case 0x30: case 0x31: case 0x32: case 0x33: case 0x34: case 0x35: case 0x36: case 0x37: case 0x38: case 0x39: case 0x3A: case 0x3B: case 0x3C: case 0x3D: case 0x3E: case 0x3F:
-				whatregister = &APIC.IOAPIC_redirectionentry[(APIC.APIC_address - 0x10) >> 1][(APIC.APIC_address - 0x10) & 1]; //Redirection entry addressed!
-				if (((APIC.APIC_address - 0x10) & 1) != 0) //High dword?
+				whatregister = &IOAPIC.IOAPIC_redirectionentry[(IOAPIC.APIC_address - 0x10) >> 1][(IOAPIC.APIC_address - 0x10) & 1]; //Redirection entry addressed!
+				if (((IOAPIC.APIC_address - 0x10) & 1) != 0) //High dword?
 				{
 					ROMbits = 0; //Fully writable?
 				}
@@ -872,9 +925,9 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 				{
 					ROMbits = (1U << 12) | (1U << 14); //Fully writable, except bits 12, 14 and 17-55(writable?)!
 				}
-				APIC.IOAPIC_globalrequirestermination |= 0x8; //Needs termination to finish below's value!
-				APIC.IOAPIC_requirestermination[(APIC.APIC_address - 0x10) >> 1] = 1; //Dirtied and currently unusable!
-				updateredirection = (((APIC.APIC_address - 0x10) & 1) == 0); //Update status when the first dword is updated!
+				IOAPIC.IOAPIC_globalrequirestermination |= 0x8; //Needs termination to finish below's value!
+				IOAPIC.IOAPIC_requirestermination[(IOAPIC.APIC_address - 0x10) >> 1] = 1; //Dirtied and currently unusable!
+				updateredirection = (((IOAPIC.APIC_address - 0x10) & 1) == 0); //Update status when the first dword is updated!
 				break;
 			default: //Unmapped?
 				if (is_internalexternalAPIC & 1) //LAPIC?
@@ -906,40 +959,40 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 		switch (address) //What is addressed?
 		{
 		case 0x0020:
-			whatregister = &APIC.LAPIC_ID; //0020
+			whatregister = &LAPIC[activeCPU].LAPIC_ID; //0020
 			ROMbits = 0; //Fully writable!
 			break;
 		case 0x0030:
-			whatregister = &APIC.LAPIC_version; //0030
+			whatregister = &LAPIC[activeCPU].LAPIC_version; //0030
 			break;
 		case 0x0080:
-			whatregister = &APIC.TaskPriorityRegister; //0080
+			whatregister = &LAPIC[activeCPU].TaskPriorityRegister; //0080
 			ROMbits = 0; //Fully writable!
 			break;
 		case 0x0090:
-			whatregister = &APIC.ArbitrationPriorityRegister; //0090
+			whatregister = &LAPIC[activeCPU].ArbitrationPriorityRegister; //0090
 			break;
 		case 0x00A0:
-			whatregister = &APIC.ProcessorPriorityRegister; //00A0
+			whatregister = &LAPIC[activeCPU].ProcessorPriorityRegister; //00A0
 			break;
 		case 0x00B0:
-			whatregister = &APIC.EOIregister; //00B0
+			whatregister = &LAPIC[activeCPU].EOIregister; //00B0
 			ROMbits = 0; //Fully writable!
 			//Only writable with value 0! Otherwise, #GP(0) is encountered!
 			break;
 		case 0x00C0:
-			whatregister = &APIC.RemoteReadRegister; //00C0
+			whatregister = &LAPIC[activeCPU].RemoteReadRegister; //00C0
 			break;
 		case 0x00D0:
-			whatregister = &APIC.LogicalDestinationRegister; //00D0
+			whatregister = &LAPIC[activeCPU].LogicalDestinationRegister; //00D0
 			ROMbits = 0; //Fully writable!
 			break;
 		case 0x00E0:
-			whatregister = &APIC.DestinationFormatRegister; //00E0
+			whatregister = &LAPIC[activeCPU].DestinationFormatRegister; //00E0
 			ROMbits = 0; //Fully writable!
 			break;
 		case 0x00F0:
-			whatregister = &APIC.SpuriousInterruptVectorRegister; //00F0
+			whatregister = &LAPIC[activeCPU].SpuriousInterruptVectorRegister; //00F0
 			ROMbits = 0; //Fully writable!
 			break;
 		case 0x0100:
@@ -950,7 +1003,7 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 		case 0x0150:
 		case 0x0160:
 		case 0x0170:
-			whatregister = &APIC.ISR[((address - 0x100) >> 4)]; //ISRs! 0100-0170
+			whatregister = &LAPIC[activeCPU].ISR[((address - 0x100) >> 4)]; //ISRs! 0100-0170
 			break;
 		case 0x0180:
 		case 0x0190:
@@ -960,7 +1013,7 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 		case 0x01D0:
 		case 0x01E0:
 		case 0x01F0:
-			whatregister = &APIC.TMR[((address - 0x180) >> 4)]; //TMRs! 0180-01F0
+			whatregister = &LAPIC[activeCPU].TMR[((address - 0x180) >> 4)]; //TMRs! 0180-01F0
 			break;
 		case 0x0200:
 		case 0x0210:
@@ -970,64 +1023,64 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 		case 0x0250:
 		case 0x0260:
 		case 0x0270:
-			whatregister = &APIC.IRR[((address - 0x200) >> 4)]; //ISRs! 0200-0270
+			whatregister = &LAPIC[activeCPU].IRR[((address - 0x200) >> 4)]; //ISRs! 0200-0270
 			break;
 		case 0x280:
-			whatregister = &APIC.ErrorStatusRegister; //0280
+			whatregister = &LAPIC[activeCPU].ErrorStatusRegister; //0280
 			break;
 		case 0x2F0:
-			whatregister = &APIC.LVTCorrectedMachineCheckInterruptRegister; //02F0
+			whatregister = &LAPIC[activeCPU].LVTCorrectedMachineCheckInterruptRegister; //02F0
 			ROMbits = (1<<12); //Fully writable!
 			break;
 		case 0x300:
-			whatregister = &APIC.InterruptCommandRegisterLo; //0300
+			whatregister = &LAPIC[activeCPU].InterruptCommandRegisterLo; //0300
 			ROMbits = (1<<12); //Fully writable! Pending to send isn't writable!
 			break;
 		case 0x310:
-			whatregister = &APIC.InterruptCommandRegisterHi; //0310
+			whatregister = &LAPIC[activeCPU].InterruptCommandRegisterHi; //0310
 			ROMbits = 0; //Fully writable!
 			break;
 		case 0x320:
-			whatregister = &APIC.LVTTimerRegister; //0320
+			whatregister = &LAPIC[activeCPU].LVTTimerRegister; //0320
 			ROMbits = (1<<12); //Fully writable!
-			APIC.LVTTimerRegisterDirty = 1; //Dirty!
-			APIC.needstermination = 0x100; //Needs termination!
+			LAPIC[activeCPU].LVTTimerRegisterDirty = 1; //Dirty!
+			LAPIC[activeCPU].needstermination = 0x100; //Needs termination!
 			break;
 		case 0x330:
-			whatregister = &APIC.LVTThermalSensorRegister; //0330
+			whatregister = &LAPIC[activeCPU].LVTThermalSensorRegister; //0330
 			ROMbits = (1<<12); //Fully writable!
 			break;
 		case 0x340:
-			whatregister = &APIC.LVTPerformanceMonitoringCounterRegister; //0340
+			whatregister = &LAPIC[activeCPU].LVTPerformanceMonitoringCounterRegister; //0340
 			ROMbits = (1<<12); //Fully writable!
 			break;
 		case 0x350:
-			whatregister = &APIC.LVTLINT0Register; //0350
+			whatregister = &LAPIC[activeCPU].LVTLINT0Register; //0350
 			ROMbits = (1<<12); //Fully writable!
-			APIC.LVTLINT0RegisterDirty = 1; //Dirty!
-			APIC.needstermination = 0x100; //Needs termination!
+			LAPIC[activeCPU].LVTLINT0RegisterDirty = 1; //Dirty!
+			LAPIC[activeCPU].needstermination = 0x100; //Needs termination!
 			break;
 		case 0x360:
-			whatregister = &APIC.LVTLINT1Register; //0560
+			whatregister = &LAPIC[activeCPU].LVTLINT1Register; //0560
 			ROMbits = (1<<12); //Fully writable!
-			APIC.LVTLINT1RegisterDirty = 1; //Dirty!
-			APIC.needstermination = 0x100; //Needs termination!
+			LAPIC[activeCPU].LVTLINT1RegisterDirty = 1; //Dirty!
+			LAPIC[activeCPU].needstermination = 0x100; //Needs termination!
 			break;
 		case 0x370:
-			whatregister = &APIC.LVTErrorRegister; //0370
+			whatregister = &LAPIC[activeCPU].LVTErrorRegister; //0370
 			ROMbits = (1<<12); //Fully writable!
-			APIC.LVTErrorRegisterDirty = 1; //Dirty!
-			APIC.needstermination = 0x100; //Needs termination!
+			LAPIC[activeCPU].LVTErrorRegisterDirty = 1; //Dirty!
+			LAPIC[activeCPU].needstermination = 0x100; //Needs termination!
 			break;
 		case 0x380:
-			whatregister = &APIC.InitialCountRegister; //0380
+			whatregister = &LAPIC[activeCPU].InitialCountRegister; //0380
 			ROMbits = 0; //Fully writable!
 			break;
 		case 0x390:
-			whatregister = &APIC.CurrentCountRegister; //0390
+			whatregister = &LAPIC[activeCPU].CurrentCountRegister; //0390
 			break;
 		case 0x3E0:
-			whatregister = &APIC.DivideConfigurationRegister; //03E0
+			whatregister = &LAPIC[activeCPU].DivideConfigurationRegister; //03E0
 			ROMbits = 0; //Fully writable!
 			break;
 		default: //Unmapped?
@@ -1051,48 +1104,48 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 	{
 		if (address == 0xF0) //Needs to handle resetting the APIC?
 		{
-			if ((APIC.needstermination & 1) == 0) //Not backed up yet?
+			if ((LAPIC[activeCPU].needstermination & 1) == 0) //Not backed up yet?
 			{
-				APIC.prevSpuriousInterruptVectorRegister = APIC.SpuriousInterruptVectorRegister; //Backup the old value for change detection!
-				APIC.needstermination |= 1; //We're in need of termination handling due to possible reset!
+				LAPIC[activeCPU].prevSpuriousInterruptVectorRegister = LAPIC[activeCPU].SpuriousInterruptVectorRegister; //Backup the old value for change detection!
+				LAPIC[activeCPU].needstermination |= 1; //We're in need of termination handling due to possible reset!
 			}
 		}
 		else if (address == 0xB0) //Needs to handle EOI?
 		{
-			APIC.needstermination |= 2; //Handle an EOI?
+			LAPIC[activeCPU].needstermination |= 2; //Handle an EOI?
 		}
 		else if (address == 0x300) //Needs to send a command?
 		{
-			APIC.InterruptCommandRegisterLo &= ~(1 << 12); //Not sent yet is kept cleared!
-			APIC.needstermination |= 4; //Handle a command?
+			LAPIC[activeCPU].InterruptCommandRegisterLo &= ~(1 << 12); //Not sent yet is kept cleared!
+			LAPIC[activeCPU].needstermination |= 4; //Handle a command?
 		}
 		else if (address == 0x280) //Error status register?
 		{
-			APIC.needstermination |= 8; //Error status register is written!
+			LAPIC[activeCPU].needstermination |= 8; //Error status register is written!
 		}
 		else if (address == 0x380) //Initial count register?
 		{
-			APIC.needstermination |= 0x10; //Initial count register is written!
+			LAPIC[activeCPU].needstermination |= 0x10; //Initial count register is written!
 		}
 		else if (address == 0x3E0) //Divide configuration register?
 		{
-			APIC.needstermination |= 0x20; //Divide configuration register is written!
+			LAPIC[activeCPU].needstermination |= 0x20; //Divide configuration register is written!
 		}
 		else if (address == 0x370) //Error register?
 		{
-			APIC.needstermination |= 0x40; //Error register is written!
+			LAPIC[activeCPU].needstermination |= 0x40; //Error register is written!
 		}
 	}
 
 	if (updateredirection) //Update redirection?
 	{
-		if (APIC.IOAPIC_redirectionentry[(APIC.APIC_address - 0x10) >> 1][0] & 0x10000) //Mask set?
+		if (IOAPIC.IOAPIC_redirectionentry[(IOAPIC.APIC_address - 0x10) >> 1][0] & 0x10000) //Mask set?
 		{
-			APIC.IOAPIC_IMRset |= (1 << ((APIC.APIC_address - 0x10) >> 1)); //Set the mask!
+			IOAPIC.IOAPIC_IMRset |= (1 << ((IOAPIC.APIC_address - 0x10) >> 1)); //Set the mask!
 		}
 		else //Mask cleared?
 		{
-			APIC.IOAPIC_IMRset &= ~(1 << ((APIC.APIC_address - 0x10) >> 1)); //Clear the mask!
+			IOAPIC.IOAPIC_IMRset &= ~(1 << ((IOAPIC.APIC_address - 0x10) >> 1)); //Clear the mask!
 		}
 	}
 
@@ -1118,11 +1171,11 @@ byte APIC_memIO_rb(uint_32 offset, byte index)
 	updateredirection = 0;
 
 	is_internalexternalAPIC = 0; //Default: no APIC chip!
-	if (((offset & 0xFFFFFF000ULL) == APIC.baseaddr)) //LAPIC?
+	if (((offset & 0xFFFFFF000ULL) == LAPIC[activeCPU].baseaddr)) //LAPIC?
 	{
 		is_internalexternalAPIC |= 1; //LAPIC!
 	}
-	if ((((offset & 0xFFFFFF000ULL) == APIC.IObaseaddr))) //IO APIC?
+	if ((((offset & 0xFFFFFF000ULL) == IOAPIC.IObaseaddr))) //IO APIC?
 	{
 		is_internalexternalAPIC |= 2; //IO APIC!
 	}
@@ -1131,7 +1184,7 @@ byte APIC_memIO_rb(uint_32 offset, byte index)
 		return 0; //Neither!
 	}
 
-	if (APIC.enabled == 0) return 0; //Not the APIC memory space enabled?
+	if (APIC_enabled == 0) return 0; //Not the APIC memory space enabled?
 	address = (offset & 0xFFC); //What address is addressed?
 
 	if (((offset&i440fx_ioapic_base_mask)==i440fx_ioapic_base_match) && (is_internalexternalAPIC & 2)) //I/O APIC?
@@ -1139,24 +1192,24 @@ byte APIC_memIO_rb(uint_32 offset, byte index)
 		switch (address&0x10) //What is addressed?
 		{
 		case 0x0000: //IOAPIC address?
-			whatregister = &APIC.APIC_address; //Address register!
+			whatregister = &IOAPIC.APIC_address; //Address register!
 			break;
 		case 0x0010: //IOAPIC data?
-			switch (APIC.APIC_address&0xFF) //What address is selected (8-bits)?
+			switch (IOAPIC.APIC_address&0xFF) //What address is selected (8-bits)?
 			{
 			case 0x00:
-				whatregister = &APIC.IOAPIC_ID; //ID register!
+				whatregister = &IOAPIC.IOAPIC_ID; //ID register!
 				break;
 			case 0x01:
-				whatregister = &APIC.IOAPIC_version_numredirectionentries; //Version/Number of direction entries!
+				whatregister = &IOAPIC.IOAPIC_version_numredirectionentries; //Version/Number of direction entries!
 				break;
 			case 0x02:
-				whatregister = &APIC.IOAPIC_arbitrationpriority; //Arbitration priority register!
+				whatregister = &IOAPIC.IOAPIC_arbitrationpriority; //Arbitration priority register!
 				break;
 			case 0x10: case 0x11: case 0x12: case 0x13: case 0x14: case 0x15: case 0x16: case 0x17: case 0x18: case 0x19: case 0x1A: case 0x1B: case 0x1C: case 0x1D: case 0x1E: case 0x1F:
 			case 0x20: case 0x21: case 0x22: case 0x23: case 0x24: case 0x25: case 0x26: case 0x27: case 0x28: case 0x29: case 0x2A: case 0x2B: case 0x2C: case 0x2D: case 0x2E: case 0x2F:
 			case 0x30: case 0x31: case 0x32: case 0x33: case 0x34: case 0x35: case 0x36: case 0x37: case 0x38: case 0x39: case 0x3A: case 0x3B: case 0x3C: case 0x3D: case 0x3E: case 0x3F:
-				whatregister = &APIC.IOAPIC_redirectionentry[(APIC.APIC_address - 0x10) >> 1][(APIC.APIC_address - 0x10) & 1]; //Redirection entry addressed!
+				whatregister = &IOAPIC.IOAPIC_redirectionentry[(IOAPIC.APIC_address - 0x10) >> 1][(IOAPIC.APIC_address - 0x10) & 1]; //Redirection entry addressed!
 				break;
 			default: //Unmapped?
 				if (is_internalexternalAPIC & 1) //LAPIC?
@@ -1188,34 +1241,34 @@ byte APIC_memIO_rb(uint_32 offset, byte index)
 		switch (address) //What is addressed?
 		{
 		case 0x0020:
-			whatregister = &APIC.LAPIC_ID; //0020
+			whatregister = &LAPIC[activeCPU].LAPIC_ID; //0020
 			break;
 		case 0x0030:
-			whatregister = &APIC.LAPIC_version; //0030
+			whatregister = &LAPIC[activeCPU].LAPIC_version; //0030
 			break;
 		case 0x0080:
-			whatregister = &APIC.TaskPriorityRegister; //0080
+			whatregister = &LAPIC[activeCPU].TaskPriorityRegister; //0080
 			break;
 		case 0x0090:
-			whatregister = &APIC.ArbitrationPriorityRegister; //0090
+			whatregister = &LAPIC[activeCPU].ArbitrationPriorityRegister; //0090
 			break;
 		case 0x00A0:
-			whatregister = &APIC.ProcessorPriorityRegister; //00A0
+			whatregister = &LAPIC[activeCPU].ProcessorPriorityRegister; //00A0
 			break;
 		case 0x00B0:
-			whatregister = &APIC.EOIregister; //00B0
+			whatregister = &LAPIC[activeCPU].EOIregister; //00B0
 			break;
 		case 0x00C0:
-			whatregister = &APIC.RemoteReadRegister; //00C0
+			whatregister = &LAPIC[activeCPU].RemoteReadRegister; //00C0
 			break;
 		case 0x00D0:
-			whatregister = &APIC.LogicalDestinationRegister; //00D0
+			whatregister = &LAPIC[activeCPU].LogicalDestinationRegister; //00D0
 			break;
 		case 0x00E0:
-			whatregister = &APIC.DestinationFormatRegister; //00E0
+			whatregister = &LAPIC[activeCPU].DestinationFormatRegister; //00E0
 			break;
 		case 0x00F0:
-			whatregister = &APIC.SpuriousInterruptVectorRegister; //00F0
+			whatregister = &LAPIC[activeCPU].SpuriousInterruptVectorRegister; //00F0
 			break;
 		case 0x0100:
 		case 0x0110:
@@ -1225,7 +1278,7 @@ byte APIC_memIO_rb(uint_32 offset, byte index)
 		case 0x0150:
 		case 0x0160:
 		case 0x0170:
-			whatregister = &APIC.ISR[((address - 0x100) >> 4)]; //ISRs! 0100-0170
+			whatregister = &LAPIC[activeCPU].ISR[((address - 0x100) >> 4)]; //ISRs! 0100-0170
 			break;
 		case 0x0180:
 		case 0x0190:
@@ -1235,7 +1288,7 @@ byte APIC_memIO_rb(uint_32 offset, byte index)
 		case 0x01D0:
 		case 0x01E0:
 		case 0x01F0:
-			whatregister = &APIC.TMR[((address - 0x180) >> 4)]; //TMRs! 0180-01F0
+			whatregister = &LAPIC[activeCPU].TMR[((address - 0x180) >> 4)]; //TMRs! 0180-01F0
 			break;
 		case 0x0200:
 		case 0x0210:
@@ -1245,46 +1298,46 @@ byte APIC_memIO_rb(uint_32 offset, byte index)
 		case 0x0250:
 		case 0x0260:
 		case 0x0270:
-			whatregister = &APIC.IRR[((address - 0x200) >> 4)]; //ISRs! 0200-0270
+			whatregister = &LAPIC[activeCPU].IRR[((address - 0x200) >> 4)]; //ISRs! 0200-0270
 			break;
 		case 0x280:
-			whatregister = &APIC.ErrorStatusRegister; //0280
+			whatregister = &LAPIC[activeCPU].ErrorStatusRegister; //0280
 			break;
 		case 0x2F0:
-			whatregister = &APIC.LVTCorrectedMachineCheckInterruptRegister; //02F0
+			whatregister = &LAPIC[activeCPU].LVTCorrectedMachineCheckInterruptRegister; //02F0
 			break;
 		case 0x300:
-			whatregister = &APIC.InterruptCommandRegisterLo; //0300
+			whatregister = &LAPIC[activeCPU].InterruptCommandRegisterLo; //0300
 			break;
 		case 0x310:
-			whatregister = &APIC.InterruptCommandRegisterHi; //0310
+			whatregister = &LAPIC[activeCPU].InterruptCommandRegisterHi; //0310
 			break;
 		case 0x320:
-			whatregister = &APIC.LVTTimerRegister; //0320
+			whatregister = &LAPIC[activeCPU].LVTTimerRegister; //0320
 			break;
 		case 0x330:
-			whatregister = &APIC.LVTThermalSensorRegister; //0330
+			whatregister = &LAPIC[activeCPU].LVTThermalSensorRegister; //0330
 			break;
 		case 0x340:
-			whatregister = &APIC.LVTPerformanceMonitoringCounterRegister; //0340
+			whatregister = &LAPIC[activeCPU].LVTPerformanceMonitoringCounterRegister; //0340
 			break;
 		case 0x350:
-			whatregister = &APIC.LVTLINT0Register; //0350
+			whatregister = &LAPIC[activeCPU].LVTLINT0Register; //0350
 			break;
 		case 0x360:
-			whatregister = &APIC.LVTLINT1Register; //0560
+			whatregister = &LAPIC[activeCPU].LVTLINT1Register; //0560
 			break;
 		case 0x370:
-			whatregister = &APIC.LVTErrorRegister; //0370
+			whatregister = &LAPIC[activeCPU].LVTErrorRegister; //0370
 			break;
 		case 0x380:
-			whatregister = &APIC.InitialCountRegister; //0380
+			whatregister = &LAPIC[activeCPU].InitialCountRegister; //0380
 			break;
 		case 0x390:
-			whatregister = &APIC.CurrentCountRegister; //0390
+			whatregister = &LAPIC[activeCPU].CurrentCountRegister; //0390
 			break;
 		case 0x3E0:
-			whatregister = &APIC.DivideConfigurationRegister; //03E0
+			whatregister = &LAPIC[activeCPU].DivideConfigurationRegister; //03E0
 			break;
 		default: //Unmapped?
 			return 0; //Unmapped!
@@ -1344,14 +1397,14 @@ byte APIC_memIO_rb(uint_32 offset, byte index)
 void APIC_updateWindowMSR(uint_32 lo, uint_32 hi)
 {
 	//Update the window MSR!
-	APIC.windowMSRhi = hi; //High value of the MSR!
-	APIC.windowMSRlo = lo; //Low value of the MSR!
-	APIC.baseaddr = (uint_64)(APIC.windowMSRlo & 0xFFFFF000); //Base address for the APIC!
+	LAPIC[activeCPU].windowMSRhi = hi; //High value of the MSR!
+	LAPIC[activeCPU].windowMSRlo = lo; //Low value of the MSR!
+	LAPIC[activeCPU].baseaddr = (uint_64)(LAPIC[activeCPU].windowMSRlo & 0xFFFFF000); //Base address for the APIC!
 	if (EMULATED_CPU >= CPU_PENTIUMPRO) //4 more pins for the Pentium Pro!
 	{
-		APIC.baseaddr |= (((uint_64)(APIC.windowMSRhi & 0xF)) << 32); //Extra bits from the high MSR on Pentium II and up!
+		LAPIC[activeCPU].baseaddr |= (((uint_64)(LAPIC[activeCPU].windowMSRhi & 0xF)) << 32); //Extra bits from the high MSR on Pentium II and up!
 	}
-	APIC.enabled = ((APIC.windowMSRlo & 0x800) >> 11); //APIC space enabled?
+	APIC_enabled = ((LAPIC[activeCPU].windowMSRlo & 0x800) >> 11); //APIC space enabled?
 }
 
 byte readPollingMode(byte pic); //Prototype!
@@ -1460,7 +1513,7 @@ byte out8259(word portnum, byte value)
 			}
 			else //Reconnect NMI and INTR to the CPU?
 			{
-				if (APIC.IOAPIC_currentliveIRR & 1) //Already raised?
+				if (IOAPIC.IOAPIC_currentliveIRR & 1) //Already raised?
 				{
 					LINT0_raiseIRQ(1); //Raised!
 				}
@@ -1586,6 +1639,7 @@ performRecheck:
 	if (recheck == 0) //Check?
 	{
 		IOAPIC_raisepending(); //Raise all pending!
+		LAPIC_pollRequests(activeCPU); //Poll the APIC for possible requests!
 		IOAPIC_pollRequests(); //Poll the APIC for possible requests!
 		if (getunprocessedinterrupt(1)) //Slave connected to master?
 		{
@@ -1679,24 +1733,25 @@ byte PICInterrupt() //We have an interrupt ready to process? This is the primary
 {
 	if (__HW_DISABLED) return 0; //Abort!
 
-	if (APIC.LAPIC_extIntPending != -1) //ExtInt pending?
+	if (LAPIC[activeCPU].LAPIC_extIntPending != -1) //ExtInt pending?
 	{
-		APIC_currentintnr = APIC.LAPIC_extIntPending; //Acnowledge!
-		APIC.LAPIC_extIntPending = -1; //Not anymore!
+		APIC_currentintnr = LAPIC[activeCPU].LAPIC_extIntPending; //Acnowledge!
+		LAPIC[activeCPU].LAPIC_extIntPending = -1; //Not anymore!
 		return 2; //APIC IRQ from 8259!
 	}
 
-	if ((APIC_currentintnr = LAPIC_pollRequests())!=-1) //APIC requested?
+	if ((APIC_currentintnr = LAPIC_acnowledgeRequests(activeCPU))!=-1) //APIC requested?
 	{
 		return 2; //APIC IRQ!
 	}
 	if (getunprocessedinterrupt(0) && (IMCR!=0x01)) //Primary PIC interrupt? This is also affected by the IMCR!
 	{
-		if (APIC.LVTLINT0RegisterDirty) return 0; //Not ready to parse!
-		if (APIC.enabled && (APIC.SpuriousInterruptVectorRegister & 0x100) && ((APIC.LVTLINT0Register & 0x10F00) == 7)) //APIC enabled and taken control of the interrupt pin?
+		if (LAPIC[activeCPU].LVTLINT0RegisterDirty) return 0; //Not ready to parse!
+		if (APIC_enabled && (LAPIC[activeCPU].SpuriousInterruptVectorRegister & 0x100) && ((LAPIC[activeCPU].LVTLINT0Register & 0x10F00) == 7)) //APIC enabled and taken control of the interrupt pin?
 		{
 			return 0; //The connection from the INTR pin to the local APIC is active! Disable the normal interrupts(redirected to the LVT LINT0 register)!
 		}
+		//i8259 can handle the IRQ!
 		return 1;
 	}
 	//Slave PICs are handled when encountered from the Master PIC!
@@ -1836,43 +1891,43 @@ byte nextintr()
 
 void LINT0_raiseIRQ(byte updatelivestatus)
 {
-	if (APIC.LVTLINT0RegisterDirty) return; //Not ready to handle?
-	if ((APIC.LVTLINT0Register & 0x10000) == 0) //Not masked?
+	if (LAPIC[activeCPU].LVTLINT0RegisterDirty) return; //Not ready to handle?
+	if ((LAPIC[activeCPU].LVTLINT0Register & 0x10000) == 0) //Not masked?
 	{
-		switch ((APIC.LVTLINT0Register >> 8) & 7) //What mode?
+		switch ((LAPIC[activeCPU].LVTLINT0Register >> 8) & 7) //What mode?
 		{
 		case 0: //Interrupt? Also named Fixed!
 		case 1: //Lowest priority?
-			if ((APIC.LVTLINT0Register & 0x8000) == 0) //Edge-triggered? Supported!
+			if ((LAPIC[activeCPU].LVTLINT0Register & 0x8000) == 0) //Edge-triggered? Supported!
 			{
-				if ((APIC.IOAPIC_liveIRR & 1) == 0) //Not yet raised? Rising edge!
+				if ((IOAPIC.IOAPIC_liveIRR & 1) == 0) //Not yet raised? Rising edge!
 				{
-					APIC.LVTLINT0Register |= (1 << 12); //Perform LINT0!
+					LAPIC[activeCPU].LVTLINT0Register |= (1 << 12); //Perform LINT0!
 				}
 			}
 			else
 			{
-				APIC.LVTLINT0Register |= (1 << 12); //Perform LINT0!
+				LAPIC[activeCPU].LVTLINT0Register |= (1 << 12); //Perform LINT0!
 			}
 			break;
 		case 2: //SMI?
 		case 4: //NMI?
 		case 5: //INIT or INIT deassert?
 			//Edge mode only! Don't do anything when lowered!
-			if ((APIC.IOAPIC_liveIRR & 1) == 0) //Not yet raised? Rising edge!
+			if ((IOAPIC.IOAPIC_liveIRR & 1) == 0) //Not yet raised? Rising edge!
 			{
-				APIC.LVTLINT0Register |= (1 << 12); //Perform LINT0!
+				LAPIC[activeCPU].LVTLINT0Register |= (1 << 12); //Perform LINT0!
 			}
 			break;
 		case 7: //extINT? Level only!
 			//Always assume that the live IRR doesn't match to keep it live on the triggering!
-			APIC.LVTLINT0Register |= (1 << 12); //Perform LINT0!
+			LAPIC[activeCPU].LVTLINT0Register |= (1 << 12); //Perform LINT0!
 			break;
 		}
 	}
 	if (updatelivestatus)
 	{
-		APIC.IOAPIC_liveIRR |= 1; //Live status!
+		IOAPIC.IOAPIC_liveIRR |= 1; //Live status!
 	}
 }
 
@@ -1891,47 +1946,47 @@ void APIC_raisedIRQ(byte PIC, byte irqnum)
 		}
 	}
 
-	APIC.IOAPIC_currentliveIRR |= (1 << (irqnum & 0xF)); //Live status!
-	if (APIC.IOAPIC_requirestermination[irqnum & 0xF]) return; //Can't handle while busy! Don't update the live IRR, because we haven't registered it yet!
-	switch ((APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] >> 8) & 7) //What mode?
+	IOAPIC.IOAPIC_currentliveIRR |= (1 << (irqnum & 0xF)); //Live status!
+	if (IOAPIC.IOAPIC_requirestermination[irqnum & 0xF]) return; //Can't handle while busy! Don't update the live IRR, because we haven't registered it yet!
+	switch ((IOAPIC.IOAPIC_redirectionentry[irqnum & 0xF][0] >> 8) & 7) //What mode?
 	{
 	case 0: //Interrupt? Also named Fixed!
 	case 1: //Lowest priority?
-		if ((APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x8000) == 0) //Edge-triggered? Supported!
+		if ((IOAPIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x8000) == 0) //Edge-triggered? Supported!
 		{
-			if ((APIC.IOAPIC_liveIRR & (1 << (irqnum & 0xF))) == 0) //Not yet raised? Rising edge!
+			if ((IOAPIC.IOAPIC_liveIRR & (1 << (irqnum & 0xF))) == 0) //Not yet raised? Rising edge!
 			{
-				if ((APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x10000) == 0) //Not masked?
+				if ((IOAPIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x10000) == 0) //Not masked?
 				{
-					APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] |= (1 << 12); //Waiting to be delivered!
-					if (!(APIC.IOAPIC_IRRset & (1 << (irqnum & 0xF)))) //Not already pending?
+					IOAPIC.IOAPIC_redirectionentry[irqnum & 0xF][0] |= (1 << 12); //Waiting to be delivered!
+					if (!(IOAPIC.IOAPIC_IRRset & (1 << (irqnum & 0xF)))) //Not already pending?
 					{
-						APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] &= ~(1 << 12); //Not waiting to be delivered!
-						APIC.IOAPIC_IRRset |= (1 << (irqnum & 0xF)); //Set the IRR?
-						APIC.IOAPIC_IRRreq &= ~(1 << (irqnum & 0xF)); //Acnowledged if pending!
+						IOAPIC.IOAPIC_redirectionentry[irqnum & 0xF][0] &= ~(1 << 12); //Not waiting to be delivered!
+						IOAPIC.IOAPIC_IRRset |= (1 << (irqnum & 0xF)); //Set the IRR?
+						IOAPIC.IOAPIC_IRRreq &= ~(1 << (irqnum & 0xF)); //Acnowledged if pending!
 					}
 				}
 				else //Masked?
 				{
-					APIC.IOAPIC_IRRreq |= (1 << (irqnum & 0xF)); //Requested to fire!
+					IOAPIC.IOAPIC_IRRreq |= (1 << (irqnum & 0xF)); //Requested to fire!
 				}
 			}
 		}
 		else
 		{
-			if ((APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x10000) == 0) //Not masked?
+			if ((IOAPIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x10000) == 0) //Not masked?
 			{
-				APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] |= (1 << 12); //Waiting to be delivered!
-				if (!(APIC.IOAPIC_IRRset & (1 << (irqnum & 0xF)))) //Not already pending?
+				IOAPIC.IOAPIC_redirectionentry[irqnum & 0xF][0] |= (1 << 12); //Waiting to be delivered!
+				if (!(IOAPIC.IOAPIC_IRRset & (1 << (irqnum & 0xF)))) //Not already pending?
 				{
-					APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] &= ~(1 << 12); //Not waiting to be delivered!
-					APIC.IOAPIC_IRRset |= (1 << (irqnum & 0xF)); //Set the IRR?
-					APIC.IOAPIC_IRRreq &= ~(1 << (irqnum & 0xF)); //Acnowledged if pending!
+					IOAPIC.IOAPIC_redirectionentry[irqnum & 0xF][0] &= ~(1 << 12); //Not waiting to be delivered!
+					IOAPIC.IOAPIC_IRRset |= (1 << (irqnum & 0xF)); //Set the IRR?
+					IOAPIC.IOAPIC_IRRreq &= ~(1 << (irqnum & 0xF)); //Acnowledged if pending!
 				}
 			}
 			else //Masked?
 			{
-				APIC.IOAPIC_IRRreq |= (1 << (irqnum & 0xF)); //Requested to fire!
+				IOAPIC.IOAPIC_IRRreq |= (1 << (irqnum & 0xF)); //Requested to fire!
 			}
 		}
 		break;
@@ -1939,65 +1994,65 @@ void APIC_raisedIRQ(byte PIC, byte irqnum)
 	case 4: //NMI?
 	case 5: //INIT or INIT deassert?
 		//Edge mode only! Don't do anything when lowered!
-		if ((APIC.IOAPIC_liveIRR & (1 << (irqnum & 0xF))) == 0) //Not yet raised? Rising edge!
+		if ((IOAPIC.IOAPIC_liveIRR & (1 << (irqnum & 0xF))) == 0) //Not yet raised? Rising edge!
 		{
-			if ((APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x10000) == 0) //Not masked?
+			if ((IOAPIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x10000) == 0) //Not masked?
 			{
-				APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] |= (1 << 12); //Waiting to be delivered!
-				if (!(APIC.IOAPIC_IRRset & (1 << (irqnum & 0xF)))) //Not already pending?
+				IOAPIC.IOAPIC_redirectionentry[irqnum & 0xF][0] |= (1 << 12); //Waiting to be delivered!
+				if (!(IOAPIC.IOAPIC_IRRset & (1 << (irqnum & 0xF)))) //Not already pending?
 				{
-					APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] &= ~(1 << 12); //Not waiting to be delivered!
-					APIC.IOAPIC_IRRset |= (1 << (irqnum & 0xF)); //Set the IRR?
-					APIC.IOAPIC_IRRreq &= ~(1 << (irqnum & 0xF)); //Acnowledged if pending!
+					IOAPIC.IOAPIC_redirectionentry[irqnum & 0xF][0] &= ~(1 << 12); //Not waiting to be delivered!
+					IOAPIC.IOAPIC_IRRset |= (1 << (irqnum & 0xF)); //Set the IRR?
+					IOAPIC.IOAPIC_IRRreq &= ~(1 << (irqnum & 0xF)); //Acnowledged if pending!
 				}
 			}
 			else //Masked?
 			{
-				APIC.IOAPIC_IRRreq |= (1 << (irqnum & 0xF)); //Requested to fire!
+				IOAPIC.IOAPIC_IRRreq |= (1 << (irqnum & 0xF)); //Requested to fire!
 			}
 		}
 		break;
 	case 7: //extINT? Level only!
 		//Always assume that the live IRR doesn't match to keep it live on the triggering!
-		if ((APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x10000) == 0) //Not masked?
+		if ((IOAPIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x10000) == 0) //Not masked?
 		{
-			APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] |= (1 << 12); //Waiting to be delivered!
-			if (!(APIC.IOAPIC_IRRset & (1 << (irqnum & 0xF)))) //Not already pending?
+			IOAPIC.IOAPIC_redirectionentry[irqnum & 0xF][0] |= (1 << 12); //Waiting to be delivered!
+			if (!(IOAPIC.IOAPIC_IRRset & (1 << (irqnum & 0xF)))) //Not already pending?
 			{
-				APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] &= ~(1 << 12); //Not waiting to be delivered!
-				APIC.IOAPIC_IRRset |= (1 << (irqnum & 0xF)); //Set the IRR?
-				APIC.IOAPIC_IRRreq &= ~(1 << (irqnum & 0xF)); //Acnowledged if pending!
+				IOAPIC.IOAPIC_redirectionentry[irqnum & 0xF][0] &= ~(1 << 12); //Not waiting to be delivered!
+				IOAPIC.IOAPIC_IRRset |= (1 << (irqnum & 0xF)); //Set the IRR?
+				IOAPIC.IOAPIC_IRRreq &= ~(1 << (irqnum & 0xF)); //Acnowledged if pending!
 			}
 		}
 		else //Masked?
 		{
-			APIC.IOAPIC_IRRreq |= (1 << (irqnum & 0xF)); //Requested to fire!
+			IOAPIC.IOAPIC_IRRreq |= (1 << (irqnum & 0xF)); //Requested to fire!
 		}
 		break;
 	}
-	APIC.IOAPIC_liveIRR |= (1 << (irqnum & 0xF)); //Live status!
+	IOAPIC.IOAPIC_liveIRR |= (1 << (irqnum & 0xF)); //Live status!
 }
 
 void IOAPIC_raisepending()
 {
-	if (!(APIC.IOAPIC_IRRreq&~(APIC.IOAPIC_IMRset)&~(APIC.IOAPIC_IRRset))) return; //Nothing to do?
+	if (!(IOAPIC.IOAPIC_IRRreq&~(IOAPIC.IOAPIC_IMRset)&~(IOAPIC.IOAPIC_IRRset))) return; //Nothing to do?
 	byte irqnum;
 	for (irqnum=0;irqnum<24;++irqnum) //Check all!
 	{
-		if (APIC.IOAPIC_requirestermination[irqnum & 0xF]) continue; //Can't handle while busy!
-		if ((APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x8000) == 0) //Edge-triggered? Supported!
+		if (IOAPIC.IOAPIC_requirestermination[irqnum & 0xF]) continue; //Can't handle while busy!
+		if ((IOAPIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x8000) == 0) //Edge-triggered? Supported!
 		{
-			if (APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & (1 << 12)) //Waiting to be delivered!
+			if (IOAPIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & (1 << 12)) //Waiting to be delivered!
 			{
-				if ((APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x10000) == 0) //Not masked?
+				if ((IOAPIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x10000) == 0) //Not masked?
 				{
-					if (!(APIC.IOAPIC_IRRset & (1 << (irqnum & 0xF)))) //Not already pending?
+					if (!(IOAPIC.IOAPIC_IRRset & (1 << (irqnum & 0xF)))) //Not already pending?
 					{
-						if ((APIC.IOAPIC_IRRreq & (1 << (irqnum & 0xF)))) //Pending requested?
+						if ((IOAPIC.IOAPIC_IRRreq & (1 << (irqnum & 0xF)))) //Pending requested?
 						{
-							APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] &= ~(1 << 12); //Not waiting to be delivered!
-							APIC.IOAPIC_IRRset |= (1 << (irqnum & 0xF)); //Set the IRR?
-							APIC.IOAPIC_IRRreq &= ~(1 << (irqnum & 0xF)); //Requested to fire!
+							IOAPIC.IOAPIC_redirectionentry[irqnum & 0xF][0] &= ~(1 << 12); //Not waiting to be delivered!
+							IOAPIC.IOAPIC_IRRset |= (1 << (irqnum & 0xF)); //Set the IRR?
+							IOAPIC.IOAPIC_IRRreq &= ~(1 << (irqnum & 0xF)); //Requested to fire!
 						}
 					}
 				}
@@ -2008,14 +2063,14 @@ void IOAPIC_raisepending()
 
 void LINT0_lowerIRQ()
 {
-	if (APIC.LVTLINT0RegisterDirty) return; //Not ready to parse?
-	switch ((APIC.LVTLINT0Register >> 8) & 7) //What mode?
+	if (LAPIC[activeCPU].LVTLINT0RegisterDirty) return; //Not ready to parse?
+	switch ((LAPIC[activeCPU].LVTLINT0Register >> 8) & 7) //What mode?
 	{
 	case 0: //Interrupt? Also named Fixed!
 	case 1: //Lowest priority?
-		if (APIC.LVTLINT0Register & 0x8000) //Level-triggered? Supported!
+		if (LAPIC[activeCPU].LVTLINT0Register & 0x8000) //Level-triggered? Supported!
 		{
-			APIC.LVTLINT0Register &= ~(1 << 12); //Clear LINT0!
+			LAPIC[activeCPU].LVTLINT0Register &= ~(1 << 12); //Clear LINT0!
 		}
 		break;
 	case 2: //SMI?
@@ -2025,10 +2080,10 @@ void LINT0_lowerIRQ()
 		break;
 	case 7: //extINT? Level only!
 		//Always assume that the live IRR doesn't match to keep it live on the triggering!
-		APIC.LVTLINT0Register &= ~(1 << 12); //Clear LINT0!
+		LAPIC[activeCPU].LVTLINT0Register &= ~(1 << 12); //Clear LINT0!
 		break;
 	}
-	APIC.IOAPIC_liveIRR &= ~1; //Live status!
+	IOAPIC.IOAPIC_liveIRR &= ~1; //Live status!
 }
 
 void APIC_loweredIRQ(byte PIC, byte irqnum)
@@ -2037,11 +2092,11 @@ void APIC_loweredIRQ(byte PIC, byte irqnum)
 	else if (irqnum == 2) irqnum = 0; //INTR to APIC line 0!
 	//INTR is also on APIC line 0!
 	//A line has been lowered!
-	APIC.IOAPIC_currentliveIRR &= ~(1 << (irqnum & 0xF)); //Live status!
-	if (APIC.IOAPIC_requirestermination[irqnum & 0xF]) return; //Can't handle while busy! Don't update the live IRR, because we can't handle it yet!
-	if ((APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x8000) == 0) //Edge-triggered? Supported!
+	IOAPIC.IOAPIC_currentliveIRR &= ~(1 << (irqnum & 0xF)); //Live status!
+	if (IOAPIC.IOAPIC_requirestermination[irqnum & 0xF]) return; //Can't handle while busy! Don't update the live IRR, because we can't handle it yet!
+	if ((IOAPIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x8000) == 0) //Edge-triggered? Supported!
 	{
-		switch ((APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] >> 8) & 7) //What mode?
+		switch ((IOAPIC.IOAPIC_redirectionentry[irqnum & 0xF][0] >> 8) & 7) //What mode?
 		{
 		case 0: //Interrupt? Also named Fixed!
 		case 1: //Lowest priority?
@@ -2054,22 +2109,22 @@ void APIC_loweredIRQ(byte PIC, byte irqnum)
 			break;
 		case 7: //extINT? Level only!
 			//Always assume that the live IRR doesn't match to keep it live on the triggering!
-			if (APIC.IOAPIC_IRRset & (1 << (irqnum & 0xF))) //Waiting to be delivered?
+			if (IOAPIC.IOAPIC_IRRset & (1 << (irqnum & 0xF))) //Waiting to be delivered?
 			{
-				APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] &= ~(1 << 12); //Not waiting to be delivered!
-				APIC.IOAPIC_IRRset &= ~(1 << (irqnum & 0xF)); //Clear the IRR?
+				IOAPIC.IOAPIC_redirectionentry[irqnum & 0xF][0] &= ~(1 << 12); //Not waiting to be delivered!
+				IOAPIC.IOAPIC_IRRset &= ~(1 << (irqnum & 0xF)); //Clear the IRR?
 			}
 			break;
 		}
 	}
 	else //Level-triggered?
 	{
-		switch ((APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] >> 8) & 7) //What mode?
+		switch ((IOAPIC.IOAPIC_redirectionentry[irqnum & 0xF][0] >> 8) & 7) //What mode?
 		{
 		case 0: //Interrupt? Also named Fixed!
 		case 1: //Lowest priority?
-			APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] &= ~(1 << 12); //Not waiting to be delivered!
-			APIC.IOAPIC_IRRset &= ~(1 << (irqnum & 0xF)); //Clear the IRR?
+			IOAPIC.IOAPIC_redirectionentry[irqnum & 0xF][0] &= ~(1 << 12); //Not waiting to be delivered!
+			IOAPIC.IOAPIC_IRRset &= ~(1 << (irqnum & 0xF)); //Clear the IRR?
 			break;
 		case 2: //SMI?
 		case 4: //NMI?
@@ -2078,8 +2133,8 @@ void APIC_loweredIRQ(byte PIC, byte irqnum)
 			break;
 		case 7: //extINT? Level only!
 			//Always assume that the live IRR doesn't match to keep it live on the triggering!
-			APIC.IOAPIC_redirectionentry[irqnum & 0xF][0] &= ~(1 << 12); //Not waiting to be delivered!
-			APIC.IOAPIC_IRRset &= ~(1 << (irqnum & 0xF)); //Clear the IRR?
+			IOAPIC.IOAPIC_redirectionentry[irqnum & 0xF][0] &= ~(1 << 12); //Not waiting to be delivered!
+			IOAPIC.IOAPIC_IRRset &= ~(1 << (irqnum & 0xF)); //Clear the IRR?
 			break;
 		}
 	}
@@ -2087,24 +2142,24 @@ void APIC_loweredIRQ(byte PIC, byte irqnum)
 	{
 		LINT0_lowerIRQ();
 	}
-	APIC.IOAPIC_liveIRR &= ~(1 << (irqnum & 0xF)); //Live status!
+	IOAPIC.IOAPIC_liveIRR &= ~(1 << (irqnum & 0xF)); //Live status!
 }
 
 void updateAPICliveIRRs()
 {
 	uint_32 IRbit;
 	byte IR,effectiveIR;
-	if (unlikely(APIC.IOAPIC_liveIRR != APIC.IOAPIC_currentliveIRR)) //Different IRR lines that's pending?
+	if (unlikely(IOAPIC.IOAPIC_liveIRR != IOAPIC.IOAPIC_currentliveIRR)) //Different IRR lines that's pending?
 	{
 		IRbit = 1; //IR bit!
 		for (IR = 0; IR < 24; ++IR) //Process all IRs!
 		{
-			if ((APIC.IOAPIC_liveIRR ^ APIC.IOAPIC_currentliveIRR) & IRbit) //Different requiring processing?
+			if ((IOAPIC.IOAPIC_liveIRR ^ IOAPIC.IOAPIC_currentliveIRR) & IRbit) //Different requiring processing?
 			{
 				effectiveIR = IR;
 				if (IR == 0) effectiveIR = 2; //Swapped...
 				else if (IR == 2) effectiveIR = 0; //Values due to wiring on the APIC inputs!
-				if (APIC.IOAPIC_currentliveIRR & IRbit) //To be set?
+				if (IOAPIC.IOAPIC_currentliveIRR & IRbit) //To be set?
 				{
 					APIC_raisedIRQ((IR >= 8) ? 1 : 0, effectiveIR); //Raised wire!
 				}
