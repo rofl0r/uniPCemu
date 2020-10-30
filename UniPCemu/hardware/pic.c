@@ -1582,16 +1582,6 @@ void acnowledgeirrs()
 	byte recheck;
 	recheck = 0;
 
-	//INTR on the APIC!
-	if (getunprocessedinterrupt(0)) //INTR?
-	{
-		APIC_raisedIRQ(0, 2); //Raised INTR!
-	}
-	else //No INTR?
-	{
-		APIC_loweredIRQ(0, 2); //Raised INTR!
-	}
-
 performRecheck:
 	if (recheck == 0) //Check?
 	{
@@ -1606,6 +1596,19 @@ performRecheck:
 		{
 			lowerirq(0x802); //Slave lowers INTRQ before being acnowledged!
 			i8259.intreqtracking[1] = 0; //Not tracking INTREQ!
+		}
+		//INTR on the APIC!
+		if ((getunprocessedinterrupt(0)!=0)!=i8259.intreqtracking[0]) //INTR raised?
+		{
+			if (i8259.intreqtracking[0]) //Lowered?
+			{
+				APIC_loweredIRQ(0, 2); //Lowered INTR!
+			}
+			else //Raised?
+			{
+				APIC_raisedIRQ(0, 2); //Raised INTR!
+			}
+			i8259.intreqtracking[0] = (getunprocessedinterrupt(0)!=0); //Tracking INTREQ!
 		}
 	}
 
@@ -1643,19 +1646,30 @@ performRecheck:
 		goto performRecheck; //Check again!
 	}
 
+	//INTR on the APIC!
+	if ((getunprocessedinterrupt(0)!=0)!=i8259.intreqtracking[0]) //INTR raised?
+	{
+		if (i8259.intreqtracking[0]) //Lowered?
+		{
+			APIC_loweredIRQ(0, 2); //Lowered INTR!
+		}
+		else //Raised?
+		{
+			APIC_raisedIRQ(0, 2); //Raised INTR!
+		}
+		i8259.intreqtracking[0] = (getunprocessedinterrupt(0)!=0); //Tracking INTREQ!
+	}
+
 	if (nonedirty) //None are dirty anymore?
 	{
 		irr3_dirty = 0; //Not dirty anymore!
 	}
 
 	//INTR on the APIC!
-	if (getunprocessedinterrupt(0)) //INTR?
+	if (getunprocessedinterrupt(0) && (recheck==1)) //INTR?
 	{
 		APIC_raisedIRQ(0, 2); //Raised INTR!
-	}
-	else //No INTR?
-	{
-		APIC_loweredIRQ(0, 2); //Raised INTR!
+		i8259.intreqtracking[1] = 1; //Tracking INTREQ!
 	}
 }
 
