@@ -581,7 +581,7 @@ byte isAPICPhysicaldestination(byte whichCPU, byte isLAPICorIOAPIC, byte physica
 	return 0; //No match!
 }
 
-byte i8259_INTA(); //Prototype for the vector execution of the LAPIC for ExtINT modes!
+byte i8259_INTA(byte fromAPIC); //Prototype for the vector execution of the LAPIC for ExtINT modes!
 
 //Execute a requested vector on the Local APIC! Specify IR=0xFF for no actual IR! Result: 1=Accepted, 0=Not accepted!
 byte LAPIC_executeVector(byte whichCPU, uint_32* vectorlo, byte IR, byte isIOAPIC)
@@ -633,7 +633,7 @@ byte LAPIC_executeVector(byte whichCPU, uint_32* vectorlo, byte IR, byte isIOAPI
 		break;
 	case 7: //extINT?
 		if (LAPIC[whichCPU].LAPIC_extIntPending != -1) return 0; //Don't accept if it's already pending!
-		APIC_intnr = (sword)i8259_INTA(); //Perform an INTA-style interrupt retrieval!
+		APIC_intnr = (sword)i8259_INTA(1); //Perform an INTA-style interrupt retrieval!
 		//Execute immediately!
 		LAPIC[whichCPU].LAPIC_extIntPending = (sword)APIC_intnr; //We're pending now!
 		break;
@@ -1232,7 +1232,7 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 			break;
 		case 0x00F0:
 			whatregister = &LAPIC[activeCPU].SpuriousInterruptVectorRegister; //00F0
-			ROMbits = 0; //Fully writable!
+			ROMbits = 0xF; //Fully writable! P6: Bits 0-3 are hardwared to logical ones!
 			break;
 		case 0x0100:
 		case 0x0110:
@@ -2058,7 +2058,7 @@ byte readPollingMode(byte pic)
 	return 0x00; //No interrupt available!
 }
 
-byte i8259_INTA()
+byte i8259_INTA(byte fromAPIC)
 {
 	byte loopdet = 1;
 	byte IR;
@@ -2107,6 +2107,10 @@ checkSlave:
 unknownSlaveIR: //Slave has exited out to prevent looping!
 	i8259.lastinterruptIR[PICnr] = 7; //Last IR!
 	lastinterrupt = getint(PICnr, 7); //Unknown, dispatch through IR7 of the used PIC!
+	if (fromAPIC) //Was it from the APIC? Spurious interrupt handling!
+	{
+		lastinterrupt = (LAPIC[activeCPU].SpuriousInterruptVectorRegister & 0xFF); //Give the APIC spurious interrupt vector instead!
+	}
 	interruptsaved = 1; //Gotten!
 	return lastinterrupt; //No result: unk interrupt!
 }
@@ -2125,7 +2129,7 @@ byte nextintr()
 		return (byte)result; //Give the interrupt vector number!
 	}
 
-	return i8259_INTA(); //Perform a normal INTA and give the interrupt number!
+	return i8259_INTA(0); //Perform a normal INTA and give the interrupt number!
 }
 
 void LINT0_raiseIRQ(byte updatelivestatus)
