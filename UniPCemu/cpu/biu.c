@@ -1017,6 +1017,7 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates, byte bus_waitstates)
 			{
 				//Memory operations!
 				case REQUEST_MMUREAD:
+					//Wait for other CPUs to release their lock on the bus if enabled?
 					BIU[activeCPU]._lock = CPU_getprefix(0xF0); //Lock!
 					BIU[activeCPU].newtransfer = 1; //We're a new transfer!
 					BIU[activeCPU].newtransfer_size = 1; //We're a new transfer!
@@ -1068,6 +1069,7 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates, byte bus_waitstates)
 					return 1; //Handled!
 					break;
 				case REQUEST_MMUWRITE:
+					//Wait for other CPUs to release their lock on the bus if enabled?
 					BIU[activeCPU]._lock = CPU_getprefix(0xF0); //Lock!
 					BIU[activeCPU].newtransfer = 1; //We're a new transfer!
 					BIU[activeCPU].newtransfer_size = 1; //We're a new transfer!
