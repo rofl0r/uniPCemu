@@ -1336,9 +1336,6 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 	//Create the value with adjusted data for storing it back!
 	storedvalue = (storedvalue & ((~(0xFF << ((offset & 3) << 3))) | ROMbits)) | ((value<<((offset&3)<<3)) & ((0xFF << ((offset & 3) << 3)) & ~ROMbits)); //Stored value without the ROM bits!
 
-	//Store the value back to the register!
-	*whatregister = storedvalue; //Store the new value inside the register, if allowed to be changed!
-
 	if (is_internalexternalAPIC & 1) //LAPIC?
 	{
 		if (address == 0xF0) //Needs to handle resetting the APIC?
@@ -1349,7 +1346,14 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 				LAPIC[activeCPU].needstermination |= 1; //We're in need of termination handling due to possible reset!
 			}
 		}
-		else if (address == 0xB0) //Needs to handle EOI?
+	}
+
+	//Store the value back to the register!
+	*whatregister = storedvalue; //Store the new value inside the register, if allowed to be changed!
+
+	if (is_internalexternalAPIC & 1) //LAPIC?
+	{
+		if (address == 0xB0) //Needs to handle EOI?
 		{
 			LAPIC[activeCPU].needstermination |= 2; //Handle an EOI?
 		}
