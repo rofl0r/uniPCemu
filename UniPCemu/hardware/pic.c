@@ -1065,16 +1065,25 @@ sword LAPIC_acnowledgeRequests(byte whichCPU)
 			{
 				if (APIC_IRQsrequested[IRgroup] & APIC_requestbit) //Are we requested to fire?
 				{
+					APIC_intnr = (IRgroup << 5) | IR; //The priority to fire!
+					//Priority filtered? Then only fire if higher priority class than the processor priority class!
+					if ((LAPIC[whichCPU].ProcessorPriorityRegister & 0xF0) && ((APIC_intnr&0xF0) <= (LAPIC[whichCPU].ProcessorPriorityRegister & 0xF0)))
+					{
+						goto skipPriorityIRR; //Skip this group!
+					}
 					//Priority is based on the high nibble of the interrupt vector. The low nibble is ignored!
 					APIC_highestpriorityIR = IR; //What IR has the highest priority now!
 					APIC_requestbithighestpriority = APIC_requestbit; //What bit was the highest priority?
 					goto firePrioritizedIR; //handle it!
 				}
+				skipPriorityIRR: //Skipping it because of priority!
 				APIC_requestbit >>= 1; //Next bit to check!
 				--APIC_requestsleft; //One processed!
 			}
 		}
 	}
+	//Nothing found to fire?
+	return -1; //Nothing to do!
 
 firePrioritizedIR: //Fire the IR that has the most priority!
 //Now, we have selected the highest priority IR! Start using it!
