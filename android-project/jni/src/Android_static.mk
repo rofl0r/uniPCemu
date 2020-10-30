@@ -24,6 +24,11 @@ LOCAL_SRC_FILES := $(SDL_PATH)/src/main/android/SDL_android_main.c \
 LOCAL_STATIC_LIBRARIES := SDL2_static
 
 LOCAL_CFLAGS := -DSDL2 -DUNIPCEMU -Wall -std=gnu99
+
+ifneq (,$(findstring SDL2_net,$(INSTALLED_MODULES_MAKEFILES)))
+useSDL2_net=1
+endif
+
 ifeq (1,$(useSDL2_net))
 LOCAL_CFLAGS := $(LOCAL_CFLAGS) -DSDL2_NET
 LOCAL_STATIC_LIBRARIES := $(LOCAL_STATIC_LIBRARIES) SDL2_net
