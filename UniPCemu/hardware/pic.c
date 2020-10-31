@@ -1997,7 +1997,7 @@ byte PICInterrupt() //We have an interrupt ready to process? This is the primary
 	if (getunprocessedinterrupt(0) && (IMCR!=0x01)) //Primary PIC interrupt? This is also affected by the IMCR!
 	{
 		if (LAPIC[activeCPU].LVTLINT0RegisterDirty) return 0; //Not ready to parse!
-		if (APIC_enabled && (LAPIC[activeCPU].SpuriousInterruptVectorRegister & 0x100) && ((LAPIC[activeCPU].LVTLINT0Register & 0x10F00) == 7)) //APIC enabled and taken control of the interrupt pin?
+		if (APIC_enabled && (LAPIC[activeCPU].SpuriousInterruptVectorRegister & 0x100) && ((LAPIC[activeCPU].LVTLINT0Register & 0x10F00) == 0x700)) //APIC enabled and taken control of the interrupt pin?
 		{
 			return 0; //The connection from the INTR pin to the local APIC is active! Disable the normal interrupts(redirected to the LVT LINT0 register)!
 		}
