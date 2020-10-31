@@ -1400,12 +1400,15 @@ extern uint_32 memory_dataread;
 extern byte memory_datasize; //The size of the data that has been read!
 byte APIC_memIO_rb(uint_32 offset, byte index)
 {
+	byte uncachableaddr;
 	byte is_internalexternalAPIC;
 	uint_32 temp, tempoffset, value, address;
 	uint_32* whatregister; //What register is accessed?
 	byte updateredirection;
 	tempoffset = offset; //Backup!
 	updateredirection = 0;
+
+	uncachableaddr = 0; //Default: cachable address!
 
 	is_internalexternalAPIC = 0; //Default: no APIC chip!
 	if (((offset & 0xFFFFFF000ULL) == LAPIC[activeCPU].baseaddr)) //LAPIC?
@@ -1447,6 +1450,7 @@ byte APIC_memIO_rb(uint_32 offset, byte index)
 			case 0x20: case 0x21: case 0x22: case 0x23: case 0x24: case 0x25: case 0x26: case 0x27: case 0x28: case 0x29: case 0x2A: case 0x2B: case 0x2C: case 0x2D: case 0x2E: case 0x2F:
 			case 0x30: case 0x31: case 0x32: case 0x33: case 0x34: case 0x35: case 0x36: case 0x37: case 0x38: case 0x39: case 0x3A: case 0x3B: case 0x3C: case 0x3D: case 0x3E: case 0x3F:
 				whatregister = &IOAPIC.IOAPIC_redirectionentry[(IOAPIC.APIC_address - 0x10) >> 1][(IOAPIC.APIC_address - 0x10) & 1]; //Redirection entry addressed!
+				uncachableaddr = 1; //Uncachable!
 				break;
 			default: //Unmapped?
 				if (is_internalexternalAPIC & 1) //LAPIC?
@@ -1491,12 +1495,14 @@ byte APIC_memIO_rb(uint_32 offset, byte index)
 			break;
 		case 0x00A0:
 			whatregister = &LAPIC[activeCPU].ProcessorPriorityRegister; //00A0
+			uncachableaddr = 1; //Uncachable!
 			break;
 		case 0x00B0:
 			whatregister = &LAPIC[activeCPU].EOIregister; //00B0
 			break;
 		case 0x00C0:
 			whatregister = &LAPIC[activeCPU].RemoteReadRegister; //00C0
+			uncachableaddr = 1; //Uncachable!
 			break;
 		case 0x00D0:
 			whatregister = &LAPIC[activeCPU].LogicalDestinationRegister; //00D0
@@ -1516,6 +1522,7 @@ byte APIC_memIO_rb(uint_32 offset, byte index)
 		case 0x0160:
 		case 0x0170:
 			whatregister = &LAPIC[activeCPU].ISR[((address - 0x100) >> 4)]; //ISRs! 0100-0170
+			uncachableaddr = 1; //Uncachable!
 			break;
 		case 0x0180:
 		case 0x0190:
@@ -1526,6 +1533,7 @@ byte APIC_memIO_rb(uint_32 offset, byte index)
 		case 0x01E0:
 		case 0x01F0:
 			whatregister = &LAPIC[activeCPU].TMR[((address - 0x180) >> 4)]; //TMRs! 0180-01F0
+			uncachableaddr = 1; //Uncachable!
 			break;
 		case 0x0200:
 		case 0x0210:
@@ -1536,42 +1544,53 @@ byte APIC_memIO_rb(uint_32 offset, byte index)
 		case 0x0260:
 		case 0x0270:
 			whatregister = &LAPIC[activeCPU].IRR[((address - 0x200) >> 4)]; //ISRs! 0200-0270
+			uncachableaddr = 1; //Uncachable!
 			break;
 		case 0x280:
 			whatregister = &LAPIC[activeCPU].ErrorStatusRegister; //0280
+			uncachableaddr = 1; //Uncachable!
 			break;
 		case 0x2F0:
 			whatregister = &LAPIC[activeCPU].LVTCorrectedMachineCheckInterruptRegister; //02F0
+			uncachableaddr = 1; //Uncachable!
 			break;
 		case 0x300:
 			whatregister = &LAPIC[activeCPU].InterruptCommandRegisterLo; //0300
+			uncachableaddr = 1; //Uncachable!
 			break;
 		case 0x310:
 			whatregister = &LAPIC[activeCPU].InterruptCommandRegisterHi; //0310
 			break;
 		case 0x320:
 			whatregister = &LAPIC[activeCPU].LVTTimerRegister; //0320
+			uncachableaddr = 1; //Uncachable!
 			break;
 		case 0x330:
 			whatregister = &LAPIC[activeCPU].LVTThermalSensorRegister; //0330
+			uncachableaddr = 1; //Uncachable!
 			break;
 		case 0x340:
 			whatregister = &LAPIC[activeCPU].LVTPerformanceMonitoringCounterRegister; //0340
+			uncachableaddr = 1; //Uncachable!
 			break;
 		case 0x350:
 			whatregister = &LAPIC[activeCPU].LVTLINT0Register; //0350
+			uncachableaddr = 1; //Uncachable!
 			break;
 		case 0x360:
 			whatregister = &LAPIC[activeCPU].LVTLINT1Register; //0560
+			uncachableaddr = 1; //Uncachable!
 			break;
 		case 0x370:
 			whatregister = &LAPIC[activeCPU].LVTErrorRegister; //0370
+			uncachableaddr = 1; //Uncachable!
 			break;
 		case 0x380:
 			whatregister = &LAPIC[activeCPU].InitialCountRegister; //0380
 			break;
 		case 0x390:
 			whatregister = &LAPIC[activeCPU].CurrentCountRegister; //0390
+			uncachableaddr = 1; //Uncachable!
 			break;
 		case 0x3E0:
 			whatregister = &LAPIC[activeCPU].DivideConfigurationRegister; //03E0
@@ -1589,7 +1608,7 @@ byte APIC_memIO_rb(uint_32 offset, byte index)
 	tempoffset = (offset & 3); //What DWord byte is addressed?
 	temp = tempoffset;
 	#ifdef USE_MEMORY_CACHING
-	if ((index & 3) == 0)
+	if (((index & 3) == 0) && (uncachableaddr==0)) //Cachable address?
 	{
 		temp &= 3; //Single DWord read only!
 		tempoffset &= 3; //Single DWord read only!
