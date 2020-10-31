@@ -37,5 +37,5 @@ int CheckBIOSMenu(uint_32 timeout); //To run the BIOS Menus! Result: to reboot?
 byte runBIOS(byte showloadingtext); //Run the BIOS!
 
 typedef void(*list_information)(char *filename); //Displays information about a harddisk to mount!
-int ExecuteList(int x, int y, char *defaultentry, int maxlen, list_information information_handler); //Runs the file list!
+int ExecuteList(int x, int y, char *defaultentry, int maxlen, list_information information_handler, int blockActions); //Runs the file list!
 #endif

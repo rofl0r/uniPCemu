@@ -1107,7 +1107,7 @@ void printCurrent(int x, int y, char *text, int maxlen, list_information informa
 //x,y = coordinates of file list
 //maxlen = amount of characters for the list (width of the list)
 
-int ExecuteList(int x, int y, char *defaultentry, int maxlen, list_information informationhandler) //Runs the file list!
+int ExecuteList(int x, int y, char *defaultentry, int maxlen, list_information informationhandler, int blockActions) //Runs the file list!
 {
 	char currentstart;
 	int resultcopy;
@@ -1195,7 +1195,7 @@ int ExecuteList(int x, int y, char *defaultentry, int maxlen, list_information i
 			}
 			printCurrent(x, y, itemlist[result], maxlen,informationhandler); //Create our current entry!
 		}
-		else if (((key&(BUTTON_CROSS|BUTTON_START))>0) || (key&BUTTON_PLAY && BIOS_EnablePlay)) //OK?
+		else if (((key&(~blockActions)&(BUTTON_CROSS|BUTTON_START))>0) || (key&BUTTON_PLAY && BIOS_EnablePlay)) //OK?
 		{
 			delay(500000); //Wait a bit before continuing!
 			return result; //Give the result!
@@ -1204,7 +1204,7 @@ int ExecuteList(int x, int y, char *defaultentry, int maxlen, list_information i
 		{
 			return FILELIST_CANCEL; //Cancelled!
 		}
-		else if ((key&BUTTON_TRIANGLE)>0) //DEFAULT?
+		else if ((key&(~blockActions)&BUTTON_TRIANGLE)>0) //DEFAULT?
 		{
 			return FILELIST_DEFAULT; //Unmount!
 		}
@@ -1292,7 +1292,7 @@ void BIOS_noentries(sword x, sword y, char* message)
 	numlist = 0; //Reset amount of files!
 	clearList(); //Clear the list!
 	addList(message); //Add the message as the only item!
-	BIOS_dummyfile = ExecuteList(x, y, itemlist[0], 256, NULL); //Show options for the installed CPU!
+	BIOS_dummyfile = ExecuteList(x, y, itemlist[0], 256, NULL, (BUTTON_CROSS|BUTTON_START|BUTTON_TRIANGLE)); //Show options for the installed CPU!
 	//Ignore the result, nothing to do with it anyways(as nothing is to be selected)!
 }
 
@@ -1314,7 +1314,7 @@ void BIOS_floppy0_selection() //FLOPPY0 selection menu!
 	EMU_unlocktext();
 
 	selectingHDD = 0; //Not selecting a HDD!
-	int file = ExecuteList(12,4,BIOS_Settings.floppy0,256,&hdd_information); //Show menu for the disk image!
+	int file = ExecuteList(12,4,BIOS_Settings.floppy0,256,&hdd_information,0); //Show menu for the disk image!
 	switch (file) //Which file?
 	{
 	case FILELIST_NOFILES: //No files?
@@ -1345,7 +1345,7 @@ void BIOS_floppy1_selection() //FLOPPY1 selection menu!
 	GPU_EMU_printscreen(0,4,"Disk image: "); //Show selection init!
 	EMU_unlocktext();
 	selectingHDD = 0; //Not selecting a HDD!
-	int file = ExecuteList(12,4,BIOS_Settings.floppy1,256,&hdd_information); //Show menu for the disk image!
+	int file = ExecuteList(12,4,BIOS_Settings.floppy1,256,&hdd_information,0); //Show menu for the disk image!
 	switch (file) //Which file?
 	{
 	case FILELIST_NOFILES: //No files?
@@ -1368,6 +1368,12 @@ void BIOS_floppy1_selection() //FLOPPY1 selection menu!
 
 void BIOS_hdd0_selection() //HDD0 selection menu!
 {
+	int blockedactions;
+	blockedactions = 0; //All allowed!
+	if (EMU_RUNNING) //Plain select and not running (hard disks cannot be unmounted/changed during runtime)?
+	{
+		blockedactions |= (BUTTON_CROSS|BUTTON_START|BUTTON_TRIANGLE); //Don't allow changing the option when mounted and running!
+	}
 	//HDD is never allowed to change during running emulation!
 	BIOS_Title("Mount First HDD");
 	generateFileList(diskpath,"img|sfdimg",1,1); //Generate file list for all .img files!
@@ -1377,7 +1383,7 @@ void BIOS_hdd0_selection() //HDD0 selection menu!
 	GPU_EMU_printscreen(0,4,"Disk image: "); //Show selection init!
 	EMU_unlocktext();
 	selectingHDD = 1; //Selecting a HDD!
-	int file = ExecuteList(12,4,BIOS_Settings.hdd0,256,&hdd_information); //Show menu for the disk image!
+	int file = ExecuteList(12,4,BIOS_Settings.hdd0,256,&hdd_information,blockedactions); //Show menu for the disk image!
 	switch (file) //Which file?
 	{
 	case FILELIST_NOFILES: //No files?
@@ -1402,6 +1408,12 @@ void BIOS_hdd0_selection() //HDD0 selection menu!
 
 void BIOS_hdd1_selection() //HDD1 selection menu!
 {
+	int blockedactions;
+	blockedactions = 0;
+	if (EMU_RUNNING) //Plain select and not running (hard disks cannot be unmounted/changed during runtime)?
+	{
+		blockedactions |= (BUTTON_CROSS | BUTTON_START | BUTTON_TRIANGLE); //Don't allow changing the option when mounted and running!
+	}
 	//HDD is never allowed to change during running emulation!
 	BIOS_Title("Mount Second HDD");
 	generateFileList(diskpath,"img|sfdimg",1,1); //Generate file list for all .img files!
@@ -1411,7 +1423,7 @@ void BIOS_hdd1_selection() //HDD1 selection menu!
 	GPU_EMU_printscreen(0,4,"Disk image: "); //Show selection init!
 	EMU_unlocktext();
 	selectingHDD = 1; //Selecting a HDD!
-	int file = ExecuteList(12,4,BIOS_Settings.hdd1,256,&hdd_information); //Show menu for the disk image!
+	int file = ExecuteList(12,4,BIOS_Settings.hdd1,256,&hdd_information,blockedactions); //Show menu for the disk image!
 	switch (file) //Which file?
 	{
 	case FILELIST_NOFILES: //No files?
@@ -1526,7 +1538,7 @@ void BIOS_cdrom0_selection() //CDROM0 selection menu!
 		EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
 		GPU_EMU_printscreen(0,4,"Disk image: "); //Show selection init!
 		EMU_unlocktext();
-		int file = ExecuteList(12,4,BIOS_Settings.cdrom0,256,NULL); //Show menu for the disk image!
+		int file = ExecuteList(12,4,BIOS_Settings.cdrom0,256,NULL,0); //Show menu for the disk image!
 		switch (file) //Which file?
 		{
 		case FILELIST_NOFILES: //No files?
@@ -1615,7 +1627,7 @@ void BIOS_cdrom1_selection() //CDROM1 selection menu!
 		EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
 		GPU_EMU_printscreen(0,4,"Disk image: "); //Show selection init!
 		EMU_unlocktext();
-		int file = ExecuteList(12,4,BIOS_Settings.cdrom1,256,NULL); //Show menu for the disk image!
+		int file = ExecuteList(12,4,BIOS_Settings.cdrom1,256,NULL,0); //Show menu for the disk image!
 		switch (file) //Which file?
 		{
 		case FILELIST_NOFILES: //No files?
@@ -1829,7 +1841,7 @@ void BIOS_DisksMenu() //Manages the mounted disks!
 		}
 		break;
 	case 2: //First HDD?
-		if ((Menu_Stat==BIOSMENU_STAT_OK) && (!EMU_RUNNING)) //Plain select and not running (hard disks cannot be unmounted/changed during runtime)?
+		if (Menu_Stat==BIOSMENU_STAT_OK) //Plain select and not running (hard disks cannot be unmounted/changed during runtime)?
 		{
 			BIOS_Menu = 4; //HDD0 selection!
 		}
@@ -1840,7 +1852,7 @@ void BIOS_DisksMenu() //Manages the mounted disks!
 		}
 		break;
 	case 3: //Second HDD?
-		if ((Menu_Stat==BIOSMENU_STAT_OK) && (!EMU_RUNNING)) //Plain select and not running (hard disks cannot be unmounted/changed during runtime)?
+		if (Menu_Stat==BIOSMENU_STAT_OK)
 		{
 			BIOS_Menu = 5; //HDD1 selection!
 		}
@@ -1974,7 +1986,7 @@ void BIOS_BootOrderOption() //Manages the boot order
 		BIOS_Settings.bootorder = DEFAULT_BOOT_ORDER; //Set default boot order!
 		BIOS_Changed = 1; //We're changed always!
 	}
-	int file = ExecuteList(12,4,BOOT_ORDER_STRING[BIOS_Settings.bootorder],256,NULL); //Show options for the boot order!
+	int file = ExecuteList(12,4,BOOT_ORDER_STRING[BIOS_Settings.bootorder],256,NULL,0); //Show options for the boot order!
 	switch (file) //Which file?
 	{
 	case FILELIST_CANCEL: //Cancelled?
@@ -2048,7 +2060,7 @@ void BIOS_InstalledCPUOption() //Manages the installed CPU!
 	{
 		current = DEFAULT_CPU; //NEC V20/V30!
 	}
-	int file = ExecuteList(15,4,itemlist[current],256,NULL); //Show options for the installed CPU!
+	int file = ExecuteList(15,4,itemlist[current],256,NULL,0); //Show options for the installed CPU!
 	switch (file) //Which file?
 	{
 	case FILELIST_CANCEL: //Cancelled?
@@ -2997,7 +3009,7 @@ void BIOS_ConvertStaticDynamicHDD() //Generate Dynamic HDD Image from a static o
 	GPU_EMU_printscreen(0, 4, "Disk image: "); //Show selection init!
 	EMU_unlocktext();
 	selectingHDD = 1; //Selecting a HDD!
-	int file = ExecuteList(12, 4, "", 256,&hdd_information); //Show menu for the disk image!
+	int file = ExecuteList(12, 4, "", 256,&hdd_information,0); //Show menu for the disk image!
 	switch (file) //Which file?
 	{
 	case FILELIST_NOFILES: //No files?
@@ -3209,7 +3221,7 @@ void BIOS_ConvertDynamicStaticHDD() //Generate Static HDD Image from a dynamic o
 	GPU_EMU_printscreen(0, 4, "Disk image: "); //Show selection init!
 	EMU_unlocktext();
 	selectingHDD = 1; //Selecting a HDD!
-	int file = ExecuteList(12, 4, "", 256,&hdd_information); //Show menu for the disk image!
+	int file = ExecuteList(12, 4, "", 256,&hdd_information,0); //Show menu for the disk image!
 	switch (file) //Which file?
 	{
 	case FILELIST_NOFILES: //No files?
@@ -3441,7 +3453,7 @@ void BIOS_DefragmentDynamicHDD() //Defragment a dynamic HDD Image!
 	GPU_EMU_printscreen(0, 4, "Disk image: "); //Show selection init!
 	EMU_unlocktext();
 	selectingHDD = 1; //Selecting a HDD!
-	int file = ExecuteList(12, 4, "", 256,&hdd_information); //Show menu for the disk image!
+	int file = ExecuteList(12, 4, "", 256,&hdd_information,0); //Show menu for the disk image!
 	switch (file) //Which file?
 	{
 	case FILELIST_NOFILES: //No files?
@@ -3744,7 +3756,7 @@ void BIOS_DebugMode()
 		BIOS_Settings.debugmode = current; //Safety!
 		BIOS_Changed = 1; //Changed!
 	}
-	int file = ExecuteList(15,4,itemlist[current],256,NULL); //Show options for the installed CPU!
+	int file = ExecuteList(15,4,itemlist[current],256,NULL,0); //Show options for the installed CPU!
 	switch (file) //Which file?
 	{
 	case FILELIST_CANCEL: //Cancelled?
@@ -3811,7 +3823,7 @@ void BIOS_ExecutionMode()
 		BIOS_Settings.executionmode = current; //Safety!
 		BIOS_Changed = 1; //Changed!
 	}
-	int file = ExecuteList(16, 4, itemlist[current], 256,NULL); //Show options for the installed CPU!
+	int file = ExecuteList(16, 4, itemlist[current], 256,NULL,0); //Show options for the installed CPU!
 	switch (file) //Which file?
 	{
 	case FILELIST_CANCEL: //Cancelled?
@@ -3896,7 +3908,7 @@ void BIOS_DebugLog()
 		BIOS_Settings.debugger_log = current; //Safety!
 		BIOS_Changed = 1; //Changed!
 	}
-	int file = ExecuteList(14, 4, itemlist[current], 256,NULL); //Show options for the installed CPU!
+	int file = ExecuteList(14, 4, itemlist[current], 256,NULL,0); //Show options for the installed CPU!
 	switch (file) //Which file?
 	{
 	case FILELIST_CANCEL: //Cancelled?
@@ -3997,7 +4009,7 @@ void BIOS_DirectPlotSetting()
 		BIOS_Settings.GPU_AllowDirectPlot = current; //Safety!
 		BIOS_Changed = 1; //Changed!
 	}
-	int file = ExecuteList(15,4,itemlist[current],256,NULL); //Show options for the installed CPU!
+	int file = ExecuteList(15,4,itemlist[current],256,NULL,0); //Show options for the installed CPU!
 	switch (file) //Which file?
 	{
 	case FILELIST_CANCEL: //Cancelled?
@@ -4047,7 +4059,7 @@ void BIOS_FontSetting()
 		BIOS_Settings.BIOSmenu_font = current; //Safety!
 		BIOS_Changed = 1; //Changed!
 	}
-	int font = ExecuteList(21,4,itemlist[current],256,NULL); //Show options for the installed CPU!
+	int font = ExecuteList(21,4,itemlist[current],256,NULL,0); //Show options for the installed CPU!
 	switch (font) //Which file?
 	{
 	case FILELIST_CANCEL: //Cancelled?
@@ -4115,7 +4127,7 @@ void BIOS_AspectRatio()
 		BIOS_Settings.aspectratio = current; //Safety!
 		BIOS_Changed = 1; //Changed!
 	}
-	int file = ExecuteList(15, 4, itemlist[current], 256, NULL); //Show options for the installed CPU!
+	int file = ExecuteList(15, 4, itemlist[current], 256, NULL,0); //Show options for the installed CPU!
 	switch (file) //Which file?
 	{
 	case FILELIST_CANCEL: //Cancelled?
@@ -4187,7 +4199,7 @@ void BIOS_BWMonitor()
 		BIOS_Settings.bwmonitor = current; //Safety!
 		BIOS_Changed = 1; //Changed!
 	}
-	int file = ExecuteList(10, 4, itemlist[current], 256,NULL); //Show options for the installed CPU!
+	int file = ExecuteList(10, 4, itemlist[current], 256,NULL,0); //Show options for the installed CPU!
 	switch (file) //Which file?
 	{
 	case FILELIST_CANCEL: //Cancelled?
@@ -4695,7 +4707,7 @@ void BIOS_gamingKeyboardColor() //Select a gaming keyboard color!
 		BIOS_Settings.input_settings.colors[gamingKeyboardColor] = current; //Safety!
 		BIOS_Changed = 1; //Changed!
 	}
-	int file = ExecuteList(7, 4, itemlist[current], 256,NULL); //Show options for the installed CPU!
+	int file = ExecuteList(7, 4, itemlist[current], 256,NULL,0); //Show options for the installed CPU!
 	switch (file) //Which file?
 	{
 	case FILELIST_CANCEL: //Cancelled?
@@ -4788,7 +4800,7 @@ void BIOS_VGAModeSetting()
 		BIOS_Settings.VGA_Mode = current; //Safety!
 		BIOS_Changed = 1; //Changed!
 	}
-	int file = ExecuteList(10,4,itemlist[current],256,NULL); //Show options for the installed CPU!
+	int file = ExecuteList(10,4,itemlist[current],256,NULL,0); //Show options for the installed CPU!
 	switch (file) //Which file?
 	{
 	case FILELIST_CANCEL: //Cancelled?
@@ -5259,7 +5271,7 @@ void BIOS_SoundFont_selection() //SoundFont selection menu!
 	GPU_EMU_printscreen(0, 4, "Soundfont: "); //Show selection init!
 	EMU_unlocktext();
 
-	int file = ExecuteList(12, 4, BIOS_Settings.SoundFont, 256,NULL); //Show menu for the disk image!
+	int file = ExecuteList(12, 4, BIOS_Settings.SoundFont, 256,NULL,0); //Show menu for the disk image!
 	switch (file) //Which file?
 	{
 	case FILELIST_NOFILES: //No files?
@@ -5299,7 +5311,7 @@ int BIOS_Sound_selection() //Music selection menu, custom for this purpose!
 	GPU_EMU_printscreen(0, 4, "Music file: "); //Show selection init!
 	EMU_unlocktext();
 	BIOS_EnablePlay = 1; //Enable Play=OK!
-	int file = ExecuteList(12, 4, itemlist[Sound_file], 256,NULL); //Show menu for the disk image!
+	int file = ExecuteList(12, 4, itemlist[Sound_file], 256,NULL,0); //Show menu for the disk image!
 	BIOS_EnablePlay = 0; //Disable play again!
 	switch (file) //Which file?
 	{
@@ -5414,7 +5426,7 @@ void BIOS_Architecture()
 		BIOS_Settings.architecture = current; //Safety!
 		BIOS_Changed = 1; //Changed!
 	}
-	int file = ExecuteList(14, 4, itemlist[current], 256,NULL); //Show options for the installed CPU!
+	int file = ExecuteList(14, 4, itemlist[current], 256,NULL,0); //Show options for the installed CPU!
 	switch (file) //Which file?
 	{
 	case FILELIST_CANCEL: //Cancelled?
@@ -6778,7 +6790,7 @@ void BIOS_DataBusSizeSetting()
 		*(getarchDataBusSize()) = current; //Safety!
 		BIOS_Changed = 1; //Changed!
 	}
-	int file = ExecuteList(15, 4, itemlist[current], 256, NULL); //Show options for the installed CPU!
+	int file = ExecuteList(15, 4, itemlist[current], 256, NULL,0); //Show options for the installed CPU!
 	switch (file) //Which file?
 	{
 	case FILELIST_CANCEL: //Cancelled?
@@ -6872,7 +6884,7 @@ void BIOS_GenerateFloppyDisk()
 	GPU_EMU_printscreen(0, 4, "Floppy image size: "); //Show selection init!
 	EMU_unlocktext();
 	int result;
-	result = ExecuteList(19,4,itemlist[0],256,NULL); //Get our result!
+	result = ExecuteList(19,4,itemlist[0],256,NULL,0); //Get our result!
 	if ((result>=0) && (result<NUMFLOPPYGEOMETRIES)) //Valid item?
 	{
 		EMU_locktext();
@@ -6953,7 +6965,7 @@ void BIOS_GenerateIMDFloppyDisk()
 	GPU_EMU_printscreen(0, 4, "Floppy image size: "); //Show selection init!
 	EMU_unlocktext();
 	int result;
-	result = ExecuteList(19, 4, itemlist[0], 256, NULL); //Get our result!
+	result = ExecuteList(19, 4, itemlist[0], 256, NULL,0); //Get our result!
 	if ((result >= 0) && (result < NUMFLOPPYGEOMETRIES)) //Valid item?
 	{
 		EMU_locktext();
@@ -7067,7 +7079,7 @@ void BIOS_VGASynchronization()
 		BIOS_Settings.VGASynchronization = current; //Safety!
 		BIOS_Changed = 1; //Changed!
 	}
-	int file = ExecuteList(21, 4, itemlist[current], 256, NULL); //Show options for the installed CPU!
+	int file = ExecuteList(21, 4, itemlist[current], 256, NULL,0); //Show options for the installed CPU!
 	switch (file) //Which file?
 	{
 	case FILELIST_CANCEL: //Cancelled?
@@ -7353,7 +7365,7 @@ void BIOS_CGAModel()
 		BIOS_Settings.CGAModel = current; //Safety!
 		BIOS_Changed = 1; //Changed!
 	}
-	int file = ExecuteList(11, 4, itemlist[current], 256, NULL); //Show options for the installed CPU!
+	int file = ExecuteList(11, 4, itemlist[current], 256, NULL,0); //Show options for the installed CPU!
 	switch (file) //Which file?
 	{
 	default: //Unknown result?
@@ -7417,7 +7429,7 @@ void BIOS_gamingmodeJoystick()
 		BIOS_Settings.input_settings.gamingmode_joystick = current; //Safety!
 		BIOS_Changed = 1; //Changed!
 	}
-	int file = ExecuteList(13, 4, itemlist[current], 256, NULL); //Show options for the installed CPU!
+	int file = ExecuteList(13, 4, itemlist[current], 256, NULL,0); //Show options for the installed CPU!
 	switch (file) //Which file?
 	{
 	default: //Unknown result?
@@ -7518,7 +7530,7 @@ void BIOS_useSoundBlaster()
 		BIOS_Settings.useSoundBlaster = current; //Safety!
 		BIOS_Changed = 1; //Changed!
 	}
-	int file = ExecuteList(15, 4, itemlist[current], 256, NULL); //Show options for the installed CPU!
+	int file = ExecuteList(15, 4, itemlist[current], 256, NULL,0); //Show options for the installed CPU!
 	switch (file) //Which file?
 	{
 	case FILELIST_CANCEL: //Cancelled?
@@ -8345,7 +8357,7 @@ void BIOS_ROMMode()
 		BIOS_Settings.BIOSROMmode = current; //Safety!
 		BIOS_Changed = 1; //Changed!
 	}
-	int file = ExecuteList(15, 4, itemlist[current], 256,NULL); //Show options for the installed CPU!
+	int file = ExecuteList(15, 4, itemlist[current], 256,NULL,0); //Show options for the installed CPU!
 	switch (file) //Which file?
 	{
 	case FILELIST_CANCEL: //Cancelled?
@@ -8401,7 +8413,7 @@ void BIOS_InboardInitialWaitstates()
 		BIOS_Settings.InboardInitialWaitstates = current; //Safety!
 		BIOS_Changed = 1; //Changed!
 	}
-	int file = ExecuteList(28, 4, itemlist[current], 256,NULL); //Show options for the installed CPU!
+	int file = ExecuteList(28, 4, itemlist[current], 256,NULL,0); //Show options for the installed CPU!
 	switch (file) //Which file?
 	{
 	case FILELIST_CANCEL: //Cancelled?
@@ -8661,7 +8673,7 @@ void BIOS_BackgroundPolicySetting()
 		BIOS_Settings.backgroundpolicy = current; //Safety!
 		BIOS_Changed = 1; //Changed!
 	}
-	int file = ExecuteList(19, 4, itemlist[current], 256, NULL); //Show options for the installed CPU!
+	int file = ExecuteList(19, 4, itemlist[current], 256, NULL,0); //Show options for the installed CPU!
 	switch (file) //Which file?
 	{
 	case FILELIST_CANCEL: //Cancelled?
@@ -8719,7 +8731,7 @@ void BIOS_AdvancedLogSetting()
 		BIOS_Settings.advancedlog = current; //Safety!
 		BIOS_Changed = 1; //Changed!
 	}
-	int file = ExecuteList(14, 4, itemlist[current], 256, NULL); //Show options for the installed CPU!
+	int file = ExecuteList(14, 4, itemlist[current], 256, NULL,0); //Show options for the installed CPU!
 	switch (file) //Which file?
 	{
 	case FILELIST_CANCEL: //Cancelled?
@@ -8815,7 +8827,7 @@ void BIOS_floppy0_nodisk_type()
 	GPU_EMU_printscreen(0, 4, "Floppy without disk type: "); //Show selection init!
 	EMU_unlocktext();
 	int result;
-	result = ExecuteList(26, 4, itemlist[currentCMOS->floppy0_nodisk_type], 256, NULL); //Get our result!
+	result = ExecuteList(26, 4, itemlist[currentCMOS->floppy0_nodisk_type], 256, NULL,0); //Get our result!
 	int newtype;
 	newtype = currentCMOS->floppy0_nodisk_type; //Old type!
 	switch (result) //Which result?
@@ -9037,7 +9049,7 @@ void BIOS_floppy1_nodisk_type()
 	GPU_EMU_printscreen(0, 4, "Floppy without disk type: "); //Show selection init!
 	EMU_unlocktext();
 	int result;
-	result = ExecuteList(26, 4, itemlist[currentCMOS->floppy1_nodisk_type], 256, NULL); //Get our result!
+	result = ExecuteList(26, 4, itemlist[currentCMOS->floppy1_nodisk_type], 256, NULL,0); //Get our result!
 	int newtype;
 	newtype = currentCMOS->floppy1_nodisk_type; //Old type!
 	switch (result) //Which result?
