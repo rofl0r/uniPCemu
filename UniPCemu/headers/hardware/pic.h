@@ -63,12 +63,8 @@ typedef struct
 	uint8_t isr2[2][0x10]; //Alternative in-service register, for handling sources!
 	uint8_t icwstep[2]; //used during initialization to keep track of which ICW we're at
 	uint8_t icw[2][4]; //4 ICW bytes are used!
-	uint8_t intoffset[2]; //interrupt vector offset
-	uint8_t priority[2]; //which IRQ has highest priority
-	uint8_t autoeoi[2]; //automatic EOI mode
 	uint8_t readmode[2]; //remember what to return on read register from OCW3
 	uint8_t pollingmode[2]; //Polling mode enabled for this channel?
-	uint8_t enabled[2];
 	IRQHandler acceptirq[0x10][0x10], finishirq[0x10][0x10]; //All IRQ handlers!
 	byte activePIC; //What PIC is currently processing?
 	byte lastinterruptIR[2]; //Last interrupt IR!
