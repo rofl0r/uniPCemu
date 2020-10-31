@@ -447,7 +447,7 @@ void i430fx_piix_PCIConfigurationChangeHandler(uint_32 address, byte device, byt
 		//bit 2 set: BIOS write protect enable(0=Protected, 1=Not protected).
 		//bit 1 set: Enable keyboard Chip-Select for address 60h and 64h.
 		//bit 0 set: Enable RTC for addresses 70-77h.
-		if ((i430fx_configuration[0x4F] & 1) && (is_i430fx == 2)) //Enabled the IO APIC?
+		if ((i430fx_piix_configuration[0x4F] & 1) && (is_i430fx == 2)) //Enabled the IO APIC?
 		{
 			APIC_enableIOAPIC(1); //Enable the IO APIC!
 		}
@@ -455,7 +455,7 @@ void i430fx_piix_PCIConfigurationChangeHandler(uint_32 address, byte device, byt
 		{
 			APIC_enableIOAPIC(0); //Disable the IO APIC!
 		}
-		if (i430fx_configuration[0x4E] & 4) //Write protect is disabled?
+		if (i430fx_piix_configuration[0x4E] & 4) //Write protect is disabled?
 		{
 			BIOS_writeprotect = 0; //Write protect is disabled!
 		}
