@@ -217,12 +217,13 @@ void init8259()
 	updateLAPICArbitrationIDregister(0); //Update the Arbitration ID register with it's defaults!
 	
 	//Local APIC interrupt support!
+	LAPIC[0].LVTCorrectedMachineCheckInterruptRegister = 0x10000; //Reset CMCI register!
+	LAPIC[0].LVTTimerRegister = 0x10000; //Reset Timer register!
+	LAPIC[0].LVTThermalSensorRegister = 0x10000; //Thermal sensor register!
+	LAPIC[0].LVTPerformanceMonitoringCounterRegister = 0x10000; //Performance monitoring counter register!
 	LAPIC[0].LVTLINT0Register = 0x10000; //Reset LINT0 register!
 	LAPIC[0].LVTLINT1Register = 0x10000; //Reset LINT1 register!
-	LAPIC[0].LVTCorrectedMachineCheckInterruptRegister = 0x10000; //Reset CMCI register!
 	LAPIC[0].LVTErrorRegister = 0x10000; //Reset Error register!
-	LAPIC[0].LVTPerformanceMonitoringCounterRegister = 0x10000; //Performance monitoring counter register!
-	LAPIC[0].LVTThermalSensorRegister = 0x10000; //Thermal sensor register!
 	LAPIC[0].LAPIC_extIntPending = -1; //No external interrupt pending yet!
 }
 
