@@ -1996,6 +1996,11 @@ byte PICInterrupt() //We have an interrupt ready to process? This is the primary
 {
 	if (__HW_DISABLED) return 0; //Abort!
 
+	if (APIC_currentintnr != -1) //Interrupt pending to fire?
+	{
+		return 2; //APIC IRQ is pending to fire!
+	}
+
 	if (LAPIC[activeCPU].LAPIC_extIntPending != -1) //ExtInt pending?
 	{
 		APIC_currentintnr = LAPIC[activeCPU].LAPIC_extIntPending; //Acnowledge!
