@@ -107,7 +107,7 @@ OPTINLINE void PS2_raiseirq(byte which)
 	}
 	else //First port?
 	{
-		Controller8042.outputport |= ~0x10; //Raise first IRQ!
+		Controller8042.outputport |= 0x10; //Raise first IRQ!
 		raiseirq(1); //Lower primary IRQ!
 	}
 }
