@@ -1278,7 +1278,7 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 			whatregister = &LAPIC[activeCPU].LVTTimerRegister; //0320
 			ROMbits = (1<<12); //Fully writable!
 			LAPIC[activeCPU].LVTTimerRegisterDirty = 1; //Dirty!
-			LAPIC[activeCPU].needstermination = 0x100; //Needs termination!
+			LAPIC[activeCPU].needstermination |= 0x100; //Needs termination!
 			break;
 		case 0x330:
 			whatregister = &LAPIC[activeCPU].LVTThermalSensorRegister; //0330
@@ -1292,19 +1292,19 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 			whatregister = &LAPIC[activeCPU].LVTLINT0Register; //0350
 			ROMbits = (1<<12); //Fully writable!
 			LAPIC[activeCPU].LVTLINT0RegisterDirty = 1; //Dirty!
-			LAPIC[activeCPU].needstermination = 0x100; //Needs termination!
+			LAPIC[activeCPU].needstermination |= 0x100; //Needs termination!
 			break;
 		case 0x360:
 			whatregister = &LAPIC[activeCPU].LVTLINT1Register; //0560
 			ROMbits = (1<<12); //Fully writable!
 			LAPIC[activeCPU].LVTLINT1RegisterDirty = 1; //Dirty!
-			LAPIC[activeCPU].needstermination = 0x100; //Needs termination!
+			LAPIC[activeCPU].needstermination |= 0x100; //Needs termination!
 			break;
 		case 0x370:
 			whatregister = &LAPIC[activeCPU].LVTErrorRegister; //0370
 			ROMbits = (1<<12); //Fully writable!
 			LAPIC[activeCPU].LVTErrorRegisterDirty = 1; //Dirty!
-			LAPIC[activeCPU].needstermination = 0x100; //Needs termination!
+			LAPIC[activeCPU].needstermination |= 0x100; //Needs termination!
 			break;
 		case 0x380:
 			whatregister = &LAPIC[activeCPU].InitialCountRegister; //0380
