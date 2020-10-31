@@ -409,7 +409,7 @@ void LAPIC_handleunpendingerror(byte whichCPU)
 void LAPIC_reportErrorStatus(byte whichcpu, uint_32 errorstatus, byte delayedreporting)
 {
 	LAPIC[whichcpu].errorstatusregisterpending |= errorstatus; //Reporting this delayed!
-	if (!(((LAPIC[whichcpu].LAPIC_version >> 16) & 0xFF))) //No delayed reporting?
+	if ((!(((LAPIC[whichcpu].LAPIC_version >> 16) & 0xFF))) || (delayedreporting==0)) //No delayed reporting?
 	{
 		LAPIC[whichcpu].errorstatustimeout = (DOUBLE)0; //No timeout anymore!
 		LAPIC_handleunpendingerror(whichcpu); //Unpend immediately!
