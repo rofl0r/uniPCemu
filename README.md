@@ -43,7 +43,7 @@ This README would normally document whatever steps are necessary to get your app
 * Adding Android SDL2_net to the Android project
 	- Download the latest version of SDL2_net from the project homepage.
 	- Copy all **SDLnet*.c/h**, **SDL_net.h** and **Android.mk** files to a newly created directory **android-project\jni\SDL2_net** folder.
-	- Edit **android-project\src\com\unipcemu\app\UniPCemuActivity.java**, removing the comments around the **getLibraries** function.
+	- Edit **android-project\src\org\libsdl\app\SDLActivity.java**, removing **//** before **// "SDL2_net",**.
 * Adding required Android Studio symbolic links to the Android project
 	- Execute android-studio\app\src\main\generatelinks.bat from an elevated command prompt to generate the symbolic links in the folder.
 * How to run tests
