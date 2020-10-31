@@ -26,6 +26,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/hardware/ports.h" //Port support!
 #include "headers/mmu/mmuhandler.h" //RAM layout updating support!
 #include "headers/hardware/ide.h" //IDE PCI support!
+#include "headers/hardware/pic.h" //APIC support!
 
 extern byte is_i430fx; //Are we an i430fx motherboard?
 byte i430fx_memorymappings_read[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}; //All read memory/PCI! Set=DRAM, clear=PCI!
@@ -221,6 +222,7 @@ void i430fx_mapRAMROM(byte start, byte size, byte setting)
 }
 
 extern byte PCI_transferring;
+extern byte BIOS_writeprotect; //BIOS write protected?
 void i430fx_hardreset(); //Prototype for register 93h on the i440fx.
 
 void i430fx_PCIConfigurationChangeHandler(uint_32 address, byte device, byte function, byte size)
@@ -435,11 +437,32 @@ void i430fx_piix_PCIConfigurationChangeHandler(uint_32 address, byte device, byt
 	case 0x4C: //ISA Recovery I/O timer register
 		//Bit 7 set: alias ports 80h, 84-86h, 88h, 8c-8eh to 90-9fh.
 		break;
+	case 0x4F:
 	case 0x4E: //X-bus chip select register
-		//bit 6 set: alias PCI FFF80000-FFFDFFFF at F80000-FDFFFF (extended bios).
-		//bit 5 set: alias PCI FFFE0000-FFFFFFFF at FE0000-FFFFFF (lower bios).
+		//bit 8 set: Enable IO APIC space (i440fx).
+		//bit 7 set: alias PCI FFF80000-FFFDFFFF at F80000-FDFFFF (extended bios).
+		//bit 6 set: alias PCI FFFE0000-FFFFFFFF at FE0000-FFFFFF (lower bios).
+		//bit 5 set: FERR# to IRQ13, otherwise disabled (i440fx).
+		//bit 4 set: IRQ12/Mouse function enable. 1=Mouse function, 0=Standard IRQ12 interrupt function (i440fx)!
+		//bit 2 set: BIOS write protect enable(0=Protected, 1=Not protected).
 		//bit 1 set: Enable keyboard Chip-Select for address 60h and 64h.
 		//bit 0 set: Enable RTC for addresses 70-77h.
+		if ((i430fx_configuration[0x4F] & 1) && (is_i430fx == 2)) //Enabled the IO APIC?
+		{
+			APIC_enableIOAPIC(1); //Enable the IO APIC!
+		}
+		else //Not supported or disabled?
+		{
+			APIC_enableIOAPIC(0); //Disable the IO APIC!
+		}
+		if (i430fx_configuration[0x4E] & 4) //Write protect is disabled?
+		{
+			BIOS_writeprotect = 0; //Write protect is disabled!
+		}
+		else
+		{
+			BIOS_writeprotect = 1; //Write protect is enabled!
+		}
 		break;
 	case 0x60:
 	case 0x61:
@@ -661,6 +684,9 @@ void i430fx_hardreset()
 
 	i430fx_piix_configuration[0x4C] = 0x4D; //Default
 	i430fx_piix_configuration[0x4E] = 0x03; //Default
+	i430fx_piix_configuration[0x4F] = 0x00; //Default
+	i430fx_piix_PCIConfigurationChangeHandler(0x4E, 3, 0, 1); //Initialize all memory hole settings!
+	i430fx_piix_PCIConfigurationChangeHandler(0x4F, 3, 0, 1); //Initialize all memory hole settings!
 
 	//IRQ mappings
 	i430fx_piix_configuration[0x60] = 0x80; //Default value: No IRQ mapped!

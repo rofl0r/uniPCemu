@@ -32,10 +32,9 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 PIC i8259;
 byte irr3_dirty = 0; //IRR3/IRR3_a is changed?
 
-byte APIC_enabled; //APICs enabled?
-
 struct
 {
+	byte enabled; //Enabled?
 	//Basic information?
 	word needstermination; //APIC needs termination?
 	//CPU MSR information!
@@ -95,6 +94,7 @@ byte lastLAPICAccepted[MAXCPUS]; //Last APIC accepted LVT result!
 
 struct
 {
+	byte enabled; //Enabled?
 	//Basic information?
 	word needstermination; //APIC needs termination?
 	uint_64 IObaseaddr; //Base address of the I/O APIC!
@@ -162,6 +162,50 @@ void updateLAPICArbitrationIDregister(byte whichCPU)
 	LAPIC[whichCPU].LAPIC_arbitrationIDregister = LAPIC[whichCPU].LAPIC_ID & (0xFF << 24); //Load the Arbitration ID register from the Local APIC ID register! All 8-bits are loaded!
 }
 
+void initAPIC(byte whichCPU)
+{
+	LAPIC[whichCPU].enabled = 0; //Is the APIC enabled?
+//Initialize only 1 Local APIC!
+	LAPIC[whichCPU].baseaddr = 0xFEE00000; //Default base address!
+	LAPIC[whichCPU].needstermination = 0; //Doesn't need termination!
+	LAPIC[whichCPU].LAPIC_version = 0x0010;
+	LAPIC[whichCPU].DestinationFormatRegister = ~0; //All bits set!
+	LAPIC[whichCPU].SpuriousInterruptVectorRegister = 0xFF; //Needs to be 0xFF!
+	switch (EMULATED_CPU)
+	{
+	case CPU_PENTIUM:
+		LAPIC[whichCPU].LAPIC_version |= 0x30000; //4 LVT entries
+		break;
+	case CPU_PENTIUMPRO:
+	case CPU_PENTIUM2:
+		LAPIC[whichCPU].LAPIC_version |= 0x40000; //5 LVT entries
+		break;
+	default:
+		break;
+	}
+	LAPIC[whichCPU].LAPIC_version |= (1 << 24); //Broadcast EOI suppression supported!
+
+	//Update only 1 Local APIC!
+	resetAPIC(whichCPU); //Reset the APIC as well!
+	updateLAPICTimerSpeed(whichCPU); //Update the used timer speed!
+	updateLAPICArbitrationIDregister(whichCPU); //Update the Arbitration ID register with it's defaults!
+
+	//Local APIC interrupt support!
+	LAPIC[whichCPU].LVTCorrectedMachineCheckInterruptRegister = 0x10000; //Reset CMCI register!
+	LAPIC[whichCPU].LVTTimerRegister = 0x10000; //Reset Timer register!
+	LAPIC[whichCPU].LVTThermalSensorRegister = 0x10000; //Thermal sensor register!
+	LAPIC[whichCPU].LVTPerformanceMonitoringCounterRegister = 0x10000; //Performance monitoring counter register!
+	LAPIC[whichCPU].LVTLINT0Register = 0x10000; //Reset LINT0 register!
+	LAPIC[whichCPU].LVTLINT1Register = 0x10000; //Reset LINT1 register!
+	LAPIC[whichCPU].LVTErrorRegister = 0x10000; //Reset Error register!
+	LAPIC[whichCPU].LAPIC_extIntPending = -1; //No external interrupt pending yet!
+}
+
+void APIC_enableIOAPIC(byte enabled)
+{
+	IOAPIC.enabled = enabled; //Enabled the IO APIC?
+}
+
 void init8259()
 {
 	if (__HW_DISABLED) return; //Abort!
@@ -179,31 +223,8 @@ void init8259()
 	i8259.imr[1] = 0xFF; //Mask off all interrupts to start!
 	irr3_dirty = 0; //Default: not dirty!
 
-	//Initialize APIC and IO APIC!
-	APIC_enabled = 0; //Is the APIC enabled?
-
-	//Initialize only 1 Local APIC!
-	LAPIC[0].baseaddr = 0xFEE00000; //Default base address!
-	LAPIC[0].needstermination = 0; //Doesn't need termination!
-	LAPIC[0].LAPIC_version = 0x0010;
-	LAPIC[0].DestinationFormatRegister = ~0; //All bits set!
-	LAPIC[0].SpuriousInterruptVectorRegister = 0xFF; //Needs to be 0xFF!
-	switch (EMULATED_CPU)
-	{
-	case CPU_PENTIUM:
-		LAPIC[0].LAPIC_version |= 0x30000; //4 LVT entries
-		break;
-	case CPU_PENTIUMPRO:
-	case CPU_PENTIUM2:
-		LAPIC[0].LAPIC_version |= 0x40000; //5 LVT entries
-		break;
-	default:
-		break;
-	}
-	LAPIC[0].LAPIC_version |= (1 << 24); //Broadcast EOI suppression supported!
-
-	//External INTR support!
-	addr22 = IMCR = 0x00; //Default values after powerup for the IMCR and related register!
+	//Initialize IO APIC!
+	IOAPIC.enabled = 0; //Is the APIC enabled? This needs to be enabled based on hardware!
 
 	//Initialize the IO APIC!
 	IOAPIC.IObaseaddr = 0xFEC00000; //Default base address!
@@ -211,20 +232,11 @@ void init8259()
 	IOAPIC.IOAPIC_version_numredirectionentries = 0x11 | ((24 - 1) << 16); //How many IRQs can we handle(24) and version number!
 	IOAPIC.IOAPIC_ID = 0x00; //Default IO APIC phyiscal ID!
 
-	//Update only 1 Local APIC!
-	resetAPIC(0); //Reset the APIC as well!
-	updateLAPICTimerSpeed(0); //Update the used timer speed!
-	updateLAPICArbitrationIDregister(0); //Update the Arbitration ID register with it's defaults!
-	
-	//Local APIC interrupt support!
-	LAPIC[0].LVTCorrectedMachineCheckInterruptRegister = 0x10000; //Reset CMCI register!
-	LAPIC[0].LVTTimerRegister = 0x10000; //Reset Timer register!
-	LAPIC[0].LVTThermalSensorRegister = 0x10000; //Thermal sensor register!
-	LAPIC[0].LVTPerformanceMonitoringCounterRegister = 0x10000; //Performance monitoring counter register!
-	LAPIC[0].LVTLINT0Register = 0x10000; //Reset LINT0 register!
-	LAPIC[0].LVTLINT1Register = 0x10000; //Reset LINT1 register!
-	LAPIC[0].LVTErrorRegister = 0x10000; //Reset Error register!
-	LAPIC[0].LAPIC_extIntPending = -1; //No external interrupt pending yet!
+	//External INTR support!
+	addr22 = IMCR = 0x00; //Default values after powerup for the IMCR and related register!
+
+	//Initialize all Local APICs!
+	initAPIC(0); //Only 1 Local APIC supported right now!
 }
 
 void APIC_errorTrigger(byte whichCPU); //Error has been triggered! Prototype!
@@ -1120,13 +1132,13 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 		return 0; //Neither!
 	}
 
-	if (APIC_enabled == 0) return 0; //Not the APIC memory space enabled?
 	address = (offset & 0xFFC); //What address is addressed?
 
 	ROMbits = ~0; //All bits are ROM bits by default?
 
 	if (((offset&i440fx_ioapic_base_mask)==i440fx_ioapic_base_match) && (is_internalexternalAPIC&2)) //I/O APIC?
 	{
+		if (IOAPIC.enabled == 0) return 0; //Not the APIC memory space enabled?
 		switch (address&0x10) //What is addressed?
 		{
 		case 0x0000: //IOAPIC address?
@@ -1188,7 +1200,8 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 	}
 	else if (is_internalexternalAPIC&1) //LAPIC?
 	{
-		notIOAPICW:
+	notIOAPICW:
+		if (LAPIC[activeCPU].enabled == 0) return 0; //Not the APIC memory space enabled?
 		switch (address) //What is addressed?
 		{
 		case 0x0020:
@@ -1425,11 +1438,11 @@ byte APIC_memIO_rb(uint_32 offset, byte index)
 		return 0; //Neither!
 	}
 
-	if (APIC_enabled == 0) return 0; //Not the APIC memory space enabled?
 	address = (offset & 0xFFC); //What address is addressed?
 
 	if (((offset&i440fx_ioapic_base_mask)==i440fx_ioapic_base_match) && (is_internalexternalAPIC & 2)) //I/O APIC?
 	{
+		if (IOAPIC.enabled == 0) return 0; //Not the APIC memory space enabled?
 		switch (address&0x10) //What is addressed?
 		{
 		case 0x0000: //IOAPIC address?
@@ -1480,6 +1493,7 @@ byte APIC_memIO_rb(uint_32 offset, byte index)
 	else if (is_internalexternalAPIC & 1) //LAPIC?
 	{
 		notIOAPICR:
+		if (LAPIC[activeCPU].enabled == 0) return 0; //Not the APIC memory space enabled?
 		switch (address) //What is addressed?
 		{
 		case 0x0020:
@@ -1661,7 +1675,7 @@ void APIC_updateWindowMSR(uint_32 lo, uint_32 hi)
 	{
 		LAPIC[activeCPU].baseaddr |= (((uint_64)(LAPIC[activeCPU].windowMSRhi & 0xF)) << 32); //Extra bits from the high MSR on Pentium II and up!
 	}
-	APIC_enabled = ((LAPIC[activeCPU].windowMSRlo & 0x800) >> 11); //APIC space enabled?
+	LAPIC[activeCPU].enabled = ((LAPIC[activeCPU].windowMSRlo & 0x800) >> 11); //APIC space enabled?
 }
 
 byte readPollingMode(byte pic); //Prototype!
@@ -1997,7 +2011,7 @@ byte PICInterrupt() //We have an interrupt ready to process? This is the primary
 	if (getunprocessedinterrupt(0) && (IMCR!=0x01)) //Primary PIC interrupt? This is also affected by the IMCR!
 	{
 		if (LAPIC[activeCPU].LVTLINT0RegisterDirty) return 0; //Not ready to parse!
-		if (APIC_enabled && (LAPIC[activeCPU].SpuriousInterruptVectorRegister & 0x100) && ((LAPIC[activeCPU].LVTLINT0Register & 0x10F00) == 0x700)) //APIC enabled and taken control of the interrupt pin?
+		if (LAPIC[activeCPU].enabled && (LAPIC[activeCPU].SpuriousInterruptVectorRegister & 0x100) && ((LAPIC[activeCPU].LVTLINT0Register & 0x10F00) == 0x700)) //APIC enabled and taken control of the interrupt pin?
 		{
 			return 0; //The connection from the INTR pin to the local APIC is active! Disable the normal interrupts(redirected to the LVT LINT0 register)!
 		}

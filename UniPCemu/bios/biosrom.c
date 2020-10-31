@@ -107,6 +107,7 @@ enum
 };
 
 //Basic state for managing the BIOS ROM
+byte BIOS_writeprotect = 1; //BIOS write protected?
 byte BIOS_flash_enabled = 0;
 struct
 {
@@ -1501,6 +1502,12 @@ byte BIOS_writehandler(uint_32 offset, byte value)    /* A pointer to a handler 
 	if ((offset>=0xE0000) && (offset<=0xFFFFF) && (BIOSROM_DisableLowMemory)) return 0; //Disabled for Compaq RAM!
 	basepos = tempoffset; //Save for easy reference!
 
+	if (BIOS_writeprotect) //BIOS ROM is write protected?
+	{
+		memory_datawrittensize = 1; //Only 1 byte written!
+		return 1; //Ignore writes!
+	}
+
 	if (unlikely(BIOS_custom_ROM)) //Custom/system ROM loaded?
 	{
 		if (likely(BIOS_custom_ROM_size == 0x10000))
@@ -2030,6 +2037,10 @@ void BIOS_registerROM()
 	else
 	{
 		BIOS_flash_enabled = 0; //Disable flash emulation!
+	}
+	if (!is_i430fx) //Not flash ROM supported?
+	{
+		BIOS_writeprotect = 1; //Default: BIOS ROM is write protected!
 	}
 }
 

@@ -460,10 +460,10 @@ void initEMU(int full) //Init!
 	debugrow("Initialising audio subsystem...");
 	resetchannels(); //Reset all channels!
 
-	init_i430fx(); //Enable the i430fx if i430fx extensions are enabled!
-
 	debugrow("Initializing 8259...");
 	init8259(); //Initialise the 8259 (PIC)!
+
+	init_i430fx(); //Enable the i430fx if i430fx extensions are enabled!
 
 	useAdlib = BIOS_Settings.useAdlib|BIOS_Settings.useSoundBlaster; //Adlib used?
 	if (useAdlib)

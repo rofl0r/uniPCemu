@@ -99,5 +99,6 @@ byte APIC_memIO_wb(uint_32 offset, byte value); //Write handler for the APIC!
 
 void APIC_raisedIRQ(byte PIC, byte irqnum);
 void APIC_loweredIRQ(byte PIC, byte irqnum);
+void APIC_enableIOAPIC(byte enabled); //Enable the IO APIC?
 
 #endif
