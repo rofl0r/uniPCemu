@@ -25,8 +25,11 @@ LOCAL_STATIC_LIBRARIES := SDL2_static
 
 LOCAL_CFLAGS := -DSDL2 -DUNIPCEMU -Wall -std=gnu99
 
+ifneq (,$(ANDROIDSTUDIO))
 ifneq (,$(findstring SDL2_net,$(INSTALLED_MODULES_MAKEFILES)))
-useSDL2_net=1
+LOCAL_CFLAGS := $(LOCAL_CFLAGS) -DSDL2_NET
+LOCAL_C_INCLUDES := $(LOCAL_C_INCLUDES) $(LOCAL_PATH)/$(SDL_net_PATH)
+endif
 endif
 
 ifeq (1,$(useSDL2_net))

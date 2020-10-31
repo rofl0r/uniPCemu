@@ -29,8 +29,11 @@ LOCAL_SRC_FILES := $(SDL_PATH)/src/main/android/SDL_android_main.c \
 
 LOCAL_SHARED_LIBRARIES := SDL2
 
+ifneq (,$(ANDROIDSTUDIO))
 ifneq (,$(findstring SDL2_net,$(INSTALLED_MODULES_MAKEFILES)))
-useSDL2_net=1
+LOCAL_CFLAGS := $(LOCAL_CFLAGS) -DSDL2_NET
+LOCAL_C_INCLUDES := $(LOCAL_C_INCLUDES) $(LOCAL_PATH)/$(SDL_net_PATH)
+endif
 endif
 
 ifeq (1,$(useSDL2_net))
