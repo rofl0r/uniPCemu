@@ -2312,20 +2312,18 @@ void IOAPIC_raisepending()
 	for (irqnum=0;irqnum<24;++irqnum) //Check all!
 	{
 		if (IOAPIC.IOAPIC_requirestermination[irqnum & 0xF]) continue; //Can't handle while busy!
-		if ((IOAPIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x8000) == 0) //Edge-triggered? Supported!
+		//Don't need to take the mode into account!
+		if (IOAPIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & (1 << 12)) //Waiting to be delivered!
 		{
-			if (IOAPIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & (1 << 12)) //Waiting to be delivered!
+			if ((IOAPIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x10000) == 0) //Not masked?
 			{
-				if ((IOAPIC.IOAPIC_redirectionentry[irqnum & 0xF][0] & 0x10000) == 0) //Not masked?
+				if (!(IOAPIC.IOAPIC_IRRset & (1 << (irqnum & 0xF)))) //Not already pending?
 				{
-					if (!(IOAPIC.IOAPIC_IRRset & (1 << (irqnum & 0xF)))) //Not already pending?
+					if ((IOAPIC.IOAPIC_IRRreq & (1 << (irqnum & 0xF)))) //Pending requested?
 					{
-						if ((IOAPIC.IOAPIC_IRRreq & (1 << (irqnum & 0xF)))) //Pending requested?
-						{
-							IOAPIC.IOAPIC_redirectionentry[irqnum & 0xF][0] &= ~(1 << 12); //Not waiting to be delivered!
-							IOAPIC.IOAPIC_IRRset |= (1 << (irqnum & 0xF)); //Set the IRR?
-							IOAPIC.IOAPIC_IRRreq &= ~(1 << (irqnum & 0xF)); //Requested to fire!
-						}
+						IOAPIC.IOAPIC_redirectionentry[irqnum & 0xF][0] &= ~(1 << 12); //Not waiting to be delivered!
+						IOAPIC.IOAPIC_IRRset |= (1 << (irqnum & 0xF)); //Set the IRR?
+						IOAPIC.IOAPIC_IRRreq &= ~(1 << (irqnum & 0xF)); //Requested to fire!
 					}
 				}
 			}
