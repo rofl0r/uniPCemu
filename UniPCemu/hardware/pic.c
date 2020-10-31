@@ -42,7 +42,6 @@ struct
 	uint_32 windowMSRhi; //Window register that's written in the CPU!
 	//Runtime information!
 	uint_64 baseaddr; //Base address of the APIC!
-	uint_64 IObaseaddr; //Base address of the I/O APIC!
 	//Remaining variables? All memory that's stored in the APIC!
 	uint_32 APIC_address; //Address register for the extended memory!
 	uint_32 APIC_data; //Data register for the extended memory!
