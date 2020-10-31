@@ -131,17 +131,17 @@ extern byte APICNMIQueued; //APIC-issued NMI queued?
 //i8259.irr2 is the live status of each of the parallel interrupt lines!
 //i8259.irr3 is the identifier for request subchannels that are pending to be acnowledged(cleared when acnowledge and the interrupt is fired).
 
-void updateLAPICTimerSpeed()
+void updateLAPICTimerSpeed(byte whichCPU)
 {
 	byte divider;
-	divider = (LAPIC[activeCPU].DivideConfigurationRegister & 3) | ((LAPIC[activeCPU].DivideConfigurationRegister & 8) >> 1); //Divider set!
+	divider = (LAPIC[whichCPU].DivideConfigurationRegister & 3) | ((LAPIC[whichCPU].DivideConfigurationRegister & 8) >> 1); //Divider set!
 	if (divider == 7) //Actually 1?
 	{
-		LAPIC[activeCPU].LAPIC_timerdivider = 0; //Divide by 1!
+		LAPIC[whichCPU].LAPIC_timerdivider = 0; //Divide by 1!
 	}
 	else //2^n
 	{
-		LAPIC[activeCPU].LAPIC_timerdivider = 1+divider; //Calculate it!
+		LAPIC[whichCPU].LAPIC_timerdivider = 1+divider; //Calculate it!
 	}
 }
 
@@ -232,7 +232,6 @@ byte APIC_getISRV(byte whichCPU)
 {
 	byte IRgroup;
 	byte IR;
-	byte APIC_intnr;
 	int APIC_highestpriority; //-1=Nothing yet, otherwise, highest priority level detected
 	byte APIC_highestpriorityIR; //Highest priority IR detected!
 	uint_32 APIC_IRQsrequested[8], APIC_requestbit, APIC_requestsleft, APIC_requestbithighestpriority;
@@ -287,7 +286,6 @@ byte APIC_getIRRV(byte whichCPU)
 {
 	byte IRgroup;
 	byte IR;
-	byte APIC_intnr;
 	int APIC_highestpriority; //-1=Nothing yet, otherwise, highest priority level detected
 	byte APIC_highestpriorityIR; //Highest priority IR detected!
 	uint_32 APIC_IRQsrequested[8], APIC_requestbit, APIC_requestsleft, APIC_requestbithighestpriority;
@@ -491,7 +489,6 @@ void LAPIC_handletermination() //Handle termination on the APIC!
 
 void IOAPIC_handletermination() //Handle termination on the APIC!
 {
-	word MSb, MSBleft;
 	//Handle any writes to APIC addresses!
 	if (likely((IOAPIC.IOAPIC_globalrequirestermination) == 0)) return; //No termination needed?
 
@@ -723,9 +720,7 @@ void updateAPICliveIRRs(); //Update the live IRRs as needed!
 void LAPIC_pollRequests(byte whichCPU)
 {
 	byte receiver;
-	byte isLAPIC;
 	byte logicaldestination;
-	byte APIC_intnr;
 	byte destinationCPU; //What CPU is the destination?
 
 	if (NMIQueued && (LAPIC[whichCPU].LVTLINT1RegisterDirty == 0)) //NMI has been queued?
@@ -897,7 +892,6 @@ void LAPIC_pollRequests(byte whichCPU)
 
 void IOAPIC_pollRequests()
 {
-	byte receiver;
 	byte isLAPIC;
 	byte logicaldestination;
 	byte IR;
