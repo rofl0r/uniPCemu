@@ -77,7 +77,7 @@ byte out8259(word portnum, byte value); //Out port
 byte PICInterrupt(); //We have an interrupt ready to process?
 byte nextintr(); //Next interrupt to handle
 void acnowledgeirrs(); //Acnowledge IRR!
-void updateAPIC(uint_64 clockspassed); //Tick the APIC in CPU clocks!
+void updateAPIC(uint_64 clockspassed, float timepassed); //Tick the APIC in CPU clocks!
 
 void registerIRQ(byte IRQ, IRQHandler acceptIRQ, IRQHandler finishIRQ); //Register IRQ handler!
 
