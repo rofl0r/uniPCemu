@@ -1064,8 +1064,8 @@ byte CPU_segmentOverridden(byte activeCPU);
 //specialReset: 1 for exhibiting bug and flushing PIQ, 0 otherwise
 void CPU_8086REPPending(byte doReset); //Execute this before CPU_exec!
 
-byte CPU_handleNMI(); //Did we not handle an NMI?
-byte CPU_checkNMIAPIC(); //Check for APIC NMI to fire?
+byte CPU_handleNMI(byte isHLT); //Did we not handle an NMI?
+byte CPU_checkNMIAPIC(byte isHLT); //Check for APIC NMI to fire?
 byte execNMI(byte causeisMemory); //Execute an NMI!
 
 void CPU_unkOP(); //General unknown OPcode handler!

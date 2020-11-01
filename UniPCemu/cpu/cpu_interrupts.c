@@ -446,10 +446,11 @@ void CPU_INTERNAL_execNMI()
 	CPU[activeCPU].cycles_HWOP = 50; /* Normal interrupt as hardware interrupt */
 }
 
-byte CPU_checkNMIAPIC()
+byte CPU_checkNMIAPIC(byte isHLT)
 {
 	if (APICNMIQueued) //APIC NMI queued?
 	{
+		if (isHLT) return 0; //Leave HLT first!
 		APICNMIQueued = 0; //Not queued anymore!
 		CPU_INTERNAL_execNMI(); //Start it up!
 		return 0; //NNI handled!
@@ -458,7 +459,7 @@ byte CPU_checkNMIAPIC()
 }
 
 extern byte IMCR; //Address selected. 00h=Connect INTR and NMI to the CPU. 01h=Disconnect INTR and NMI from the CPU.
-byte CPU_handleNMI()
+byte CPU_handleNMI(byte isHLT)
 {
 	if ((IMCR == 0x01) || (CPU_NMI_APIC(activeCPU)==0)) //Not connected or available to handle directly?
 	{
@@ -466,6 +467,7 @@ byte CPU_handleNMI()
 	}
 
 	if (NMIQueued == 0) return 1; //No NMI Pending!
+	if (isHLT) return 0; //Leave HLT first!
 	NMIQueued = 0; //Not anymore, we're handling it!
 
 	CPU_INTERNAL_execNMI(); //Perform the NMI!

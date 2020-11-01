@@ -1167,16 +1167,7 @@ OPTINLINE byte coreHandler()
 			}
 
 			acnowledgeirrs(); //Acnowledge IRR!
-			if (unlikely(FLAG_IF && PICInterrupt() && ((CPU[activeCPU].halt&2)==0))) //We have an interrupt? Clear Halt State when allowed to!
-			{
-				CPU[activeCPU].halt = 0; //Interrupt->Resume from HLT
-				goto resumeFromHLT; //We're resuming from HLT state!
-			}
-			else
-			{
-				//Execute using actual CPU clocks!
-				CPU[activeCPU].cycles = 1; //HLT takes 1 cycle for now, since it's unknown!
-			}
+
 			if (CPU[activeCPU].SIPIreceived&0x100) //Received a command to leave HLT mode with interrupt number?
 			{
 				CPU[activeCPU].halt = 0; //Interrupt->Resume from HLT
@@ -1184,6 +1175,33 @@ OPTINLINE byte coreHandler()
 				CPU[activeCPU].SIPIreceived = 0; //Not received anymore!
 				goto resumeFromHLT; //We're resuming from HLT state!
 			}
+
+			//Handle NMI first!
+			if (likely(CPU_checkNMIAPIC(1))) //APIC NMI not fired?
+			{
+				if (likely(CPU_handleNMI(1))) //NMI isn't triggered?
+				{
+					if (unlikely(FLAG_IF && PICInterrupt() && ((CPU[activeCPU].halt&2)==0))) //We have an interrupt? Clear Halt State when allowed to!
+					{
+						CPU[activeCPU].halt = 0; //Interrupt->Resume from HLT
+						goto resumeFromHLT; //We're resuming from HLT state!
+					}
+					//Otherwise, still halted!
+				}
+				else
+				{
+						CPU[activeCPU].halt = 0; //Interrupt->Resume from HLT
+						goto resumeFromHLT; //We're resuming from HLT state!
+				}
+			}
+			else //APIC NMI to handle?
+			{
+				CPU[activeCPU].halt = 0; //Interrupt->Resume from HLT
+				goto resumeFromHLT; //We're resuming from HLT state!
+			}
+
+			//Execute using actual CPU clocks!
+			CPU[activeCPU].cycles = 1; //HLT takes 1 cycle for now, since it's unknown!
 			if (unlikely(CPU[activeCPU].halt==1)) //Normal halt?
 			{
 				//Increase the instruction counter every instruction/HLT time!
@@ -1214,9 +1232,9 @@ OPTINLINE byte coreHandler()
 				if (unlikely((!CPU[activeCPU].trapped) && CPU[activeCPU].registers && CPU[activeCPU].allowInterrupts && (CPU[activeCPU].permanentreset==0) && (CPU[activeCPU].internalinterruptstep==0) && BIU_Ready() && (CPU_executionphase_busy()==0) && (CPU[activeCPU].instructionfetch.CPU_isFetching && (CPU[activeCPU].instructionfetch.CPU_fetchphase==1)))) //Only check for hardware interrupts when not trapped and allowed to execute interrupts(not permanently reset)!
 				{
 					//Handle NMI first!
-					if (CPU_checkNMIAPIC()) //APIC NMI not fired?
+					if (CPU_checkNMIAPIC(0)) //APIC NMI not fired?
 					{
-						if (likely(CPU_handleNMI())) //NMI isn't triggered?
+						if (likely(CPU_handleNMI(0))) //NMI isn't triggered?
 						{
 							if (likely(FLAG_IF)) //Interrupts available?
 							{
