@@ -78,7 +78,7 @@ byte PICInterrupt(); //We have an interrupt ready to process?
 byte nextintr(); //Next interrupt to handle
 void acnowledgeirrs(); //Acnowledge IRR!
 void updateAPIC(uint_64 clockspassed, float timepassed); //Tick the APIC in CPU clocks!
-
+byte CPU_NMI_APIC(byte whichCPU); //NMI pin directly connected?
 void registerIRQ(byte IRQ, IRQHandler acceptIRQ, IRQHandler finishIRQ); //Register IRQ handler!
 
 //IRQnum: bits 0-3=IR number, bits 4-7=Shared line number. bit 8-10=PCI lane IR when set, bit 11=Slave PIC IR!

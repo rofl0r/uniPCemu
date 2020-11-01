@@ -31,6 +31,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/cpu/multitasking.h" //Task switching/faulting support!
 #include "headers/cpu/cpu_stack.h" //Stack support!
 #include "headers/cpu/easyregs.h" //Easy register support!
+#include "headers/hardware/pic.h" //NMI mapping support!
 
 //Are we to disable NMI's from All(or Memory only)?
 #define DISABLE_MEMNMI
@@ -459,7 +460,7 @@ byte CPU_checkNMIAPIC()
 extern byte IMCR; //Address selected. 00h=Connect INTR and NMI to the CPU. 01h=Disconnect INTR and NMI from the CPU.
 byte CPU_handleNMI()
 {
-	if (IMCR == 0x01)
+	if ((IMCR == 0x01) || (CPU_NMI_APIC(activeCPU)==0)) //Not connected or available to handle directly?
 	{
 		return 1; //Don't perform the NMI as part of the NMI interrupt line!
 	}

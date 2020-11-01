@@ -130,6 +130,11 @@ extern byte APICNMIQueued; //APIC-issued NMI queued?
 //i8259.irr2 is the live status of each of the parallel interrupt lines!
 //i8259.irr3 is the identifier for request subchannels that are pending to be acnowledged(cleared when acnowledge and the interrupt is fired).
 
+byte CPU_NMI_APIC(byte whichCPU)
+{
+	return ((LAPIC[whichCPU].enabled==0) && (whichCPU==0)); //APIC not enabled = connected to CPU core 0!
+}
+
 void updateLAPICTimerSpeed(byte whichCPU)
 {
 	byte divider;
@@ -2056,8 +2061,7 @@ byte PICInterrupt() //We have an interrupt ready to process? This is the primary
 	}
 	if (getunprocessedinterrupt(0) && (IMCR!=0x01)) //Primary PIC interrupt? This is also affected by the IMCR!
 	{
-		if (LAPIC[activeCPU].LVTLINT0RegisterDirty) return 0; //Not ready to parse!
-		if (LAPIC[activeCPU].enabled && (LAPIC[activeCPU].SpuriousInterruptVectorRegister & 0x100) && ((LAPIC[activeCPU].LVTLINT0Register & 0x10F00) == 0x700)) //APIC enabled and taken control of the interrupt pin?
+		if (LAPIC[activeCPU].enabled || activeCPU) //APIC enabled and taken control of the interrupt pin or not CPU #0?
 		{
 			return 0; //The connection from the INTR pin to the local APIC is active! Disable the normal interrupts(redirected to the LVT LINT0 register)!
 		}
