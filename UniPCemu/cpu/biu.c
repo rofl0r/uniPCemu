@@ -1058,6 +1058,17 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates, byte bus_waitstates)
 					}
 					else
 					{
+						if (useIPSclock && (BIU[activeCPU].newtransfer_size==BIU_cachedmemorysize) && (BIU_cachedmemorysize>1) && (BIU_cachedmemoryaddr==physicaladdress)) //Data already fully read in IPS clocking mode?
+						{
+							BIU[activeCPU].currentresult = BIU_cachedmemoryread; //What was read?
+							if (BIU_response(BIU[activeCPU].currentresult)) //Result given? We're giving OK!
+							{
+								BIU_terminatemem(); //Terminate memory access!
+								BIU[activeCPU].waitstateRAMremaining += memory_waitstates; //Apply the waitstates for the fetch!
+								BIU[activeCPU].currentrequest = REQUEST_NONE; //No request anymore! We're finished!
+								return 1; //Handled!
+							}
+						}
 						++BIU[activeCPU].currentaddress; //Next address!
 						if (unlikely((BIU[activeCPU].currentaddress&CPU_databusmask)==0))
 						{
@@ -1140,6 +1151,16 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates, byte bus_waitstates)
 						{
 							BIU[activeCPU].datawritesizeexpected = 1; //Expect 1 byte for all other bytes!
 							memory_datawritesize = 1; //1 byte from now on!
+						}
+						else if (useIPSclock) //Data already fully written in IPS clocking mode?
+						{
+							if (BIU_response(1)) //Result given? We're giving OK!
+							{
+								BIU_terminatemem(); //Terminate memory access!
+								BIU[activeCPU].waitstateRAMremaining += memory_waitstates; //Apply the waitstates for the fetch!
+								BIU[activeCPU].currentrequest = REQUEST_NONE; //No request anymore! We're finished!
+								return 1; //Handled!
+							}
 						}
 						++BIU[activeCPU].currentaddress; //Next address!
 						if (unlikely((BIU[activeCPU].currentaddress&CPU_databusmask)==0))
