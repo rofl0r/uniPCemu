@@ -1064,6 +1064,7 @@ void IOAPIC_pollRequests()
 sword LAPIC_acnowledgeRequests(byte whichCPU)
 {
 	byte IRgroup;
+	byte IRgroupsleft;
 	byte IR;
 	byte APIC_intnr;
 	int APIC_highestpriority; //-1=Nothing yet, otherwise, highest priority level detected
@@ -1082,7 +1083,8 @@ sword LAPIC_acnowledgeRequests(byte whichCPU)
 		return -1; //Nothing to do!
 	}
 	//Find the most prioritized interrupt to fire!
-	for (IRgroup = 7;; --IRgroup) //Process all possible groups to handle!
+	IRgroupsleft = 8;
+	for (IRgroup = 7;IRgroupsleft; --IRgroup) //Process all possible groups to handle!
 	{
 		if (APIC_IRQsrequested[IRgroup]) //Something requested here?
 		{
@@ -1113,8 +1115,9 @@ sword LAPIC_acnowledgeRequests(byte whichCPU)
 				--APIC_requestsleft; //One processed!
 			}
 		}
+		--IRgroupsleft; //One group processed!
 	}
-	//Nothing found to fire?
+	//Nothing found to fire due to priority?
 	return -1; //Nothing to do!
 
 firePrioritizedIR: //Fire the IR that has the most priority!
