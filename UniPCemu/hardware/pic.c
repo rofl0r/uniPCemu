@@ -856,7 +856,8 @@ void LAPIC_pollRequests(byte whichCPU)
 					//Otherwise, busy? Execute retry status?
 					else
 					{
-						LAPIC[whichCPU].InterruptCommandRegisterLo |= 0x1000; //Retry!
+						//According to Bochs: accept anyways?
+						//LAPIC[whichCPU].InterruptCommandRegisterLo |= 0x1000; //Retry!
 					}
 					break;
 				case 2: //SMI raised?
