@@ -43,8 +43,6 @@ struct
 	//Runtime information!
 	uint_64 baseaddr; //Base address of the APIC!
 	//Remaining variables? All memory that's stored in the APIC!
-	uint_32 APIC_address; //Address register for the extended memory!
-	uint_32 APIC_data; //Data register for the extended memory!
 
 	//Differential detection
 	uint_32 prevSpuriousInterruptVectorRegister; //The previous value before the write!
@@ -101,7 +99,6 @@ struct
 	uint_64 IObaseaddr; //Base address of the I/O APIC!
 	//Remaining variables? All memory that's stored in the APIC!
 	uint_32 APIC_address; //Address register for the extended memory!
-	uint_32 APIC_data; //Data register for the extended memory!
 
 	//IRQ detection
 	uint_32 IOAPIC_currentliveIRR; //Real live IRR status!
