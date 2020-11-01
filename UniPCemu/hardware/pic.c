@@ -503,7 +503,7 @@ void LAPIC_handletermination() //Handle termination on the APIC!
 
 	if (LAPIC[activeCPU].needstermination & 0x40) //Error Status Interrupt is written?
 	{
-		if ((LAPIC[activeCPU].ErrorStatusRegister & (1<<12)) && ((LAPIC[activeCPU].LVTErrorRegister&0x10000)==0)) //Error marked and interrupt enabled?
+		if (LAPIC[activeCPU].ErrorStatusRegister && ((LAPIC[activeCPU].LVTErrorRegister&0x10000)==0)) //Error marked and interrupt enabled?
 		{
 			APIC_errorTrigger(activeCPU); //Error interrupt is triggered!
 		}
@@ -739,7 +739,7 @@ void updateAPIC(uint_64 clockspassed, float timepassed)
 
 			if (LAPIC[activeCPU].LVTTimerRegisterDirty == 0) //Ready to parse?
 			{
-				if (LAPIC[activeCPU].LVTTimerRegister & 0x10000) //Not masked?
+				if ((LAPIC[activeCPU].LVTTimerRegister & 0x10000)==0) //Not masked?
 				{
 					if ((LAPIC[activeCPU].LVTTimerRegister & (1 << 12)) == 0) //The IO or Local APIC can receive the request!
 					{
