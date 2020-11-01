@@ -84,6 +84,7 @@ struct
 	uint_32 CurrentCountRegister; //0390
 	uint_32 DivideConfigurationRegister; //03E0
 
+	uint_32 CurrentCountRegisterlatched; //Latched timer!
 	sword LAPIC_extIntPending;
 	uint_32 errorstatusregisterpending; //Pending bits in the error status register!
 	DOUBLE errorstatustimeout;
@@ -519,6 +520,8 @@ void LAPIC_handletermination() //Handle termination on the APIC!
 		LAPIC[activeCPU].LVTLINT1RegisterDirty = 0; //Ready for use!
 		LAPIC[activeCPU].LVTErrorRegisterDirty = 0; //Ready for use!
 	}
+
+	//0x200 is timer count latched!
 
 	LAPIC[activeCPU].needstermination = 0; //No termination is needed anymore!
 	LAPIC[activeCPU].LAPIC_globalrequirestermination = 0; //No termination is needed anymore!
@@ -1634,6 +1637,11 @@ byte APIC_memIO_rb(uint_32 offset, byte index)
 			break;
 		case 0x390:
 			whatregister = &LAPIC[activeCPU].CurrentCountRegister; //0390
+			if ((LAPIC[activeCPU].needstermination&0x200)==0) //Not latched yet?
+			{
+				LAPIC[activeCPU].CurrentCountRegisterlatched = LAPIC[activeCPU].CurrentCountRegister; //Latch it!
+				LAPIC[activeCPU].needstermination |= 0x200; //Error register is written!
+			}
 			uncachableaddr = 1; //Uncachable!
 			break;
 		case 0x3E0:
@@ -1648,6 +1656,10 @@ byte APIC_memIO_rb(uint_32 offset, byte index)
 		return 0; //Abort!
 
 	value = *whatregister; //Take the register's value that's there!
+	if (whatregister == &LAPIC[activeCPU].CurrentCountRegister) //Latched?
+	{
+		value = LAPIC[activeCPU].CurrentCountRegisterlatched; //Latch read!
+	}
 
 	tempoffset = (offset & 3); //What DWord byte is addressed?
 	temp = tempoffset;
