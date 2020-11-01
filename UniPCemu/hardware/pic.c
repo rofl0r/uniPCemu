@@ -503,7 +503,7 @@ void LAPIC_handletermination() //Handle termination on the APIC!
 
 	if (LAPIC[activeCPU].needstermination & 0x40) //Error Status Interrupt is written?
 	{
-		if (LAPIC[activeCPU].ErrorStatusRegister && ((LAPIC[activeCPU].LVTErrorRegister&0x10000)==0)) //Error marked and interrupt enabled?
+		if ((LAPIC[activeCPU].ErrorStatusRegister & (1<<12)) && ((LAPIC[activeCPU].LVTErrorRegister&0x10000)==0)) //Error marked and interrupt enabled?
 		{
 			APIC_errorTrigger(activeCPU); //Error interrupt is triggered!
 		}
