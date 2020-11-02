@@ -450,7 +450,7 @@ void initEMU(int full) //Init!
 		*(getarchmemory()) &= ~0xFFFF; //We're forcing a redetection of available memory, if it's needed! Else, just round down memory to the nearest compatible 64K memory!
 	}
 
-	numemulatedcpus = MAX(*(getarchemulated_CPUs()),1); //At least 1 emulated CPU!
+	numemulatedcpus = *(getarchemulated_CPUs()); //How many CPUs to emulate?
 
 	if ((EMULATED_CPU>=CPU_PENTIUMPRO) && (is_i430fx==2)) //Supports multiple CPUs?
 	{
@@ -465,6 +465,8 @@ void initEMU(int full) //Init!
 	{
 		numemulatedcpus = 1; //Only 1 CPU supported!
 	}
+
+	numemulatedcpus = MAX(numemulatedcpus, 1); //At least 1 emulated CPU!
 
 	debugrow("Initializing I/O port handling...");
 	Ports_Init(); //Initialise I/O port support!
