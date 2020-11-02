@@ -249,6 +249,7 @@ void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte ty
 		return; //No memory access logging, we're disabled for now!
 	}
 	*/
+	if (activeCPU) return 0; //Not CPU #0?
 	if (advancedlog == 0) //Not logging advanced?
 	{
 		return; //Disable memory logs entirely!
@@ -491,6 +492,7 @@ void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte ty
 
 void debugger_beforeCPU() //Action before the CPU changes it's registers!
 {
+	if (activeCPU) return; //Only CPU #0!
 	if (cpudebugger) //To apply the debugger generator?
 	{
 		static VERIFICATIONDATA verify, originalverify;
@@ -902,6 +904,7 @@ OPTINLINE void debugger_autolog()
 {
 	byte dologinstruction = 1;
 	dologinstruction = 1; //Default: log the instruction!
+	if (activeCPU) return; //Only with processor #0!
 	if (unlikely(CPU[activeCPU].executed)) //Are we executed?
 	{
 		if ((CPU[activeCPU].repeating|debuggerHLT) && (!CPU[activeCPU].faultraised) && (!forcerepeat))
@@ -1555,6 +1558,7 @@ extern byte didJump; //Did we jump this instruction?
 
 void debugger_step() //Processes the debugging step!
 {
+	if (activeCPU) return; //Only with CPU #0!
 	if (unlikely(debugger_thread)) //Debugger not running yet?
 	{
 		if (threadRunning(debugger_thread)) //Still running?
