@@ -1110,7 +1110,7 @@ OPTINLINE byte coreHandler()
 	uint_64 currentCPUtime = (uint_64)currenttiming; //Current CPU time to update to!
 	uint_64 timeoutCPUtime = currentCPUtime+TIMEOUT_TIME; //We're timed out this far in the future (1ms)!
 
-	DOUBLE instructiontime,timeexecuted=0.0f; //How much time did the instruction last?
+	DOUBLE instructiontime,timeexecuted=0.0f,effectiveinstructiontime; //How much time did the instruction last?
 	byte timeout = TIMEOUT_INTERVAL; //Check every 10 instructions for timeout!
 	if (unlikely((currentCPUtime-last_timing)>2000000000.0)) last_timing = currentCPUtime-1000.0; //Safety: 2 seconds or more(should be impossible normally) becomes 1us.
 	for (;last_timing<currentCPUtime;) //CPU cycle loop for as many cycles as needed to get up-to-date!
@@ -1149,16 +1149,36 @@ OPTINLINE byte coreHandler()
 		if (unlikely(allcleared)) return 0; //Abort: invalid buffer!
 
 		interruptsaved = 0; //Reset PIC interrupt to not used!
+
+		effectiveinstructiontime = (DOUBLE)0.0f; //Effective time!
+		activeCPU = 0; //First CPU!
+		do
+		{
+		//Start handling a CPU!
 		if (unlikely(CPU[activeCPU].registers==0)) //We need registers at this point, but have none to use?
 		{
-			return 0; //Invalid registers: abort, since we're invalid!
+			continue; //Invalid registers: abort, since we're invalid!
 		}
 
 		CPU_resetTimings(); //Reset all required CPU timings required!
 
 		CPU_tickPendingReset();
 
-		if (unlikely((CPU[activeCPU].halt&3) && (BIU_Ready() && CPU[activeCPU].resetPending==0))) //Halted normally with no reset pending? Don't count CGA wait states!
+		if (unlikely(CPU[activeCPU].waitingforSIPI)) //Waiting for SIPI?
+		{
+			if (CPU[activeCPU].SIPIreceived&0x100) //Received a command to leave HLT mode with interrupt number?
+			{
+				CPU[activeCPU].waitingforSIPI = 0; //Interrupt->Resume from HLT
+				//Start execution at xx00:0000?
+				REG_CS = (CPU[activeCPU].SIPIreceived&0xFF)<<8;
+				REG_EIP = 0;
+				CPU_flushPIQ(-1); //Jump to the designated address!
+				CPU[activeCPU].SIPIreceived = 0; //Not received anymore!
+				goto resumeFromHLT; //We're resuming from HLT state!
+			}
+			//Otherwise, continue waiting.
+		}
+		else if (unlikely((CPU[activeCPU].halt&3) && (BIU_Ready() && CPU[activeCPU].resetPending==0))) //Halted normally with no reset pending? Don't count CGA wait states!
 		{
 			if (unlikely(romsize)) //Debug HLT?
 			{
@@ -1167,14 +1187,6 @@ OPTINLINE byte coreHandler()
 			}
 
 			acnowledgeirrs(); //Acnowledge IRR!
-
-			if (CPU[activeCPU].SIPIreceived&0x100) //Received a command to leave HLT mode with interrupt number?
-			{
-				CPU[activeCPU].halt = 0; //Interrupt->Resume from HLT
-				CPU_executionphase_startinterrupt(CPU[activeCPU].SIPIreceived & 0xFF, 2, -1); //Start the hardware interrupt!
-				CPU[activeCPU].SIPIreceived = 0; //Not received anymore!
-				goto resumeFromHLT; //We're resuming from HLT state!
-			}
 
 			//Handle NMI first!
 			if (likely(CPU_checkNMIAPIC(1))) //APIC NMI not fired?
@@ -1325,6 +1337,7 @@ OPTINLINE byte coreHandler()
 				CB_handleCallbacks(); //Handle callbacks after CPU/debugger usage!
 			}
 		}
+		//Finished handling a CPU!
 
 		//Update current timing with calculated cycles we've executed!
 		if (likely(useIPSclock==0)) //Use cycle-accurate clock?
@@ -1346,7 +1359,11 @@ OPTINLINE byte coreHandler()
 			CPU[activeCPU].TSC += clocks; //Tick the clocks to keep us running!
 			updateAPIC(clocks,instructiontime); //Clock the APIC as well!
 		}
+		effectiveinstructiontime = MAX(effectiveinstructiontime,instructiontime); //Maximum CPU time passed!
+		} while (++activeCPU<MAXCPUS); //More CPUs left to handle?
 
+		//Now, ticking the hardware!
+		instructiontime = effectiveinstructiontime; //Effective instruction time applies!
 		last_timing += instructiontime; //Increase CPU time executed!
 		timeexecuted += instructiontime; //Increase CPU executed time executed this block!
 

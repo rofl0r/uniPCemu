@@ -1355,6 +1355,19 @@ void resetCPU(byte isInit) //Initialises the currently selected CPU!
 	{
 		APIC_updateWindowMSR(0, 0); //Update the MSR for the hardware! Disable the APIC!
 	}
+	if (isInit==0x80) //INIT? Waiting for SIPI!
+	{
+		CPU[activeCPU].waitingforSIPI = 1; //Waiting!
+	}
+	else if (activeCPU) //Waiting for SIPI after reset?
+	{
+		CPU[activeCPU].waitingforSIPI = 1; //Waiting!
+	}
+	else //BSP reset?
+	{
+		CPU[activeCPU].waitingforSIPI = 0; //Active!
+	}
+	CPU[activeCPU].SIPIreceived = 0; //No SIPI received yet!
 }
 
 void initCPU() //Initialize CPU for full system reset into known state!

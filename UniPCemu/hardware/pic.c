@@ -897,13 +897,12 @@ void LAPIC_pollRequests(byte whichCPU)
 					{
 						LAPIC_reportErrorStatus(whichCPU,(1 << 5),1); //Report an illegal vector being sent!
 					}
-					else if (CPU[activeCPU].SIPIreceived & 0x100) //Already pending?
-					{
-						LAPIC[whichCPU].InterruptCommandRegisterLo |= 0x1000; //Retry!
-					}
 					else //Valid vector!
 					{
-						CPU[activeCPU].SIPIreceived = 100 | (LAPIC[whichCPU].InterruptCommandRegisterLo & 0xFF); //We've received a SIPI!
+						if (CPU[activeCPU.waitingforSIPI && ((CPU[activeCPU].SIPIreceived&0x100)==0)) //Waiting for a SIPI and not received yet?
+						{
+							CPU[activeCPU].SIPIreceived = 100 | (LAPIC[whichCPU].InterruptCommandRegisterLo & 0xFF); //We've received a SIPI!
+						}
 					}
 					break;
 				default: //Unknown?
