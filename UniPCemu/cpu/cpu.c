@@ -1308,12 +1308,8 @@ uint_32 cpuaddresspins[16] = { //Bit0=XT, Bit1+=CPU
 //isInit: bit 8 means that the INIT pin is raised without the RESET pin!
 void resetCPU(byte isInit) //Initialises the currently selected CPU!
 {
-	byte i;
-	for (i = 0;i < NUMITEMS(CPU);++i) //Process all CPUs!
-	{
-		CPU[i].allowInterrupts = CPU[i].previousAllowInterrupts = 1; //Default to allowing all interrupts to run!
-		CPU[i].TSC = 0; //Reset timestamp counter!
-	}
+	CPU[activeCPU].allowInterrupts = CPU[activeCPU].previousAllowInterrupts = 1; //Default to allowing all interrupts to run!
+	CPU[activeCPU].TSC = 0; //Reset timestamp counter!
 	CPU_initRegisters(isInit); //Initialise the registers!
 	CPU_initPrefixes(); //Initialise all prefixes!
 	CPU_resetMode(); //Reset the mode to the default mode!
