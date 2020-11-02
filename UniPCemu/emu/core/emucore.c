@@ -1255,7 +1255,10 @@ OPTINLINE byte coreHandler()
 				}
 				CPU[activeCPU].executed = 1; //For making the debugger execute correctly!
 				//Increase the instruction counter every cycle/HLT time!
-				debugger_step(); //Step debugger if needed, even during HLT state!
+				if (activeCPU == 0) //Only the first CPU can be debugged!
+				{
+					debugger_step(); //Step debugger if needed, even during HLT state!
+				}
 			}
 		}
 		else //We're not halted? Execute the CPU routines!
