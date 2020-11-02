@@ -497,7 +497,7 @@ void debugger_beforeCPU() //Action before the CPU changes it's registers!
 		if (!CPU[activeCPU].repeating) //Not repeating an instruction?
 		{
 			memcpy(&debuggerregisters, CPU[activeCPU].registers, sizeof(debuggerregisters)); //Copy the registers to our buffer for logging and debugging etc.
-			memcpy(&debuggersegmentregistercache, CPU[activeCPU].SEG_DESCRIPTOR, MIN(sizeof(CPU[0].SEG_DESCRIPTOR),sizeof(debuggersegmentregistercache))); //Copy the registers to our buffer for logging and debugging etc.
+			memcpy(&debuggersegmentregistercache, CPU[activeCPU].SEG_DESCRIPTOR, MIN(sizeof(CPU[activeCPU].SEG_DESCRIPTOR),sizeof(debuggersegmentregistercache))); //Copy the registers to our buffer for logging and debugging etc.
 		}
 		//Initialise debugger texts!
 		cleardata(&debugger_prefix[0],sizeof(debugger_prefix));

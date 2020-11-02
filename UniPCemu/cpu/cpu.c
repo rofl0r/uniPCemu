@@ -1091,7 +1091,7 @@ OPTINLINE void free_CPUregisters()
 {
 	if (CPU[activeCPU].registers) //Still allocated?
 	{
-		oldCR0 = CPU[0].registers->CR0; //Save the old value for INIT purposes!
+		oldCR0 = CPU[activeCPU].registers->CR0; //Save the old value for INIT purposes!
 		freez((void **)&CPU[activeCPU].registers, sizeof(*CPU[activeCPU].registers), "CPU_REGISTERS"); //Release the registers if needed!
 	}
 }
