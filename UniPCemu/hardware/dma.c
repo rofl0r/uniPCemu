@@ -381,7 +381,7 @@ void DMA_autoinit(byte controller, byte channel) //Autoinit functionality.
 
 byte lastcycle = 0; //Current channel in total (0-7)
 
-extern byte BUSactive; //Are we allowed to control the BUS? 0=Inactive, 2=DMA
+extern byte BUSactive; //Are we allowed to control the BUS? 0=Inactive, 1=CPU, 2=DMA
 byte DMA_waitstate = 0; //DMA T1 waitstate?
 
 /*
@@ -502,11 +502,11 @@ void DMA_StateHandler_S0()
 	//S0: Sample DLDA. Resolve DRQn priorities.
 	if (likely(useIPSclock==0)) //Cycle-accurate clock used?
 	{
-		if (BIU[activeCPU].BUSactive!=2) //Bus isn't assigned to ours yet?
+		if (BUSactive!=2) //Bus isn't assigned to ours yet?
 		{
-			if ((BIU[activeCPU].BUSactive==0) && (BIU[activeCPU]._lock==0) && BIU_getHLDA()) //Are we to take the BUS now? The CPU has released the bus(is at T4 state now) and dropped the lock signal!
+			if ((BUSactive==0) && BIU_getHLDA()) //Are we to take the BUS now? The CPU has released the bus(is at T4 state now) and dropped the lock signal!
 			{
-				BIU[activeCPU].BUSactive = 2; //Take control of the BUS(DLDA is now high). Wait 1 cycle(signal the CPU is this step. Receiving the HLDA the next cycle) before starting the transfer!
+				BUSactive = 2; //Take control of the BUS(DLDA is now high). Wait 1 cycle(signal the CPU is this step. Receiving the HLDA the next cycle) before starting the transfer!
 				if (blockDMA) //Blocking DMA grant for one cycle(semi-waitstate)?
 				{
 					DMA_waitstate = blockDMA; //Apply this waitstate!
@@ -581,7 +581,7 @@ void DMA_StateHandler_S0()
 	}
 	if (likely(useIPSclock==0)) //Cycle-accurate clock used?
 	{
-		BIU[activeCPU].BUSactive = (BIU[activeCPU].BUSactive==2)?0:BIU[activeCPU].BUSactive; //Release the BUS: we've got nothing to do after all!
+		BUSactive = (BUSactive==2)?0:BUSactive; //Release the BUS: we've got nothing to do after all!
 	}
 }
 
@@ -783,8 +783,8 @@ void DMA_StateHandler_S4()
 	DMA_S = 0; //Default to SI state!
 	if (likely(useIPSclock==0)) //Cycle-accurate clock used?
 	{	
-		BIU[activeCPU].BUSactive = (BIU[activeCPU].BUSactive==2)?0:BIU[activeCPU].BUSactive; //Release the BUS, when allowed!
-		retryclock = (((BIU[activeCPU].BUSactive==2) || (BIU[activeCPU].BUSactive==0))); //BUS available? Sample DREQ and perform steps to get directly into S1!
+		BUSactive = (BUSactive==2)?0:BUSactive; //Release the BUS, when allowed!
+		retryclock = (((BUSactive==2) || (BUSactive==0))); //BUS available? Sample DREQ and perform steps to get directly into S1!
 	}
 	else //Using IPS clock?
 	{

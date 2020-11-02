@@ -408,6 +408,7 @@ extern BIU_type BIU[MAXCPUS]; //The BIU for the BUS activity reset!
 extern PCI_GENERALCONFIG* activePCI_IDE; //PCI IDE handler!
 
 extern byte BIU_buslocked; //BUS locked?
+extern byte BUSactive; //Are we allowed to control the BUS? 0=Inactive, 1=CPU, 2=DMA
 
 void initEMU(int full) //Init!
 {
@@ -614,6 +615,7 @@ void initEMU(int full) //Init!
 	CPU_databussize = *(getarchDataBusSize()); //Apply the bus to use for our emulation!
 	useIPSclock = *(getarchclockingmode()); //Are we using the IPS clock instead?
 	BIU_buslocked = 0; //BUS locked?
+	BUSactive = 0; //Are we allowed to control the BUS? 0=Inactive, 1=CPU, 2=DMA
 	for (activeCPU = 0; activeCPU < MAXCPUS; ++activeCPU)
 	{
 		BIU[activeCPU].BUSactive = 0; //Nobody's controlling the BUS!
