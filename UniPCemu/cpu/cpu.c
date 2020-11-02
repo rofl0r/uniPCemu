@@ -208,6 +208,7 @@ void CPU_initMSRs()
 	if (EMULATED_CPU >= CPU_PENTIUMPRO) //Pentium Pro and up?
 	{
 		MSRmasklow[MSRnumbers[0x1B] - 1] = 0xF0; //APICBASE mask
+		MSRmaskwritelow_readonly[MSRnumbers[0x1B] - 1] = 0x100; //ROM bit!
 		MSRmaskhigh[MSRnumbers[0x1B] - 1] = 0; //APICBASE mask
 	}
 	if (EMULATED_CPU==CPU_PENTIUM) //Pentium-only?
@@ -1347,7 +1348,7 @@ void resetCPU(byte isInit) //Initialises the currently selected CPU!
 	CPU_executionphase_init(); //Initialize the execution phase to it's initial state!
 	if (EMULATED_CPU >= CPU_PENTIUMPRO) //Has APIC support?
 	{
-		CPU[activeCPU].registers->genericMSR[MSRnumbers[0x1B] - 1].lo = 0xFEE00900; //Initial value! We're the bootstrap processor! APIC enabled!
+		CPU[activeCPU].registers->genericMSR[MSRnumbers[0x1B] - 1].lo = 0xFEE00800 | (activeCPU?0:0x100); //Initial value! We're the bootstrap processor! APIC enabled!
 		CPU[activeCPU].registers->genericMSR[MSRnumbers[0x1B] - 1].hi = 0; //Initial value!
 		APIC_updateWindowMSR(CPU[activeCPU].registers->genericMSR[MSRnumbers[0x1B] - 1].lo, CPU[activeCPU].registers->genericMSR[MSRnumbers[0x1B] - 1].hi); //Update the MSR for the hardware!
 	}

@@ -613,8 +613,9 @@ void initEMU(int full) //Init!
 	debugrow("Initializing CPU...");
 	CPU_databussize = *(getarchDataBusSize()); //Apply the bus to use for our emulation!
 	useIPSclock = *(getarchclockingmode()); //Are we using the IPS clock instead?
-	initCPU(); //Initialise CPU for emulation!
-
+	for (activeCPU = 0; activeCPU < MAXCPUS; ++activeCPU)
+		initCPU(); //Initialise CPU for emulation!
+	activeCPU = 0;
 	debugrow("Initializing Inboard when required...");
 	initInboard(BIOS_Settings.InboardInitialWaitstates?1:0); //Initialise CPU for emulation! Emulate full-speed from the start when requested!
 	
@@ -712,7 +713,9 @@ void doneEMU()
 		debugrow("doneEMU: finish active VGA...");
 		doneVGA(&MainVGA); //We're done with the VGA!
 		debugrow("doneEMU: finish CPU.");
-		doneCPU(); //Finish the CPU!
+		for (activeCPU = 0;activeCPU<MAXCPUS;++activeCPU)
+			doneCPU(); //Finish the CPU!
+		activeCPU = 0;
 		debugrow("doneEMU: finish MMU...");
 		doneMMU(); //Release memory!
 		debugrow("doneEMU: finish EMS if enabled...");
@@ -1362,6 +1365,7 @@ OPTINLINE byte coreHandler()
 		effectiveinstructiontime = MAX(effectiveinstructiontime,instructiontime); //Maximum CPU time passed!
 		} while (++activeCPU<MAXCPUS); //More CPUs left to handle?
 
+		activeCPU = 0; //Return to the BSP!
 		//Now, ticking the hardware!
 		instructiontime = effectiveinstructiontime; //Effective instruction time applies!
 		last_timing += instructiontime; //Increase CPU time executed!
