@@ -245,6 +245,7 @@ enum BIOSROMMode {
 
 //Default values for new BIOS settings:
 #define DEFAULT_BOOT_ORDER 0
+#define DEFAULT_CPUS 1
 #define DEFAULT_CPU CPU_8086
 #define DEFAULT_DEBUGMODE DEBUGMODE_NONE
 #define DEFAULT_EXECUTIONMODE EXECUTIONMODE_BIOS
@@ -329,6 +330,7 @@ int BIOS_SaveData(); //Save BIOS settings!
 uint_32* getarchmemory(); //Get the memory field for the current architecture!
 char* getcurrentarchtext(); //Get the current architecture!
 byte* getarchemulated_CPU(); //Get the memory field for the current architecture!
+byte* getarchemulated_CPUs(); //Get the memory field for the current architecture!
 byte* getarchDataBusSize(); //Get the memory field for the current architecture!
 uint_32* getarchCPUSpeed(); //Get the memory field for the current architecture!
 uint_32* getarchTurboCPUSpeed(); //Get the memory field for the current architecture!

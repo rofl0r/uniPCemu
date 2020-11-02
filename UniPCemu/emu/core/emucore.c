@@ -409,6 +409,7 @@ extern PCI_GENERALCONFIG* activePCI_IDE; //PCI IDE handler!
 
 extern byte BIU_buslocked; //BUS locked?
 extern byte BUSactive; //Are we allowed to control the BUS? 0=Inactive, 1=CPU, 2=DMA
+extern byte numemulatedcpus; //Amount of emulated CPUs!
 
 void initEMU(int full) //Init!
 {
@@ -447,6 +448,17 @@ void initEMU(int full) //Init!
 	if ((*(getarchmemory()) & 0xFFFF) && (EMULATED_CPU >= CPU_80286)) //IBM PC/AT has specific memory requirements? Needs to be 64K aligned!
 	{
 		*(getarchmemory()) &= ~0xFFFF; //We're forcing a redetection of available memory, if it's needed! Else, just round down memory to the nearest compatible 64K memory!
+	}
+
+	numemulatedcpus = MAX(*getarchemulated_CPUs(),1); //At least 1 emulated CPU!
+
+	if ((EMULATED_CPU>=CPU_PENTIUMPRO) && (is_i430fx==2)) //Supports multiple CPUs?
+	{
+		numemulatedcpus = MIN(numemulatedcpus,MAXCPUS); //How many to emulate?
+	}
+	else
+	{
+		numemulatedcpus = 1; //Only 1 CPU supported!
 	}
 
 	debugrow("Initializing I/O port handling...");
@@ -1369,7 +1381,7 @@ OPTINLINE byte coreHandler()
 			updateAPIC(clocks,instructiontime); //Clock the APIC as well!
 		}
 		effectiveinstructiontime = MAX(effectiveinstructiontime,instructiontime); //Maximum CPU time passed!
-		} while (++activeCPU<MAXCPUS); //More CPUs left to handle?
+		} while (++activeCPU<numemulatedcpus); //More CPUs left to handle?
 
 		activeCPU = 0; //Return to the BSP!
 		//Now, ticking the hardware!

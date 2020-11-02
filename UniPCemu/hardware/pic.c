@@ -29,6 +29,8 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 //Are we disabled?
 #define __HW_DISABLED 0
 
+byte numemulatedcpus = 1; //Amount of emulated CPUs!
+
 PIC i8259;
 byte irr3_dirty = 0; //IRR3/IRR3_a is changed?
 
@@ -898,7 +900,7 @@ void LAPIC_pollRequests(byte whichCPU)
 			if (LAPIC[whichCPU].InterruptCommandRegisterLo & 0x800) //Logical destination?
 			{
 				logicaldestination = ((LAPIC[whichCPU].InterruptCommandRegisterHi >> 24) & 0xFF); //What is the logical destination?
-				for (destinationCPU = 0; destinationCPU < NUMITEMS(LAPIC); ++destinationCPU) //Check all destinations!
+				for (destinationCPU = 0; destinationCPU < MIN(NUMITEMS(LAPIC),numemulatedcpus); ++destinationCPU) //Check all destinations!
 				{
 					if (isLAPIClogicaldestination(destinationCPU, logicaldestination)) //Match on the logical destination?
 					{
@@ -908,7 +910,7 @@ void LAPIC_pollRequests(byte whichCPU)
 			}
 			else //Physical destination?
 			{
-				for (destinationCPU = 0; destinationCPU < NUMITEMS(LAPIC); ++destinationCPU)
+				for (destinationCPU = 0; destinationCPU < MIN(NUMITEMS(LAPIC),numemulatedcpus); ++destinationCPU)
 				{
 					if (isAPICPhysicaldestination(destinationCPU, 0, ((LAPIC[whichCPU].InterruptCommandRegisterHi >> 24) & 0xF)) == 1) //Local APIC?
 					{
@@ -938,13 +940,13 @@ void LAPIC_pollRequests(byte whichCPU)
 		case 2: //All processors?
 			//Receive it!
 			//Handle the request!
-			receiver = (1<<(NUMITEMS(LAPIC)))-1; //All received!
+			receiver = (1<<(MIN(NUMITEMS(LAPIC),numemulatedcpus)))-1; //All received!
 			IOAPIC_receiver = 1; //IO APIC too!
 		receiveCommandRegister:
 			LAPIC[whichCPU].InterruptCommandRegisterLo &= ~0x1000; //We're receiving it somewhere!
 			if (receiver) //Received on a LAPIC?
 			{
-				for (destinationCPU = 0; destinationCPU < NUMITEMS(LAPIC); ++destinationCPU) //Try all CPUs!
+				for (destinationCPU = 0; destinationCPU < MIN(NUMITEMS(LAPIC),numemulatedcpus); ++destinationCPU) //Try all CPUs!
 				{
 					if (receiver & (1 << destinationCPU)) //To receive?
 					{
@@ -972,7 +974,7 @@ void LAPIC_pollRequests(byte whichCPU)
 			}
 			break;
 		case 3: //All but ourselves?
-			receiver = (1 << (NUMITEMS(LAPIC))) - 1; //All received!
+			receiver = (1 << (MIN(NUMITEMS(LAPIC),numemulatedcpus))) - 1; //All received!
 			receiver &= ~(1 << whichCPU) - 1; //But ourselves!
 			IOAPIC_receiver = 1; //IO APIC too!
 			//Don't handle the request!
@@ -1082,7 +1084,7 @@ void IOAPIC_pollRequests()
 		{
 			logicaldestination = ((IOAPIC.IOAPIC_redirectionentry[IR][1] >> 24) & 0xFF); //What is the logical destination?
 			//Determine destination correct by destination format and logical destination register in the LAPIC!
-			for (destinationCPU = 0; destinationCPU < NUMITEMS(LAPIC); ++destinationCPU)
+			for (destinationCPU = 0; destinationCPU < MIN(NUMITEMS(LAPIC),numemulatedcpus); ++destinationCPU)
 			{
 				if (isLAPIClogicaldestination(destinationCPU, logicaldestination)) //Match on the logical destination?
 				{
@@ -1101,7 +1103,7 @@ void IOAPIC_pollRequests()
 		else //Physical destination?
 		{
 			logicaldestination = ((IOAPIC.IOAPIC_redirectionentry[IR][1] >> 24) & 0xF); //What destination!
-			for (destinationCPU = 0; destinationCPU < NUMITEMS(LAPIC); ++destinationCPU)
+			for (destinationCPU = 0; destinationCPU < MIN(NUMITEMS(LAPIC),numemulatedcpus); ++destinationCPU)
 			{
 				if (isAPICPhysicaldestination(destinationCPU, 0, logicaldestination) == 1) //Local APIC?
 				{
@@ -1122,7 +1124,7 @@ void IOAPIC_pollRequests()
 		//Received something from the IO APIC redirection targetting the main CPU?
 		if (receiver) //Local APIC received?
 		{
-			for (destinationCPU = 0; destinationCPU < NUMITEMS(LAPIC); ++destinationCPU)
+			for (destinationCPU = 0; destinationCPU < MIN(NUMITEMS(LAPIC),numemulatedcpus); ++destinationCPU)
 			{
 				if (receiver & (1 << destinationCPU)) //To receive?
 				{

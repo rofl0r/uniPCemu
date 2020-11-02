@@ -63,6 +63,7 @@ typedef struct
 	byte floppy1_nodisk_type; //No mounted disk type for Floppy B
 	uint_32 memory; //Memory used by the emulator!
 	byte emulated_CPU; //Emulated CPU?
+	byte emulated_CPUs; //Emulated CPUs?
 	byte DataBusSize; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
 	uint_32 CPUspeed; //CPU speed
 	uint_32 TurboCPUspeed; //Turbo CPU speed

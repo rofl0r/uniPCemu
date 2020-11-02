@@ -175,6 +175,37 @@ byte* getarchemulated_CPU() //Get the memory field for the current architecture!
 	//Now, give the selected CMOS's memory field!
 	return &currentCMOS->emulated_CPU; //Give the memory field for the current architecture!
 }
+byte* getarchemulated_CPUs() //Get the memory field for the current architecture!
+{
+	//First, determine the current CMOS!
+	CMOSDATA* currentCMOS;
+	if (is_i430fx==2) //i440fx?
+	{
+		currentCMOS = &BIOS_Settings.i440fxCMOS; //We've used!
+	}
+	else if (is_i430fx==1) //i430fx?
+	{
+		currentCMOS = &BIOS_Settings.i430fxCMOS; //We've used!
+	}
+	else if (is_PS2) //PS/2?
+	{
+		currentCMOS = &BIOS_Settings.PS2CMOS; //We've used!
+	}
+	else if (is_Compaq)
+	{
+		currentCMOS = &BIOS_Settings.CompaqCMOS; //We've used!
+	}
+	else if (is_XT)
+	{
+		currentCMOS = &BIOS_Settings.XTCMOS; //We've used!
+	}
+	else //AT?
+	{
+		currentCMOS = &BIOS_Settings.ATCMOS; //We've used!
+	}
+	//Now, give the selected CMOS's memory field!
+	return &currentCMOS->emulated_CPUs; //Give the memory field for the current architecture!
+}
 byte* getarchDataBusSize() //Get the memory field for the current architecture!
 {
 	//First, determine the current CMOS!
@@ -1021,6 +1052,7 @@ void BIOS_LoadDefaults(int tosave) //Load BIOS defaults, but not memory size!
 
 	BIOS_Settings.bootorder = DEFAULT_BOOT_ORDER; //Default boot order!
 	*(getarchemulated_CPU()) = DEFAULT_CPU; //Which CPU to be emulated?
+	*(getarchemulated_CPUs()) = DEFAULT_CPUS; //Which CPU to be emulated?
 
 	BIOS_Settings.debugmode = DEFAULT_DEBUGMODE; //Default debug mode!
 	BIOS_Settings.executionmode = DEFAULT_EXECUTIONMODE; //Default execution mode!
@@ -1099,6 +1131,7 @@ void loadBIOSCMOS(CMOSDATA *CMOS, char *section, INI_FILE *i)
 	if (CMOS->floppy1_nodisk_type >= NUMFLOPPYGEOMETRIES) CMOS->floppy1_nodisk_type = 0; //Default if invalid!
 
 	CMOS->emulated_CPU = LIMITRANGE((byte)get_private_profile_uint64(section, "cpu", BIOS_Settings.emulated_CPU, i),0,NUMCPUS-1); //Limited CPU range!
+	CMOS->emulated_CPUs = LIMITRANGE((byte)get_private_profile_uint64(section, "cpus", 1, i),1,MAXCPUS); //Limited CPU range!
 	CMOS->DataBusSize = LIMITRANGE((byte)get_private_profile_uint64(section, "databussize", BIOS_Settings.DataBusSize, i),0,1); //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
 	CMOS->CPUspeed = (uint_32)get_private_profile_uint64(section, "cpuspeed", BIOS_Settings.CPUSpeed, i);
 	CMOS->TurboCPUspeed = (uint_32)get_private_profile_uint64(section, "turbocpuspeed", BIOS_Settings.TurboCPUSpeed, i);
@@ -1365,6 +1398,7 @@ byte saveBIOSCMOS(CMOSDATA *CMOS, char *section, char *section_comment, INI_FILE
 	if (!write_private_profile_uint64(section, section_comment, "floppy0_nodisk_type", CMOS->floppy0_nodisk_type, i)) return 0;
 	if (!write_private_profile_uint64(section, section_comment, "floppy1_nodisk_type", CMOS->floppy1_nodisk_type, i)) return 0;
 	if (!write_private_profile_uint64(section, section_comment, "cpu", CMOS->emulated_CPU, i)) return 0;
+	if (!write_private_profile_uint64(section, section_comment, "cpus", CMOS->emulated_CPUs, i)) return 0;
 	if (!write_private_profile_uint64(section, section_comment, "databussize", CMOS->DataBusSize, i)) return 0; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
 	if (!write_private_profile_uint64(section, section_comment, "cpuspeed", CMOS->CPUspeed, i)) return 0;
 	if (!write_private_profile_uint64(section, section_comment, "turbocpuspeed", CMOS->TurboCPUspeed, i)) return 0;

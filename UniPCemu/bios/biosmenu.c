@@ -6500,6 +6500,7 @@ void BIOS_ClearCMOS() //Clear the CMOS!
 	unlock(LOCK_CPU); //We're finished with the main thread!
 	uint_32 memorybackup;
 	byte emulated_CPUbackup; //Emulated CPU?
+	byte emulated_CPUsbackup; //Emulated CPU?
 	uint_32 CPUspeedbackup; //CPU speed
 	uint_32 TurboCPUspeedbackup; //Turbo CPU speed
 	byte useTurboCPUSpeedbackup; //Are we to use Turbo CPU speed?
@@ -6509,6 +6510,7 @@ void BIOS_ClearCMOS() //Clear the CMOS!
 	{
 		memorybackup = BIOS_Settings.i440fxCMOS.memory; //Backup!
 		emulated_CPUbackup = BIOS_Settings.i440fxCMOS.emulated_CPU; //Emulated CPU?
+		emulated_CPUsbackup = BIOS_Settings.i440fxCMOS.emulated_CPUs; //Emulated CPU?
 		CPUspeedbackup = BIOS_Settings.i440fxCMOS.CPUspeed; //CPU speed
 		TurboCPUspeedbackup = BIOS_Settings.i440fxCMOS.TurboCPUspeed; //Turbo CPU speed
 		useTurboCPUSpeedbackup = BIOS_Settings.i440fxCMOS.useTurboCPUSpeed; //Are we to use Turbo CPU speed?
@@ -6517,6 +6519,7 @@ void BIOS_ClearCMOS() //Clear the CMOS!
 		memset(&BIOS_Settings.i440fxCMOS, 0, sizeof(BIOS_Settings.i440fxCMOS));
 		BIOS_Settings.i440fxCMOS.memory = memorybackup; //Restore!
 		BIOS_Settings.i440fxCMOS.emulated_CPU = emulated_CPUbackup; //Emulated CPU?
+		BIOS_Settings.i440fxCMOS.emulated_CPUs = emulated_CPUsbackup; //Emulated CPU?
 		BIOS_Settings.i440fxCMOS.CPUspeed = CPUspeedbackup; //CPU speed
 		BIOS_Settings.i440fxCMOS.TurboCPUspeed = TurboCPUspeedbackup; //Turbo CPU speed
 		BIOS_Settings.i440fxCMOS.useTurboCPUSpeed = useTurboCPUSpeedbackup; //Are we to use Turbo CPU speed?
@@ -6528,6 +6531,7 @@ void BIOS_ClearCMOS() //Clear the CMOS!
 	{
 		memorybackup = BIOS_Settings.i430fxCMOS.memory; //Backup!
 		emulated_CPUbackup = BIOS_Settings.i430fxCMOS.emulated_CPU; //Emulated CPU?
+		emulated_CPUsbackup = BIOS_Settings.i430fxCMOS.emulated_CPUs; //Emulated CPU?
 		CPUspeedbackup = BIOS_Settings.i430fxCMOS.CPUspeed; //CPU speed
 		TurboCPUspeedbackup = BIOS_Settings.i430fxCMOS.TurboCPUspeed; //Turbo CPU speed
 		useTurboCPUSpeedbackup = BIOS_Settings.i430fxCMOS.useTurboCPUSpeed; //Are we to use Turbo CPU speed?
@@ -6536,6 +6540,7 @@ void BIOS_ClearCMOS() //Clear the CMOS!
 		memset(&BIOS_Settings.i430fxCMOS, 0, sizeof(BIOS_Settings.i430fxCMOS));
 		BIOS_Settings.i430fxCMOS.memory = memorybackup; //Restore!
 		BIOS_Settings.i430fxCMOS.emulated_CPU = emulated_CPUbackup; //Emulated CPU?
+		BIOS_Settings.i430fxCMOS.emulated_CPUs = emulated_CPUsbackup; //Emulated CPU?
 		BIOS_Settings.i430fxCMOS.CPUspeed = CPUspeedbackup; //CPU speed
 		BIOS_Settings.i430fxCMOS.TurboCPUspeed = TurboCPUspeedbackup; //Turbo CPU speed
 		BIOS_Settings.i430fxCMOS.useTurboCPUSpeed = useTurboCPUSpeedbackup; //Are we to use Turbo CPU speed?
@@ -6547,6 +6552,7 @@ void BIOS_ClearCMOS() //Clear the CMOS!
 	{
 		memorybackup = BIOS_Settings.PS2CMOS.memory; //Backup!
 		emulated_CPUbackup = BIOS_Settings.PS2CMOS.emulated_CPU; //Emulated CPU?
+		emulated_CPUsbackup = BIOS_Settings.PS2CMOS.emulated_CPUs; //Emulated CPU?
 		CPUspeedbackup = BIOS_Settings.PS2CMOS.CPUspeed; //CPU speed
 		TurboCPUspeedbackup = BIOS_Settings.PS2CMOS.TurboCPUspeed; //Turbo CPU speed
 		useTurboCPUSpeedbackup = BIOS_Settings.PS2CMOS.useTurboCPUSpeed; //Are we to use Turbo CPU speed?
@@ -6555,6 +6561,7 @@ void BIOS_ClearCMOS() //Clear the CMOS!
 		memset(&BIOS_Settings.PS2CMOS, 0, sizeof(BIOS_Settings.PS2CMOS));
 		BIOS_Settings.PS2CMOS.memory = memorybackup; //Restore!
 		BIOS_Settings.PS2CMOS.emulated_CPU = emulated_CPUbackup; //Emulated CPU?
+		BIOS_Settings.PS2CMOS.emulated_CPUs = emulated_CPUsbackup; //Emulated CPU?
 		BIOS_Settings.PS2CMOS.CPUspeed = CPUspeedbackup; //CPU speed
 		BIOS_Settings.PS2CMOS.TurboCPUspeed = TurboCPUspeedbackup; //Turbo CPU speed
 		BIOS_Settings.PS2CMOS.useTurboCPUSpeed = useTurboCPUSpeedbackup; //Are we to use Turbo CPU speed?
@@ -6566,6 +6573,7 @@ void BIOS_ClearCMOS() //Clear the CMOS!
 	{
 		memorybackup = BIOS_Settings.CompaqCMOS.memory; //Backup!
 		emulated_CPUbackup = BIOS_Settings.CompaqCMOS.emulated_CPU; //Emulated CPU?
+		emulated_CPUsbackup = BIOS_Settings.CompaqCMOS.emulated_CPUs; //Emulated CPU?
 		CPUspeedbackup = BIOS_Settings.CompaqCMOS.CPUspeed; //CPU speed
 		TurboCPUspeedbackup = BIOS_Settings.CompaqCMOS.TurboCPUspeed; //Turbo CPU speed
 		useTurboCPUSpeedbackup = BIOS_Settings.CompaqCMOS.useTurboCPUSpeed; //Are we to use Turbo CPU speed?
@@ -6574,6 +6582,7 @@ void BIOS_ClearCMOS() //Clear the CMOS!
 		memset(&BIOS_Settings.CompaqCMOS, 0, sizeof(BIOS_Settings.CompaqCMOS));
 		BIOS_Settings.CompaqCMOS.memory = memorybackup; //Restore!
 		BIOS_Settings.CompaqCMOS.emulated_CPU = emulated_CPUbackup; //Emulated CPU?
+		BIOS_Settings.CompaqCMOS.emulated_CPUs = emulated_CPUsbackup; //Emulated CPU?
 		BIOS_Settings.CompaqCMOS.CPUspeed = CPUspeedbackup; //CPU speed
 		BIOS_Settings.CompaqCMOS.TurboCPUspeed = TurboCPUspeedbackup; //Turbo CPU speed
 		BIOS_Settings.CompaqCMOS.useTurboCPUSpeed = useTurboCPUSpeedbackup; //Are we to use Turbo CPU speed?
@@ -6585,6 +6594,7 @@ void BIOS_ClearCMOS() //Clear the CMOS!
 	{
 		memorybackup = BIOS_Settings.XTCMOS.memory; //Backup!
 		emulated_CPUbackup = BIOS_Settings.XTCMOS.emulated_CPU; //Emulated CPU?
+		emulated_CPUsbackup = BIOS_Settings.XTCMOS.emulated_CPUs; //Emulated CPU?
 		CPUspeedbackup = BIOS_Settings.XTCMOS.CPUspeed; //CPU speed
 		TurboCPUspeedbackup = BIOS_Settings.XTCMOS.TurboCPUspeed; //Turbo CPU speed
 		useTurboCPUSpeedbackup = BIOS_Settings.XTCMOS.useTurboCPUSpeed; //Are we to use Turbo CPU speed?
@@ -6593,6 +6603,7 @@ void BIOS_ClearCMOS() //Clear the CMOS!
 		memset(&BIOS_Settings.XTCMOS, 0, sizeof(BIOS_Settings.XTCMOS));
 		BIOS_Settings.XTCMOS.memory = memorybackup; //Restore!
 		BIOS_Settings.XTCMOS.emulated_CPU = emulated_CPUbackup; //Emulated CPU?
+		BIOS_Settings.XTCMOS.emulated_CPUs = emulated_CPUsbackup; //Emulated CPU?
 		BIOS_Settings.XTCMOS.CPUspeed = CPUspeedbackup; //CPU speed
 		BIOS_Settings.XTCMOS.TurboCPUspeed = TurboCPUspeedbackup; //Turbo CPU speed
 		BIOS_Settings.XTCMOS.useTurboCPUSpeed = useTurboCPUSpeedbackup; //Are we to use Turbo CPU speed?
@@ -6604,6 +6615,7 @@ void BIOS_ClearCMOS() //Clear the CMOS!
 	{
 		memorybackup = BIOS_Settings.ATCMOS.memory; //Backup!
 		emulated_CPUbackup = BIOS_Settings.ATCMOS.emulated_CPU; //Emulated CPU?
+		emulated_CPUsbackup = BIOS_Settings.ATCMOS.emulated_CPUs; //Emulated CPU?
 		CPUspeedbackup = BIOS_Settings.ATCMOS.CPUspeed; //CPU speed
 		TurboCPUspeedbackup = BIOS_Settings.ATCMOS.TurboCPUspeed; //Turbo CPU speed
 		useTurboCPUSpeedbackup = BIOS_Settings.ATCMOS.useTurboCPUSpeed; //Are we to use Turbo CPU speed?
@@ -6612,6 +6624,7 @@ void BIOS_ClearCMOS() //Clear the CMOS!
 		memset(&BIOS_Settings.ATCMOS, 0, sizeof(BIOS_Settings.ATCMOS));
 		BIOS_Settings.ATCMOS.memory = memorybackup; //Restore!
 		BIOS_Settings.ATCMOS.emulated_CPU = emulated_CPUbackup; //Emulated CPU?
+		BIOS_Settings.ATCMOS.emulated_CPUs = emulated_CPUsbackup; //Emulated CPU?
 		BIOS_Settings.ATCMOS.CPUspeed = CPUspeedbackup; //CPU speed
 		BIOS_Settings.ATCMOS.TurboCPUspeed = TurboCPUspeedbackup; //Turbo CPU speed
 		BIOS_Settings.ATCMOS.useTurboCPUSpeed = useTurboCPUSpeedbackup; //Are we to use Turbo CPU speed?
