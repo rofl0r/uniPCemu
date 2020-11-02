@@ -454,6 +454,11 @@ void initEMU(int full) //Init!
 
 	if ((EMULATED_CPU>=CPU_PENTIUMPRO) && (is_i430fx==2)) //Supports multiple CPUs?
 	{
+		if (numemulatedcpus == 0) //Auto to maximum?
+		{
+			numemulatedcpus = MAXCPUS; //Maximum!
+		}
+		//Otherwise, it's as setup (at least 1)!
 		numemulatedcpus = MIN(numemulatedcpus,MAXCPUS); //How many to emulate?
 	}
 	else
