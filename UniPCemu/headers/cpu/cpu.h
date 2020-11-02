@@ -31,7 +31,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 extern BIOS_Settings_TYPE BIOS_Settings; //BIOS Settings (required for determining emulating CPU)
 
 //How many CPU instances are used?
-#define MAXCPUS 1
+#define MAXCPUS 2
 
 //Number of currently supported CPUs & opcode 0F extensions.
 #define NUMCPUS 8
