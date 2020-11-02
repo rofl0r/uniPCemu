@@ -407,6 +407,8 @@ extern BIU_type BIU[MAXCPUS]; //The BIU for the BUS activity reset!
 
 extern PCI_GENERALCONFIG* activePCI_IDE; //PCI IDE handler!
 
+extern byte BIU_buslocked; //BUS locked?
+
 void initEMU(int full) //Init!
 {
 	char soundfont[256];
@@ -419,8 +421,6 @@ void initEMU(int full) //Init!
 	MHZ14_ticktiming = 0.0; //Default to no time passed yet!
 
 	allcleared = 0; //Not cleared anymore!
-
-	BIU[activeCPU].BUSactive = 0; //Nobody's controlling the BUS!
 
 	activePCI_IDE = NULL; //Default: let the handlers decide which one to use! Either i430fx or IDE allocates this(whichever comes first).
 
@@ -613,8 +613,12 @@ void initEMU(int full) //Init!
 	debugrow("Initializing CPU...");
 	CPU_databussize = *(getarchDataBusSize()); //Apply the bus to use for our emulation!
 	useIPSclock = *(getarchclockingmode()); //Are we using the IPS clock instead?
+	BIU_buslocked = 0; //BUS locked?
 	for (activeCPU = 0; activeCPU < MAXCPUS; ++activeCPU)
+	{
+		BIU[activeCPU].BUSactive = 0; //Nobody's controlling the BUS!
 		initCPU(); //Initialise CPU for emulation!
+	}
 	activeCPU = 0;
 	debugrow("Initializing Inboard when required...");
 	initInboard(BIOS_Settings.InboardInitialWaitstates?1:0); //Initialise CPU for emulation! Emulate full-speed from the start when requested!

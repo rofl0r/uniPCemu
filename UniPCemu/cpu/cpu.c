@@ -1980,6 +1980,8 @@ void CPU_prepareHWint() //Prepares the CPU for hardware interrupts!
 	CPU[activeCPU].faultlevel = 0; //Default to no fault level!
 }
 
+extern byte BIU_buslocked; //BUS locked?
+
 void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 {
 	static uint_32 previousCSstart;
@@ -2405,6 +2407,10 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	skipexecutionOPfault: //Instruction fetch fault?
 	if (CPU[activeCPU].executed) //Are we finished executing?
 	{
+		if (BIU[activeCPU]._lock) //Locked the bus?
+		{
+			BIU_buslocked = 0; //Not anymore!
+		}
 		BIU[activeCPU]._lock = 0; //Unlock!
 		//Prepare for the next (fetched or repeated) instruction to start executing!
 		CPU[activeCPU].instructionfetch.CPU_isFetching = CPU[activeCPU].instructionfetch.CPU_fetchphase = 1; //Start fetching the next instruction when available(not repeating etc.)!
