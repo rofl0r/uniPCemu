@@ -975,7 +975,7 @@ void LAPIC_pollRequests(byte whichCPU)
 			break;
 		case 3: //All but ourselves?
 			receiver = (1 << (MIN(NUMITEMS(LAPIC),numemulatedcpus))) - 1; //All received!
-			receiver &= ~(1 << whichCPU) - 1; //But ourselves!
+			receiver &= ~(1 << whichCPU); //But ourselves!
 			IOAPIC_receiver = 1; //IO APIC too!
 			//Don't handle the request!
 			LAPIC[whichCPU].InterruptCommandRegisterLo &= ~0x1000; //We're receiving it somewhere!
