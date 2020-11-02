@@ -1758,6 +1758,7 @@ int BIOS_SaveData() //Save BIOS settings!
 	safestrcat(cmos_comment, sizeof(cmos_comment), "\n"); //End of the nodisk_type setting!
 
 	safestrcat(cmos_comment, sizeof(cmos_comment), "cpu: 0=8086/8088, 1=NEC V20/V30, 2=80286, 3=80386, 4=80486, 5=Intel Pentium(without FPU), 6=Intel Pentium Pro(without FPU), 7=Intel Pentium II(without FPU)\n");
+	safestrcat(cmos_comment, sizeof(cmos_comment), "cpus: 0/1=1 CPU,2+=amount of CPUs(as supported)\n");
 	safestrcat(cmos_comment, sizeof(cmos_comment), "databussize: 0=Full sized data bus of 16/32-bits, 1=Reduced data bus size\n");
 	safestrcat(cmos_comment, sizeof(cmos_comment), "cpuspeed: 0=default, otherwise, limited to n cycles(>=0)\n");
 	safestrcat(cmos_comment, sizeof(cmos_comment), "turbocpuspeed: 0=default, otherwise, limit to n cycles(>=0)\n");
