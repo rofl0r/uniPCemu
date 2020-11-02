@@ -899,7 +899,7 @@ void LAPIC_pollRequests(byte whichCPU)
 					}
 					else //Valid vector!
 					{
-						if (CPU[activeCPU.waitingforSIPI && ((CPU[activeCPU].SIPIreceived&0x100)==0)) //Waiting for a SIPI and not received yet?
+						if (CPU[activeCPU].waitingforSIPI && ((CPU[activeCPU].SIPIreceived&0x100)==0)) //Waiting for a SIPI and not received yet?
 						{
 							CPU[activeCPU].SIPIreceived = 100 | (LAPIC[whichCPU].InterruptCommandRegisterLo & 0xFF); //We've received a SIPI!
 						}
