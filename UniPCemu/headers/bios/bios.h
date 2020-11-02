@@ -329,6 +329,9 @@ typedef struct
 	byte DataBusSizebackup; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
 } CMOSGLOBALBACKUPDATA;
 
+void backupCMOSglobalsettings(CMOSDATA *CMOS, CMOSGLOBALBACKUPDATA *backupdata);
+void restoreCMOSglobalsettings(CMOSDATA *CMOS, CMOSGLOBALBACKUPDATA *backupdata);
+
 void BIOS_LoadIO(int showchecksumerrors); //Loads basic I/O drives from BIOS!
 void BIOS_ShowBIOS(); //Shows mounted drives etc!
 void BIOS_ValidateData(); //Validate all data and eject wrong ones!
