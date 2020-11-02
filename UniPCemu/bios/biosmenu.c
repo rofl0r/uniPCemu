@@ -237,6 +237,7 @@ void BIOS_DirectInput_Disable_RALT(); //Disable RALT during Direct Input mode!
 void BIOS_GenerateIMDFloppyDisk(); //Generate an IMD floppy disk image!
 void BIOS_LoadEjectCDROM0(); //Load/Eject CD-ROM 0!
 void BIOS_LoadEjectCDROM1(); //Load/Eject CD-ROM 1!
+void BIOS_EmulatedCPUs(); //How many emulated CPUs!
 
 //First, global handler!
 Handler BIOS_Menus[] =
@@ -323,6 +324,7 @@ Handler BIOS_Menus[] =
 	,BIOS_LoadEjectCDROM0 //Load/Eject CD-ROM 0 is #79!
 	,BIOS_LoadEjectCDROM1 //Load/Eject CD-ROM 1 is #80!
 	,BIOS_FSBreakpoint //Task breakpoint is #81!
+	,BIOS_EmulatedCPUs //Emulated CPUs is #82!
 };
 
 //Not implemented?
@@ -5455,7 +5457,7 @@ void BIOS_Architecture()
 
 void BIOSMenu_breakpointDisplay(byte point)
 {
-	byte breakpointindex[5] = {15,22,23,24,25};
+	byte breakpointindex[5] = {16,23,24,25,26};
 	if (point >= NUMITEMS(BIOS_Settings.breakpoint)) return; //Can't handle this?
 	optioninfo[advancedoptions] = breakpointindex[point]; //Breakpoint!
 	safestrcpy(menuoptions[advancedoptions], sizeof(menuoptions[0]), "Breakpoint: ");
@@ -5570,8 +5572,22 @@ void BIOS_InitCPUText()
 		safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "<UNKNOWN. CHECK SETTINGS VERSION>"); //Add uninstalled CPU!
 		break;
 	}
+
+	optioninfo[advancedoptions] = 1; //Change emulated CPUs!
+	safestrcpy(menuoptions[advancedoptions], sizeof(menuoptions[0]), "Emulated CPUs: ");
+	switch (*(getarchemulated_CPUs())) //What CPU speed limit?
+	{
+	case 0: //Default cycles?
+		safestrcat(menuoptions[advancedoptions++], sizeof(menuoptions[0]), "All available processors"); //Default!
+		break;
+	default: //Limited cycles?
+		safescatnprintf(menuoptions[advancedoptions], sizeof(menuoptions[0]), "%u processors", *(getarchemulated_CPUs())); //Cycle limit!
+		++advancedoptions;
+		break;
+	}
+
 setDataBusSize: //For fixing it!
-	optioninfo[advancedoptions] = 1; //Data bus size!
+	optioninfo[advancedoptions] = 2; //Data bus size!
 	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Data bus size: ");
 	switch (*(getarchDataBusSize())) //Data bus size?
 	{
@@ -5588,7 +5604,7 @@ setDataBusSize: //For fixing it!
 		break;
 	}
 
-	optioninfo[advancedoptions] = 2; //Change CPU speed!
+	optioninfo[advancedoptions] = 3; //Change CPU speed!
 	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "CPU Speed: ");
 	switch (*(getarchCPUSpeed())) //What CPU speed limit?
 	{
@@ -5601,7 +5617,7 @@ setDataBusSize: //For fixing it!
 		break;
 	}
 
-	optioninfo[advancedoptions] = 3; //Change Turbo CPU speed!
+	optioninfo[advancedoptions] = 4; //Change Turbo CPU speed!
 	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Turbo CPU Speed: ");
 	switch (*(getarchTurboCPUSpeed())) //What Turbo CPU speed limit?
 	{
@@ -5615,7 +5631,7 @@ setDataBusSize: //For fixing it!
 	}
 
 	fixTurboCPUToggle:
-	optioninfo[advancedoptions] = 4; //Change Turbo CPU option!
+	optioninfo[advancedoptions] = 5; //Change Turbo CPU option!
 	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Turbo CPU Speed Mode: ");
 	switch (*(getarchuseTurboCPUSpeed())) //What Turbo CPU speed limit?
 	{
@@ -5633,7 +5649,7 @@ setDataBusSize: //For fixing it!
 	}
 
 	fixClockingMode:
-	optioninfo[advancedoptions] = 5; //Change Turbo CPU option!
+	optioninfo[advancedoptions] = 6; //Change Turbo CPU option!
 	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Clocking mode: ");
 	switch (*(getarchclockingmode())) //What clocking mode?
 	{
@@ -5651,7 +5667,7 @@ setDataBusSize: //For fixing it!
 	}
 
 setShowCPUSpeed:
-	optioninfo[advancedoptions] = 6; //Change CPU speed!
+	optioninfo[advancedoptions] = 7; //Change CPU speed!
 	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Show CPU Speed: ");
 	switch (BIOS_Settings.ShowCPUSpeed) //What CPU speed limit?
 	{
@@ -5668,11 +5684,11 @@ setShowCPUSpeed:
 		break;
 	}
 
-	optioninfo[advancedoptions] = 7; //Boot Order!
+	optioninfo[advancedoptions] = 8; //Boot Order!
 	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Boot Order: "); //Change boot order!
 	safestrcat(menuoptions[advancedoptions++],sizeof(menuoptions[0]), BOOT_ORDER_STRING[BIOS_Settings.bootorder]); //Add boot order after!
 
-	optioninfo[advancedoptions] = 8; //Execution mode!
+	optioninfo[advancedoptions] = 9; //Execution mode!
 	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Execution mode: ");
 	switch (BIOS_Settings.executionmode) //What execution mode is active?
 	{
@@ -5699,7 +5715,7 @@ setShowCPUSpeed:
 		break;
 	}
 
-	optioninfo[advancedoptions] = 9; //Debug mode!
+	optioninfo[advancedoptions] = 10; //Debug mode!
 	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Debug mode: ");
 	switch (BIOS_Settings.debugmode) //What debug mode is active?
 	{
@@ -5723,7 +5739,7 @@ setShowCPUSpeed:
 		break;
 	}
 
-	optioninfo[advancedoptions] = 10; //We're debug log setting!
+	optioninfo[advancedoptions] = 11; //We're debug log setting!
 	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Debugger log: ");
 	switch (BIOS_Settings.debugger_log)
 	{
@@ -5774,7 +5790,7 @@ setShowCPUSpeed:
 		break;
 	}
 
-	optioninfo[advancedoptions] = 11; //We're debug log setting!
+	optioninfo[advancedoptions] = 12; //We're debug log setting!
 	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Debugger state log: ");
 	switch (BIOS_Settings.debugger_logstates)
 	{
@@ -5789,7 +5805,7 @@ setShowCPUSpeed:
 		break;
 	}
 
-	optioninfo[advancedoptions] = 12; //We're debug log setting!
+	optioninfo[advancedoptions] = 13; //We're debug log setting!
 	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Debugger register log: ");
 	switch (BIOS_Settings.debugger_logregisters)
 	{
@@ -5805,7 +5821,7 @@ setShowCPUSpeed:
 	}
 
 
-	optioninfo[advancedoptions] = 13; //We're diagnostics output!
+	optioninfo[advancedoptions] = 14; //We're diagnostics output!
 	if (BIOS_Settings.diagnosticsportoutput_breakpoint>=0) //Diagnostics breakpoint specified?
 	{
 		snprintf(menuoptions[advancedoptions++],sizeof(menuoptions[0]), "Diagnostics code: %02X, Breakpoint at %02X", diagnosticsportoutput,(BIOS_Settings.diagnosticsportoutput_breakpoint&0xFF)); //Show the diagnostics output!
@@ -5815,7 +5831,7 @@ setShowCPUSpeed:
 		snprintf(menuoptions[advancedoptions++],sizeof(menuoptions[0]),"Diagnostics code: %02X",diagnosticsportoutput); //Show the diagnostics output!
 	}
 
-	optioninfo[advancedoptions] = 14; //Change Diagnostics Port Breakpoint Timeout!
+	optioninfo[advancedoptions] = 15; //Change Diagnostics Port Breakpoint Timeout!
 	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Diagnostics Port Breakpoint Timeout: ");
 	switch (BIOS_Settings.diagnosticsportoutput_timeout) //What Diagnostics Port Breakpoint Timeout?
 	{
@@ -5834,7 +5850,7 @@ setShowCPUSpeed:
 	BIOSMenu_breakpointDisplay(3);
 	BIOSMenu_breakpointDisplay(4);
 
-	optioninfo[advancedoptions] = 20; //Task Breakpoint!
+	optioninfo[advancedoptions] = 21; //Task Breakpoint!
 	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Task Breakpoint: ");
 	//First, convert the current breakpoint to a string format!
 	switch ((BIOS_Settings.taskBreakpoint>>SETTINGS_TASKBREAKPOINT_ENABLE_SHIFT)) //What mode?
@@ -5859,7 +5875,7 @@ setShowCPUSpeed:
 	}
 	++advancedoptions; //Increase after!
 
-	optioninfo[advancedoptions] = 26; //FS Breakpoint!
+	optioninfo[advancedoptions] = 27; //FS Breakpoint!
 	safestrcpy(menuoptions[advancedoptions], sizeof(menuoptions[0]), "FS Breakpoint: ");
 	//First, convert the current breakpoint to a string format!
 	switch ((BIOS_Settings.FSBreakpoint >> SETTINGS_FSBREAKPOINT_ENABLE_SHIFT)) //What mode?
@@ -5884,7 +5900,7 @@ setShowCPUSpeed:
 	}
 	++advancedoptions; //Increase after!
 
-	optioninfo[advancedoptions] = 21; //CR3 Breakpoint!
+	optioninfo[advancedoptions] = 22; //CR3 Breakpoint!
 	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "CR3 Breakpoint: ");
 	//First, convert the current breakpoint to a string format!
 	switch ((BIOS_Settings.CR3breakpoint>>SETTINGS_CR3BREAKPOINT_ENABLE_SHIFT)) //What mode?
@@ -5902,7 +5918,7 @@ setShowCPUSpeed:
 	++advancedoptions; //Increase after!
 
 setArchitecture: //For fixing it!
-	optioninfo[advancedoptions] = 16; //Architecture!
+	optioninfo[advancedoptions] = 17; //Architecture!
 	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Architecture: ");
 	switch (BIOS_Settings.architecture) //What architecture?
 	{
@@ -5932,7 +5948,7 @@ setArchitecture: //For fixing it!
 	}
 
 setBIOSROMmode: //For fixing it!
-	optioninfo[advancedoptions] = 17; //BIOS ROM mode!
+	optioninfo[advancedoptions] = 18; //BIOS ROM mode!
 	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "BIOS ROM mode: ");
 	switch (BIOS_Settings.BIOSROMmode) //What architecture?
 	{
@@ -5953,7 +5969,7 @@ setBIOSROMmode: //For fixing it!
 	}
 
 setInboardInitialWaitstates: //For fixing it!
-	optioninfo[advancedoptions] = 18; //Inboard Initial Waitstates!
+	optioninfo[advancedoptions] = 19; //Inboard Initial Waitstates!
 	safestrcpy(menuoptions[advancedoptions],sizeof(menuoptions[0]), "Inboard Initial Waitstates: ");
 	switch (BIOS_Settings.InboardInitialWaitstates) //What architecture?
 	{
@@ -5970,7 +5986,7 @@ setInboardInitialWaitstates: //For fixing it!
 		break;
 	}
 
-	optioninfo[advancedoptions] = 19; //We're debug advanced log setting!
+	optioninfo[advancedoptions] = 20; //We're debug advanced log setting!
 	safestrcpy(menuoptions[advancedoptions], sizeof(menuoptions[0]), "Debugger advanced log: ");
 	switch (BIOS_Settings.advancedlog)
 	{
@@ -6024,7 +6040,8 @@ void BIOS_CPU() //CPU menu!
 	case 22:
 	case 23:
 	case 24:
-	case 25: //Valid option?
+	case 25:
+	case 26: //Valid option?
 		switch (optioninfo[menuresult]) //What option has been chosen, since we are dynamic size?
 		{
 		//CPU settings
@@ -6034,81 +6051,87 @@ void BIOS_CPU() //CPU menu!
 				if (!EMU_RUNNING) BIOS_Menu = 10; //Installed CPU selection!
 			}
 			break;
-		case 1: //Data bus size?
+		case 1: //Emulated CPUs?
+			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
+			{
+				if (!EMU_RUNNING) BIOS_Menu = 82; //Emulated CPUs selection!
+			}
+			break;
+		case 2: //Data bus size?
 			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
 			{
 				if (!EMU_RUNNING) BIOS_Menu = 40; //Data bus size!
 			}
 			break;
-		case 2: //CPU speed?
+		case 3: //CPU speed?
 			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
 			{
 				BIOS_Menu = 36; //CPU speed selection!
 			}
 			break;
-		case 3: //Turbo CPU speed?
+		case 4: //Turbo CPU speed?
 			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
 			{
 				BIOS_Menu = 55; //Turbo CPU speed selection!
 			}
 			break;
-		case 4: //Use Turbo CPU Speed?
+		case 5: //Use Turbo CPU Speed?
 			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
 			{
 				BIOS_Menu = 56; //Turbo CPU speed selection!
 			}
 			break;
-		case 5: //Clocking mode?
+		case 6: //Clocking mode?
 			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
 			{
 				if (!EMU_RUNNING) BIOS_Menu = 65; //Clocking mode selection!
 			}
 			break;
-		case 6: //CPU speed display setting?
+		case 7: //CPU speed display setting?
 			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
 			{
 				BIOS_Menu = 41; //CPU speed display setting!
 			}
 			break;
 		//Basic execution information
-		case 7: //Boot order?
+		case 8: //Boot order?
 			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
 			{
 				BIOS_Menu = 9; //Boot Order Menu!
 			}
 			break;
-		case 8:
+		case 9:
 			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
 			{
 				BIOS_Menu = 24; //Execution mode option!
 			}
 			break;
 		//Debugger information
-		case 9: //Debug mode?
+		case 10: //Debug mode?
 			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
 			{
 				BIOS_Menu = 13; //Debug mode option!
 			}
 			break;
-		case 10: //Debugger log setting!
+		case 11: //Debugger log setting!
 			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
 			{
 				BIOS_Menu = 23; //Debugger log setting!
 			}
 			break;
-		case 11: //Debugger state log setting!
+		case 12: //Debugger state log setting!
 			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
 			{
 				BIOS_Menu = 63; //Debugger state log setting!
 			}
 			break;
-		case 12: //Debugger register log setting!
+		case 13: //Debugger register log setting!
 			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
 			{
 				BIOS_Menu = 66; //Debugger register log setting!
 			}
 			break;
-		case 13: //Diagnostics output breakpoint setting!
+		case 14: //Diagnostics output breakpoint setting!
 			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
 			{
 				BIOS_Menu = 57; //Diagnostics Output Breakpoint setting!
@@ -6119,18 +6142,18 @@ void BIOS_CPU() //CPU menu!
 				BIOS_Changed = 1; //We've changed!
 			}
 			break; //We do nothing!
-		case 14: //Timeout to be used for breakpoints?
+		case 15: //Timeout to be used for breakpoints?
 			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
 			{
 				if (!EMU_RUNNING) BIOS_Menu = 58; //Timeout to be used for breakpoints?
 			}
 			break;
-		case 15: //Breakpoint
-		case 22: //Breakpoint
+		case 16: //Breakpoint
 		case 23: //Breakpoint
 		case 24: //Breakpoint
 		case 25: //Breakpoint
-			BPindex = (optioninfo[menuresult] == 15) ? 0 : (optioninfo[menuresult] - 21); //What index?
+		case 26: //Breakpoint
+			BPindex = (optioninfo[menuresult] == 16) ? 0 : (optioninfo[menuresult] - 22); //What index?
 			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
 			{
 				#ifndef IS_PSP
@@ -6167,22 +6190,22 @@ void BIOS_CPU() //CPU menu!
 				unlock(LOCK_CPU); //Finished with the CPU!
 			}
 			break;
-		case 16: //Architecture
+		case 17: //Architecture
 			if (!EMU_RUNNING) BIOS_Menu = 34; //Architecture option!
 			break;
-		case 17: //BIOS ROM mode
+		case 18: //BIOS ROM mode
 			if (!EMU_RUNNING) BIOS_Menu = 62; //Architecture option!
 			break;
-		case 18: //Inboard Initial Waitstates?
+		case 19: //Inboard Initial Waitstates?
 			BIOS_Menu = 64; //Architecture option!
 			break;
-		case 19: //Debugger advanced log setting!
+		case 20: //Debugger advanced log setting!
 			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
 			{
 				BIOS_Menu = 69; //Debugger register log setting!
 			}
 			break;
-		case 20: //Task Breakpoint
+		case 21: //Task Breakpoint
 			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
 			{
 				#ifndef IS_PSP
@@ -6215,7 +6238,7 @@ void BIOS_CPU() //CPU menu!
 				unlock(LOCK_CPU); //Finished with the CPU!
 			}
 			break;
-		case 21: //CR3 Breakpoint
+		case 22: //CR3 Breakpoint
 			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
 			{
 				#ifndef IS_PSP
@@ -6246,7 +6269,7 @@ void BIOS_CPU() //CPU menu!
 				unlock(LOCK_CPU); //Finished with the CPU!
 			}
 			break;
-		case 26: //FS Breakpoint
+		case 27: //FS Breakpoint
 			if (Menu_Stat == BIOSMENU_STAT_OK) //Plain select?
 			{
 #ifndef IS_PSP
@@ -6389,6 +6412,106 @@ int_64 GetCPUSpeed(byte x, byte y, uint_32 CPUSpeed) //Retrieve the size, or 0 f
 	return FILELIST_CANCEL; //No size: cancel!
 }
 
+int_64 GetEmulatedCPUs(byte x, byte y, uint_32 EmulatedCPUs) //Retrieve the size, or 0 for none!
+{
+	int key = 0;
+	lock(LOCK_INPUT);
+	key = psp_inputkeydelay(BIOS_INPUTDELAY);
+	unlock(LOCK_INPUT);
+	while ((key & (BUTTON_CROSS | BUTTON_START)) > 0) //Pressed? Wait for release!
+	{
+		lock(LOCK_INPUT);
+		key = psp_inputkeydelay(BIOS_INPUTDELAY);
+		unlock(LOCK_INPUT);
+	}
+	uint_32 result = EmulatedCPUs; //Size: result; default 0 for none! Must be a multiple of 4096 bytes for HDD!
+	uint_32 oldvalue; //To check for high overflow!
+	for (;;) //Get input; break on error!
+	{
+		EMU_locktext();
+		EMU_textcolor(BIOS_ATTR_ACTIVE); //We're using active color for input!
+		if (!result) //Default cycles?
+		{
+			GPU_EMU_printscreen(x, y, "All available processors                               ", result); //Show current size!
+		}
+		else
+		{
+			GPU_EMU_printscreen(x, y, "%u processors", result); //Show current size!
+		}
+		EMU_unlocktext();
+		lock(LOCK_INPUT);
+		key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
+		unlock(LOCK_INPUT);
+
+		//1GB steps!
+		if ((key & BUTTON_LTRIGGER) > 0) //1000 step down?
+		{
+			if (result == 0) {}
+			else
+			{
+				oldvalue = result; //Load the old value!
+				result -= (key & BUTTON_RIGHT) ? 100000 : ((key & BUTTON_LEFT) ? 10000 : 1000); //x100 or x10 or x1!
+				if (result > oldvalue) result = 0; //Underflow!
+			}
+		}
+		else if ((key & BUTTON_RTRIGGER) > 0) //1000 step up?
+		{
+			oldvalue = result; //Save the old value!
+			result += (key & BUTTON_RIGHT) ? 100000 : ((key & BUTTON_LEFT) ? 10000 : 1000); //x100 or x10 or x1!
+			if (result < oldvalue) result = oldvalue; //We've overflown?
+		}
+		else if ((key & BUTTON_DOWN) > 0) //1 step up?
+		{
+			if (result == 0) {}
+			else
+			{
+				oldvalue = result;
+				result -= (key & BUTTON_RIGHT) ? 100 : ((key & BUTTON_LEFT) ? 10 : 1); //x100 or x10 or x1!
+				if (result > oldvalue) result = 0; //Underflow!
+			}
+		}
+		else if ((key & BUTTON_UP) > 0) //1 step down?
+		{
+			oldvalue = result; //Save the old value!
+			result += (key & BUTTON_RIGHT) ? 100 : ((key & BUTTON_LEFT) ? 10 : 1); //x100 or x10 or x1!
+			if (result < oldvalue) result = oldvalue; //We've overflown?
+		}
+		//Confirmation buttons etc.
+		else if ((key & (BUTTON_CROSS | BUTTON_START)) > 0)
+		{
+			while ((key & (BUTTON_CROSS | BUTTON_START)) > 0) //Wait for release!
+			{
+				lock(LOCK_INPUT);
+				key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
+				unlock(LOCK_INPUT);
+			}
+			return (int_64)result;
+		}
+		else if ((key & BUTTON_CIRCLE) > 0)
+		{
+			while ((key & BUTTON_CIRCLE) > 0) //Wait for release!
+			{
+				lock(LOCK_INPUT);
+				key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
+				unlock(LOCK_INPUT);
+			}
+			break; //Cancel!
+		}
+		else if ((key & BUTTON_TRIANGLE) > 0)
+		{
+			while ((key & BUTTON_TRIANGLE) > 0) //Wait for release!
+			{
+				lock(LOCK_INPUT);
+				key = psp_inputkeydelay(BIOS_INPUTDELAY); //Input key!
+				unlock(LOCK_INPUT);
+			}
+			return 0; //Default!
+		}
+		else if (shuttingdown()) break; //Cancel because of shutdown?
+	}
+	return FILELIST_CANCEL; //No size: cancel!
+}
+
 void BIOS_CPUSpeed() //CPU speed selection!
 {
 	BIOS_Title("CPU speed");
@@ -6410,6 +6533,33 @@ void BIOS_CPUSpeed() //CPU speed selection!
 		{
 			BIOS_Changed = 1; //Changed!
 			*(getarchCPUSpeed()) = (uint_32)file; //Select CPU speed setting!
+		}
+		break;
+	}
+	BIOS_Menu = 35; //Goto CPU menu!
+}
+
+void BIOS_EmulatedCPUs() //How many emulated CPUs!
+{
+	BIOS_Title("Emulated CPUs");
+	EMU_locktext();
+	EMU_gotoxy(0, 4); //Goto 4th row!
+	EMU_textcolor(BIOS_ATTR_INACTIVE); //We're using inactive color for label!
+	GPU_EMU_printscreen(0, 4, "Emulated CPUs: "); //Show selection init!
+	EMU_unlocktext();
+	int_64 file = GetEmulatedCPUs(15, 4, *(getarchemulated_CPUs())); //Show options for the CPU speed!
+	switch (file) //Which file?
+	{
+	case FILELIST_CANCEL: //Cancelled?
+		//We do nothing with the selected speed!
+		break; //Just calmly return!
+	case FILELIST_DEFAULT: //Default?
+		file = DEFAULT_CPUS; //Default setting: 1 processor!
+	default: //Changed?
+		if (file != *(getarchemulated_CPUs())) //Not current?
+		{
+			BIOS_Changed = 1; //Changed!
+			*(getarchemulated_CPUs()) = (uint_32)file; //Select CPU speed setting!
 		}
 		break;
 	}
