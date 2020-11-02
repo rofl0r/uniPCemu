@@ -1800,7 +1800,6 @@ void CPU_resetMode() //Resets the mode!
 	updateCPUmode(); //Update the CPU mode!
 }
 
-byte CPUmode = CPU_MODE_REAL; //The current CPU mode!
 const byte modes[4] = { CPU_MODE_REAL, CPU_MODE_PROTECTED, CPU_MODE_REAL, CPU_MODE_8086 }; //All possible modes (VM86 mode can't exist without Protected Mode!)
 
 void updateCPL() //Update the CPL to be the currently loaded CPL!
@@ -1839,39 +1838,39 @@ void updateCPUmode() //Update the CPU mode!
 	mode |= (CPU[activeCPU].registers->CR0&CR0_PE); //Protected mode?
 	mode = modes[mode]; //What is the new set mode, if changed?
 	CPU[activeCPU].is_paging = ((mode != CPU_MODE_REAL) & ((CPU[activeCPU].registers->CR0 & CR0_PG) >> 31)); //Are we paging in protected mode!
-	if (unlikely(mode!=CPUmode)) //Mode changed?
+	if (unlikely(mode!=CPU[activeCPU].CPUmode)) //Mode changed?
 	{
-		if ((CPUmode == CPU_MODE_REAL) && (mode == CPU_MODE_PROTECTED)) //Switching from real mode to protected mode?
+		if ((CPU[activeCPU].CPUmode == CPU_MODE_REAL) && (mode == CPU_MODE_PROTECTED)) //Switching from real mode to protected mode?
 		{
 			CPU[activeCPU].CPL = GENERALSEGMENT_DPL(CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_SS]); //DPL of SS determines CPL from now on!
 			CPU_calcSegmentPrecalcs(1,&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS]); //Calculate the precalcs for the segment descriptor!
 		}
-		else if ((CPUmode != CPU_MODE_REAL) && (mode == CPU_MODE_REAL)) //Switching back to real mode?
+		else if ((CPU[activeCPU].CPUmode != CPU_MODE_REAL) && (mode == CPU_MODE_REAL)) //Switching back to real mode?
 		{
 			CPU[activeCPU].CPL = 0; //Make sure we're CPL 0 in Real mode!
 			CPU_calcSegmentPrecalcs(1,&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS]); //Calculate the precalcs for the segment descriptor!
 		}
-		else if ((CPUmode != CPU_MODE_8086) && (mode == CPU_MODE_8086)) //Switching to Virtual 8086 mode?
+		else if ((CPU[activeCPU].CPUmode != CPU_MODE_8086) && (mode == CPU_MODE_8086)) //Switching to Virtual 8086 mode?
 		{
 			CPU[activeCPU].CPL = 3; //Make sure we're CPL 3 in Virtual 8086 mode!
 		}
-		CPUmode = mode; //Mode levels: Real mode > Protected Mode > VM86 Mode!
+		CPU[activeCPU].CPUmode = mode; //Mode levels: Real mode > Protected Mode > VM86 Mode!
 	}
 }
 
 byte getcpumode() //Retrieves the current mode!
 {
-	return CPUmode; //Give the current CPU mode!
+	return CPU[activeCPU].CPUmode; //Give the current CPU mode!
 }
 
 byte isPM()
 {
-	return (CPUmode!=CPU_MODE_REAL)?1:0; //Are we in protected mode?
+	return (CPU[activeCPU].CPUmode!=CPU_MODE_REAL)?1:0; //Are we in protected mode?
 }
 
 byte isV86()
 {
-	return (CPUmode==CPU_MODE_8086)?1:0; //Are we in virtual 8086 mode?
+	return (CPU[activeCPU].CPUmode==CPU_MODE_8086)?1:0; //Are we in virtual 8086 mode?
 }
 
 //Final stuff:

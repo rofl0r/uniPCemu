@@ -925,6 +925,7 @@ typedef struct
 	uint_32 nextEIP; //Next instruction EIP
 	word SIPIreceived; //SIPI received?
 	byte waitingforSIPI; //Waiting for SIPI? Set for CPU cores, but not the BSP!
+	byte CPUmode; //The current CPU mode!
 } CPU_type;
 
 #ifndef IS_CPU
