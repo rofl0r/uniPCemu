@@ -1019,7 +1019,7 @@ void IOAPIC_pollRequests()
 
 	updateAPICliveIRRs(); //Update the live IRRs!
 
-	if (LAPIC[0].LAPIC_extIntPending != -1) return; //Prevent any more interrupts until the extInt is properly parsed!
+	if (LAPIC[activeCPU].LAPIC_extIntPending != -1) return; //Prevent any more interrupts until the extInt is properly parsed!
 
 	if (likely(APIC_IRQsrequested == 0)) return; //Nothing to do?
 //First, determine the highest priority IR to use!
@@ -1044,7 +1044,7 @@ void IOAPIC_pollRequests()
 					{
 					case 0: //Interrupt?
 					case 1: //Lowest priority?
-						if ((LAPIC[0].IRR[APIC_intnr >> 5] & (1 << (APIC_intnr & 0x1F))) == 0) //Not requested yet? Able to accept said message!
+						if ((LAPIC[activeCPU].IRR[APIC_intnr >> 5] & (1 << (APIC_intnr & 0x1F))) == 0) //Not requested yet? Able to accept said message!
 						{
 							APIC_highestpriority = (int)(IOAPIC.IOAPIC_redirectionentry[IR][0] & 0xF0U); //New highest priority!
 							APIC_highestpriorityIR = IR; //What IR has the highest priority now!
