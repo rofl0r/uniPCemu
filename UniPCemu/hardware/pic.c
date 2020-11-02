@@ -856,7 +856,7 @@ byte receiveCommandRegister(uint_32 destinationCPU, uint_32 *commandregister, by
 		{
 			if (CPU[destinationCPU].waitingforSIPI && ((CPU[destinationCPU].SIPIreceived & 0x100) == 0)) //Waiting for a SIPI and not received yet?
 			{
-				CPU[destinationCPU].SIPIreceived = 100 | (*commandregister & 0xFF); //We've received a SIPI!
+				CPU[destinationCPU].SIPIreceived = 0x100 | (*commandregister & 0xFF); //We've received a SIPI!
 			}
 		}
 		break;
