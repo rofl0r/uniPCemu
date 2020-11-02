@@ -1114,8 +1114,11 @@ void calcGenericSinglestep(byte index)
 	//Use the other breakpoint settings combined and default to 0!
 }
 
+extern uint_32 destEIP; //Destination address for CS JMP instruction!
+
 OPTINLINE byte coreHandler()
 {
+	word destCS;
 	uint_32 MHZ14passed; //14 MHZ clock passed?
 	byte BIOSMenuAllowed = 1; //Are we allowed to open the BIOS menu?
 	//CPU execution, needs to be before the debugger!
@@ -1198,9 +1201,9 @@ OPTINLINE byte coreHandler()
 			{
 				CPU[activeCPU].waitingforSIPI = 0; //Interrupt->Resume from HLT
 				//Start execution at xx00:0000?
-				REG_CS = (CPU[activeCPU].SIPIreceived&0xFF)<<8;
-				REG_EIP = 0;
-				CPU_flushPIQ(-1); //Jump to the designated address!
+				destEIP = 0;
+				destCS = (CPU[activeCPU].SIPIreceived&0xFF)<<8;
+				segmentWritten(CPU_SEGMENT_CS,destCS,1); //Jump to the designated address!
 				CPU[activeCPU].SIPIreceived = 0; //Not received anymore!
 				goto resumeFromHLT; //We're resuming from HLT state!
 			}
