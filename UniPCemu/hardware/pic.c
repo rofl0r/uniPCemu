@@ -166,6 +166,11 @@ void updateLAPICArbitrationIDregister(byte whichCPU)
 	LAPIC[whichCPU].LAPIC_arbitrationIDregister = LAPIC[whichCPU].LAPIC_ID & (0xFF << 24); //Load the Arbitration ID register from the Local APIC ID register! All 8-bits are loaded!
 }
 
+void updateIOAPICArbitrationIDregister()
+{
+	IOAPIC.IOAPIC_arbitrationpriority = IOAPIC.IOAPIC_ID & (0xFF << 24); //Load the Arbitration ID register from the Local APIC ID register! All 8-bits are loaded!
+}
+
 void initAPIC(byte whichCPU)
 {
 	LAPIC[whichCPU].enabled = 0; //Is the APIC enabled?
@@ -771,13 +776,14 @@ void APIC_errorTrigger(byte whichCPU) //Error has been triggered!
 
 void updateAPICliveIRRs(); //Update the live IRRs as needed!
 
-byte receiveCommandRegister(uint_32 destinationCPU, uint_32 *commandregister)
+byte receiveCommandRegister(uint_32 destinationCPU, uint_32 *commandregister, byte isIOAPIC)
 {
 	byte backupactiveCPU;
 	switch ((*commandregister >> 8) & 7) //What is requested?
 	{
 	case 0: //Interrupt raise?
 	case 1: //Lowest priority?
+		if (isIOAPIC) return 1; //Not on IO APIC!
 		if ((*commandregister & 0xFF) < 0x10) //Invalid vector?
 		{
 			LAPIC_reportErrorStatus(destinationCPU, (1 << 5), 1); //Report an illegal vector being sent!
@@ -803,8 +809,10 @@ byte receiveCommandRegister(uint_32 destinationCPU, uint_32 *commandregister)
 		}
 		break;
 	case 2: //SMI raised?
+		if (isIOAPIC) return 1; //Not on IO APIC!
 		break;
 	case 4: //NMI raised?
+		if (isIOAPIC) return 1; //Not on IO APIC!
 		if (APICNMIQueued[destinationCPU]) //Already queued?
 		{
 			//*commandregister |= 0x1000; //Retry!
@@ -819,17 +827,25 @@ byte receiveCommandRegister(uint_32 destinationCPU, uint_32 *commandregister)
 		{
 			//Setup Arbitration ID registers on all APICs!
 			//Operation on Pentium and P6: Arbitration ID register = APIC ID register.
-			updateLAPICArbitrationIDregister(destinationCPU); //Update the register!
+			if (isIOAPIC) //IO APIC!
+				updateIOAPICArbitrationIDregister(); //Update the register!
+			else //Local APIC?
+				updateLAPICArbitrationIDregister(destinationCPU); //Update the register!
 		}
-		else if (destinationCPU == 0) //INIT to our first CPU?
+		else
 		{
-			backupactiveCPU = activeCPU; //Backup!
-			activeCPU = destinationCPU; //Active for reset!
-			resetCPU(0x80); //Special reset of the CPU: INIT only!
-			activeCPU = backupactiveCPU; //Restore backup!
+			if (isIOAPIC) return 1; //Not on IO APIC!
+			else //INIT to a CPU?
+			{
+				backupactiveCPU = activeCPU; //Backup!
+				activeCPU = destinationCPU; //Active for reset!
+				resetCPU(0x80); //Special reset of the CPU: INIT only!
+				activeCPU = backupactiveCPU; //Restore backup!
+			}
 		}
 		break;
 	case 6: //SIPI?
+		if (isIOAPIC) return 1; //Not on IO APIC!
 		if ((*commandregister & 0xFF) < 0x10) //Invalid vector?
 		{
 			LAPIC_reportErrorStatus(destinationCPU, (1 << 5), 1); //Report an illegal vector being sent!
@@ -853,6 +869,7 @@ byte receiveCommandRegister(uint_32 destinationCPU, uint_32 *commandregister)
 //Updates local APIC requests!
 void LAPIC_pollRequests(byte whichCPU)
 {
+	uint_32 IOAPIC_receiver; //Up to 32 receiving IO APICs!
 	uint_32 receiver; //Up to 32 receiving CPUs!
 	byte destinationCPU; //What CPU is the destination?
 	byte logicaldestination;
@@ -872,7 +889,7 @@ void LAPIC_pollRequests(byte whichCPU)
 
 	if (LAPIC[whichCPU].LAPIC_extIntPending != -1) return; //Prevent any more interrupts until the extInt is properly parsed!
 
-	receiver = 0; //Initialize receivers of the packet!
+	receiver = IOAPIC_receiver = 0; //Initialize receivers of the packet!
 	if (LAPIC[whichCPU].InterruptCommandRegisterLo & 0x1000) //Pending command being sent?
 	{
 		switch ((LAPIC[whichCPU].InterruptCommandRegisterLo >> 18) & 3) //What destination type?
@@ -899,11 +916,15 @@ void LAPIC_pollRequests(byte whichCPU)
 					}
 				}
 			}
-			if (receiver) //Received on some Local APICs?
+			if (isAPICPhysicaldestination(0, 1, ((LAPIC[whichCPU].InterruptCommandRegisterHi >> 24) & 0xF)) == 1) //IO APIC?
+			{
+				IOAPIC_receiver |= 1; //Receive it on LAPIC!
+			}
+			if (receiver|IOAPIC_receiver) //Received on some Local APICs?
 			{
 				goto receiveCommandRegister; //Receive it!
 			}
-			else if (receiver == 0) //No receivers?
+			else if ((receiver|IOAPIC_receiver) == 0) //No receivers?
 			{
 				LAPIC_reportErrorStatus(whichCPU,(1 << 2),1); //Report an send accept error! Nothing responded on the bus!
 			}
@@ -918,6 +939,7 @@ void LAPIC_pollRequests(byte whichCPU)
 			//Receive it!
 			//Handle the request!
 			receiver = (1<<(NUMITEMS(LAPIC)))-1; //All received!
+			IOAPIC_receiver = 1; //IO APIC too!
 		receiveCommandRegister:
 			LAPIC[whichCPU].InterruptCommandRegisterLo &= ~0x1000; //We're receiving it somewhere!
 			if (receiver) //Received on a LAPIC?
@@ -926,11 +948,18 @@ void LAPIC_pollRequests(byte whichCPU)
 				{
 					if (receiver & (1 << destinationCPU)) //To receive?
 					{
-						if (receiveCommandRegister(destinationCPU, &LAPIC[whichCPU].InterruptCommandRegisterLo)) //Accepted?
+						if (receiveCommandRegister(destinationCPU, &LAPIC[whichCPU].InterruptCommandRegisterLo,0)) //Accepted?
 						{
 							receiver &= ~(1 << destinationCPU); //Received!
 						}
 					}
+				}
+				if (IOAPIC_receiver) //IO APIC too?
+				{
+						if (receiveCommandRegister(0, &LAPIC[whichCPU].InterruptCommandRegisterLo,1)) //Accepted?
+						{
+							receiver &= ~(1 << destinationCPU); //Received!
+						}
 				}
 				if (receiver) //Failed to send all?
 				{
@@ -945,10 +974,12 @@ void LAPIC_pollRequests(byte whichCPU)
 		case 3: //All but ourselves?
 			receiver = (1 << (NUMITEMS(LAPIC))) - 1; //All received!
 			receiver &= ~(1 << whichCPU) - 1; //But ourselves!
+			IOAPIC_receiver = 1; //IO APIC too!
 			//Don't handle the request!
 			LAPIC[whichCPU].InterruptCommandRegisterLo &= ~0x1000; //We're receiving it somewhere!
 			//Send no error because there are no other APICs to receive it! Only the IO APIC receives it, which isn't using it?
 			//Error out the write access!
+			goto receiveCommandRegister; //Receive it!
 			break;
 		}
 	}
