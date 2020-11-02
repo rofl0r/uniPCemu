@@ -1371,7 +1371,7 @@ void initCPU() //Initialize CPU for full system reset into known state!
 {
 	MMU_determineAddressWrapping(); //Determine the address wrapping to use!
 	CPU_calcSegmentPrecalcsPrecalcs(); //Calculate the segmentation precalcs that are used!
-	memset(&CPU, 0, sizeof(CPU)); //Reset the CPU fully!
+	memset(&CPU[activeCPU], 0, sizeof(CPU[activeCPU])); //Reset the CPU fully!
 	CPU_initMSRs(); //Initialize the MSRs and their mappings!
 	resetCPU(1); //Reset normally!
 	Paging_initTLB(); //Initialize the TLB for usage!
