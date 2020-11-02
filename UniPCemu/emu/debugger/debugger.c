@@ -249,7 +249,7 @@ void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte ty
 		return; //No memory access logging, we're disabled for now!
 	}
 	*/
-	if (activeCPU) return 0; //Not CPU #0?
+	if (activeCPU) return; //Not CPU #0?
 	if (advancedlog == 0) //Not logging advanced?
 	{
 		return; //Disable memory logs entirely!
