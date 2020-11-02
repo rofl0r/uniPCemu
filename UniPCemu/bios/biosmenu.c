@@ -6498,138 +6498,48 @@ void BIOS_ClearCMOS() //Clear the CMOS!
 	CMOS.Loaded = 0; //Unload the CMOS: discard anything that's loaded when saving!
 	memset(&CMOS.DATA,0,sizeof(CMOS.DATA)); //Clear the data!
 	unlock(LOCK_CPU); //We're finished with the main thread!
-	uint_32 memorybackup;
-	byte emulated_CPUbackup; //Emulated CPU?
-	byte emulated_CPUsbackup; //Emulated CPU?
-	uint_32 CPUspeedbackup; //CPU speed
-	uint_32 TurboCPUspeedbackup; //Turbo CPU speed
-	byte useTurboCPUSpeedbackup; //Are we to use Turbo CPU speed?
-	byte clockingmodebackup; //Are we using the IPS clock instead of cycle-accurate clock?
-	byte DataBusSizebackup; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+
+	CMOSGLOBALBACKUPDATA backupglobal;
 	if (is_i430fx==2) //i440fx?
 	{
-		memorybackup = BIOS_Settings.i440fxCMOS.memory; //Backup!
-		emulated_CPUbackup = BIOS_Settings.i440fxCMOS.emulated_CPU; //Emulated CPU?
-		emulated_CPUsbackup = BIOS_Settings.i440fxCMOS.emulated_CPUs; //Emulated CPU?
-		CPUspeedbackup = BIOS_Settings.i440fxCMOS.CPUspeed; //CPU speed
-		TurboCPUspeedbackup = BIOS_Settings.i440fxCMOS.TurboCPUspeed; //Turbo CPU speed
-		useTurboCPUSpeedbackup = BIOS_Settings.i440fxCMOS.useTurboCPUSpeed; //Are we to use Turbo CPU speed?
-		clockingmodebackup = BIOS_Settings.i440fxCMOS.clockingmode; //Are we using the IPS clock instead of cycle-accurate clock?
-		DataBusSizebackup = BIOS_Settings.i440fxCMOS.DataBusSize; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+		backupCMOSglobalsettings(&BIOS_Settings.i440fxCMOS, &backupglobal); //Backup the memory field!
 		memset(&BIOS_Settings.i440fxCMOS, 0, sizeof(BIOS_Settings.i440fxCMOS));
-		BIOS_Settings.i440fxCMOS.memory = memorybackup; //Restore!
-		BIOS_Settings.i440fxCMOS.emulated_CPU = emulated_CPUbackup; //Emulated CPU?
-		BIOS_Settings.i440fxCMOS.emulated_CPUs = emulated_CPUsbackup; //Emulated CPU?
-		BIOS_Settings.i440fxCMOS.CPUspeed = CPUspeedbackup; //CPU speed
-		BIOS_Settings.i440fxCMOS.TurboCPUspeed = TurboCPUspeedbackup; //Turbo CPU speed
-		BIOS_Settings.i440fxCMOS.useTurboCPUSpeed = useTurboCPUSpeedbackup; //Are we to use Turbo CPU speed?
-		BIOS_Settings.i440fxCMOS.clockingmode = clockingmodebackup; //Are we using the IPS clock instead of cycle-accurate clock?
-		BIOS_Settings.i440fxCMOS.DataBusSize = DataBusSizebackup; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+		restoreCMOSglobalsettings(&BIOS_Settings.i440fxCMOS, &backupglobal); //Backup the memory field!
 		BIOS_Settings.got_i440fxCMOS = 0; //We haven't gotten a CMOS!
 	}
 	else if (is_i430fx==1) //i430fx?
 	{
-		memorybackup = BIOS_Settings.i430fxCMOS.memory; //Backup!
-		emulated_CPUbackup = BIOS_Settings.i430fxCMOS.emulated_CPU; //Emulated CPU?
-		emulated_CPUsbackup = BIOS_Settings.i430fxCMOS.emulated_CPUs; //Emulated CPU?
-		CPUspeedbackup = BIOS_Settings.i430fxCMOS.CPUspeed; //CPU speed
-		TurboCPUspeedbackup = BIOS_Settings.i430fxCMOS.TurboCPUspeed; //Turbo CPU speed
-		useTurboCPUSpeedbackup = BIOS_Settings.i430fxCMOS.useTurboCPUSpeed; //Are we to use Turbo CPU speed?
-		clockingmodebackup = BIOS_Settings.i430fxCMOS.clockingmode; //Are we using the IPS clock instead of cycle-accurate clock?
-		DataBusSizebackup = BIOS_Settings.i430fxCMOS.DataBusSize; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+		backupCMOSglobalsettings(&BIOS_Settings.i430fxCMOS, &backupglobal); //Backup the memory field!
 		memset(&BIOS_Settings.i430fxCMOS, 0, sizeof(BIOS_Settings.i430fxCMOS));
-		BIOS_Settings.i430fxCMOS.memory = memorybackup; //Restore!
-		BIOS_Settings.i430fxCMOS.emulated_CPU = emulated_CPUbackup; //Emulated CPU?
-		BIOS_Settings.i430fxCMOS.emulated_CPUs = emulated_CPUsbackup; //Emulated CPU?
-		BIOS_Settings.i430fxCMOS.CPUspeed = CPUspeedbackup; //CPU speed
-		BIOS_Settings.i430fxCMOS.TurboCPUspeed = TurboCPUspeedbackup; //Turbo CPU speed
-		BIOS_Settings.i430fxCMOS.useTurboCPUSpeed = useTurboCPUSpeedbackup; //Are we to use Turbo CPU speed?
-		BIOS_Settings.i430fxCMOS.clockingmode = clockingmodebackup; //Are we using the IPS clock instead of cycle-accurate clock?
-		BIOS_Settings.i430fxCMOS.DataBusSize = DataBusSizebackup; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+		restoreCMOSglobalsettings(&BIOS_Settings.i430fxCMOS, &backupglobal); //Backup the memory field!
 		BIOS_Settings.got_i430fxCMOS = 0; //We haven't gotten a CMOS!
 	}
 	else if (is_PS2) //PS/2?
 	{
-		memorybackup = BIOS_Settings.PS2CMOS.memory; //Backup!
-		emulated_CPUbackup = BIOS_Settings.PS2CMOS.emulated_CPU; //Emulated CPU?
-		emulated_CPUsbackup = BIOS_Settings.PS2CMOS.emulated_CPUs; //Emulated CPU?
-		CPUspeedbackup = BIOS_Settings.PS2CMOS.CPUspeed; //CPU speed
-		TurboCPUspeedbackup = BIOS_Settings.PS2CMOS.TurboCPUspeed; //Turbo CPU speed
-		useTurboCPUSpeedbackup = BIOS_Settings.PS2CMOS.useTurboCPUSpeed; //Are we to use Turbo CPU speed?
-		clockingmodebackup = BIOS_Settings.PS2CMOS.clockingmode; //Are we using the IPS clock instead of cycle-accurate clock?
-		DataBusSizebackup = BIOS_Settings.PS2CMOS.DataBusSize; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+		backupCMOSglobalsettings(&BIOS_Settings.PS2CMOS, &backupglobal); //Backup the memory field!
 		memset(&BIOS_Settings.PS2CMOS, 0, sizeof(BIOS_Settings.PS2CMOS));
-		BIOS_Settings.PS2CMOS.memory = memorybackup; //Restore!
-		BIOS_Settings.PS2CMOS.emulated_CPU = emulated_CPUbackup; //Emulated CPU?
-		BIOS_Settings.PS2CMOS.emulated_CPUs = emulated_CPUsbackup; //Emulated CPU?
-		BIOS_Settings.PS2CMOS.CPUspeed = CPUspeedbackup; //CPU speed
-		BIOS_Settings.PS2CMOS.TurboCPUspeed = TurboCPUspeedbackup; //Turbo CPU speed
-		BIOS_Settings.PS2CMOS.useTurboCPUSpeed = useTurboCPUSpeedbackup; //Are we to use Turbo CPU speed?
-		BIOS_Settings.PS2CMOS.clockingmode = clockingmodebackup; //Are we using the IPS clock instead of cycle-accurate clock?
-		BIOS_Settings.PS2CMOS.DataBusSize = DataBusSizebackup; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+		restoreCMOSglobalsettings(&BIOS_Settings.PS2CMOS, &backupglobal); //Backup the memory field!
 		BIOS_Settings.got_PS2CMOS = 0; //We haven't gotten a CMOS!
 	}
 	else if (is_Compaq)
 	{
-		memorybackup = BIOS_Settings.CompaqCMOS.memory; //Backup!
-		emulated_CPUbackup = BIOS_Settings.CompaqCMOS.emulated_CPU; //Emulated CPU?
-		emulated_CPUsbackup = BIOS_Settings.CompaqCMOS.emulated_CPUs; //Emulated CPU?
-		CPUspeedbackup = BIOS_Settings.CompaqCMOS.CPUspeed; //CPU speed
-		TurboCPUspeedbackup = BIOS_Settings.CompaqCMOS.TurboCPUspeed; //Turbo CPU speed
-		useTurboCPUSpeedbackup = BIOS_Settings.CompaqCMOS.useTurboCPUSpeed; //Are we to use Turbo CPU speed?
-		clockingmodebackup = BIOS_Settings.CompaqCMOS.clockingmode; //Are we using the IPS clock instead of cycle-accurate clock?
-		DataBusSizebackup = BIOS_Settings.CompaqCMOS.DataBusSize; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+		backupCMOSglobalsettings(&BIOS_Settings.CompaqCMOS, &backupglobal); //Backup the memory field!
 		memset(&BIOS_Settings.CompaqCMOS, 0, sizeof(BIOS_Settings.CompaqCMOS));
-		BIOS_Settings.CompaqCMOS.memory = memorybackup; //Restore!
-		BIOS_Settings.CompaqCMOS.emulated_CPU = emulated_CPUbackup; //Emulated CPU?
-		BIOS_Settings.CompaqCMOS.emulated_CPUs = emulated_CPUsbackup; //Emulated CPU?
-		BIOS_Settings.CompaqCMOS.CPUspeed = CPUspeedbackup; //CPU speed
-		BIOS_Settings.CompaqCMOS.TurboCPUspeed = TurboCPUspeedbackup; //Turbo CPU speed
-		BIOS_Settings.CompaqCMOS.useTurboCPUSpeed = useTurboCPUSpeedbackup; //Are we to use Turbo CPU speed?
-		BIOS_Settings.CompaqCMOS.clockingmode = clockingmodebackup; //Are we using the IPS clock instead of cycle-accurate clock?
-		BIOS_Settings.CompaqCMOS.DataBusSize = DataBusSizebackup; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+		restoreCMOSglobalsettings(&BIOS_Settings.CompaqCMOS, &backupglobal); //Backup the memory field!
 		BIOS_Settings.got_CompaqCMOS = 0; //We haven't gotten a CMOS!
 	}
 	else if (is_XT)
 	{
-		memorybackup = BIOS_Settings.XTCMOS.memory; //Backup!
-		emulated_CPUbackup = BIOS_Settings.XTCMOS.emulated_CPU; //Emulated CPU?
-		emulated_CPUsbackup = BIOS_Settings.XTCMOS.emulated_CPUs; //Emulated CPU?
-		CPUspeedbackup = BIOS_Settings.XTCMOS.CPUspeed; //CPU speed
-		TurboCPUspeedbackup = BIOS_Settings.XTCMOS.TurboCPUspeed; //Turbo CPU speed
-		useTurboCPUSpeedbackup = BIOS_Settings.XTCMOS.useTurboCPUSpeed; //Are we to use Turbo CPU speed?
-		clockingmodebackup = BIOS_Settings.XTCMOS.clockingmode; //Are we using the IPS clock instead of cycle-accurate clock?
-		DataBusSizebackup = BIOS_Settings.XTCMOS.DataBusSize; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+		backupCMOSglobalsettings(&BIOS_Settings.XTCMOS, &backupglobal); //Backup the memory field!
 		memset(&BIOS_Settings.XTCMOS, 0, sizeof(BIOS_Settings.XTCMOS));
-		BIOS_Settings.XTCMOS.memory = memorybackup; //Restore!
-		BIOS_Settings.XTCMOS.emulated_CPU = emulated_CPUbackup; //Emulated CPU?
-		BIOS_Settings.XTCMOS.emulated_CPUs = emulated_CPUsbackup; //Emulated CPU?
-		BIOS_Settings.XTCMOS.CPUspeed = CPUspeedbackup; //CPU speed
-		BIOS_Settings.XTCMOS.TurboCPUspeed = TurboCPUspeedbackup; //Turbo CPU speed
-		BIOS_Settings.XTCMOS.useTurboCPUSpeed = useTurboCPUSpeedbackup; //Are we to use Turbo CPU speed?
-		BIOS_Settings.XTCMOS.clockingmode = clockingmodebackup; //Are we using the IPS clock instead of cycle-accurate clock?
-		BIOS_Settings.XTCMOS.DataBusSize = DataBusSizebackup; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+		restoreCMOSglobalsettings(&BIOS_Settings.XTCMOS, &backupglobal); //Backup the memory field!
 		BIOS_Settings.got_XTCMOS = 0; //We haven't gotten a CMOS!
 	}
 	else //AT?
 	{
-		memorybackup = BIOS_Settings.ATCMOS.memory; //Backup!
-		emulated_CPUbackup = BIOS_Settings.ATCMOS.emulated_CPU; //Emulated CPU?
-		emulated_CPUsbackup = BIOS_Settings.ATCMOS.emulated_CPUs; //Emulated CPU?
-		CPUspeedbackup = BIOS_Settings.ATCMOS.CPUspeed; //CPU speed
-		TurboCPUspeedbackup = BIOS_Settings.ATCMOS.TurboCPUspeed; //Turbo CPU speed
-		useTurboCPUSpeedbackup = BIOS_Settings.ATCMOS.useTurboCPUSpeed; //Are we to use Turbo CPU speed?
-		clockingmodebackup = BIOS_Settings.ATCMOS.clockingmode; //Are we using the IPS clock instead of cycle-accurate clock?
-		DataBusSizebackup = BIOS_Settings.ATCMOS.DataBusSize; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+		backupCMOSglobalsettings(&BIOS_Settings.ATCMOS, &backupglobal); //Backup the memory field!
 		memset(&BIOS_Settings.ATCMOS, 0, sizeof(BIOS_Settings.ATCMOS));
-		BIOS_Settings.ATCMOS.memory = memorybackup; //Restore!
-		BIOS_Settings.ATCMOS.emulated_CPU = emulated_CPUbackup; //Emulated CPU?
-		BIOS_Settings.ATCMOS.emulated_CPUs = emulated_CPUsbackup; //Emulated CPU?
-		BIOS_Settings.ATCMOS.CPUspeed = CPUspeedbackup; //CPU speed
-		BIOS_Settings.ATCMOS.TurboCPUspeed = TurboCPUspeedbackup; //Turbo CPU speed
-		BIOS_Settings.ATCMOS.useTurboCPUSpeed = useTurboCPUSpeedbackup; //Are we to use Turbo CPU speed?
-		BIOS_Settings.ATCMOS.clockingmode = clockingmodebackup; //Are we using the IPS clock instead of cycle-accurate clock?
-		BIOS_Settings.ATCMOS.DataBusSize = DataBusSizebackup; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+		restoreCMOSglobalsettings(&BIOS_Settings.ATCMOS, &backupglobal); //Backup the memory field!
 		BIOS_Settings.got_ATCMOS = 0; //We haven't gotten a CMOS!
 	}
 	BIOS_Menu = 8; //Goto Advanced Menu!
@@ -8500,34 +8410,14 @@ void BIOS_CMOSTiming() //Time the CMOS!
 	CMOS.Loaded = 1; //Unload the CMOS: discard anything that's loaded when saving!
 	CMOS.DATA.cycletiming = !CMOS.DATA.cycletiming; //Reverse!
 	unlock(LOCK_CPU); //We're finished with the main thread!
-	uint_32 memorybackup;
-	byte emulated_CPUbackup; //Emulated CPU?
-	uint_32 CPUspeedbackup; //CPU speed
-	uint_32 TurboCPUspeedbackup; //Turbo CPU speed
-	byte useTurboCPUSpeedbackup; //Are we to use Turbo CPU speed?
-	byte clockingmodebackup; //Are we using the IPS clock instead of cycle-accurate clock?
-	byte DataBusSizebackup; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+	CMOSGLOBALBACKUPDATA backupglobal;
 	if (is_i430fx==2) //i440fx?
 	{
 		if (!BIOS_Settings.got_i440fxCMOS)
 		{
-			memorybackup = BIOS_Settings.i440fxCMOS.memory; //Backup!
-			emulated_CPUbackup = BIOS_Settings.i440fxCMOS.emulated_CPU; //Emulated CPU?
-			emulated_CPUbackup = BIOS_Settings.i440fxCMOS.emulated_CPU; //Emulated CPU?
-			CPUspeedbackup = BIOS_Settings.i440fxCMOS.CPUspeed; //CPU speed
-			TurboCPUspeedbackup = BIOS_Settings.i440fxCMOS.TurboCPUspeed; //Turbo CPU speed
-			useTurboCPUSpeedbackup = BIOS_Settings.i440fxCMOS.useTurboCPUSpeed; //Are we to use Turbo CPU speed?
-			clockingmodebackup = BIOS_Settings.i440fxCMOS.clockingmode; //Are we using the IPS clock instead of cycle-accurate clock?
-			DataBusSizebackup = BIOS_Settings.i440fxCMOS.DataBusSize; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+			backupCMOSglobalsettings(&BIOS_Settings.i440fxCMOS, &backupglobal); //Backup the memory field!
 			memset(&BIOS_Settings.i440fxCMOS, 0, sizeof(BIOS_Settings.i440fxCMOS)); //Init!
-			BIOS_Settings.i440fxCMOS.memory = memorybackup; //Restore!
-			BIOS_Settings.i440fxCMOS.emulated_CPU = emulated_CPUbackup; //Emulated CPU?
-			BIOS_Settings.i440fxCMOS.emulated_CPU = emulated_CPUbackup; //Emulated CPU?
-			BIOS_Settings.i440fxCMOS.CPUspeed = CPUspeedbackup; //CPU speed
-			BIOS_Settings.i440fxCMOS.TurboCPUspeed = TurboCPUspeedbackup; //Turbo CPU speed
-			BIOS_Settings.i440fxCMOS.useTurboCPUSpeed = useTurboCPUSpeedbackup; //Are we to use Turbo CPU speed?
-			BIOS_Settings.i440fxCMOS.clockingmode = clockingmodebackup; //Are we using the IPS clock instead of cycle-accurate clock?
-			BIOS_Settings.i440fxCMOS.DataBusSize = DataBusSizebackup; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+			restoreCMOSglobalsettings(&BIOS_Settings.i440fxCMOS, &backupglobal); //Backup the memory field!
 		}
 		BIOS_Settings.i440fxCMOS.cycletiming = !BIOS_Settings.i440fxCMOS.cycletiming; //Reverse!
 		BIOS_Settings.got_i440fxCMOS = 1; //We hav gotten a CMOS!
@@ -8536,23 +8426,9 @@ void BIOS_CMOSTiming() //Time the CMOS!
 	{
 		if (!BIOS_Settings.got_i430fxCMOS)
 		{
-			memorybackup = BIOS_Settings.i430fxCMOS.memory; //Backup!
-			emulated_CPUbackup = BIOS_Settings.i430fxCMOS.emulated_CPU; //Emulated CPU?
-			emulated_CPUbackup = BIOS_Settings.i430fxCMOS.emulated_CPU; //Emulated CPU?
-			CPUspeedbackup = BIOS_Settings.i430fxCMOS.CPUspeed; //CPU speed
-			TurboCPUspeedbackup = BIOS_Settings.i430fxCMOS.TurboCPUspeed; //Turbo CPU speed
-			useTurboCPUSpeedbackup = BIOS_Settings.i430fxCMOS.useTurboCPUSpeed; //Are we to use Turbo CPU speed?
-			clockingmodebackup = BIOS_Settings.i430fxCMOS.clockingmode; //Are we using the IPS clock instead of cycle-accurate clock?
-			DataBusSizebackup = BIOS_Settings.i430fxCMOS.DataBusSize; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+			backupCMOSglobalsettings(&BIOS_Settings.i430fxCMOS, &backupglobal); //Backup the memory field!
 			memset(&BIOS_Settings.i430fxCMOS, 0, sizeof(BIOS_Settings.i430fxCMOS)); //Init!
-			BIOS_Settings.i430fxCMOS.memory = memorybackup; //Restore!
-			BIOS_Settings.i430fxCMOS.emulated_CPU = emulated_CPUbackup; //Emulated CPU?
-			BIOS_Settings.i430fxCMOS.emulated_CPU = emulated_CPUbackup; //Emulated CPU?
-			BIOS_Settings.i430fxCMOS.CPUspeed = CPUspeedbackup; //CPU speed
-			BIOS_Settings.i430fxCMOS.TurboCPUspeed = TurboCPUspeedbackup; //Turbo CPU speed
-			BIOS_Settings.i430fxCMOS.useTurboCPUSpeed = useTurboCPUSpeedbackup; //Are we to use Turbo CPU speed?
-			BIOS_Settings.i430fxCMOS.clockingmode = clockingmodebackup; //Are we using the IPS clock instead of cycle-accurate clock?
-			BIOS_Settings.i430fxCMOS.DataBusSize = DataBusSizebackup; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+			restoreCMOSglobalsettings(&BIOS_Settings.i430fxCMOS, &backupglobal); //Backup the memory field!
 		}
 		BIOS_Settings.i430fxCMOS.cycletiming = !BIOS_Settings.i430fxCMOS.cycletiming; //Reverse!
 		BIOS_Settings.got_i430fxCMOS = 1; //We hav gotten a CMOS!
@@ -8561,23 +8437,9 @@ void BIOS_CMOSTiming() //Time the CMOS!
 	{
 		if (!BIOS_Settings.got_PS2CMOS)
 		{
-			memorybackup = BIOS_Settings.PS2CMOS.memory; //Backup!
-			emulated_CPUbackup = BIOS_Settings.PS2CMOS.emulated_CPU; //Emulated CPU?
-			emulated_CPUbackup = BIOS_Settings.PS2CMOS.emulated_CPU; //Emulated CPU?
-			CPUspeedbackup = BIOS_Settings.PS2CMOS.CPUspeed; //CPU speed
-			TurboCPUspeedbackup = BIOS_Settings.PS2CMOS.TurboCPUspeed; //Turbo CPU speed
-			useTurboCPUSpeedbackup = BIOS_Settings.PS2CMOS.useTurboCPUSpeed; //Are we to use Turbo CPU speed?
-			clockingmodebackup = BIOS_Settings.PS2CMOS.clockingmode; //Are we using the IPS clock instead of cycle-accurate clock?
-			DataBusSizebackup = BIOS_Settings.PS2CMOS.DataBusSize; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+			backupCMOSglobalsettings(&BIOS_Settings.PS2CMOS, &backupglobal); //Backup the memory field!
 			memset(&BIOS_Settings.PS2CMOS,0,sizeof(BIOS_Settings.PS2CMOS)); //Init!
-			BIOS_Settings.PS2CMOS.memory = memorybackup; //Restore!
-			BIOS_Settings.PS2CMOS.emulated_CPU = emulated_CPUbackup; //Emulated CPU?
-			BIOS_Settings.PS2CMOS.emulated_CPU = emulated_CPUbackup; //Emulated CPU?
-			BIOS_Settings.PS2CMOS.CPUspeed = CPUspeedbackup; //CPU speed
-			BIOS_Settings.PS2CMOS.TurboCPUspeed = TurboCPUspeedbackup; //Turbo CPU speed
-			BIOS_Settings.PS2CMOS.useTurboCPUSpeed = useTurboCPUSpeedbackup; //Are we to use Turbo CPU speed?
-			BIOS_Settings.PS2CMOS.clockingmode = clockingmodebackup; //Are we using the IPS clock instead of cycle-accurate clock?
-			BIOS_Settings.PS2CMOS.DataBusSize = DataBusSizebackup; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+			restoreCMOSglobalsettings(&BIOS_Settings.PS2CMOS, &backupglobal); //Backup the memory field!
 		}
 		BIOS_Settings.PS2CMOS.cycletiming = !BIOS_Settings.PS2CMOS.cycletiming; //Reverse!
 		BIOS_Settings.got_PS2CMOS = 1; //We hav gotten a CMOS!
@@ -8586,23 +8448,9 @@ void BIOS_CMOSTiming() //Time the CMOS!
 	{
 		if (!BIOS_Settings.got_CompaqCMOS)
 		{
-			memorybackup = BIOS_Settings.CompaqCMOS.memory; //Backup!
-			emulated_CPUbackup = BIOS_Settings.CompaqCMOS.emulated_CPU; //Emulated CPU?
-			emulated_CPUbackup = BIOS_Settings.CompaqCMOS.emulated_CPU; //Emulated CPU?
-			CPUspeedbackup = BIOS_Settings.CompaqCMOS.CPUspeed; //CPU speed
-			TurboCPUspeedbackup = BIOS_Settings.CompaqCMOS.TurboCPUspeed; //Turbo CPU speed
-			useTurboCPUSpeedbackup = BIOS_Settings.CompaqCMOS.useTurboCPUSpeed; //Are we to use Turbo CPU speed?
-			clockingmodebackup = BIOS_Settings.CompaqCMOS.clockingmode; //Are we using the IPS clock instead of cycle-accurate clock?
-			DataBusSizebackup = BIOS_Settings.CompaqCMOS.DataBusSize; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+			backupCMOSglobalsettings(&BIOS_Settings.CompaqCMOS, &backupglobal); //Backup the memory field!
 			memset(&BIOS_Settings.CompaqCMOS,0,sizeof(BIOS_Settings.CompaqCMOS)); //Init!
-			BIOS_Settings.CompaqCMOS.memory = memorybackup; //Restore!
-			BIOS_Settings.CompaqCMOS.emulated_CPU = emulated_CPUbackup; //Emulated CPU?
-			BIOS_Settings.CompaqCMOS.emulated_CPU = emulated_CPUbackup; //Emulated CPU?
-			BIOS_Settings.CompaqCMOS.CPUspeed = CPUspeedbackup; //CPU speed
-			BIOS_Settings.CompaqCMOS.TurboCPUspeed = TurboCPUspeedbackup; //Turbo CPU speed
-			BIOS_Settings.CompaqCMOS.useTurboCPUSpeed = useTurboCPUSpeedbackup; //Are we to use Turbo CPU speed?
-			BIOS_Settings.CompaqCMOS.clockingmode = clockingmodebackup; //Are we using the IPS clock instead of cycle-accurate clock?
-			BIOS_Settings.CompaqCMOS.DataBusSize = DataBusSizebackup; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+			restoreCMOSglobalsettings(&BIOS_Settings.CompaqCMOS, &backupglobal); //Backup the memory field!
 		}
 		BIOS_Settings.CompaqCMOS.cycletiming = !BIOS_Settings.CompaqCMOS.cycletiming; //Reverse!
 		BIOS_Settings.got_CompaqCMOS = 1; //We hav gotten a CMOS!
@@ -8611,23 +8459,9 @@ void BIOS_CMOSTiming() //Time the CMOS!
 	{
 		if (!BIOS_Settings.got_XTCMOS)
 		{
-			memorybackup = BIOS_Settings.XTCMOS.memory; //Backup!
-			emulated_CPUbackup = BIOS_Settings.XTCMOS.emulated_CPU; //Emulated CPU?
-			emulated_CPUbackup = BIOS_Settings.XTCMOS.emulated_CPU; //Emulated CPU?
-			CPUspeedbackup = BIOS_Settings.XTCMOS.CPUspeed; //CPU speed
-			TurboCPUspeedbackup = BIOS_Settings.XTCMOS.TurboCPUspeed; //Turbo CPU speed
-			useTurboCPUSpeedbackup = BIOS_Settings.XTCMOS.useTurboCPUSpeed; //Are we to use Turbo CPU speed?
-			clockingmodebackup = BIOS_Settings.XTCMOS.clockingmode; //Are we using the IPS clock instead of cycle-accurate clock?
-			DataBusSizebackup = BIOS_Settings.XTCMOS.DataBusSize; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+			backupCMOSglobalsettings(&BIOS_Settings.XTCMOS, &backupglobal); //Backup the memory field!
 			memset(&BIOS_Settings.XTCMOS,0,sizeof(BIOS_Settings.XTCMOS)); //Init!
-			BIOS_Settings.XTCMOS.memory = memorybackup; //Restore!
-			BIOS_Settings.XTCMOS.emulated_CPU = emulated_CPUbackup; //Emulated CPU?
-			BIOS_Settings.XTCMOS.emulated_CPU = emulated_CPUbackup; //Emulated CPU?
-			BIOS_Settings.XTCMOS.CPUspeed = CPUspeedbackup; //CPU speed
-			BIOS_Settings.XTCMOS.TurboCPUspeed = TurboCPUspeedbackup; //Turbo CPU speed
-			BIOS_Settings.XTCMOS.useTurboCPUSpeed = useTurboCPUSpeedbackup; //Are we to use Turbo CPU speed?
-			BIOS_Settings.XTCMOS.clockingmode = clockingmodebackup; //Are we using the IPS clock instead of cycle-accurate clock?
-			BIOS_Settings.XTCMOS.DataBusSize = DataBusSizebackup; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+			restoreCMOSglobalsettings(&BIOS_Settings.XTCMOS, &backupglobal); //Backup the memory field!
 		}
 		BIOS_Settings.XTCMOS.cycletiming = !BIOS_Settings.XTCMOS.cycletiming; //Reverse!
 		BIOS_Settings.got_XTCMOS = 1; //We hav gotten a CMOS!
@@ -8636,22 +8470,9 @@ void BIOS_CMOSTiming() //Time the CMOS!
 	{
 		if (!BIOS_Settings.got_ATCMOS)
 		{
-			memorybackup = BIOS_Settings.ATCMOS.memory; //Backup!
-			emulated_CPUbackup = BIOS_Settings.ATCMOS.emulated_CPU; //Emulated CPU?
-			CPUspeedbackup = BIOS_Settings.ATCMOS.CPUspeed; //CPU speed
-			TurboCPUspeedbackup = BIOS_Settings.ATCMOS.TurboCPUspeed; //Turbo CPU speed
-			useTurboCPUSpeedbackup = BIOS_Settings.ATCMOS.useTurboCPUSpeed; //Are we to use Turbo CPU speed?
-			clockingmodebackup = BIOS_Settings.ATCMOS.clockingmode; //Are we using the IPS clock instead of cycle-accurate clock?
-			DataBusSizebackup = BIOS_Settings.ATCMOS.DataBusSize; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+			backupCMOSglobalsettings(&BIOS_Settings.ATCMOS, &backupglobal); //Backup the memory field!
 			memset(&BIOS_Settings.ATCMOS,0,sizeof(BIOS_Settings.ATCMOS)); //Init!
-			BIOS_Settings.ATCMOS.memory = memorybackup; //Restore!
-			BIOS_Settings.ATCMOS.emulated_CPU = emulated_CPUbackup; //Emulated CPU?
-			BIOS_Settings.ATCMOS.emulated_CPU = emulated_CPUbackup; //Emulated CPU?
-			BIOS_Settings.ATCMOS.CPUspeed = CPUspeedbackup; //CPU speed
-			BIOS_Settings.ATCMOS.TurboCPUspeed = TurboCPUspeedbackup; //Turbo CPU speed
-			BIOS_Settings.ATCMOS.useTurboCPUSpeed = useTurboCPUSpeedbackup; //Are we to use Turbo CPU speed?
-			BIOS_Settings.ATCMOS.clockingmode = clockingmodebackup; //Are we using the IPS clock instead of cycle-accurate clock?
-			BIOS_Settings.ATCMOS.DataBusSize = DataBusSizebackup; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+			restoreCMOSglobalsettings(&BIOS_Settings.ATCMOS, &backupglobal); //Backup the memory field!
 		}
 		BIOS_Settings.ATCMOS.cycletiming = !BIOS_Settings.ATCMOS.cycletiming; //Reverse!
 		BIOS_Settings.got_ATCMOS = 1; //We hav gotten a CMOS!
@@ -8881,34 +8702,14 @@ void BIOS_floppy0_nodisk_type()
 	CMOS.Loaded = 1; //Unload the CMOS: discard anything that's loaded when saving!
 	CMOS.DATA.floppy0_nodisk_type = newtype; //Reverse!
 	unlock(LOCK_CPU); //We're finished with the main thread!
-	uint_32 memorybackup;
-	byte emulated_CPUbackup; //Emulated CPU?
-	uint_32 CPUspeedbackup; //CPU speed
-	uint_32 TurboCPUspeedbackup; //Turbo CPU speed
-	byte useTurboCPUSpeedbackup; //Are we to use Turbo CPU speed?
-	byte clockingmodebackup; //Are we using the IPS clock instead of cycle-accurate clock?
-	byte DataBusSizebackup; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+	CMOSGLOBALBACKUPDATA backupglobal;
 	if (is_i430fx==2) //i440fx?
 	{
 		if (!BIOS_Settings.got_i440fxCMOS)
 		{
-			memorybackup = BIOS_Settings.i440fxCMOS.memory; //Backup!
-			emulated_CPUbackup = BIOS_Settings.i440fxCMOS.emulated_CPU; //Emulated CPU?
-			emulated_CPUbackup = BIOS_Settings.i440fxCMOS.emulated_CPU; //Emulated CPU?
-			CPUspeedbackup = BIOS_Settings.i440fxCMOS.CPUspeed; //CPU speed
-			TurboCPUspeedbackup = BIOS_Settings.i440fxCMOS.TurboCPUspeed; //Turbo CPU speed
-			useTurboCPUSpeedbackup = BIOS_Settings.i440fxCMOS.useTurboCPUSpeed; //Are we to use Turbo CPU speed?
-			clockingmodebackup = BIOS_Settings.i440fxCMOS.clockingmode; //Are we using the IPS clock instead of cycle-accurate clock?
-			DataBusSizebackup = BIOS_Settings.i440fxCMOS.DataBusSize; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+			backupCMOSglobalsettings(&BIOS_Settings.i440fxCMOS, &backupglobal); //Backup the memory field!
 			memset(&BIOS_Settings.i440fxCMOS, 0, sizeof(BIOS_Settings.i440fxCMOS)); //Init!
-			BIOS_Settings.i440fxCMOS.memory = memorybackup; //Restore!
-			BIOS_Settings.i440fxCMOS.emulated_CPU = emulated_CPUbackup; //Emulated CPU?
-			BIOS_Settings.i440fxCMOS.emulated_CPU = emulated_CPUbackup; //Emulated CPU?
-			BIOS_Settings.i440fxCMOS.CPUspeed = CPUspeedbackup; //CPU speed
-			BIOS_Settings.i440fxCMOS.TurboCPUspeed = TurboCPUspeedbackup; //Turbo CPU speed
-			BIOS_Settings.i440fxCMOS.useTurboCPUSpeed = useTurboCPUSpeedbackup; //Are we to use Turbo CPU speed?
-			BIOS_Settings.i440fxCMOS.clockingmode = clockingmodebackup; //Are we using the IPS clock instead of cycle-accurate clock?
-			BIOS_Settings.i440fxCMOS.DataBusSize = DataBusSizebackup; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+			restoreCMOSglobalsettings(&BIOS_Settings.i440fxCMOS, &backupglobal); //Backup the memory field!
 		}
 		BIOS_Settings.i440fxCMOS.floppy0_nodisk_type = result; //Reverse!
 		BIOS_Settings.got_i440fxCMOS = 1; //We hav gotten a CMOS!
@@ -8917,23 +8718,9 @@ void BIOS_floppy0_nodisk_type()
 	{
 		if (!BIOS_Settings.got_i430fxCMOS)
 		{
-			memorybackup = BIOS_Settings.i430fxCMOS.memory; //Backup!
-			emulated_CPUbackup = BIOS_Settings.i430fxCMOS.emulated_CPU; //Emulated CPU?
-			emulated_CPUbackup = BIOS_Settings.i430fxCMOS.emulated_CPU; //Emulated CPU?
-			CPUspeedbackup = BIOS_Settings.i430fxCMOS.CPUspeed; //CPU speed
-			TurboCPUspeedbackup = BIOS_Settings.i430fxCMOS.TurboCPUspeed; //Turbo CPU speed
-			useTurboCPUSpeedbackup = BIOS_Settings.i430fxCMOS.useTurboCPUSpeed; //Are we to use Turbo CPU speed?
-			clockingmodebackup = BIOS_Settings.i430fxCMOS.clockingmode; //Are we using the IPS clock instead of cycle-accurate clock?
-			DataBusSizebackup = BIOS_Settings.i430fxCMOS.DataBusSize; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+			backupCMOSglobalsettings(&BIOS_Settings.i430fxCMOS, &backupglobal); //Backup the memory field!
 			memset(&BIOS_Settings.i430fxCMOS, 0, sizeof(BIOS_Settings.i430fxCMOS)); //Init!
-			BIOS_Settings.i430fxCMOS.memory = memorybackup; //Restore!
-			BIOS_Settings.i430fxCMOS.emulated_CPU = emulated_CPUbackup; //Emulated CPU?
-			BIOS_Settings.i430fxCMOS.emulated_CPU = emulated_CPUbackup; //Emulated CPU?
-			BIOS_Settings.i430fxCMOS.CPUspeed = CPUspeedbackup; //CPU speed
-			BIOS_Settings.i430fxCMOS.TurboCPUspeed = TurboCPUspeedbackup; //Turbo CPU speed
-			BIOS_Settings.i430fxCMOS.useTurboCPUSpeed = useTurboCPUSpeedbackup; //Are we to use Turbo CPU speed?
-			BIOS_Settings.i430fxCMOS.clockingmode = clockingmodebackup; //Are we using the IPS clock instead of cycle-accurate clock?
-			BIOS_Settings.i430fxCMOS.DataBusSize = DataBusSizebackup; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+			restoreCMOSglobalsettings(&BIOS_Settings.i430fxCMOS, &backupglobal); //Backup the memory field!
 		}
 		BIOS_Settings.i430fxCMOS.floppy0_nodisk_type = result; //Reverse!
 		BIOS_Settings.got_i430fxCMOS = 1; //We hav gotten a CMOS!
@@ -8942,23 +8729,9 @@ void BIOS_floppy0_nodisk_type()
 	{
 		if (!BIOS_Settings.got_PS2CMOS)
 		{
-			memorybackup = BIOS_Settings.PS2CMOS.memory; //Backup!
-			emulated_CPUbackup = BIOS_Settings.PS2CMOS.emulated_CPU; //Emulated CPU?
-			emulated_CPUbackup = BIOS_Settings.PS2CMOS.emulated_CPU; //Emulated CPU?
-			CPUspeedbackup = BIOS_Settings.PS2CMOS.CPUspeed; //CPU speed
-			TurboCPUspeedbackup = BIOS_Settings.PS2CMOS.TurboCPUspeed; //Turbo CPU speed
-			useTurboCPUSpeedbackup = BIOS_Settings.PS2CMOS.useTurboCPUSpeed; //Are we to use Turbo CPU speed?
-			clockingmodebackup = BIOS_Settings.PS2CMOS.clockingmode; //Are we using the IPS clock instead of cycle-accurate clock?
-			DataBusSizebackup = BIOS_Settings.PS2CMOS.DataBusSize; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+			backupCMOSglobalsettings(&BIOS_Settings.PS2CMOS, &backupglobal); //Backup the memory field!
 			memset(&BIOS_Settings.PS2CMOS, 0, sizeof(BIOS_Settings.PS2CMOS)); //Init!
-			BIOS_Settings.PS2CMOS.memory = memorybackup; //Restore!
-			BIOS_Settings.PS2CMOS.emulated_CPU = emulated_CPUbackup; //Emulated CPU?
-			BIOS_Settings.PS2CMOS.emulated_CPU = emulated_CPUbackup; //Emulated CPU?
-			BIOS_Settings.PS2CMOS.CPUspeed = CPUspeedbackup; //CPU speed
-			BIOS_Settings.PS2CMOS.TurboCPUspeed = TurboCPUspeedbackup; //Turbo CPU speed
-			BIOS_Settings.PS2CMOS.useTurboCPUSpeed = useTurboCPUSpeedbackup; //Are we to use Turbo CPU speed?
-			BIOS_Settings.PS2CMOS.clockingmode = clockingmodebackup; //Are we using the IPS clock instead of cycle-accurate clock?
-			BIOS_Settings.PS2CMOS.DataBusSize = DataBusSizebackup; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+			restoreCMOSglobalsettings(&BIOS_Settings.PS2CMOS, &backupglobal); //Backup the memory field!
 		}
 		BIOS_Settings.PS2CMOS.floppy0_nodisk_type = result; //Reverse!
 		BIOS_Settings.got_PS2CMOS = 1; //We hav gotten a CMOS!
@@ -8967,23 +8740,9 @@ void BIOS_floppy0_nodisk_type()
 	{
 		if (!BIOS_Settings.got_CompaqCMOS)
 		{
-			memorybackup = BIOS_Settings.CompaqCMOS.memory; //Backup!
-			emulated_CPUbackup = BIOS_Settings.CompaqCMOS.emulated_CPU; //Emulated CPU?
-			emulated_CPUbackup = BIOS_Settings.CompaqCMOS.emulated_CPU; //Emulated CPU?
-			CPUspeedbackup = BIOS_Settings.CompaqCMOS.CPUspeed; //CPU speed
-			TurboCPUspeedbackup = BIOS_Settings.CompaqCMOS.TurboCPUspeed; //Turbo CPU speed
-			useTurboCPUSpeedbackup = BIOS_Settings.CompaqCMOS.useTurboCPUSpeed; //Are we to use Turbo CPU speed?
-			clockingmodebackup = BIOS_Settings.CompaqCMOS.clockingmode; //Are we using the IPS clock instead of cycle-accurate clock?
-			DataBusSizebackup = BIOS_Settings.CompaqCMOS.DataBusSize; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+			backupCMOSglobalsettings(&BIOS_Settings.CompaqCMOS, &backupglobal); //Backup the memory field!
 			memset(&BIOS_Settings.CompaqCMOS, 0, sizeof(BIOS_Settings.CompaqCMOS)); //Init!
-			BIOS_Settings.CompaqCMOS.memory = memorybackup; //Restore!
-			BIOS_Settings.CompaqCMOS.emulated_CPU = emulated_CPUbackup; //Emulated CPU?
-			BIOS_Settings.CompaqCMOS.emulated_CPU = emulated_CPUbackup; //Emulated CPU?
-			BIOS_Settings.CompaqCMOS.CPUspeed = CPUspeedbackup; //CPU speed
-			BIOS_Settings.CompaqCMOS.TurboCPUspeed = TurboCPUspeedbackup; //Turbo CPU speed
-			BIOS_Settings.CompaqCMOS.useTurboCPUSpeed = useTurboCPUSpeedbackup; //Are we to use Turbo CPU speed?
-			BIOS_Settings.CompaqCMOS.clockingmode = clockingmodebackup; //Are we using the IPS clock instead of cycle-accurate clock?
-			BIOS_Settings.CompaqCMOS.DataBusSize = DataBusSizebackup; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+			restoreCMOSglobalsettings(&BIOS_Settings.CompaqCMOS, &backupglobal); //Backup the memory field!
 		}
 		BIOS_Settings.CompaqCMOS.floppy0_nodisk_type = result; //Reverse!
 		BIOS_Settings.got_CompaqCMOS = 1; //We hav gotten a CMOS!
@@ -8992,23 +8751,9 @@ void BIOS_floppy0_nodisk_type()
 	{
 		if (!BIOS_Settings.got_XTCMOS)
 		{
-			memorybackup = BIOS_Settings.XTCMOS.memory; //Backup!
-			emulated_CPUbackup = BIOS_Settings.XTCMOS.emulated_CPU; //Emulated CPU?
-			emulated_CPUbackup = BIOS_Settings.XTCMOS.emulated_CPU; //Emulated CPU?
-			CPUspeedbackup = BIOS_Settings.XTCMOS.CPUspeed; //CPU speed
-			TurboCPUspeedbackup = BIOS_Settings.XTCMOS.TurboCPUspeed; //Turbo CPU speed
-			useTurboCPUSpeedbackup = BIOS_Settings.XTCMOS.useTurboCPUSpeed; //Are we to use Turbo CPU speed?
-			clockingmodebackup = BIOS_Settings.XTCMOS.clockingmode; //Are we using the IPS clock instead of cycle-accurate clock?
-			DataBusSizebackup = BIOS_Settings.XTCMOS.DataBusSize; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+			backupCMOSglobalsettings(&BIOS_Settings.XTCMOS, &backupglobal); //Backup the memory field!
 			memset(&BIOS_Settings.XTCMOS, 0, sizeof(BIOS_Settings.XTCMOS)); //Init!
-			BIOS_Settings.XTCMOS.memory = memorybackup; //Restore!
-			BIOS_Settings.XTCMOS.emulated_CPU = emulated_CPUbackup; //Emulated CPU?
-			BIOS_Settings.XTCMOS.emulated_CPU = emulated_CPUbackup; //Emulated CPU?
-			BIOS_Settings.XTCMOS.CPUspeed = CPUspeedbackup; //CPU speed
-			BIOS_Settings.XTCMOS.TurboCPUspeed = TurboCPUspeedbackup; //Turbo CPU speed
-			BIOS_Settings.XTCMOS.useTurboCPUSpeed = useTurboCPUSpeedbackup; //Are we to use Turbo CPU speed?
-			BIOS_Settings.XTCMOS.clockingmode = clockingmodebackup; //Are we using the IPS clock instead of cycle-accurate clock?
-			BIOS_Settings.XTCMOS.DataBusSize = DataBusSizebackup; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+			restoreCMOSglobalsettings(&BIOS_Settings.XTCMOS, &backupglobal); //Backup the memory field!
 		}
 		BIOS_Settings.XTCMOS.floppy0_nodisk_type = result; //Reverse!
 		BIOS_Settings.got_XTCMOS = 1; //We hav gotten a CMOS!
@@ -9017,23 +8762,9 @@ void BIOS_floppy0_nodisk_type()
 	{
 		if (!BIOS_Settings.got_ATCMOS)
 		{
-			memorybackup = BIOS_Settings.ATCMOS.memory; //Backup!
-			emulated_CPUbackup = BIOS_Settings.ATCMOS.emulated_CPU; //Emulated CPU?
-			emulated_CPUbackup = BIOS_Settings.ATCMOS.emulated_CPU; //Emulated CPU?
-			CPUspeedbackup = BIOS_Settings.ATCMOS.CPUspeed; //CPU speed
-			TurboCPUspeedbackup = BIOS_Settings.ATCMOS.TurboCPUspeed; //Turbo CPU speed
-			useTurboCPUSpeedbackup = BIOS_Settings.ATCMOS.useTurboCPUSpeed; //Are we to use Turbo CPU speed?
-			clockingmodebackup = BIOS_Settings.ATCMOS.clockingmode; //Are we using the IPS clock instead of cycle-accurate clock?
-			DataBusSizebackup = BIOS_Settings.ATCMOS.DataBusSize; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+			backupCMOSglobalsettings(&BIOS_Settings.ATCMOS, &backupglobal); //Backup the memory field!
 			memset(&BIOS_Settings.ATCMOS, 0, sizeof(BIOS_Settings.ATCMOS)); //Init!
-			BIOS_Settings.ATCMOS.memory = memorybackup; //Restore!
-			BIOS_Settings.ATCMOS.emulated_CPU = emulated_CPUbackup; //Emulated CPU?
-			BIOS_Settings.ATCMOS.emulated_CPU = emulated_CPUbackup; //Emulated CPU?
-			BIOS_Settings.ATCMOS.CPUspeed = CPUspeedbackup; //CPU speed
-			BIOS_Settings.ATCMOS.TurboCPUspeed = TurboCPUspeedbackup; //Turbo CPU speed
-			BIOS_Settings.ATCMOS.useTurboCPUSpeed = useTurboCPUSpeedbackup; //Are we to use Turbo CPU speed?
-			BIOS_Settings.ATCMOS.clockingmode = clockingmodebackup; //Are we using the IPS clock instead of cycle-accurate clock?
-			BIOS_Settings.ATCMOS.DataBusSize = DataBusSizebackup; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+			restoreCMOSglobalsettings(&BIOS_Settings.ATCMOS, &backupglobal); //Backup the memory field!
 		}
 		BIOS_Settings.ATCMOS.floppy0_nodisk_type = result; //Reverse!
 		BIOS_Settings.got_ATCMOS = 1; //We hav gotten a CMOS!
@@ -9115,32 +8846,14 @@ void BIOS_floppy1_nodisk_type()
 	CMOS.Loaded = 1; //Unload the CMOS: discard anything that's loaded when saving!
 	CMOS.DATA.floppy1_nodisk_type = newtype; //Reverse!
 	unlock(LOCK_CPU); //We're finished with the main thread!
-	uint_32 memorybackup;
-	byte emulated_CPUbackup; //Emulated CPU?
-	uint_32 CPUspeedbackup; //CPU speed
-	uint_32 TurboCPUspeedbackup; //Turbo CPU speed
-	byte useTurboCPUSpeedbackup; //Are we to use Turbo CPU speed?
-	byte clockingmodebackup; //Are we using the IPS clock instead of cycle-accurate clock?
-	byte DataBusSizebackup; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+	CMOSGLOBALBACKUPDATA backupglobal;
 	if (is_i430fx==2) //i440fx?
 	{
 		if (!BIOS_Settings.got_i440fxCMOS)
 		{
-			memorybackup = BIOS_Settings.i440fxCMOS.memory; //Backup!
-			emulated_CPUbackup = BIOS_Settings.i440fxCMOS.emulated_CPU; //Emulated CPU?
-			CPUspeedbackup = BIOS_Settings.i440fxCMOS.CPUspeed; //CPU speed
-			TurboCPUspeedbackup = BIOS_Settings.i440fxCMOS.TurboCPUspeed; //Turbo CPU speed
-			useTurboCPUSpeedbackup = BIOS_Settings.i440fxCMOS.useTurboCPUSpeed; //Are we to use Turbo CPU speed?
-			clockingmodebackup = BIOS_Settings.i440fxCMOS.clockingmode; //Are we using the IPS clock instead of cycle-accurate clock?
-			DataBusSizebackup = BIOS_Settings.i440fxCMOS.DataBusSize; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+			backupCMOSglobalsettings(&BIOS_Settings.i440fxCMOS, &backupglobal); //Backup the memory field!
 			memset(&BIOS_Settings.i440fxCMOS, 0, sizeof(BIOS_Settings.i440fxCMOS)); //Init!
-			BIOS_Settings.i440fxCMOS.memory = memorybackup;
-			BIOS_Settings.i440fxCMOS.emulated_CPU = emulated_CPUbackup; //Emulated CPU?
-			BIOS_Settings.i440fxCMOS.CPUspeed = CPUspeedbackup; //CPU speed
-			BIOS_Settings.i440fxCMOS.TurboCPUspeed = TurboCPUspeedbackup; //Turbo CPU speed
-			BIOS_Settings.i440fxCMOS.useTurboCPUSpeed = useTurboCPUSpeedbackup; //Are we to use Turbo CPU speed?
-			BIOS_Settings.i440fxCMOS.clockingmode = clockingmodebackup; //Are we using the IPS clock instead of cycle-accurate clock?
-			BIOS_Settings.i440fxCMOS.DataBusSize = DataBusSizebackup; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+			restoreCMOSglobalsettings(&BIOS_Settings.i440fxCMOS, &backupglobal); //Backup the memory field!
 		}
 		BIOS_Settings.i440fxCMOS.floppy1_nodisk_type = result; //Reverse!
 		BIOS_Settings.got_i440fxCMOS = 1; //We hav gotten a CMOS!
@@ -9149,21 +8862,9 @@ void BIOS_floppy1_nodisk_type()
 	{
 		if (!BIOS_Settings.got_i430fxCMOS)
 		{
-			memorybackup = BIOS_Settings.i430fxCMOS.memory; //Backup!
-			emulated_CPUbackup = BIOS_Settings.i430fxCMOS.emulated_CPU; //Emulated CPU?
-			CPUspeedbackup = BIOS_Settings.i430fxCMOS.CPUspeed; //CPU speed
-			TurboCPUspeedbackup = BIOS_Settings.i430fxCMOS.TurboCPUspeed; //Turbo CPU speed
-			useTurboCPUSpeedbackup = BIOS_Settings.i430fxCMOS.useTurboCPUSpeed; //Are we to use Turbo CPU speed?
-			clockingmodebackup = BIOS_Settings.i430fxCMOS.clockingmode; //Are we using the IPS clock instead of cycle-accurate clock?
-			DataBusSizebackup = BIOS_Settings.i430fxCMOS.DataBusSize; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+			backupCMOSglobalsettings(&BIOS_Settings.i430fxCMOS, &backupglobal); //Backup the memory field!
 			memset(&BIOS_Settings.i430fxCMOS, 0, sizeof(BIOS_Settings.i430fxCMOS)); //Init!
-			BIOS_Settings.i430fxCMOS.memory = memorybackup;
-			BIOS_Settings.i430fxCMOS.emulated_CPU = emulated_CPUbackup; //Emulated CPU?
-			BIOS_Settings.i430fxCMOS.CPUspeed = CPUspeedbackup; //CPU speed
-			BIOS_Settings.i430fxCMOS.TurboCPUspeed = TurboCPUspeedbackup; //Turbo CPU speed
-			BIOS_Settings.i430fxCMOS.useTurboCPUSpeed = useTurboCPUSpeedbackup; //Are we to use Turbo CPU speed?
-			BIOS_Settings.i430fxCMOS.clockingmode = clockingmodebackup; //Are we using the IPS clock instead of cycle-accurate clock?
-			BIOS_Settings.i430fxCMOS.DataBusSize = DataBusSizebackup; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+			restoreCMOSglobalsettings(&BIOS_Settings.i430fxCMOS, &backupglobal); //Backup the memory field!
 		}
 		BIOS_Settings.i430fxCMOS.floppy1_nodisk_type = result; //Reverse!
 		BIOS_Settings.got_i430fxCMOS = 1; //We hav gotten a CMOS!
@@ -9172,21 +8873,9 @@ void BIOS_floppy1_nodisk_type()
 	{
 		if (!BIOS_Settings.got_PS2CMOS)
 		{
-			memorybackup = BIOS_Settings.PS2CMOS.memory; //Backup!
-			emulated_CPUbackup = BIOS_Settings.PS2CMOS.emulated_CPU; //Emulated CPU?
-			CPUspeedbackup = BIOS_Settings.PS2CMOS.CPUspeed; //CPU speed
-			TurboCPUspeedbackup = BIOS_Settings.PS2CMOS.TurboCPUspeed; //Turbo CPU speed
-			useTurboCPUSpeedbackup = BIOS_Settings.PS2CMOS.useTurboCPUSpeed; //Are we to use Turbo CPU speed?
-			clockingmodebackup = BIOS_Settings.PS2CMOS.clockingmode; //Are we using the IPS clock instead of cycle-accurate clock?
-			DataBusSizebackup = BIOS_Settings.PS2CMOS.DataBusSize; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+			backupCMOSglobalsettings(&BIOS_Settings.PS2CMOS, &backupglobal); //Backup the memory field!
 			memset(&BIOS_Settings.PS2CMOS, 0, sizeof(BIOS_Settings.PS2CMOS)); //Init!
-			BIOS_Settings.PS2CMOS.memory = memorybackup;
-			BIOS_Settings.PS2CMOS.emulated_CPU = emulated_CPUbackup; //Emulated CPU?
-			BIOS_Settings.PS2CMOS.CPUspeed = CPUspeedbackup; //CPU speed
-			BIOS_Settings.PS2CMOS.TurboCPUspeed = TurboCPUspeedbackup; //Turbo CPU speed
-			BIOS_Settings.PS2CMOS.useTurboCPUSpeed = useTurboCPUSpeedbackup; //Are we to use Turbo CPU speed?
-			BIOS_Settings.PS2CMOS.clockingmode = clockingmodebackup; //Are we using the IPS clock instead of cycle-accurate clock?
-			BIOS_Settings.PS2CMOS.DataBusSize = DataBusSizebackup; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+			restoreCMOSglobalsettings(&BIOS_Settings.PS2CMOS, &backupglobal); //Backup the memory field!
 		}
 		BIOS_Settings.PS2CMOS.floppy1_nodisk_type = result; //Reverse!
 		BIOS_Settings.got_PS2CMOS = 1; //We hav gotten a CMOS!
@@ -9195,21 +8884,9 @@ void BIOS_floppy1_nodisk_type()
 	{
 		if (!BIOS_Settings.got_CompaqCMOS)
 		{
-			memorybackup = BIOS_Settings.CompaqCMOS.memory; //Backup!
-			emulated_CPUbackup = BIOS_Settings.CompaqCMOS.emulated_CPU; //Emulated CPU?
-			CPUspeedbackup = BIOS_Settings.CompaqCMOS.CPUspeed; //CPU speed
-			TurboCPUspeedbackup = BIOS_Settings.CompaqCMOS.TurboCPUspeed; //Turbo CPU speed
-			useTurboCPUSpeedbackup = BIOS_Settings.CompaqCMOS.useTurboCPUSpeed; //Are we to use Turbo CPU speed?
-			clockingmodebackup = BIOS_Settings.CompaqCMOS.clockingmode; //Are we using the IPS clock instead of cycle-accurate clock?
-			DataBusSizebackup = BIOS_Settings.CompaqCMOS.DataBusSize; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+			backupCMOSglobalsettings(&BIOS_Settings.CompaqCMOS, &backupglobal); //Backup the memory field!
 			memset(&BIOS_Settings.CompaqCMOS, 0, sizeof(BIOS_Settings.CompaqCMOS)); //Init!
-			BIOS_Settings.CompaqCMOS.memory = memorybackup; //Restore!
-			BIOS_Settings.CompaqCMOS.emulated_CPU = emulated_CPUbackup; //Emulated CPU?
-			BIOS_Settings.CompaqCMOS.CPUspeed = CPUspeedbackup; //CPU speed
-			BIOS_Settings.CompaqCMOS.TurboCPUspeed = TurboCPUspeedbackup; //Turbo CPU speed
-			BIOS_Settings.CompaqCMOS.useTurboCPUSpeed = useTurboCPUSpeedbackup; //Are we to use Turbo CPU speed?
-			BIOS_Settings.CompaqCMOS.clockingmode = clockingmodebackup; //Are we using the IPS clock instead of cycle-accurate clock?
-			BIOS_Settings.CompaqCMOS.DataBusSize = DataBusSizebackup; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+			restoreCMOSglobalsettings(&BIOS_Settings.CompaqCMOS, &backupglobal); //Backup the memory field!
 		}
 		BIOS_Settings.CompaqCMOS.floppy1_nodisk_type = result; //Reverse!
 		BIOS_Settings.got_CompaqCMOS = 1; //We hav gotten a CMOS!
@@ -9218,21 +8895,9 @@ void BIOS_floppy1_nodisk_type()
 	{
 		if (!BIOS_Settings.got_XTCMOS)
 		{
-			memorybackup = BIOS_Settings.XTCMOS.memory; //Backup!
-			emulated_CPUbackup = BIOS_Settings.XTCMOS.emulated_CPU; //Emulated CPU?
-			CPUspeedbackup = BIOS_Settings.XTCMOS.CPUspeed; //CPU speed
-			TurboCPUspeedbackup = BIOS_Settings.XTCMOS.TurboCPUspeed; //Turbo CPU speed
-			useTurboCPUSpeedbackup = BIOS_Settings.XTCMOS.useTurboCPUSpeed; //Are we to use Turbo CPU speed?
-			clockingmodebackup = BIOS_Settings.XTCMOS.clockingmode; //Are we using the IPS clock instead of cycle-accurate clock?
-			DataBusSizebackup = BIOS_Settings.XTCMOS.DataBusSize; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+			backupCMOSglobalsettings(&BIOS_Settings.XTCMOS, &backupglobal); //Backup the memory field!
 			memset(&BIOS_Settings.XTCMOS, 0, sizeof(BIOS_Settings.XTCMOS)); //Init!
-			BIOS_Settings.XTCMOS.memory = memorybackup; //Restore!
-			BIOS_Settings.XTCMOS.emulated_CPU = emulated_CPUbackup; //Emulated CPU?
-			BIOS_Settings.XTCMOS.CPUspeed = CPUspeedbackup; //CPU speed
-			BIOS_Settings.XTCMOS.TurboCPUspeed = TurboCPUspeedbackup; //Turbo CPU speed
-			BIOS_Settings.XTCMOS.useTurboCPUSpeed = useTurboCPUSpeedbackup; //Are we to use Turbo CPU speed?
-			BIOS_Settings.XTCMOS.clockingmode = clockingmodebackup; //Are we using the IPS clock instead of cycle-accurate clock?
-			BIOS_Settings.XTCMOS.DataBusSize = DataBusSizebackup; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+			restoreCMOSglobalsettings(&BIOS_Settings.XTCMOS, &backupglobal); //Backup the memory field!
 		}
 		BIOS_Settings.XTCMOS.floppy1_nodisk_type = result; //Reverse!
 		BIOS_Settings.got_XTCMOS = 1; //We hav gotten a CMOS!
@@ -9241,21 +8906,9 @@ void BIOS_floppy1_nodisk_type()
 	{
 		if (!BIOS_Settings.got_ATCMOS)
 		{
-			memorybackup = BIOS_Settings.ATCMOS.memory; //Backup!
-			emulated_CPUbackup = BIOS_Settings.ATCMOS.emulated_CPU; //Emulated CPU?
-			CPUspeedbackup = BIOS_Settings.ATCMOS.CPUspeed; //CPU speed
-			TurboCPUspeedbackup = BIOS_Settings.ATCMOS.TurboCPUspeed; //Turbo CPU speed
-			useTurboCPUSpeedbackup = BIOS_Settings.ATCMOS.useTurboCPUSpeed; //Are we to use Turbo CPU speed?
-			clockingmodebackup = BIOS_Settings.ATCMOS.clockingmode; //Are we using the IPS clock instead of cycle-accurate clock?
-			DataBusSizebackup = BIOS_Settings.ATCMOS.DataBusSize; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+			backupCMOSglobalsettings(&BIOS_Settings.ATCMOS, &backupglobal); //Backup the memory field!
 			memset(&BIOS_Settings.ATCMOS, 0, sizeof(BIOS_Settings.ATCMOS)); //Init!
-			BIOS_Settings.ATCMOS.memory = memorybackup; //Restore!
-			BIOS_Settings.ATCMOS.emulated_CPU = emulated_CPUbackup; //Emulated CPU?
-			BIOS_Settings.ATCMOS.CPUspeed = CPUspeedbackup; //CPU speed
-			BIOS_Settings.ATCMOS.TurboCPUspeed = TurboCPUspeedbackup; //Turbo CPU speed
-			BIOS_Settings.ATCMOS.useTurboCPUSpeed = useTurboCPUSpeedbackup; //Are we to use Turbo CPU speed?
-			BIOS_Settings.ATCMOS.clockingmode = clockingmodebackup; //Are we using the IPS clock instead of cycle-accurate clock?
-			BIOS_Settings.ATCMOS.DataBusSize = DataBusSizebackup; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+			restoreCMOSglobalsettings(&BIOS_Settings.ATCMOS, &backupglobal); //Backup the memory field!
 		}
 		BIOS_Settings.ATCMOS.floppy1_nodisk_type = result; //Reverse!
 		BIOS_Settings.got_ATCMOS = 1; //We hav gotten a CMOS!
