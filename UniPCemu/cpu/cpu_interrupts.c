@@ -415,7 +415,7 @@ extern byte PPI62; //For XT support!
 byte NMI = 1; //NMI Disabled?
 
 byte NMIQueued = 0; //NMI raised to handle? This can be handled by an APIC!
-byte APICNMIQueued = 0; //APIC-issued NMI queued?
+byte APICNMIQueued[MAXCPUS] = { 0 }; //APIC-issued NMI queued?
 
 void CPU_INTERNAL_execNMI()
 {
@@ -448,10 +448,10 @@ void CPU_INTERNAL_execNMI()
 
 byte CPU_checkNMIAPIC(byte isHLT)
 {
-	if (APICNMIQueued) //APIC NMI queued?
+	if (APICNMIQueued[activeCPU]) //APIC NMI queued?
 	{
 		if (isHLT) return 0; //Leave HLT first!
-		APICNMIQueued = 0; //Not queued anymore!
+		APICNMIQueued[activeCPU] = 0; //Not queued anymore!
 		CPU_INTERNAL_execNMI(); //Start it up!
 		return 0; //NNI handled!
 	}
