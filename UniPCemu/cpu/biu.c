@@ -160,7 +160,7 @@ void checkBIUBUSrelease()
 		do
 		{
 			if (BIU[whichCPU].BUSactive) return; //Don't release when any is still active!
-		} while(++whichCPU<NUMCPUS); //Check all!
+		} while(++whichCPU<MAXCPUS); //Check all!
 		BUSactive = 0; //Fully release the bus! 
 	}
 }
@@ -1038,10 +1038,9 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates, byte bus_waitstates)
 				//Memory operations!
 				case REQUEST_MMUREAD:
 					//Wait for other CPUs to release their lock on the bus if enabled?
-					BIU[activeCPU]._lock |= CPU_getprefix(0xF0); //Lock!
-					if (BIU[activeCPU]._lock && (useIPSclock==0)) //Locking requested?
+					if (CPU_getprefix(0xF0) && (useIPSclock==0)) //Locking requested?
 					{
-						if (BIU_buslocked) //Locked by another CPU?
+						if (BIU_buslocked && (!BIU[activeCPU].BUSlockowned)) //Locked by another CPU?
 						{
 							BIU[activeCPU]._lock = 2; //Waiting for the lock to release!
 							return 1; //Waiting for the lock to be obtained!
@@ -1050,7 +1049,13 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates, byte bus_waitstates)
 						{
 							BIU[activeCPU]._lock = 3; //Lock obtained!
 							BIU_buslocked = 1; //A BIU has locked the bus!
+							BIU[activeCPU].BUSlockowned = 1; //We own the lock!
 						}
+					}
+					else
+					{
+						BIU[activeCPU]._lock = CPU_getprefix(0xF0); //Lock!
+						BIU[activeCPU].BUSlockowned = BIU[activeCPU]._lock; //Owned?
 					}
 					BIU[activeCPU].newtransfer = 1; //We're a new transfer!
 					BIU[activeCPU].newtransfer_size = 1; //We're a new transfer!
@@ -1114,10 +1119,9 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates, byte bus_waitstates)
 					break;
 				case REQUEST_MMUWRITE:
 					//Wait for other CPUs to release their lock on the bus if enabled?
-					BIU[activeCPU]._lock |= CPU_getprefix(0xF0); //Lock!
-					if (BIU[activeCPU]._lock && (useIPSclock==0)) //Locking requested?
+					if (CPU_getprefix(0xF0) && (useIPSclock==0)) //Locking requested?
 					{
-						if (BIU_buslocked) //Locked by another CPU?
+						if (BIU_buslocked && (!BIU[activeCPU].BUSlockowned)) //Locked by another CPU?
 						{
 							BIU[activeCPU]._lock = 2; //Waiting for the lock to release!
 							return 1; //Waiting for the lock to be obtained!
@@ -1126,7 +1130,13 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates, byte bus_waitstates)
 						{
 							BIU[activeCPU]._lock = 3; //Lock obtained!
 							BIU_buslocked = 1; //A BIU has locked the bus!
+							BIU[activeCPU].BUSlockowned = 1; //We own the lock!
 						}
+					}
+					else
+					{
+						BIU[activeCPU]._lock = CPU_getprefix(0xF0); //Lock!
+						BIU[activeCPU].BUSlockowned = BIU[activeCPU]._lock; //Owned?
 					}
 					BIU[activeCPU].newtransfer = 1; //We're a new transfer!
 					BIU[activeCPU].newtransfer_size = 1; //We're a new transfer!

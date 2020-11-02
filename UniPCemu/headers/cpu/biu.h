@@ -47,6 +47,7 @@ typedef struct
 
 	byte BUSactive; //Is the BUS currently active? Determines who's owning the BUS: 0=No control, 1=CPU, 2=DMA
 	byte _lock; //Lock signal status!
+	byte BUSlockowned; //Is the bus lock owned by this CPU?
 
 	uint_32 currentrequest; //Current request!
 	uint_64 currentpayload[2]; //Current payload!

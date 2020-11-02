@@ -2407,9 +2407,10 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	skipexecutionOPfault: //Instruction fetch fault?
 	if (CPU[activeCPU].executed) //Are we finished executing?
 	{
-		if (BIU[activeCPU]._lock) //Locked the bus?
+		if (BIU[activeCPU]._lock && (BIU[activeCPU].BUSlockowned)) //Locked the bus and we own the lock?
 		{
 			BIU_buslocked = 0; //Not anymore!
+			BIU[activeCPU].BUSlockowned = 0; //Not owning it anymore!
 		}
 		BIU[activeCPU]._lock = 0; //Unlock!
 		//Prepare for the next (fetched or repeated) instruction to start executing!
