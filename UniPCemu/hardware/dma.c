@@ -37,8 +37,6 @@ DMA Controller (8237A)
 
 extern byte is_Compaq; //Are we emulating an Compaq architecture?
 
-extern BIU_type BIU[/*MAXCPUS*/ 1]; //The BIU for the BUS activity detection!
-
 typedef struct
 {
 	byte ModeRegister; //Our mode register!
@@ -522,7 +520,7 @@ void DMA_StateHandler_S0()
 			return; //NOP state!
 		}
 	}
-	else if (unlikely(BIU[activeCPU]._lock)) return; //Block us while the bus is locked in IPS clocking mode!
+	else if (unlikely(BIU_buslocked)) return; //Block us while the bus is locked in IPS clocking mode!
 
 	if (DMA_waitstate) //Waiting on DMA transfer start?
 	{
