@@ -175,6 +175,8 @@ void initAPIC(byte whichCPU)
 	LAPIC[whichCPU].LAPIC_version = 0x0010;
 	LAPIC[whichCPU].DestinationFormatRegister = ~0; //All bits set!
 	LAPIC[whichCPU].SpuriousInterruptVectorRegister = 0xFF; //Needs to be 0xFF!
+	LAPIC[whichCPU].LAPIC_ID |= ((whichCPU&0xF) << 24); //Physical CPU number to receive at!
+
 	switch (EMULATED_CPU)
 	{
 	case CPU_PENTIUM:
