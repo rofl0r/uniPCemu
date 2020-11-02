@@ -317,6 +317,18 @@ enum BIOSROMMode {
 #define DEFAULT_BACKGROUNDPOLICY BACKGROUNDPOLICY_FULLHALT
 #define DEFAULT_ADVANCEDLOG 0
 
+typedef struct
+{
+	uint_32 memorybackup;
+	byte emulated_CPUbackup; //Emulated CPU?
+	byte emulated_CPUsbackup; //Emulated CPUs?
+	uint_32 CPUspeedbackup; //CPU speed
+	uint_32 TurboCPUspeedbackup; //Turbo CPU speed
+	byte useTurboCPUSpeedbackup; //Are we to use Turbo CPU speed?
+	byte clockingmodebackup; //Are we using the IPS clock instead of cycle-accurate clock?
+	byte DataBusSizebackup; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+} CMOSGLOBALBACKUPDATA;
+
 void BIOS_LoadIO(int showchecksumerrors); //Loads basic I/O drives from BIOS!
 void BIOS_ShowBIOS(); //Shows mounted drives etc!
 void BIOS_ValidateData(); //Validate all data and eject wrong ones!

@@ -1384,6 +1384,30 @@ void BIOS_LoadData() //Load BIOS settings!
 	loadedsettings_loaded = 1; //Buffered in memory!
 }
 
+void backupCMOSglobalsettings(CMOSDATA *CMOS, CMOSGLOBALBACKUPDATA *backupdata)
+{
+	backupdata->memorybackup = CMOS->memory; //Backup!
+	backupdata->emulated_CPUbackup = CMOS->emulated_CPU; //Emulated CPU?
+	backupdata->emulated_CPUsbackup = CMOS->emulated_CPUs; //Emulated CPU?
+	backupdata->CPUspeedbackup = CMOS->CPUspeed; //CPU speed
+	backupdata->TurboCPUspeedbackup = CMOS->TurboCPUspeed; //Turbo CPU speed
+	backupdata->useTurboCPUSpeedbackup = CMOS->useTurboCPUSpeed; //Are we to use Turbo CPU speed?
+	backupdata->clockingmodebackup = CMOS->clockingmode; //Are we using the IPS clock instead of cycle-accurate clock?
+	backupdata->DataBusSizebackup = CMOS->DataBusSize; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+}
+
+void restoreCMOSglobalsettings(CMOSDATA *CMOS, CMOSGLOBALBACKUPDATA *backupdata)
+{
+	CMOS->memory = backupdata->memorybackup;
+	CMOS->emulated_CPU = backupdata->emulated_CPUbackup; //Emulated CPU?
+	CMOS->emulated_CPUs = backupdata->emulated_CPUsbackup; //Emulated CPU?
+	CMOS->CPUspeed = backupdata->CPUspeedbackup; //CPU speed
+	CMOS->TurboCPUspeed = backupdata->TurboCPUspeedbackup; //Turbo CPU speed
+	CMOS->useTurboCPUSpeed = backupdata->useTurboCPUSpeedbackup; //Are we to use Turbo CPU speed?
+	CMOS->clockingmode = backupdata->clockingmodebackup; //Are we using the IPS clock instead of cycle-accurate clock?
+	CMOS->DataBusSize = backupdata->DataBusSizebackup; //The size of the emulated BUS. 0=Normal bus, 1=8-bit bus when available for the CPU!
+}
+
 byte saveBIOSCMOS(CMOSDATA *CMOS, char *section, char *section_comment, INI_FILE *i)
 {
 	word index;
