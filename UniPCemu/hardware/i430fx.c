@@ -31,7 +31,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 extern byte is_i430fx; //Are we an i430fx motherboard?
 byte i430fx_memorymappings_read[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}; //All read memory/PCI! Set=DRAM, clear=PCI!
 byte i430fx_memorymappings_write[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}; //All write memory/PCI! Set=DRAM, clear=PCI!
-byte SMRAM_enabled[MAXCPUS] = 0; //SMRAM enabled?
+byte SMRAM_enabled[MAXCPUS] = { 0,0 }; //SMRAM enabled?
 byte SMRAM_data = 1; //SMRAM responds to data accesses?
 byte SMRAM_locked = 0; //Are we locked?
 byte SMRAM_SMIACT[MAXCPUS] = 0; //SMI activated
@@ -89,7 +89,7 @@ void i430fx_updateSMRAM()
 
 void i430fx__SMIACT(byte active)
 {
-	SMRAM_SMIACT = active; //SMIACT#?
+	SMRAM_SMIACT[activeCPU] = active; //SMIACT#?
 	i430fx_updateSMRAM(); //Update the SMRAM mapping!
 }
 
@@ -753,7 +753,8 @@ void i430fx_hardreset()
 	i430fx_ide_PCIConfigurationChangeHandler(0x43, 3, 1, 1); //Update primary timing!
 
 	SMRAM_locked = 0; //Unlock SMRAM always!
-	SMRAM_SMIACT = 0; //Default: not active!
+	SMRAM_SMIACT[0] = 0; //Default: not active!
+	SMRAM_SMIACT[1] = 0; //Default: not active!
 	i430fx_updateSMRAM(); //Update the SMRAM setting!
 
 	APMcontrol = APMstatus = 0; //Initialize APM registers!
