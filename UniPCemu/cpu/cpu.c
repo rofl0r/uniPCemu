@@ -1920,7 +1920,6 @@ extern byte BIU_buslocked; //BUS locked?
 
 void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 {
-	static char debugtext[256]; //Debug text!
 	uint_32 REPcondition; //What kind of condition?
 	//byte cycles_counted = 0; //Cycles have been counted?
 	if (likely((BIU_Ready()&&(CPU[activeCPU].halt==0))==0)) //BIU not ready to continue? We're handling seperate cycles still!
@@ -2019,7 +2018,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 
 		if (CPU[activeCPU].cpudebugger) //Debugging?
 		{
-			cleardata(&debugtext[0], sizeof(debugtext)); //Init debugger!
+			cleardata(&CPU[activeCPU].debugtext[0], sizeof(CPU[activeCPU].debugtext)); //Init debugger!
 		}
 
 		if (FLAG_VIP && FLAG_VIF && CPU[activeCPU].allowInterrupts) //VIP and VIF both set on the new code?
@@ -2032,10 +2031,9 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		CPU[activeCPU].allowInterrupts = 1; //Allow interrupts again after this instruction!
 	}
 
-	static byte OP = 0xCC; //The opcode!
 	if (CPU[activeCPU].repeating) //REPeating instruction?
 	{
-		OP = CPU[activeCPU].currentopcode; //Execute the last opcode again!
+		CPU[activeCPU].OP = CPU[activeCPU].currentopcode; //Execute the last opcode again!
 		CPU[activeCPU].newREP = 0; //Not a new repeating instruction!
 		if (CPU[activeCPU].instructionfetch.CPU_isFetching && (CPU[activeCPU].instructionfetch.CPU_fetchphase==1)) //New instruction to start?
 		{
@@ -2049,7 +2047,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		if (CPU[activeCPU].instructionfetch.CPU_isFetching) //Are we fetching?
 		{
 			CPU[activeCPU].executed = 0; //Not executed yet!
-			if (CPU_readOP_prefix(&OP)) //Finished 
+			if (CPU_readOP_prefix(&CPU[activeCPU].OP)) //Finished 
 			{
 				if (!CPU[activeCPU].cycles_OP) CPU[activeCPU].cycles_OP = 1; //Take 1 cycle by default!
 				if (CPU[activeCPU].faultraised) //Fault has been raised while fetching&decoding the instruction?
@@ -2082,7 +2080,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	{
 		CPU[activeCPU].gotREP = 1; //We've gotten a repeat!
 		CPU[activeCPU].REPZ = 0; //Allow and we're not REPZ!
-		switch (OP) //Which special adjustment cycles Opcode?
+		switch (CPU[activeCPU].OP) //Which special adjustment cycles Opcode?
 		{
 		//80186+ REP opcodes!
 		case 0x6C: //A4: REP INSB
@@ -2151,7 +2149,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	{
 		CPU[activeCPU].gotREP = 1; //Allow!
 		CPU[activeCPU].REPZ = 0; //Don't check the zero flag: it maybe so in assembly, but not in execution!
-		switch (OP) //Which special adjustment cycles Opcode?
+		switch (CPU[activeCPU].OP) //Which special adjustment cycles Opcode?
 		{
 		//80186+ REP opcodes!
 		case 0x6C: //A4: REP INSB
@@ -2245,7 +2243,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	CPUtimingready: //Timing in preparation?
 	if ((CPU[activeCPU].is0Fopcode == 0) && CPU[activeCPU].newREP) //REP instruction affected?
 	{
-		switch (OP) //Check for string instructions!
+		switch (CPU[activeCPU].OP) //Check for string instructions!
 		{
 		case 0xA4:
 		case 0xA5: //MOVS
@@ -2263,7 +2261,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 			}
 			CPU[activeCPU].preinstructiontimingnotready = 2; //Finished and ready to check for cycles now!
 			if (BIU_getcycle() == 0) CPU[activeCPU].cycles_OP += 1; //1 cycle for idle bus?
-			if (((OP == 0xA4) || (OP == 0xA5)) && CPU[activeCPU].gotREP && (CPU[activeCPU].repeating==0)) //REP MOVS starting?
+			if (((CPU[activeCPU].OP == 0xA4) || (CPU[activeCPU].OP == 0xA5)) && CPU[activeCPU].gotREP && (CPU[activeCPU].repeating==0)) //REP MOVS starting?
 			{
 				CPU[activeCPU].cycles_OP += 1; //1 cycle for starting REP MOVS!
 			}
@@ -2306,7 +2304,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		{
 			CPU[activeCPU].cycles_OP += 2; //CX used!
 			if (CPU[activeCPU].newREP) CPU[activeCPU].cycles_OP += 2; //New REP takes two cycles!
-			switch (OP)
+			switch (CPU[activeCPU].OP)
 			{
 			case 0xAC:
 			case 0xAD: //LODS

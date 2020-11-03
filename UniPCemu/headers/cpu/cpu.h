@@ -1248,6 +1248,8 @@ typedef struct
 	word destCS;
 	word PUSHA_oldSP;
 	uint_32 newpreviousCSstart;
+	char debugtext[256]; //Debug text!
+	byte OP; //Currenltly executing opcode!
 } CPU_type;
 
 #ifndef IS_CPU
