@@ -3185,25 +3185,24 @@ void CPU80386_OP9D_16()
 		THROWDESCGP(0,0,0);
 		return;
 	} //#GP fault!
-	static word tempflags;
 	if (unlikely(CPU[activeCPU].stackchecked==0))
 	{
 		if (checkStackAccess(1,0,0)) return;
 		++CPU[activeCPU].stackchecked;
 	}
 	if (CPU80386_instructionstepPOPtimeout(0)) return; /*POP timeout*/
-	if (CPU8086_POPw(2,&tempflags,0)) return;
+	if (CPU8086_POPw(2,&CPU[activeCPU].tempflagsw,0)) return;
 	if (disallowPOPFI())
 	{
-		tempflags &= ~0x200;
-		tempflags |= REG_FLAGS&0x200; /* Ignore any changes to the Interrupt flag! */
+		CPU[activeCPU].tempflagsw &= ~0x200;
+		CPU[activeCPU].tempflagsw |= REG_FLAGS&0x200; /* Ignore any changes to the Interrupt flag! */
 	}
 	if (getCPL())
 	{
-		tempflags &= ~0x3000;
-		tempflags |= REG_FLAGS&0x3000; /* Ignore any changes to the IOPL when not at CPL 0! */
+		CPU[activeCPU].tempflagsw &= ~0x3000;
+		CPU[activeCPU].tempflagsw |= REG_FLAGS&0x3000; /* Ignore any changes to the IOPL when not at CPL 0! */
 	}
-	REG_FLAGS = tempflags;
+	REG_FLAGS = CPU[activeCPU].tempflagsw;
 	updateCPUmode(); /*POPF*/
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
@@ -3221,43 +3220,42 @@ void CPU80386_OP9D_32()
 		THROWDESCGP(0,0,0);
 		return;
 	}//#GP fault!
-	static uint_32 tempflags;
 	if (unlikely(CPU[activeCPU].stackchecked==0))
 	{
 		if (checkStackAccess(1,0,1)) return;
 		++CPU[activeCPU].stackchecked;
 	}
 	if (CPU80386_instructionstepPOPtimeout(0)) return; /*POP timeout*/
-	if (CPU80386_POPdw(2,&tempflags)) return;
+	if (CPU80386_POPdw(2,&CPU[activeCPU].tempflagsd)) return;
 	if (disallowPOPFI())
 	{
-		tempflags &= ~0x200;
-		tempflags |= REG_FLAGS&0x200; /* Ignore any changes to the Interrupt flag! */
+		CPU[activeCPU].tempflagsd &= ~0x200;
+		CPU[activeCPU].tempflagsd |= REG_FLAGS&0x200; /* Ignore any changes to the Interrupt flag! */
 	}
 	if (getCPL())
 	{
-		tempflags &= ~0x3000;
-		tempflags |= REG_FLAGS&0x3000; /* Ignore any changes to the IOPL when not at CPL 0! */
+		CPU[activeCPU].tempflagsd &= ~0x3000;
+		CPU[activeCPU].tempflagsd |= REG_FLAGS&0x3000; /* Ignore any changes to the IOPL when not at CPL 0! */
 	}
 	if (getcpumode()==CPU_MODE_8086) //Virtual 8086 mode?
 	{
 		if (FLAG_PL==3) //IOPL 3?
 		{
-			tempflags = ((tempflags&~0x1B0000)|(REG_EFLAGS&0x1B0000)); /* Ignore any changes to the VM, RF, IOPL, VIP and VIF ! */
+			CPU[activeCPU].tempflagsd = ((CPU[activeCPU].tempflagsd&~0x1B0000)|(REG_EFLAGS&0x1B0000)); /* Ignore any changes to the VM, RF, IOPL, VIP and VIF ! */
 		} //Otherwise, fault is raised!
 	}
 	else //Protected/real mode?
 	{
 		if (getCPL())
 		{
-			tempflags = ((tempflags&~0x1A0000)|(REG_EFLAGS&0x20000)); /* Ignore any changes to the IOPL, VM ! VIP/VIF are cleared. */			
+			CPU[activeCPU].tempflagsd = ((CPU[activeCPU].tempflagsd&~0x1A0000)|(REG_EFLAGS&0x20000)); /* Ignore any changes to the IOPL, VM ! VIP/VIF are cleared. */			
 		}
 		else
 		{
-			tempflags = ((tempflags&~0x1A0000)|(REG_EFLAGS&0x20000)); /* VIP/VIF are cleared. Ignore any changes to VM! */			
+			CPU[activeCPU].tempflagsd = ((CPU[activeCPU].tempflagsd&~0x1A0000)|(REG_EFLAGS&0x20000)); /* VIP/VIF are cleared. Ignore any changes to VM! */			
 		}
 	}
-	REG_EFLAGS = tempflags;
+	REG_EFLAGS = CPU[activeCPU].tempflagsd;
 	updateCPUmode(); /*POPF*/
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
@@ -3981,11 +3979,10 @@ void CPU80386_OP8F() //Undocumented GRP opcode 8F r/m32
 			stack_push(1); //Popped a dword!
 			++CPU[activeCPU].stackchecked;
 		}
-		static uint_32 value;
 		//Execution step!
 		if (CPU80386_instructionstepPOPtimeout(0)) return; /*POP timeout*/
-		if (CPU80386_POPdw(2,&value)) return; //POP first!
-		if (CPU80386_instructionstepwritemodrmdw(0,value, CPU[activeCPU].MODRM_src0)) return; //POP r/m32
+		if (CPU80386_POPdw(2,&CPU[activeCPU].value8F_32)) return; //POP first!
+		if (CPU80386_instructionstepwritemodrmdw(0,CPU[activeCPU].value8F_32, CPU[activeCPU].MODRM_src0)) return; //POP r/m32
 		if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 		{
 			if (MODRM_EA(CPU[activeCPU].params)) //Mem?
@@ -4811,8 +4808,7 @@ void CPU386_OP60()
 		if (checkStackAccess(8, 1, 1)) return; /*Abort on fault!*/
 		++CPU[activeCPU].stackchecked;
 	}
-	static uint_32 oldESP;
-	oldESP = CPU[activeCPU].oldESP;    //PUSHA
+	CPU[activeCPU].PUSHAD_oldESP = CPU[activeCPU].oldESP;    //PUSHA
 	if (CPU80386_PUSHdw(0,&REG_EAX)) return;
 	CPUPROT1
 	if (CPU80386_PUSHdw(2,&REG_ECX)) return;
@@ -4821,7 +4817,7 @@ void CPU386_OP60()
 	CPUPROT1
 	if (CPU80386_PUSHdw(6,&REG_EBX)) return;
 	CPUPROT1
-	if (CPU80386_PUSHdw(8,&oldESP)) return;
+	if (CPU80386_PUSHdw(8,&CPU[activeCPU].PUSHAD_oldESP)) return;
 	CPUPROT1
 	if (CPU80386_PUSHdw(10,&REG_EBP)) return;
 	CPUPROT1
@@ -4884,8 +4880,6 @@ void CPU386_OP62()
 		return; //Abort!
 	}
 
-	static uint_32 bound_min, bound_max;
-	static uint_32 theval;
 	if (unlikely(CPU[activeCPU].modrmstep==0)) 
 	{
 		CPU[activeCPU].modrm_addoffset = 0; //No offset!
@@ -4901,12 +4895,12 @@ void CPU386_OP62()
 	}
 
 	CPU[activeCPU].modrm_addoffset = 0; //No offset!
-	if (CPU80386_instructionstepreadmodrmdw(0,&theval,CPU[activeCPU].MODRM_src0)) return; //Read index!
-	if (CPU80386_instructionstepreadmodrmdw(2,&bound_min, CPU[activeCPU].MODRM_src1)) return; //Read min!
+	if (CPU80386_instructionstepreadmodrmdw(0,&CPU[activeCPU].boundval32,CPU[activeCPU].MODRM_src0)) return; //Read index!
+	if (CPU80386_instructionstepreadmodrmdw(2,&CPU[activeCPU].bound_min32, CPU[activeCPU].MODRM_src1)) return; //Read min!
 	CPU[activeCPU].modrm_addoffset = 4; //Max offset!
-	if (CPU80386_instructionstepreadmodrmdw(4,&bound_max, CPU[activeCPU].MODRM_src1)) return; //Read max!
+	if (CPU80386_instructionstepreadmodrmdw(4,&CPU[activeCPU].bound_max32, CPU[activeCPU].MODRM_src1)) return; //Read max!
 	CPU[activeCPU].modrm_addoffset = 0; //Reset offset!
-	if ((unsigned2signed32(theval)<unsigned2signed32(bound_min)) || (unsigned2signed32(theval)>unsigned2signed32(bound_max)))
+	if ((unsigned2signed32(CPU[activeCPU].boundval32)<unsigned2signed32(CPU[activeCPU].bound_min32)) || (unsigned2signed32(CPU[activeCPU].boundval32)>unsigned2signed32(CPU[activeCPU].bound_max32)))
 	{
 		//BOUND Gv,Ma
 		CPU_BoundException(); //Execute bound exception!

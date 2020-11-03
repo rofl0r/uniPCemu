@@ -401,42 +401,41 @@ void CPU80586_OP9D_16()
 			THROWDESCGP(0, 0, 0); return; //#GP fault!
 		}
 	}
-	static word tempflags;
 	if (unlikely(CPU[activeCPU].stackchecked == 0))
 	{
 		if (checkStackAccess(1, 0, 0)) return;
 		++CPU[activeCPU].stackchecked;
 	}
 	if (CPU80586_instructionstepPOPtimeout(0)) return; /*POP timeout*/
-	if (CPU8086_POPw(2, &tempflags, 0)) return;
+	if (CPU8086_POPw(2, &CPU[activeCPU].tempflagsw, 0)) return;
 	if ((getcpumode()==CPU_MODE_8086) && (CPU[activeCPU].registers->CR4 & 1) && (FLAG_PL!=3)) //VME?
 	{
-		if (tempflags&F_TF) //If stack image TF=1, Then #GP(0)!
+		if (CPU[activeCPU].tempflagsw&F_TF) //If stack image TF=1, Then #GP(0)!
 		{
 			THROWDESCGP(0, 0, 0); //#GP fault!
 			return;
 		}
-		if (FLAG_VIP && (tempflags&F_IF)) //Virtual interrupt flag set during POPF?
+		if (FLAG_VIP && (CPU[activeCPU].tempflagsw&F_IF)) //Virtual interrupt flag set during POPF?
 		{
 			THROWDESCGP(0, 0, 0); //#GP fault!
 			return;
 		}
 		else //POP Interrupt flag to VIF!
 		{
-			FLAGW_VIF((tempflags&F_IF)?1:0); //VIF from stack IF!
+			FLAGW_VIF((CPU[activeCPU].tempflagsw&F_IF)?1:0); //VIF from stack IF!
 		}
 	}
 	if (disallowPOPFI())
 	{
-		tempflags &= ~0x200;
-		tempflags |= REG_FLAGS & 0x200; /* Ignore any changes to the Interrupt flag! */
+		CPU[activeCPU].tempflagsw &= ~0x200;
+		CPU[activeCPU].tempflagsw |= REG_FLAGS & 0x200; /* Ignore any changes to the Interrupt flag! */
 	}
 	if (getCPL())
 	{
-		tempflags &= ~0x3000;
-		tempflags |= REG_FLAGS & 0x3000; /* Ignore any changes to the IOPL when not at CPL 0! */
+		CPU[activeCPU].tempflagsw &= ~0x3000;
+		CPU[activeCPU].tempflagsw |= REG_FLAGS & 0x3000; /* Ignore any changes to the IOPL when not at CPL 0! */
 	}
-	REG_FLAGS = tempflags;
+	REG_FLAGS = CPU[activeCPU].tempflagsw;
 	updateCPUmode(); /*POPF*/
 	if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
 	{
@@ -454,43 +453,42 @@ void CPU80586_OP9D_32()
 		THROWDESCGP(0, 0, 0);
 		return;
 	}//#GP fault!
-	static uint_32 tempflags;
 	if (unlikely(CPU[activeCPU].stackchecked == 0))
 	{
 		if (checkStackAccess(1, 0, 1)) return;
 		++CPU[activeCPU].stackchecked;
 	}
 	if (CPU80586_instructionstepPOPtimeout(0)) return; /*POP timeout*/
-	if (CPU80386_POPdw(2, &tempflags)) return;
+	if (CPU80386_POPdw(2, &CPU[activeCPU].tempflagsd)) return;
 	if (disallowPOPFI())
 	{
-		tempflags &= ~0x200;
-		tempflags |= REG_FLAGS & 0x200; /* Ignore any changes to the Interrupt flag! */
+		CPU[activeCPU].tempflagsd &= ~0x200;
+		CPU[activeCPU].tempflagsd |= REG_FLAGS & 0x200; /* Ignore any changes to the Interrupt flag! */
 	}
 	if (getCPL())
 	{
-		tempflags &= ~0x3000;
-		tempflags |= REG_FLAGS & 0x3000; /* Ignore any changes to the IOPL when not at CPL 0! */
+		CPU[activeCPU].tempflagsd &= ~0x3000;
+		CPU[activeCPU].tempflagsd |= REG_FLAGS & 0x3000; /* Ignore any changes to the IOPL when not at CPL 0! */
 	}
 	if (getcpumode() == CPU_MODE_8086) //Virtual 8086 mode?
 	{
 		if (FLAG_PL == 3) //IOPL 3?
 		{
-			tempflags = ((tempflags&~(0x1B0000 | F_VIP | F_VIF)) | (REG_EFLAGS&(0x1B0000 | F_VIP | F_VIF))); /* Ignore any changes to the VM, RF, IOPL, VIP and VIF ! */
+			CPU[activeCPU].tempflagsd = ((CPU[activeCPU].tempflagsd&~(0x1B0000 | F_VIP | F_VIF)) | (REG_EFLAGS&(0x1B0000 | F_VIP | F_VIF))); /* Ignore any changes to the VM, RF, IOPL, VIP and VIF ! */
 		} //Otherwise, fault is raised!
 	}
 	else //Protected/real mode?
 	{
 		if (getCPL())
 		{
-			tempflags = ((tempflags&~(0x1A0000 | F_VIP | F_VIF)) | (REG_EFLAGS&(0x20000 | F_VIP | F_VIF))); /* Ignore any changes to the IOPL, VM ! VIP/VIF are cleared. */
+			CPU[activeCPU].tempflagsd = ((CPU[activeCPU].tempflagsd&~(0x1A0000 | F_VIP | F_VIF)) | (REG_EFLAGS&(0x20000 | F_VIP | F_VIF))); /* Ignore any changes to the IOPL, VM ! VIP/VIF are cleared. */
 		}
 		else
 		{
-			tempflags = ((tempflags&~0x1A0000) | (REG_EFLAGS & 0x20000)); /* VIP/VIF are cleared. Ignore any changes to VM! */
+			CPU[activeCPU].tempflagsd = ((CPU[activeCPU].tempflagsd&~0x1A0000) | (REG_EFLAGS & 0x20000)); /* VIP/VIF are cleared. Ignore any changes to VM! */
 		}
 	}
-	REG_EFLAGS = tempflags;
+	REG_EFLAGS = CPU[activeCPU].tempflagsd;
 	updateCPUmode(); /*POPF*/
 	if (CPU_apply286cycles() == 0) /* No 80286+ cycles instead? */
 	{

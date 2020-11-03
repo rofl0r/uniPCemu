@@ -264,8 +264,6 @@ void CPU186_OP62()
 		return; //Abort!
 	}
 
-	static word bound_min, bound_max;
-	static word theval;
 	if (unlikely(CPU[activeCPU].modrmstep==0))
 	{
 		CPU[activeCPU].modrm_addoffset = 0; //No offset!
@@ -281,12 +279,12 @@ void CPU186_OP62()
 	}
 
 	CPU[activeCPU].modrm_addoffset = 0; //No offset!
-	if (CPU8086_instructionstepreadmodrmw(0,&theval, CPU[activeCPU].MODRM_src0)) return; //Read index!
-	if (CPU8086_instructionstepreadmodrmw(2,&bound_min, CPU[activeCPU].MODRM_src1)) return; //Read min!
+	if (CPU8086_instructionstepreadmodrmw(0,&CPU[activeCPU].boundval16, CPU[activeCPU].MODRM_src0)) return; //Read index!
+	if (CPU8086_instructionstepreadmodrmw(2,&CPU[activeCPU].bound_min16, CPU[activeCPU].MODRM_src1)) return; //Read min!
 	CPU[activeCPU].modrm_addoffset = 2; //Max offset!
-	if (CPU8086_instructionstepreadmodrmw(4,&bound_max, CPU[activeCPU].MODRM_src1)) return; //Read max!
+	if (CPU8086_instructionstepreadmodrmw(4,&CPU[activeCPU].bound_max16, CPU[activeCPU].MODRM_src1)) return; //Read max!
 	CPU[activeCPU].modrm_addoffset = 0; //Reset offset!
-	if ((unsigned2signed16(theval)<unsigned2signed16(bound_min)) || (unsigned2signed16(theval)>unsigned2signed16(bound_max)))
+	if ((unsigned2signed16(CPU[activeCPU].boundval16)<unsigned2signed16(CPU[activeCPU].bound_min16)) || (unsigned2signed16(CPU[activeCPU].boundval16)>unsigned2signed16(CPU[activeCPU].bound_max16)))
 	{
 		//BOUND Gv,Ma
 		CPU_BoundException(); //Execute bound exception!
@@ -417,7 +415,6 @@ void CPU186_OP6C()
 {
 	debugger_setcommand("INSB");
 	if (CPU[activeCPU].blockREP) return; //Disabled REP!
-	static byte data;
 	if (unlikely(CPU[activeCPU].internalinstructionstep==0)) if (checkMMUaccess(CPU_SEGMENT_ES,REG_ES,(CPU[activeCPU].CPU_Address_size?REG_EDI:REG_DI),0,getCPL(),!CPU[activeCPU].CPU_Address_size,0)) return; //Abort on fault!
 	if (CPU_PORT_IN_B(0,REG_DX,&CPU[activeCPU].data8)) return; //Read the port!
 	CPUPROT1

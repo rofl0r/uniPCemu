@@ -4319,8 +4319,6 @@ OPTINLINE byte CPU8086_internal_XCHG16(word *data1, word *data2, byte flags)
 
 byte CPU8086_internal_LXS(int segmentregister) //LDS, LES etc.
 {
-	static word segment, offset;
-
 	if (unlikely(CPU[activeCPU].internalinstructionstep==0))
 	{
 		if (modrm_isregister(CPU[activeCPU].params)) //Invalid?
@@ -4346,18 +4344,18 @@ byte CPU8086_internal_LXS(int segmentregister) //LDS, LES etc.
 	if (CPU[activeCPU].internalinstructionstep==1) //First step?
 	{
 		CPU[activeCPU].modrm_addoffset = 0; //Add this to the offset to use!
-		if (CPU8086_internal_stepreadmodrmw(0,&offset,CPU[activeCPU].MODRM_src1)) return 1;
+		if (CPU8086_internal_stepreadmodrmw(0,&CPU[activeCPU].LXS_offsetw,CPU[activeCPU].MODRM_src1)) return 1;
 		CPU[activeCPU].modrm_addoffset = 2; //Add this to the offset to use!
-		if (CPU8086_internal_stepreadmodrmw(2,&segment,CPU[activeCPU].MODRM_src1)) return 1;
+		if (CPU8086_internal_stepreadmodrmw(2,&CPU[activeCPU].LXS_segment,CPU[activeCPU].MODRM_src1)) return 1;
 		CPU[activeCPU].modrm_addoffset = 0; //Reset again!
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 	}
 	//Execution phase!
 	CPUPROT1
 		CPU[activeCPU].destEIP = REG_EIP; //Save EIP for transfers!
-	if (segmentWritten(segmentregister, segment,0)) return 1; //Load the new segment!
+	if (segmentWritten(segmentregister, CPU[activeCPU].LXS_segment,0)) return 1; //Load the new segment!
 	CPUPROT1
-	modrm_write16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0, offset, 0); //Try to load the new register with the offset!
+	modrm_write16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0, CPU[activeCPU].LXS_offsetw, 0); //Try to load the new register with the offset!
 	CPUPROT2
 	CPUPROT2
 	CPUPROT2
@@ -5740,25 +5738,24 @@ void CPU8086_OP9C()
 void CPU8086_OP9D()
 {
 	modrm_generateInstructionTEXT("POPF", 0, 0, PARAM_NONE);/*POPF*/
-	static word tempflags;
 	if (unlikely(CPU[activeCPU].stackchecked==0))
 	{
 		if (checkStackAccess(1,0,0)) return;
 		++CPU[activeCPU].stackchecked;
 	}
 	if (CPU8086_instructionstepPOPtimeout(0)) return; /*POP timeout*/
-	if (CPU8086_POPw(2,&tempflags,0)) return;
+	if (CPU8086_POPw(2,&CPU[activeCPU].tempflagsw,0)) return;
 	if (disallowPOPFI())
 	{
-		tempflags &= ~0x200;
-		tempflags |= REG_FLAGS&0x200; /* Ignore any changes to the Interrupt flag! */
+		CPU[activeCPU].tempflagsw &= ~0x200;
+		CPU[activeCPU].tempflagsw |= REG_FLAGS&0x200; /* Ignore any changes to the Interrupt flag! */
 	}
 	if (getCPL())
 	{
-		tempflags &= ~0x3000;
-		tempflags |= REG_FLAGS&0x3000; /* Ignore any changes to the IOPL when not at CPL 0! */
+		CPU[activeCPU].tempflagsw &= ~0x3000;
+		CPU[activeCPU].tempflagsw |= REG_FLAGS&0x3000; /* Ignore any changes to the IOPL when not at CPL 0! */
 	}
-	REG_FLAGS = tempflags;
+	REG_FLAGS = CPU[activeCPU].tempflagsw;
 	updateCPUmode(); /*POPF*/
 	if (CPU_apply286cycles()==0) /* No 80286+ cycles instead? */
 	{
@@ -6783,11 +6780,10 @@ void CPU8086_OP8F() //Undocumented GRP opcode 8F r/m16
 			stack_push(0); //Popped a word!
 			++CPU[activeCPU].stackchecked;
 		}
-		static word value;
 		//Execution step!
 		if (CPU8086_instructionstepPOPtimeout(0)) return; /*POP timeout*/
-		if (CPU8086_POPw(2,&value,0)) return; //POP first!
-		if (CPU8086_instructionstepwritemodrmw(0,value,CPU[activeCPU].MODRM_src0,0)) return; //POP r/m16
+		if (CPU8086_POPw(2,&CPU[activeCPU].value8F_16,0)) return; //POP first!
+		if (CPU8086_instructionstepwritemodrmw(0,CPU[activeCPU].value8F_16,CPU[activeCPU].MODRM_src0,0)) return; //POP r/m16
 		if ((CPU[activeCPU].params.info[CPU[activeCPU].MODRM_src0].reg16 == &REG_SS) && (CPU[activeCPU].params.info[CPU[activeCPU].MODRM_src0].isreg==1) && (CPU[activeCPU].previousAllowInterrupts)) //Popping into SS?
 		{
 			CPU[activeCPU].allowInterrupts = 0; /* Inhabit all interrupts up to the next instruction */

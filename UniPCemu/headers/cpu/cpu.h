@@ -1243,15 +1243,26 @@ typedef struct
 	word POPF_tempflags;
 	word ARPL_destRPL, ARPL_srcRPL;
 	word LXS_segment;
-	uint_32 LXS_offsetw;
+	word LXS_offsetw;
 	uint_32 LXS_offsetd;
 	word destCS;
 	word PUSHA_oldSP;
+	uint_32 PUSHAD_oldESP;
 	uint_32 newpreviousCSstart;
 	char debugtext[256]; //Debug text!
 	byte OP; //Currenltly executing opcode!
 	word oldvalw; //For stack accesses!
 	uint_32 oldvald; //For stack accesses!
+	word tempflagsw;
+	uint_32 tempflagsd;
+	word value8F_16;
+	uint_32 value8F_32;
+	uint_32 bound_min32;
+	uint_32 bound_max32;
+	uint_32 boundval32;
+	word bound_min16;
+	word bound_max16;
+	word boundval16;
 } CPU_type;
 
 #ifndef IS_CPU
