@@ -65,8 +65,8 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 	char errorcodestr[256];
 	word destCS;
 	CPU[activeCPU].executed = 0; //Default: still busy executing!
-	CPU_interruptraised = 1; //We've raised an interrupt!
-	REPPending = CPU[activeCPU].repeating = 0; //Not repeating anymore!
+	CPU[activeCPU].CPU_interruptraised = 1; //We've raised an interrupt!
+	CPU[activeCPU].REPPending = CPU[activeCPU].repeating = 0; //Not repeating anymore!
 	CPU[activeCPU].allowInterrupts = 1; //Allow interrupts again after this interrupt finishes(count as an instruction executing)!
 	if ((getcpumode()==CPU_MODE_REAL) || (errorcode==-4)) //Use IVT structure in real mode only, or during VME when processing real-mode style interrupts(errorcode of -4)!
 	{
@@ -130,9 +130,9 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 			else ++CPU[activeCPU].internalinterruptstep; //Skip anyways!
 		}
 		++checkinterruptstep;
-		if (CPU8086_internal_stepreadinterruptw(checkinterruptstep,-1,0,(intnr<<2)+((errorcode!=-4)?CPU[activeCPU].registers->IDTR.base:0),&destINTIP,0)) return 0; //Read destination IP!
+		if (CPU8086_internal_stepreadinterruptw(checkinterruptstep,-1,0,(intnr<<2)+((errorcode!=-4)?CPU[activeCPU].registers->IDTR.base:0),&CPU[activeCPU].destINTIP,0)) return 0; //Read destination IP!
 		checkinterruptstep += 2;
-		if (CPU8086_internal_stepreadinterruptw(checkinterruptstep,-1,0,((intnr<<2)|2) + ((errorcode!=-4)?CPU[activeCPU].registers->IDTR.base:0),&destINTCS,0)) return 0; //Read destination CS!
+		if (CPU8086_internal_stepreadinterruptw(checkinterruptstep,-1,0,((intnr<<2)|2) + ((errorcode!=-4)?CPU[activeCPU].registers->IDTR.base:0),&CPU[activeCPU].destINTCS,0)) return 0; //Read destination CS!
 		checkinterruptstep += 2;
 
 		if ((getcpumode() == CPU_MODE_8086) && (errorcode == -4) && (FLAG_PL != 3)) //Use virtual interrupt flag instead?
@@ -151,8 +151,8 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 		}
 
 		//Load EIP and CS destination to use from the original 16-bit data!
-		destEIP = (uint_32)destINTIP;
-		destCS = destINTCS;
+		CPU[activeCPU].destEIP = (uint_32)CPU[activeCPU].destINTIP;
+		destCS = CPU[activeCPU].destINTCS;
 		cleardata(&errorcodestr[0],sizeof(errorcodestr)); //Clear the error code!
 		if (errorcode==-1) //No error code?
 		{
@@ -163,9 +163,9 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 			snprintf(errorcodestr,sizeof(errorcodestr),"%08X",(uint_32)errorcode); //The error code itself!
 		}
 		#ifdef LOG_INTS
-		dolog("cpu","Interrupt %02X=%04X:%08X@%04X:%04X(%02X); ERRORCODE: %s; STACK=%04X:%08X",intnr,destCS,destEIP,REG_CS,REG_EIP,CPU[activeCPU].currentopcode,errorcodestr,REG_SS,REG_ESP); //Log the current info of the call!
+		dolog("cpu","Interrupt %02X=%04X:%08X@%04X:%04X(%02X); ERRORCODE: %s; STACK=%04X:%08X",intnr, CPU[activeCPU].destCS, CPU[activeCPU].destEIP,REG_CS,REG_EIP,CPU[activeCPU].currentopcode,errorcodestr,REG_SS,REG_ESP); //Log the current info of the call!
 		#endif
-		if ((MMU_logging == 1) && advancedlog) dolog("debugger","Interrupt %02X=%04X:%08X@%04X:%04X(%02X); ERRORCODE: %s",intnr,destINTCS,destEIP,REG_CS,REG_EIP,CPU[activeCPU].currentopcode,errorcodestr); //Log the current info of the call!
+		if ((MMU_logging == 1) && advancedlog) dolog("debugger","Interrupt %02X=%04X:%08X@%04X:%04X(%02X); ERRORCODE: %s",intnr, CPU[activeCPU].destINTCS, CPU[activeCPU].destEIP,REG_CS,REG_EIP,CPU[activeCPU].currentopcode,errorcodestr); //Log the current info of the call!
 		if (segmentWritten(CPU_SEGMENT_CS,destCS,0)) return 1; //Interrupt to position CS:EIP/CS:IP in table.
 		if (CPU_condflushPIQ(-1)) //We're jumping to another address!
 		{
@@ -184,7 +184,7 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 byte CPU_INT(byte intnr, int_64 errorcode, byte is_interrupt) //Call an software interrupt; WARNING: DON'T HANDLE ANYTHING BUT THE REGISTERS ITSELF!
 {
 	//Now, jump to it!
-	return CPU_customint(intnr,INTreturn_CS,INTreturn_EIP,errorcode,is_interrupt); //Execute real interrupt, returning to current address!
+	return CPU_customint(intnr, CPU[activeCPU].INTreturn_CS, CPU[activeCPU].INTreturn_EIP,errorcode,is_interrupt); //Execute real interrupt, returning to current address!
 }
 
 void CPU_IRET()
@@ -195,18 +195,18 @@ void CPU_IRET()
 	word tempCS, tempSS;
 	uint_32 tempEFLAGS;
 	//Special effect: re-enable NMI! This isn't dependent on the instruction succeeding or not(nor documented, just when it's executed)!
-	NMIMasked = 0; //We're allowing NMI again!
+	CPU[activeCPU].NMIMasked = 0; //We're allowing NMI again!
 
 	if (getcpumode()==CPU_MODE_REAL) //Use IVT?
 	{
 		//uint_32 backupESP = REG_ESP;
-		if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(3,0,CPU_Operand_size[activeCPU])) { return; } ++CPU[activeCPU].stackchecked; } //3 Word POPs!
-		if (CPU8086_internal_POPw(0,&IRET_IP,CPU_Operand_size[activeCPU])) return; //POP IP!
-		if (CPU8086_internal_POPw(2,&IRET_CS,CPU_Operand_size[activeCPU])) return; //POP CS!
-		if (CPU8086_internal_POPw(4,&IRET_FLAGS,CPU_Operand_size[activeCPU])) return; //POP FLAGS!
-		destEIP = (uint_32)IRET_IP; //POP IP!
-		if (segmentWritten(CPU_SEGMENT_CS, IRET_CS, 3)) return; //We're loading because of an IRET!
-		REG_FLAGS = IRET_FLAGS; //Pop flags!
+		if (CPU[activeCPU].stackchecked==0) { if (checkStackAccess(3,0, CPU[activeCPU].CPU_Operand_size)) { return; } ++CPU[activeCPU].stackchecked; } //3 Word POPs!
+		if (CPU8086_internal_POPw(0,&CPU[activeCPU].IRET_IP, CPU[activeCPU].CPU_Operand_size)) return; //POP IP!
+		if (CPU8086_internal_POPw(2,&CPU[activeCPU].IRET_CS, CPU[activeCPU].CPU_Operand_size)) return; //POP CS!
+		if (CPU8086_internal_POPw(4,&CPU[activeCPU].IRET_FLAGS, CPU[activeCPU].CPU_Operand_size)) return; //POP FLAGS!
+		CPU[activeCPU].destEIP = (uint_32)CPU[activeCPU].IRET_IP; //POP IP!
+		if (segmentWritten(CPU_SEGMENT_CS, CPU[activeCPU].IRET_CS, 3)) return; //We're loading because of an IRET!
+		REG_FLAGS = CPU[activeCPU].IRET_FLAGS; //Pop flags!
 		CPU_flushPIQ(-1); //We're jumping to another address!
 		#ifdef LOG_INTS
 		dolog("cpu","IRET@%04X:%08X to %04X:%04X; STACK=%04X:%08X",CPU[activeCPU].exec_CS,CPU[activeCPU].exec_EIP,REG_CS,REG_EIP,tempSS,backupESP); //Log the current info of the call!
@@ -230,10 +230,10 @@ void CPU_IRET()
 		//According to: http://x86.renejeschke.de/html/file_module_x86_id_145.html
 		if (FLAG_PL==3) //IOPL==3? Processor is in virtual-8086 mode when IRET is executed and stays in virtual-8086 mode
 		{
-			if (CPU_Operand_size[activeCPU]) //32-bit operand size?
+			if (CPU[activeCPU].CPU_Operand_size) //32-bit operand size?
 			{
 				if (checkStackAccess(3,0,1)) return; //3 DWord POPs!
-				destEIP = CPU_POP32();
+				CPU[activeCPU].destEIP = CPU_POP32();
 				tempCS = (CPU_POP32()&0xFFFF);
 				tempEFLAGS = CPU_POP32();
 				if (segmentWritten(CPU_SEGMENT_CS,tempCS,3)) return; //Jump to the CS, IRET style!
@@ -245,7 +245,7 @@ void CPU_IRET()
 			else //16-bit operand size?
 			{
 				if (checkStackAccess(3,0,0)) return; //3 Word POPs!
-				destEIP = (uint_32)CPU_POP16(0);
+				CPU[activeCPU].destEIP = (uint_32)CPU_POP16(0);
 				tempCS = CPU_POP16(0);
 				tempEFLAGS = CPU_POP16(0);
 				if (segmentWritten(CPU_SEGMENT_CS, tempCS, 3)) return; //Jump to the CS, IRET style!
@@ -257,11 +257,11 @@ void CPU_IRET()
 		}
 		else //PL!=3?
 		{
-			if (((CPU[activeCPU].registers->CR4 & 1) && (EMULATED_CPU>=CPU_PENTIUM)) && (CPU_Operand_size[activeCPU]==0)) //Pentium with VME enabled, executing 16-bit IRET?
+			if (((CPU[activeCPU].registers->CR4 & 1) && (EMULATED_CPU>=CPU_PENTIUM)) && (CPU[activeCPU].CPU_Operand_size==0)) //Pentium with VME enabled, executing 16-bit IRET?
 			{
 				//Execute 16-bit POP normally
 				if (checkStackAccess(3, 0, 0)) return; //3 Word POPs!
-				destEIP = (uint_32)CPU_POP16(0);
+				CPU[activeCPU].destEIP = (uint_32)CPU_POP16(0);
 				tempCS = CPU_POP16(0);
 				tempEFLAGS = CPU_POP16(0);
 				if (segmentWritten(CPU_SEGMENT_CS, tempCS, 3)) return; //Jump to the CS, IRET style!
@@ -314,7 +314,7 @@ void CPU_IRET()
 
 	//Normal protected mode IRET?
 	uint_32 tempesp;
-	if (CPU_Operand_size[activeCPU]) //32-bit?
+	if (CPU[activeCPU].CPU_Operand_size) //32-bit?
 	{
 		if (checkStackAccess(3,0,1)) return; //Top 12 bytes!
 	}
@@ -323,16 +323,16 @@ void CPU_IRET()
 		if (checkStackAccess(3,0,0)) return; //Top 6 bytes!
 	}
 			
-	if (CPU_Operand_size[activeCPU]) //32-bit mode?
+	if (CPU[activeCPU].CPU_Operand_size) //32-bit mode?
 	{
-		destEIP = CPU_POP32(); //POP EIP!
+		CPU[activeCPU].destEIP = CPU_POP32(); //POP EIP!
 	}
 	else
 	{
-		destEIP = (uint_32)CPU_POP16(0); //POP IP!
+		CPU[activeCPU].destEIP = (uint_32)CPU_POP16(0); //POP IP!
 	}
-	tempCS = CPU_POP16(CPU_Operand_size[activeCPU]); //CS to be loaded!
-	if (CPU_Operand_size[activeCPU]) //32-bit mode?
+	tempCS = CPU_POP16(CPU[activeCPU].CPU_Operand_size); //CS to be loaded!
+	if (CPU[activeCPU].CPU_Operand_size) //32-bit mode?
 	{
 		tempEFLAGS = CPU_POP32(); //Pop eflags!
 	}
@@ -364,7 +364,7 @@ void CPU_IRET()
 	}
 	else //Normal protected mode return?
 	{
-		if (CPU_Operand_size[activeCPU]==0) tempEFLAGS |= (REG_EFLAGS&0xFFFF0000); //Pop flags only, not EFLAGS!
+		if (CPU[activeCPU].CPU_Operand_size==0) tempEFLAGS |= (REG_EFLAGS&0xFFFF0000); //Pop flags only, not EFLAGS!
 		//Check unchanging bits!
 		tempEFLAGS = (tempEFLAGS&~F_V8)|(REG_EFLAGS&F_V8); //When returning to a V86-mode task from a non-PL0 handler, the VM flag isn't updated, so it stays in protected mode!
 		if (getCPL())
@@ -411,7 +411,7 @@ void CPU_INTERNAL_execNMI()
 
 	if (CPU_faultraised(EXCEPTION_NMI)) //OK to trigger the NMI exception?
 	{
-		if (likely(((EMULATED_CPU <= CPU_80286) && REPPending) == 0)) //Not 80386+, REP pending and segment override?
+		if (likely(((EMULATED_CPU <= CPU_80286) && CPU[activeCPU].REPPending) == 0)) //Not 80386+, REP pending and segment override?
 		{
 			CPU_8086REPPending(1); //Process pending REPs normally as documented!
 		}
@@ -511,11 +511,11 @@ byte execNMI(byte causeisMemory) //Execute an NMI!
 #ifdef DISABLE_NMI
 	return 1; //We don't handle any NMI's from Bus or Memory through the NMI PIN!
 #endif
-	if (!(NMI|NMIMasked)) //NMI interrupt enabled and not masked off?
+	if (!(NMI| CPU[activeCPU].NMIMasked)) //NMI interrupt enabled and not masked off?
 	{
 		if (doNMI && (NMIQueued==0)) //I/O error on memory or bus and we can handle it(nothing is queued yet)?
 		{
-			NMIMasked = 1; //Mask future NMI!
+			CPU[activeCPU].NMIMasked = 1; //Mask future NMI!
 			if (EMULATED_CPU >= CPU_80286) //AT?
 			{
 				SystemControlPortB |= doNMI; //Signal an error, AT-compatible style!
