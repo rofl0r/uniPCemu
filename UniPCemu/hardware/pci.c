@@ -44,7 +44,7 @@ byte PCI_lastindex[MAXCPUS] = { 0,0 };
 
 void PCI_finishtransfer()
 {
-	if (unlikely(PCI_transferring)) //Were we tranaferring?
+	if (unlikely(PCI_transferring[activeCPU])) //Were we tranaferring?
 	{
 		PCI_transferring[activeCPU] = 0; //Not anymore!
 		if (configurationchanges[PCI_device]) //Change registered?
