@@ -1232,6 +1232,14 @@ typedef struct
 	byte taskswitch_result; //Result of a task switch!
 	uint_32 wordaddress;
 	byte cpudebugger; //To debug the CPU?
+	byte data8; //For string instructions!
+	word data16; //For string instructions!
+	uint_32 data32; //For string instructions!
+	//Enter instruction data!
+	word frametempw;
+	uint_32 frametempd;
+	word bpdataw;
+	uint_32 bpdatad;
 } CPU_type;
 
 #ifndef IS_CPU
