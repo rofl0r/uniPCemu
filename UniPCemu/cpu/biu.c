@@ -386,9 +386,9 @@ extern MMU_type MMU; //MMU support!
 extern uint_32 effectivecpuaddresspins; //What address pins are supported?
 
 //Some cached memory line!
-uint_32 BIU_cachedmemoryaddr[MAXCPUS]=0;
-uint_32 BIU_cachedmemoryread[MAXCPUS]=0;
-byte BIU_cachedmemorysize[MAXCPUS]=0;
+uint_32 BIU_cachedmemoryaddr[MAXCPUS] = { 0,0 };
+uint_32 BIU_cachedmemoryread[MAXCPUS] = { 0,0 };
+byte BIU_cachedmemorysize[MAXCPUS] = { 0,0 };
 
 extern uint_32 memory_dataaddr; //The data address that's cached!
 extern uint_32 memory_dataread;
@@ -415,16 +415,16 @@ OPTINLINE byte BIU_directrb(uint_32 realaddress, word index)
 	originaladdr = realaddress; //Save the address before the A20 is modified!
 	realaddress &= (MMU.wraparround | (CompaqWrapping[(realaddress >> 20)] << 20)); //Apply A20, when to be applied, including Compaq-style wrapping!
 
-	if (likely(BIU_cachedmemorysize)) //Anything left cached?
+	if (likely(BIU_cachedmemorysize[activeCPU])) //Anything left cached?
 	{
 		//First, validate the cache itself!
-		if (unlikely((BIU_cachedmemorysize != memory_datasize) || (BIU_cachedmemoryaddr != memory_dataaddr))) //Not cached properly or different address in the memory cache?
+		if (unlikely((BIU_cachedmemorysize[activeCPU] != memory_datasize) || (BIU_cachedmemoryaddr[activeCPU] != memory_dataaddr))) //Not cached properly or different address in the memory cache?
 		{
 			goto uncachedread; //Uncached read!
 		}
 		//Now, validate the active address!
 		cachedmemorybyte = (realaddress - BIU_cachedmemoryaddr[activeCPU]); //What byte in the cache are we?
-		if (unlikely((cachedmemorybyte >= BIU_cachedmemorysize) || (realaddress < BIU_cachedmemoryaddr))) //Past or before what's cached?
+		if (unlikely((cachedmemorybyte >= BIU_cachedmemorysize[activeCPU]) || (realaddress < BIU_cachedmemoryaddr[activeCPU]))) //Past or before what's cached?
 		{
 			goto uncachedread; //Uncached read!
 		}
@@ -530,7 +530,7 @@ void BIU_directwdw(uint_32 realaddress, uint_32 value, word index)
 extern MMU_realaddrHandler realaddrHandlerCS; //CS real addr handler!
 
 extern uint_32 checkMMUaccess_linearaddr; //Saved linear address for the BIU to use!
-byte PIQ_block[MAXCPUS] = 0; //Blocking any PIQ access now?
+byte PIQ_block[MAXCPUS] = { 0,0 }; //Blocking any PIQ access now?
 #ifdef IS_WINDOWS
 void CPU_fillPIQ() //Fill the PIQ until it's full!
 #else
@@ -541,7 +541,7 @@ OPTINLINE void CPU_fillPIQ() //Fill the PIQ until it's full!
 	uint_32 realaddress, linearaddress;
 	INLINEREGISTER uint_32 physaddr;
 	byte value;
-	if (unlikely(((PIQ_block==1) || (PIQ_block==9)) && (useIPSclock==0))) { PIQ_block = 0; return; /* Blocked access: only fetch one byte/word instead of a full word/dword! */ }
+	if (unlikely(((PIQ_block[activeCPU]==1) || (PIQ_block[activeCPU]==9)) && (useIPSclock==0))) { PIQ_block[activeCPU] = 0; return; /* Blocked access: only fetch one byte/word instead of a full word/dword! */ }
 	if (unlikely(BIU[activeCPU].PIQ==0)) return; //Not gotten a PIQ? Abort!
 	realaddress = BIU[activeCPU].PIQ_Address; //Next address to fetch(Logical address)!
 	checkMMUaccess_linearaddr = physaddr = realaddrHandlerCS(CPU_SEGMENT_CS, REG_CS, realaddress, 0,0); //Linear adress!
@@ -557,7 +557,7 @@ OPTINLINE void CPU_fillPIQ() //Fill the PIQ until it's full!
 	}
 	if (unlikely(checkMMUaccess_linearaddr & 1)) //Read an odd address?
 	{
-		PIQ_block &= 5; //Start blocking when it's 3(byte fetch instead of word fetch), also include dword odd addresses. Otherwise, continue as normally!		
+		PIQ_block[activeCPU] &= 5; //Start blocking when it's 3(byte fetch instead of word fetch), also include dword odd addresses. Otherwise, continue as normally!		
 	}
 	if (is_paging()) //Are we paging?
 	{
@@ -678,7 +678,7 @@ void BIU_dosboxTick()
 		{
 			if (likely(((BIU[activeCPU].PIQ_checked == 0) && BIUsize)==0)) //Not rechecking yet(probably not)?
 			{
-				PIQ_block = 0; //We're never blocking(only 1 access)!
+				PIQ_block[activeCPU] = 0; //We're never blocking(only 1 access)!
 				CPU_fillPIQ(); //Keep the FIFO fully filled!
 				BIU[activeCPU].BUSactive = 0; //Inactive BUS!
 				checkBIUBUSrelease(); //Check for release!
@@ -734,7 +734,7 @@ byte CPU_readOP(byte *result, byte singlefetch) //Reads the operation (byte) at 
 		}
 		if (EMULATED_CPU >= CPU_80286)
 		{
-			if (unlikely((OPlength + 1)>instructionlimit[EMULATED_CPU - CPU_80286])) //Instruction limit broken this fetch?
+			if (unlikely((CPU[activeCPU].OPlength + 1)>instructionlimit[EMULATED_CPU - CPU_80286])) //Instruction limit broken this fetch?
 			{
 				THROWDESCGP(0, 0, 0); //#GP(0)
 				return 1; //Abort on fault!
@@ -763,7 +763,7 @@ byte CPU_readOP(byte *result, byte singlefetch) //Reads the operation (byte) at 
 	}
 	if (EMULATED_CPU >= CPU_80286)
 	{
-		if (unlikely((OPlength + 1)>instructionlimit[EMULATED_CPU - CPU_80286])) //Instruction limit broken this fetch?
+		if (unlikely((CPU[activeCPU].OPlength + 1)>instructionlimit[EMULATED_CPU - CPU_80286])) //Instruction limit broken this fetch?
 		{
 			THROWDESCGP(0, 0, 0); //#GP(0)
 			return 1; //Abort on fault!
@@ -1087,9 +1087,9 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates, byte bus_waitstates)
 					}
 					else
 					{
-						if (useIPSclock && (BIU[activeCPU].newtransfer_size==BIU_cachedmemorysize) && (BIU_cachedmemorysize>1) && (BIU_cachedmemoryaddr==physicaladdress)) //Data already fully read in IPS clocking mode?
+						if (useIPSclock && (BIU[activeCPU].newtransfer_size==BIU_cachedmemorysize[activeCPU]) && (BIU_cachedmemorysize[activeCPU]>1) && (BIU_cachedmemoryaddr[activeCPU]==physicaladdress)) //Data already fully read in IPS clocking mode?
 						{
-							BIU[activeCPU].currentresult = BIU_cachedmemoryread; //What was read?
+							BIU[activeCPU].currentresult = BIU_cachedmemoryread[activeCPU]; //What was read?
 							if (BIU_response(BIU[activeCPU].currentresult)) //Result given? We're giving OK!
 							{
 								BIU_terminatemem(); //Terminate memory access!
@@ -1339,7 +1339,7 @@ byte BIU_active[MAXCPUS]; //Are we counted as active cycles?
 OPTINLINE void BIU_WaitState() //General Waitstate handler!
 {
 	BIU[activeCPU].TState = 0xFF; //Waitstate RAM/BUS!
-	BIU_active = 0; //Count as inactive BIU: don't advance cycles!
+	BIU_active[activeCPU] = 0; //Count as inactive BIU: don't advance cycles!
 }
 
 void BIU_detectCycle(); //Detect the cycle to execute!
@@ -1409,7 +1409,7 @@ void BIU_cycle_active8086() //Everything not T1 cycle!
 	{
 		++CPU[activeCPU].cycles_Prefetch_DMA;
 		BIU[activeCPU].TState = 0xFE; //DMA cycle special identifier!
-		BIU_active = 0; //Count as inactive BIU: don't advance cycles!
+		BIU_active[activeCPU] = 0; //Count as inactive BIU: don't advance cycles!
 	}
 	else //Active CPU cycle?
 	{
@@ -1433,7 +1433,7 @@ void BIU_cycle_active8086() //Everything not T1 cycle!
 			else
 			{
 				if (BIU[activeCPU].currentcycleinfo->cycles) --BIU[activeCPU].currentcycleinfo->cycles; //Decrease the cycles as needed for activity!
-				BIU_active = 0; //Count as inactive BIU: don't advance cycles!
+				BIU_active[activeCPU] = 0; //Count as inactive BIU: don't advance cycles!
 			}
 		}
 		else if (unlikely((BIU[activeCPU].currentcycleinfo->curcycle==0) && (BIU[activeCPU].BUSactive==0))) //T1 while not busy? Start transfer, if possible!
@@ -1442,20 +1442,20 @@ void BIU_cycle_active8086() //Everything not T1 cycle!
 			else
 			{
 				tryprefetch808X:
-				if (unlikely(BIU_processRequests(memory_waitstates,bus_waitstates))) //Processing a request?
+				if (unlikely(BIU_processRequests(memory_waitstates[activeCPU],bus_waitstates[activeCPU]))) //Processing a request?
 				{
 					BIU[activeCPU].requestready = 0; //We're starting a request!
 					++BIU[activeCPU].prefetchclock; //Tick!					
 				}
 				else if (likely(fifobuffer_freesize(BIU[activeCPU].PIQ)>=((uint_32)2>>CPU_databussize))) //Prefetch cycle when not requests are handled? Else, NOP cycle!
 				{
-					PIQ_block = 0; //We're never blocking(only 1 access)!
+					PIQ_block[activeCPU] = 0; //We're never blocking(only 1 access)!
 					CPU_fillPIQ(); //Add a byte to the prefetch!
 					if (CPU_databussize == 0) CPU_fillPIQ(); //8086? Fetch words!
 					if (BIU[activeCPU].BUSactive) //Gone active?
 					{
 						++CPU[activeCPU].cycles_Prefetch_BIU; //Cycles spent on prefetching on BIU idle time!
-						BIU[activeCPU].waitstateRAMremaining += memory_waitstates; //Apply the waitstates for the fetch!
+						BIU[activeCPU].waitstateRAMremaining += memory_waitstates[activeCPU]; //Apply the waitstates for the fetch!
 						++BIU[activeCPU].prefetchclock; //Tick!
 					}
 				}
@@ -1488,7 +1488,7 @@ void BIU_cycle_active286()
 	{
 		++CPU[activeCPU].cycles_Prefetch_DMA;
 		BIU[activeCPU].TState = 0xFE; //DMA cycle special identifier!
-		BIU_active = 0; //Count as inactive BIU: don't advance cycles!
+		BIU_active[activeCPU] = 0; //Count as inactive BIU: don't advance cycles!
 	}
 	else //Active CPU cycle?
 	{
@@ -1516,30 +1516,30 @@ void BIU_cycle_active286()
 			else
 			{
 				tryprefetch80286:
-				PIQ_RequiredSize = 1; //Minimum of 2 bytes required for a fetch to happen!
-				PIQ_CurrentBlockSize = 3; //We're blocking after 1 byte access when at an odd address!
+				PIQ_RequiredSize[activeCPU] = 1; //Minimum of 2 bytes required for a fetch to happen!
+				PIQ_CurrentBlockSize[activeCPU] = 3; //We're blocking after 1 byte access when at an odd address!
 				if (EMULATED_CPU>=CPU_80386) //386+?
 				{
-					PIQ_RequiredSize |= 2; //Minimum of 4 bytes required for a fetch to happen!
-					PIQ_CurrentBlockSize |= 4; //Apply 32-bit quantities as well, when allowed!
+					PIQ_RequiredSize[activeCPU] |= 2; //Minimum of 4 bytes required for a fetch to happen!
+					PIQ_CurrentBlockSize[activeCPU] |= 4; //Apply 32-bit quantities as well, when allowed!
 				}
-				if (unlikely(BIU_processRequests(memory_waitstates,bus_waitstates))) //Processing a request?
+				if (unlikely(BIU_processRequests(memory_waitstates[activeCPU],bus_waitstates[activeCPU]))) //Processing a request?
 				{
 					BIU[activeCPU].requestready = 0; //We're starting a request!
 					++BIU[activeCPU].prefetchclock; //Tick!
 				}
-				else if (likely(fifobuffer_freesize(BIU[activeCPU].PIQ)>PIQ_RequiredSize)) //Prefetch cycle when not requests are handled(2 free spaces only)? Else, NOP cycle!
+				else if (likely(fifobuffer_freesize(BIU[activeCPU].PIQ)>PIQ_RequiredSize[activeCPU])) //Prefetch cycle when not requests are handled(2 free spaces only)? Else, NOP cycle!
 				{
-					PIQ_block = PIQ_CurrentBlockSize; //We're blocking after 1 byte access when at an odd address at an odd word/dword address!
+					PIQ_block[activeCPU] = PIQ_CurrentBlockSize[activeCPU]; //We're blocking after 1 byte access when at an odd address at an odd word/dword address!
 					CPU_fillPIQ(); CPU_fillPIQ(); //Add a word to the prefetch!
-					if (likely((PIQ_RequiredSize & 2) && ((EMULATED_CPU >= CPU_80386) && (CPU_databussize == 0)))) //DWord access on a 32-bit BUS, when allowed?
+					if (likely((PIQ_RequiredSize[activeCPU] & 2) && ((EMULATED_CPU >= CPU_80386) && (CPU_databussize == 0)))) //DWord access on a 32-bit BUS, when allowed?
 					{
 						CPU_fillPIQ(); CPU_fillPIQ(); //Add another word to the prefetch!
 					}
 					if (BIU[activeCPU].BUSactive) //Gone active?
 					{
 						++CPU[activeCPU].cycles_Prefetch_BIU; //Cycles spent on prefetching on BIU idle time!
-						BIU[activeCPU].waitstateRAMremaining += memory_waitstates; //Apply the waitstates for the fetch!
+						BIU[activeCPU].waitstateRAMremaining += memory_waitstates[activeCPU]; //Apply the waitstates for the fetch!
 						++BIU[activeCPU].prefetchclock; //Tick!
 					}
 				}
@@ -1577,7 +1577,7 @@ void BIU_cycle_active486()
 	{
 		++CPU[activeCPU].cycles_Prefetch_DMA;
 		BIU[activeCPU].TState = 0xFE; //DMA cycle special identifier!
-		BIU_active = 0; //Count as inactive BIU: don't advance cycles!
+		BIU_active[activeCPU] = 0; //Count as inactive BIU: don't advance cycles!
 	}
 	else //Active CPU cycle?
 	{
@@ -1587,7 +1587,7 @@ void BIU_cycle_active486()
 		{
 			--BIU[activeCPU].currentcycleinfo->cycles_stallBIU; //Stall the BIU instead of normal runtime!
 			BIU[activeCPU].stallingBUS = 3; //Stalling fetching!
-			BIU_active = 0; //Count as inactive BUS: don't advance cycles!
+			BIU_active[activeCPU] = 0; //Count as inactive BUS: don't advance cycles!
 			BIU[activeCPU].BUSactive = 0; //Inactive BUS!
 			checkBIUBUSrelease(); //Check for release!
 		}
@@ -1597,29 +1597,29 @@ void BIU_cycle_active486()
 			else
 			{
 			tryprefetch80286:
-				PIQ_RequiredSize = 1; //Minimum of 2 bytes required for a fetch to happen!
-				PIQ_CurrentBlockSize = 3; //We're blocking after 1 byte access when at an odd address!
+				PIQ_RequiredSize[activeCPU] = 1; //Minimum of 2 bytes required for a fetch to happen!
+				PIQ_CurrentBlockSize[activeCPU] = 3; //We're blocking after 1 byte access when at an odd address!
 				if (EMULATED_CPU >= CPU_80386) //386+?
 				{
-					PIQ_RequiredSize |= 2; //Minimum of 4 bytes required for a fetch to happen!
-					PIQ_CurrentBlockSize |= 4; //Apply 32-bit quantities as well, when allowed!
+					PIQ_RequiredSize[activeCPU] |= 2; //Minimum of 4 bytes required for a fetch to happen!
+					PIQ_CurrentBlockSize[activeCPU] |= 4; //Apply 32-bit quantities as well, when allowed!
 				}
-				if (unlikely(BIU_processRequests(memory_waitstates, bus_waitstates))) //Processing a request?
+				if (unlikely(BIU_processRequests(memory_waitstates[activeCPU], bus_waitstates[activeCPU]))) //Processing a request?
 				{
 					BIU[activeCPU].requestready = 0; //We're starting a request!
 				}
-				else if (likely(fifobuffer_freesize(BIU[activeCPU].PIQ)>PIQ_RequiredSize)) //Prefetch cycle when not requests are handled(2 free spaces only)? Else, NOP cycle!
+				else if (likely(fifobuffer_freesize(BIU[activeCPU].PIQ)>PIQ_RequiredSize[activeCPU])) //Prefetch cycle when not requests are handled(2 free spaces only)? Else, NOP cycle!
 				{
-					PIQ_block = PIQ_CurrentBlockSize; //We're blocking after 1 byte access when at an odd address at an odd word/dword address!
+					PIQ_block[activeCPU] = PIQ_CurrentBlockSize[activeCPU]; //We're blocking after 1 byte access when at an odd address at an odd word/dword address!
 					CPU_fillPIQ(); CPU_fillPIQ(); //Add a word to the prefetch!
-					if (likely((PIQ_RequiredSize & 2) && ((EMULATED_CPU >= CPU_80386) && (CPU_databussize == 0)))) //DWord access on a 32-bit BUS, when allowed?
+					if (likely((PIQ_RequiredSize[activeCPU] & 2) && ((EMULATED_CPU >= CPU_80386) && (CPU_databussize == 0)))) //DWord access on a 32-bit BUS, when allowed?
 					{
 						CPU_fillPIQ(); CPU_fillPIQ(); //Add another word to the prefetch!
 					}
 					if (BIU[activeCPU].BUSactive) //Gone active?
 					{
 						++CPU[activeCPU].cycles_Prefetch_BIU; //Cycles spent on prefetching on BIU idle time!
-						BIU[activeCPU].waitstateRAMremaining += memory_waitstates; //Apply the waitstates for the fetch!
+						BIU[activeCPU].waitstateRAMremaining += memory_waitstates[activeCPU]; //Apply the waitstates for the fetch!
 					}
 				}
 				else //Nothing to do?
@@ -1675,21 +1675,21 @@ void CPU_tickBIU()
 		BIU[activeCPU].currentcycleinfo = &BIU[activeCPU].cycleinfo; //Our cycle info to use!
 
 		//Determine memory/bus waitstate first!
-		memory_waitstates = 0;
-		bus_waitstates = 0;
-		BIU_active = 1; //We're active by default!
+		memory_waitstates[activeCPU] = 0;
+		bus_waitstates[activeCPU] = 0;
+		BIU_active[activeCPU] = 1; //We're active by default!
 		if (EMULATED_CPU==CPU_80286) //Process normal memory cycles!
 		{
-			memory_waitstates += CPU286_WAITSTATE_DELAY; //One waitstate RAM!
-			bus_waitstates += CPU286_BUSWAITSTATE_DELAY; //Waitstate I/O!
+			memory_waitstates[activeCPU] += CPU286_WAITSTATE_DELAY; //One waitstate RAM!
+			bus_waitstates[activeCPU] += CPU286_BUSWAITSTATE_DELAY; //Waitstate I/O!
 		}
 		else if (EMULATED_CPU==CPU_80386) //Waitstate memory to add?
 		{
-			memory_waitstates += CPU386_WAITSTATE_DELAY; //One waitstate RAM!
+			memory_waitstates[activeCPU] += CPU386_WAITSTATE_DELAY; //One waitstate RAM!
 		}
 		if (is_XT && ((EMULATED_CPU!=CPU_80286) && (EMULATED_CPU!=CPU_80386))) //XT 80(1)86 has 1 bus waitstate!
 		{
-			bus_waitstates = CPU80X86_XTBUSWAITSTATE_DELAY; //One waitstate on bus cycles!
+			bus_waitstates[activeCPU] = CPU80X86_XTBUSWAITSTATE_DELAY; //One waitstate on bus cycles!
 		}
 
 		//Now, normal processing!
