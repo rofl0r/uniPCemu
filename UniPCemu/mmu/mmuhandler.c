@@ -223,7 +223,7 @@ uint_32 memory_datawrite = 0; //Data to be written!
 byte memory_datawritesize = 1; //How much bytes are requested to be written?
 byte memory_datawrittensize = 1; //How many bytes have been written to memory during a write!
 
-extern byte SMRAM_enabled; //SMRAM enabled?
+extern byte SMRAM_enabled[MAXCPUS]; //SMRAM enabled?
 extern byte SMRAM_data; //SMRAM responds to data accesses?
 
 byte checkMemoryHoles(uint_32 realaddress, byte isread); //Prototype!
@@ -250,7 +250,7 @@ OPTINLINE byte MMU_IO_writehandler(uint_32 offset, byte value, word index)
 					return 1; //Normal memory access!
 				}
 			}
-			else if ((offset >= 0xA0000) && SMRAM_enabled) //SMRAM?
+			else if ((offset >= 0xA0000) && SMRAM_enabled[activeCPU]) //SMRAM?
 			{
 				if (SMRAM_data) //Allowed data?
 				{
@@ -328,7 +328,7 @@ OPTINLINE byte MMU_IO_readhandler(uint_32 offset, word index)
 				}
 				//Otherwise, map to PCI and not DRAM!
 			}
-			else if ((offset >= 0xA0000) && SMRAM_enabled) //SMRAM?
+			else if ((offset >= 0xA0000) && SMRAM_enabled[activeCPU]) //SMRAM?
 			{
 				if (SMRAM_data || (index&0x20)) //Code or allowed data?
 				{
