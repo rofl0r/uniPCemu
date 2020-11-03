@@ -1475,7 +1475,7 @@ void BIU_cycle_active8086() //Everything not T1 cycle!
 			blockDMA = 1; //We're a DMA waiting cycle, don't start yet this cycle!
 		}
 
-		if (unlikely(BIU[activeCPU].currentcycleinfo->cycles && BIU_active)) --BIU[activeCPU].currentcycleinfo->cycles; //Decrease the amount of cycles that's left!
+		if (unlikely(BIU[activeCPU].currentcycleinfo->cycles && BIU_active[activeCPU])) --BIU[activeCPU].currentcycleinfo->cycles; //Decrease the amount of cycles that's left!
 	}
 	BIU_detectCycle(); //Detect the next cycle!
 }
@@ -1558,7 +1558,7 @@ void BIU_cycle_active286()
 			BIU[activeCPU].requestready = 1; //The request is ready to be served!
 			blockDMA = 1; //We're a DMA waiting cycle, don't start yet this cycle!
 		}
-		if (unlikely(BIU[activeCPU].currentcycleinfo->cycles && BIU_active)) --BIU[activeCPU].currentcycleinfo->cycles; //Decrease the amount of cycles that's left!
+		if (unlikely(BIU[activeCPU].currentcycleinfo->cycles && BIU_active[activeCPU])) --BIU[activeCPU].currentcycleinfo->cycles; //Decrease the amount of cycles that's left!
 	}
 	BIU_detectCycle(); //Detect the next cycle!
 }
@@ -1633,7 +1633,7 @@ void BIU_cycle_active486()
 			BIU[activeCPU].requestready = 1; //The request is ready to be served!
 			blockDMA = 1; //We're a DMA waiting cycle, don't start yet this cycle!
 		}
-		if (unlikely(BIU[activeCPU].currentcycleinfo->cycles && BIU_active)) --BIU[activeCPU].currentcycleinfo->cycles; //Decrease the amount of cycles that's left!
+		if (unlikely(BIU[activeCPU].currentcycleinfo->cycles && BIU_active[activeCPU])) --BIU[activeCPU].currentcycleinfo->cycles; //Decrease the amount of cycles that's left!
 	}
 	BIU_detectCycle(); //Detect the next cycle!
 }
