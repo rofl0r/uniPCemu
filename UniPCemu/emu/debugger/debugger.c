@@ -131,7 +131,6 @@ extern byte HWINT_nr, HWINT_saved; //HW interrupt saved?
 
 byte startreached = 0;
 byte harddebugging = 0; //Hard-coded debugger set?
-extern byte cpudebugger; //Are we currently debugging?
 
 OPTINLINE byte debugging() //Debugging?
 {
@@ -1619,7 +1618,7 @@ void debugger_setcommand(char *text, ...)
 {
 	char *c;
 	if (activeCPU) return; //Only CPU #0!
-	if (cpudebugger && (debugger_set==0)) //Are we debugging?
+	if (CPU[activeCPU].cpudebugger && (debugger_set==0)) //Are we debugging?
 	{
 		va_list args; //Going to contain the list!
 		va_start (args, text); //Start list!
