@@ -35,7 +35,6 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/hardware/pic.h" //APIC support!
 
 extern BIOS_Settings_TYPE BIOS_Settings; //Settings!
-extern MMU_type MMU; //MMU for direct access!
 
 #define __HW_DISABLED 0
 
