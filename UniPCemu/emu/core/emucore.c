@@ -1112,8 +1112,6 @@ void calcGenericSinglestep(byte index)
 	//Use the other breakpoint settings combined and default to 0!
 }
 
-extern uint_32 destEIP; //Destination address for CS JMP instruction!
-
 OPTINLINE byte coreHandler()
 {
 	word destCS;

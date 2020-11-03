@@ -1545,8 +1545,6 @@ void debuggerThread()
 ThreadParams_p debugger_thread = NULL; //The debugger thread, if any!
 extern ThreadParams_p BIOSMenuThread; //BIOS pause menu thread!
 
-extern byte didJump; //Did we jump this instruction?
-
 void debugger_step() //Processes the debugging step!
 {
 	if (activeCPU) return; //Only with CPU #0!
