@@ -1231,6 +1231,7 @@ typedef struct
 	uint_32 customoffset; //What custom memory address used!
 	byte taskswitch_result; //Result of a task switch!
 	uint_32 wordaddress;
+	byte cpudebugger; //To debug the CPU?
 } CPU_type;
 
 #ifndef IS_CPU

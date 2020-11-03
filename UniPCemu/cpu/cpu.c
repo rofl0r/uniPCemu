@@ -61,8 +61,6 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 
 byte activeCPU = 0; //What CPU is currently active?
 
-byte cpudebugger; //To debug the CPU?
-
 CPU_type CPU[MAXCPUS]; //The CPU data itself!
 
 uint_32 MSRstorage; //How much storage is used?
@@ -537,7 +535,7 @@ byte CPU_EIPSize(byte useAddressSize)
 
 void modrm_debugger8(MODRM_PARAMS *theparams, byte whichregister1, byte whichregister2) //8-bit handler!
 {
-	if (cpudebugger)
+	if (CPU[activeCPU].cpudebugger)
 	{
 		cleardata(&CPU[activeCPU].modrm_param1[0],sizeof(CPU[activeCPU].modrm_param1));
 		cleardata(&CPU[activeCPU].modrm_param2[0],sizeof(CPU[activeCPU].modrm_param2));
@@ -548,7 +546,7 @@ void modrm_debugger8(MODRM_PARAMS *theparams, byte whichregister1, byte whichreg
 
 void modrm_debugger16(MODRM_PARAMS *theparams, byte whichregister1, byte whichregister2) //16-bit handler!
 {
-	if (cpudebugger)
+	if (CPU[activeCPU].cpudebugger)
 	{
 		cleardata(&CPU[activeCPU].modrm_param1[0],sizeof(CPU[activeCPU].modrm_param1));
 		cleardata(&CPU[activeCPU].modrm_param2[0],sizeof(CPU[activeCPU].modrm_param2));
@@ -559,7 +557,7 @@ void modrm_debugger16(MODRM_PARAMS *theparams, byte whichregister1, byte whichre
 
 void modrm_debugger32(MODRM_PARAMS *theparams, byte whichregister1, byte whichregister2) //16-bit handler!
 {
-	if (cpudebugger)
+	if (CPU[activeCPU].cpudebugger)
 	{
 		cleardata(&CPU[activeCPU].modrm_param1[0],sizeof(CPU[activeCPU].modrm_param1));
 		cleardata(&CPU[activeCPU].modrm_param2[0],sizeof(CPU[activeCPU].modrm_param2));
@@ -592,7 +590,7 @@ extern byte debugger_set; //Debugger set?
 
 void modrm_generateInstructionTEXT(char *instruction, byte debuggersize, uint_32 paramdata, byte type)
 {
-	if (cpudebugger && (debugger_set==0)) //Gotten no debugger to process?
+	if (CPU[activeCPU].cpudebugger && (debugger_set==0)) //Gotten no debugger to process?
 	{
 		//Process debugger!
 		char result[256];
@@ -2020,7 +2018,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		CPU[activeCPU].faultraised = 0; //Default fault raised!
 		CPU[activeCPU].faultlevel = 0; //Default to no fault level!
 
-		if (cpudebugger) //Debugging?
+		if (CPU[activeCPU].cpudebugger) //Debugging?
 		{
 			cleardata(&debugtext[0], sizeof(debugtext)); //Init debugger!
 		}
@@ -2077,7 +2075,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	}
 
 	//Handle all prefixes!
-	if (cpudebugger) debugger_setprefix(""); //Reset prefix for the debugger!
+	if (CPU[activeCPU].cpudebugger) debugger_setprefix(""); //Reset prefix for the debugger!
 	CPU[activeCPU].gotREP = 0; //Default: no REP-prefix used!
 	CPU[activeCPU].REPZ = 0; //Init REP to REPNZ/Unused zero flag(during REPNE)!
 	CPU[activeCPU].REPfinishtiming = 0; //Default: no finish timing!
@@ -2218,7 +2216,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		}
 	}
 
-	if (unlikely(cpudebugger)) //Need to set any debugger info?
+	if (unlikely(CPU[activeCPU].cpudebugger)) //Need to set any debugger info?
 	{
 		if (CPU_getprefix(0xF0)) //LOCK?
 		{

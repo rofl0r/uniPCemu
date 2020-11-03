@@ -170,7 +170,6 @@ which is at the first row of the IBM AT POST3 function.
 extern byte EMU_RUNNING; //Emulator running? 0=Not running, 1=Running, Active CPU, 2=Running, Inactive CPU (BIOS etc.)
 extern byte reset; //To fully reset emu?
 extern uint_32 romsize; //For checking if we're running a ROM!
-extern byte cpudebugger; //To debug the CPU?
 extern PIC i8259; //PIC processor!
 extern byte motherboard_responds_to_shutdown; //Motherboard responds to shutdown?
 
@@ -1246,10 +1245,10 @@ OPTINLINE byte coreHandler()
 				//Increase the instruction counter every instruction/HLT time!
 				if (lastHLTstatus != CPU[activeCPU].halt) //Just started halting?
 				{
-					cpudebugger = needdebugger(); //Debugging information required? Refresh in case of external activation!
+					CPU[activeCPU].cpudebugger = needdebugger(); //Debugging information required? Refresh in case of external activation!
 					lastHLTstatus = CPU[activeCPU].halt; //Save for comparision!
 				}
-				if (cpudebugger) //Debugging?
+				if (CPU[activeCPU].cpudebugger) //Debugging?
 				{
 					debugger_beforeCPU(); //Make sure the debugger is prepared when needed!
 					debugger_setcommand("<HLT>"); //We're a HLT state, so give the HLT command!
@@ -1308,7 +1307,7 @@ OPTINLINE byte coreHandler()
 
 				if (unlikely(CPU[activeCPU].registers && (CPU[activeCPU].permanentreset == 0) && (CPU[activeCPU].internalinterruptstep == 0) && BIU_Ready() && (CPU_executionphase_busy() == 0) && (CPU[activeCPU].instructionfetch.CPU_isFetching && (CPU[activeCPU].instructionfetch.CPU_fetchphase == 1)))) //Only check for hardware interrupts when not trapped and allowed to execute interrupts(not permanently reset)!
 				{
-					if (unlikely(CPU[activeCPU].registers && allow_debuggerstep && (doEMUsinglestep[0]|doEMUsinglestep[1]|doEMUsinglestep[2]|doEMUsinglestep[3]|doEMUsinglestep[4]|doEMUtasksinglestep|doEMUFSsinglestep|doEMUCR3singlestep))) //Single step allowed, CPU mode specified?
+					if (unlikely((activeCPU==0) && CPU[activeCPU].registers && allow_debuggerstep && (doEMUsinglestep[0]|doEMUsinglestep[1]|doEMUsinglestep[2]|doEMUsinglestep[3]|doEMUsinglestep[4]|doEMUtasksinglestep|doEMUFSsinglestep|doEMUCR3singlestep))) //Single step allowed, CPU mode specified?
 					{
 						applysinglestep = applysinglestepBP = 0; //Init!
 						calcGenericSinglestep(0);
@@ -1332,7 +1331,7 @@ OPTINLINE byte coreHandler()
 						singlestep |= applysinglestep; //Apply single step?
 						BPsinglestep |= applysinglestepBP; //Apply forced breakpoint on single step?
 					}
-					cpudebugger = needdebugger(); //Debugging information required? Refresh in case of external activation!
+					CPU[activeCPU].cpudebugger = needdebugger(); //Debugging information required? Refresh in case of external activation!
 					MMU_logging = debugger_is_logging; //Are we logging?
 				}
 
