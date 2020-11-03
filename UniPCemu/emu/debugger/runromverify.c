@@ -52,8 +52,6 @@ extern byte HWINT_nr, HWINT_saved; //HW interrupt saved?
 
 extern byte MMU_logging; //Are we logging MMU accesses?
 
-extern byte REPPending; //REP pending reset?
-
 extern ThreadParams_p debugger_thread; //Debugger menu thread!
 
 extern byte debugger_is_logging; //Are we logging?
@@ -182,7 +180,7 @@ int runromverify(char *filename, char *resultfile) //Run&verify ROM!
 						{
 							HWINT_nr = nextintr(); //Get the HW interrupt nr!
 							HWINT_saved = 2; //We're executing a HW(PIC) interrupt!
-							if (!((EMULATED_CPU <= CPU_80286) && REPPending)) //Not 80386+, REP pending and segment override?
+							if (!((EMULATED_CPU <= CPU_80286) && CPU[activeCPU].REPPending)) //Not 80386+, REP pending and segment override?
 							{
 								CPU_8086REPPending(1); //Process pending REPs normally as documented!
 							}

@@ -856,8 +856,6 @@ extern byte interruptsaved; //Primary interrupt saved?
 
 byte HWINT_nr = 0, HWINT_saved = 0; //HW interrupt saved?
 
-extern byte REPPending; //REP pending reset?
-
 extern byte MMU_logging; //Are we logging from the MMU?
 
 extern byte Direct_Input; //Are we in direct input mode?
@@ -1288,7 +1286,7 @@ OPTINLINE byte coreHandler()
 								{
 									HWINT_nr = nextintr(); //Get the HW interrupt nr!
 									HWINT_saved = 2; //We're executing a HW(PIC) interrupt!
-									if (likely(((EMULATED_CPU <= CPU_80286) && REPPending) == 0)) //Not 80386+, REP pending and segment override?
+									if (likely(((EMULATED_CPU <= CPU_80286) && CPU[activeCPU].REPPending) == 0)) //Not 80386+, REP pending and segment override?
 									{
 										CPU_8086REPPending(1); //Process pending REPs normally as documented!
 									}
