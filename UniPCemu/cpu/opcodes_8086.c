@@ -4099,7 +4099,7 @@ OPTINLINE byte CPU8086_internal_INTO()
 
 OPTINLINE byte CPU8086_internal_XLAT()
 {
-	if (unlikely(cpudebugger)) //Debugger on?
+	if (unlikely(CPU[activeCPU].cpudebugger)) //Debugger on?
 	{
 		debugger_setcommand("XLAT");    //XLAT
 	}
@@ -6534,63 +6534,63 @@ DEBUG: REALLY SUPPOSED TO HANDLE OP80-83 HERE?
 void CPU8086_OP80() //GRP1 Eb,Ib
 {
 	INLINEREGISTER byte imm = immb;
-	if (unlikely(cpudebugger)) //Debugger on?
+	if (unlikely(CPU[activeCPU].cpudebugger)) //Debugger on?
 	{
 		modrm_debugger8(&params,MODRM_src0,MODRM_src1);
 	}
 	switch (thereg) //What function?
 	{
 	case 0: //ADD
-		if (unlikely(cpudebugger)) //Debugger on?
+		if (unlikely(CPU[activeCPU].cpudebugger)) //Debugger on?
 		{
 			debugger_setcommand("ADD %s,%02X",&modrm_param1,imm); //CMP Eb, Ib
 		}
 		CPU8086_internal_ADD8(modrm_addr8(&params,MODRM_src0,0),imm,3); //ADD Eb, Ib
 		break;
 	case 1: //OR
-		if (unlikely(cpudebugger)) //Debugger on?
+		if (unlikely(CPU[activeCPU].cpudebugger)) //Debugger on?
 		{
 			debugger_setcommand("OR %s,%02X",&modrm_param1,imm); //CMP Eb, Ib
 		}
 		CPU8086_internal_OR8(modrm_addr8(&params,MODRM_src0,0),imm,3); //OR Eb, Ib
 		break;
 	case 2: //ADC
-		if (unlikely(cpudebugger)) //Debugger on?
+		if (unlikely(CPU[activeCPU].cpudebugger)) //Debugger on?
 		{
 			debugger_setcommand("ADC %s,%02X",&modrm_param1,imm); //CMP Eb, Ib
 		}
 		CPU8086_internal_ADC8(modrm_addr8(&params,MODRM_src0,0),imm,3); //ADC Eb, Ib
 		break;
 	case 3: //SBB
-		if (unlikely(cpudebugger)) //Debugger on?
+		if (unlikely(CPU[activeCPU].cpudebugger)) //Debugger on?
 		{
 			debugger_setcommand("SBB %s,%02X",&modrm_param1,imm); //CMP Eb, Ib
 		}
 		CPU8086_internal_SBB8(modrm_addr8(&params,MODRM_src0,0),imm,3); //SBB Eb, Ib
 		break;
 	case 4: //AND
-		if (unlikely(cpudebugger)) //Debugger on?
+		if (unlikely(CPU[activeCPU].cpudebugger)) //Debugger on?
 		{
 			debugger_setcommand("AND %s,%02X",&modrm_param1,imm); //CMP Eb, Ib
 		}
 		CPU8086_internal_AND8(modrm_addr8(&params,MODRM_src0,0),imm,3); //AND Eb, Ib
 		break;
 	case 5: //SUB
-		if (unlikely(cpudebugger)) //Debugger on?
+		if (unlikely(CPU[activeCPU].cpudebugger)) //Debugger on?
 		{
 			debugger_setcommand("SUB %s,%02X",&modrm_param1,imm); //CMP Eb, Ib
 		}
 		CPU8086_internal_SUB8(modrm_addr8(&params,MODRM_src0,0),imm,3); //SUB Eb, Ib
 		break;
 	case 6: //XOR
-		if (unlikely(cpudebugger)) //Debugger on?
+		if (unlikely(CPU[activeCPU].cpudebugger)) //Debugger on?
 		{
 			debugger_setcommand("XOR %s,%02X",&modrm_param1,imm); //CMP Eb, Ib
 		}
 		CPU8086_internal_XOR8(modrm_addr8(&params,MODRM_src0,0),imm,3); //XOR Eb, Ib
 		break;
 	case 7: //CMP
-		if (unlikely(cpudebugger)) //Debugger on?
+		if (unlikely(CPU[activeCPU].cpudebugger)) //Debugger on?
 		{
 			debugger_setcommand("CMP %s,%02X",&modrm_param1,imm); //CMP Eb, Ib
 		}
@@ -6606,63 +6606,63 @@ void CPU8086_OP80() //GRP1 Eb,Ib
 void CPU8086_OP81() //GRP1 Ev,Iv
 {
 	INLINEREGISTER word imm = immw;
-	if (unlikely(cpudebugger)) //Debugger on?
+	if (unlikely(CPU[activeCPU].cpudebugger)) //Debugger on?
 	{
 		modrm_debugger16(&params,MODRM_src0,MODRM_src1);
 	}
 	switch (thereg) //What function?
 	{
 	case 0: //ADD
-		if (unlikely(cpudebugger)) //Debugger on?
+		if (unlikely(CPU[activeCPU].cpudebugger)) //Debugger on?
 		{
 			debugger_setcommand("ADD %s,%04X",&modrm_param1,imm); //ADD Eb, Ib
 		}
 		CPU8086_internal_ADD16(modrm_addr16(&params,MODRM_src0,0),imm,3); //ADD Eb, Ib
 		break;
 	case 1: //OR
-		if (unlikely(cpudebugger)) //Debugger on?
+		if (unlikely(CPU[activeCPU].cpudebugger)) //Debugger on?
 		{
 			debugger_setcommand("OR %s,%04X",&modrm_param1,imm); //OR Eb, Ib
 		}
 		CPU8086_internal_OR16(modrm_addr16(&params,MODRM_src0,0),imm,3); //OR Eb, Ib
 		break;
 	case 2: //ADC
-		if (unlikely(cpudebugger)) //Debugger on?
+		if (unlikely(CPU[activeCPU].cpudebugger)) //Debugger on?
 		{
 			debugger_setcommand("ADC %s,%04X",&modrm_param1,imm); //ADC Eb, Ib
 		}
 		CPU8086_internal_ADC16(modrm_addr16(&params,MODRM_src0,0),imm,3); //ADC Eb, Ib
 		break;
 	case 3: //SBB
-		if (unlikely(cpudebugger)) //Debugger on?
+		if (unlikely(CPU[activeCPU].cpudebugger)) //Debugger on?
 		{
 			debugger_setcommand("SBB %s,%04X",&modrm_param1,imm); //SBB Eb, Ib
 		}
 		CPU8086_internal_SBB16(modrm_addr16(&params,MODRM_src0,0),imm,3); //SBB Eb, Ib
 		break;
 	case 4: //AND
-		if (unlikely(cpudebugger)) //Debugger on?
+		if (unlikely(CPU[activeCPU].cpudebugger)) //Debugger on?
 		{
 			debugger_setcommand("AND %s,%04X",&modrm_param1,imm); //AND Eb, Ib
 		}
 		CPU8086_internal_AND16(modrm_addr16(&params,MODRM_src0,0),imm,3); //AND Eb, Ib
 		break;
 	case 5: //SUB
-		if (unlikely(cpudebugger)) //Debugger on?
+		if (unlikely(CPU[activeCPU].cpudebugger)) //Debugger on?
 		{
 			debugger_setcommand("SUB %s,%04X",&modrm_param1,imm); //SUB Eb, Ib
 		}
 		CPU8086_internal_SUB16(modrm_addr16(&params,MODRM_src0,0),imm,3); //SUB Eb, Ib
 		break;
 	case 6: //XOR
-		if (unlikely(cpudebugger)) //Debugger on?
+		if (unlikely(CPU[activeCPU].cpudebugger)) //Debugger on?
 		{
 			debugger_setcommand("XOR %s,%04X",&modrm_param1,imm); //XOR Eb, Ib
 		}
 		CPU8086_internal_XOR16(modrm_addr16(&params,MODRM_src0,0),imm,3); //XOR Eb, Ib
 		break;
 	case 7: //CMP
-		if (unlikely(cpudebugger)) //Debugger on?
+		if (unlikely(CPU[activeCPU].cpudebugger)) //Debugger on?
 		{
 			debugger_setcommand("CMP %s,%04X",&modrm_param1,imm); //CMP Eb, Ib
 		}
@@ -6689,63 +6689,63 @@ void CPU8086_OP83() //GRP1 Ev,Ib
 	INLINEREGISTER word imm;
 	imm = (word)immb;
 	if (imm&0x80) imm |= 0xFF00; //Sign extend!
-	if (unlikely(cpudebugger)) //Debugger on?
+	if (unlikely(CPU[activeCPU].cpudebugger)) //Debugger on?
 	{
 		modrm_debugger16(&params,MODRM_src0,MODRM_src1);
 	}
 	switch (thereg) //What function?
 	{
 	case 0: //ADD
-		if (unlikely(cpudebugger)) //Debugger on?
+		if (unlikely(CPU[activeCPU].cpudebugger)) //Debugger on?
 		{
 			debugger_setcommand("ADD %s,%04X",&modrm_param1,imm); //ADD Eb, Ib
 		}
 		CPU8086_internal_ADD16(modrm_addr16(&params,MODRM_src0,0),imm,3); //ADD Eb, Ib
 		break;
 	case 1: //OR
-		if (unlikely(cpudebugger)) //Debugger on?
+		if (unlikely(CPU[activeCPU].cpudebugger)) //Debugger on?
 		{
 			debugger_setcommand("OR %s,%04X",&modrm_param1,imm); //OR Eb, Ib
 		}
 		CPU8086_internal_OR16(modrm_addr16(&params,MODRM_src0,0),imm,3); //OR Eb, Ib
 		break;
 	case 2: //ADC
-		if (unlikely(cpudebugger)) //Debugger on?
+		if (unlikely(CPU[activeCPU].cpudebugger)) //Debugger on?
 		{
 			debugger_setcommand("ADC %s,%04X",&modrm_param1,imm); //ADC Eb, Ib
 		}
 		CPU8086_internal_ADC16(modrm_addr16(&params,MODRM_src0,0),imm,3); //ADC Eb, Ib
 		break;
 	case 3: //SBB
-		if (unlikely(cpudebugger)) //Debugger on?
+		if (unlikely(CPU[activeCPU].cpudebugger)) //Debugger on?
 		{
 			debugger_setcommand("SBB %s,%04X",&modrm_param1,imm); //SBB Eb, Ib
 		}
 		CPU8086_internal_SBB16(modrm_addr16(&params,MODRM_src0,0),imm,3); //SBB Eb, Ib
 		break;
 	case 4: //AND
-		if (unlikely(cpudebugger)) //Debugger on?
+		if (unlikely(CPU[activeCPU].cpudebugger)) //Debugger on?
 		{
 			debugger_setcommand("AND %s,%04X",&modrm_param1,imm); //AND Eb, Ib
 		}
 		CPU8086_internal_AND16(modrm_addr16(&params,MODRM_src0,0),imm,3); //AND Eb, Ib
 		break;
 	case 5: //SUB
-		if (unlikely(cpudebugger)) //Debugger on?
+		if (unlikely(CPU[activeCPU].cpudebugger)) //Debugger on?
 		{
 			debugger_setcommand("SUB %s,%04X",&modrm_param1,imm); //SUB Eb, Ib
 		}
 		CPU8086_internal_SUB16(modrm_addr16(&params,MODRM_src0,0),imm,3); //SUB Eb, Ib
 		break;
 	case 6: //XOR
-		if (unlikely(cpudebugger)) //Debugger on?
+		if (unlikely(CPU[activeCPU].cpudebugger)) //Debugger on?
 		{
 			debugger_setcommand("XOR %s,%04X",&modrm_param1,imm); //XOR Eb, Ib
 		}
 		CPU8086_internal_XOR16(modrm_addr16(&params,MODRM_src0,0),imm,3); //XOR Eb, Ib
 		break;
 	case 7: //CMP
-		if (unlikely(cpudebugger)) //Debugger on?
+		if (unlikely(CPU[activeCPU].cpudebugger)) //Debugger on?
 		{
 			debugger_setcommand("CMP %s,%04X",&modrm_param1,imm); //CMP Eb, Ib
 		}
@@ -6768,7 +6768,7 @@ void CPU8086_OP8F() //Undocumented GRP opcode 8F r/m16
 	{
 	case 0: //POP
 		//Cycle-accurate emulation of the instruction!
-		if (unlikely(cpudebugger)) //Debugger on?
+		if (unlikely(CPU[activeCPU].cpudebugger)) //Debugger on?
 		{
 			modrm_generateInstructionTEXT("POP",16,0,PARAM_MODRM_0); //POP Ew
 		}
@@ -6804,7 +6804,7 @@ void CPU8086_OP8F() //Undocumented GRP opcode 8F r/m16
 		}
 		break;
 	default: //Unknown opcode or special?
-		if (unlikely(cpudebugger)) //Debugger on?
+		if (unlikely(CPU[activeCPU].cpudebugger)) //Debugger on?
 		{
 			debugger_setcommand("Unknown opcode: 8F /%u",thereg); //Error!
 		}
@@ -6815,7 +6815,7 @@ void CPU8086_OP8F() //Undocumented GRP opcode 8F r/m16
 
 void CPU8086_OPD0() //GRP2 Eb,1
 {
-	if (unlikely(cpudebugger)) //Debugger on?
+	if (unlikely(CPU[activeCPU].cpudebugger)) //Debugger on?
 	{
 		modrm_debugger8(&params,MODRM_src0,MODRM_src1); //Get src!
 		switch (thereg) //What function?
@@ -6864,7 +6864,7 @@ void CPU8086_OPD0() //GRP2 Eb,1
 }
 void CPU8086_OPD1() //GRP2 Ev,1
 {
-	if (unlikely(cpudebugger)) //Debugger on?
+	if (unlikely(CPU[activeCPU].cpudebugger)) //Debugger on?
 	{
 		modrm_debugger16(&params,MODRM_src0,MODRM_src1); //Get src!
 		switch (thereg) //What function?
@@ -6913,7 +6913,7 @@ void CPU8086_OPD1() //GRP2 Ev,1
 }
 void CPU8086_OPD2() //GRP2 Eb,CL
 {
-	if (unlikely(cpudebugger)) //Debugger on?
+	if (unlikely(CPU[activeCPU].cpudebugger)) //Debugger on?
 	{
 		modrm_debugger8(&params,MODRM_src0,MODRM_src1); //Get src!
 		switch (thereg) //What function?
@@ -6962,7 +6962,7 @@ void CPU8086_OPD2() //GRP2 Eb,CL
 }
 void CPU8086_OPD3() //GRP2 Ev,CL
 {
-	if (unlikely(cpudebugger)) //Debugger on?
+	if (unlikely(CPU[activeCPU].cpudebugger)) //Debugger on?
 	{
 		modrm_debugger16(&params,MODRM_src0,MODRM_src1); //Get src!
 		switch (thereg) //What function?
@@ -7012,7 +7012,7 @@ void CPU8086_OPD3() //GRP2 Ev,CL
 
 void CPU8086_OPF6() //GRP3a Eb
 {
-	if (unlikely(cpudebugger)) //Debugger on?
+	if (unlikely(CPU[activeCPU].cpudebugger)) //Debugger on?
 	{
 		modrm_debugger8(&params,MODRM_src0,MODRM_src1); //Get src!
 		switch (thereg) //What function?
@@ -7071,7 +7071,7 @@ void CPU8086_OPF6() //GRP3a Eb
 }
 void CPU8086_OPF7() //GRP3b Ev
 {
-	if (unlikely(cpudebugger)) //Debugger on?
+	if (unlikely(CPU[activeCPU].cpudebugger)) //Debugger on?
 	{
 		modrm_debugger16(&params,MODRM_src0,MODRM_src1); //Get src!
 		switch (thereg) //What function?
@@ -7143,7 +7143,7 @@ void CPU8086_OPFE() //GRP4 Eb
 	switch (thereg) //What function?
 	{
 	case 0: //INC
-		if (unlikely(cpudebugger)) //Debugger on?
+		if (unlikely(CPU[activeCPU].cpudebugger)) //Debugger on?
 		{
 			modrm_generateInstructionTEXT("INC",8,0,PARAM_MODRM_0); //INC!
 		}
@@ -7155,7 +7155,7 @@ void CPU8086_OPFE() //GRP4 Eb
 		CPU8086_internal_INC8(modrm_addr8(&params,MODRM_src0,0));
 		break;
 	case 1: //DEC
-		if (unlikely(cpudebugger)) //Debugger on?
+		if (unlikely(CPU[activeCPU].cpudebugger)) //Debugger on?
 		{
 			modrm_generateInstructionTEXT("DEC",8,0,PARAM_MODRM_0); //DEC!
 		}
@@ -7174,7 +7174,7 @@ void CPU8086_OPFE() //GRP4 Eb
 
 void CPU8086_OPFF() //GRP5 Ev
 {
-	if (unlikely(cpudebugger)) //Debugger on?
+	if (unlikely(CPU[activeCPU].cpudebugger)) //Debugger on?
 	{
 		modrm_debugger16(&params,MODRM_src0,MODRM_src1); //Get src!
 		switch (thereg) //What function?
