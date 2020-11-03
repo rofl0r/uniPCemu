@@ -1250,6 +1250,8 @@ typedef struct
 	uint_32 newpreviousCSstart;
 	char debugtext[256]; //Debug text!
 	byte OP; //Currenltly executing opcode!
+	word oldvalw; //For stack accesses!
+	uint_32 oldvald; //For stack accesses!
 } CPU_type;
 
 #ifndef IS_CPU

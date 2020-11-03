@@ -246,16 +246,15 @@ byte CPU_PUSH16_BIU(word* val, byte is32instruction) //Push Word!
 	}
 	else //286+?
 	{
-		static word oldval;
 		if (CPU[activeCPU].pushbusy == 0)
 		{
-			oldval = *val; //Original value, saved before decrementing (E)SP!
+			CPU[activeCPU].oldvalw = *val; //Original value, saved before decrementing (E)SP!
 			stack_push(is32instruction&1); //We're pushing a 16-bit or 32-bit value!
 			CPU[activeCPU].pushbusy = 1; //We're pending!
 		}
 		if ((is32instruction & 1) & (((~is32instruction) >> 1) & 1)) //32-bit?
 		{
-			if (CPU_request_MMUwdw(CPU_SEGMENT_SS, (REG_ESP & getstackaddrsizelimiter()), oldval, !STACK_SEGMENT_DESCRIPTOR_B_BIT())) //Request Put value!
+			if (CPU_request_MMUwdw(CPU_SEGMENT_SS, (REG_ESP & getstackaddrsizelimiter()), CPU[activeCPU].oldvalw, !STACK_SEGMENT_DESCRIPTOR_B_BIT())) //Request Put value!
 			{
 				CPU[activeCPU].pushbusy = 0; //We're not pending anymore!
 				return 1;
@@ -263,7 +262,7 @@ byte CPU_PUSH16_BIU(word* val, byte is32instruction) //Push Word!
 		}
 		else
 		{
-			if (CPU_request_MMUww(CPU_SEGMENT_SS, (REG_ESP & getstackaddrsizelimiter()), oldval, !STACK_SEGMENT_DESCRIPTOR_B_BIT())) //Request Put value!
+			if (CPU_request_MMUww(CPU_SEGMENT_SS, (REG_ESP & getstackaddrsizelimiter()), CPU[activeCPU].oldvalw, !STACK_SEGMENT_DESCRIPTOR_B_BIT())) //Request Put value!
 			{
 				CPU[activeCPU].pushbusy = 0; //We're not pending anymore!
 				return 1;
@@ -325,17 +324,16 @@ byte CPU_PUSH32_BIU(uint_32* val) //Push DWord!
 	}
 	else //386+?
 	{
-		static uint_32 oldval;
 		if (CPU[activeCPU].pushbusy == 0)
 		{
-			oldval = *val; //Original value, saved before decrementing (E)SP!
+			CPU[activeCPU].oldvald = *val; //Original value, saved before decrementing (E)SP!
 			stack_push(/*CODE_SEGMENT_DESCRIPTOR_D_BIT()*/ 1); //We're pushing a 16-bit or 32-bit value!
 			CPU[activeCPU].pushbusy = 1; //We're pending!
 		}
 		/*if (CODE_SEGMENT_DESCRIPTOR_D_BIT()) //32-bit?
 		{
 		*/
-		if (CPU_request_MMUwdw(CPU_SEGMENT_SS, (REG_ESP & getstackaddrsizelimiter()), oldval, !STACK_SEGMENT_DESCRIPTOR_B_BIT())) //Request Put value!
+		if (CPU_request_MMUwdw(CPU_SEGMENT_SS, (REG_ESP & getstackaddrsizelimiter()), CPU[activeCPU].oldvald, !STACK_SEGMENT_DESCRIPTOR_B_BIT())) //Request Put value!
 		{
 			CPU[activeCPU].pushbusy = 0; //We're not pending anymore!
 			return 1;
