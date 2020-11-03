@@ -2115,25 +2115,25 @@ performRecheck:
 	}
 }
 
-sword APIC_currentintnr = -1;
+sword APIC_currentintnr[MAXCPUS] = -1;
 
 byte PICInterrupt() //We have an interrupt ready to process? This is the primary PIC's INTA!
 {
 	if (__HW_DISABLED) return 0; //Abort!
 
-	if (APIC_currentintnr != -1) //Interrupt pending to fire?
+	if (APIC_currentintnr[activeCPU] != -1) //Interrupt pending to fire?
 	{
 		return 2; //APIC IRQ is pending to fire!
 	}
 
 	if (LAPIC[activeCPU].LAPIC_extIntPending != -1) //ExtInt pending?
 	{
-		APIC_currentintnr = LAPIC[activeCPU].LAPIC_extIntPending; //Acnowledge!
+		APIC_currentintnr[activeCPU] = LAPIC[activeCPU].LAPIC_extIntPending; //Acnowledge!
 		LAPIC[activeCPU].LAPIC_extIntPending = -1; //Not anymore!
 		return 2; //APIC IRQ from 8259!
 	}
 
-	if ((APIC_currentintnr = LAPIC_acnowledgeRequests(activeCPU))!=-1) //APIC requested?
+	if ((APIC_currentintnr[activeCPU] = LAPIC_acnowledgeRequests(activeCPU))!=-1) //APIC requested?
 	{
 		return 2; //APIC IRQ!
 	}
@@ -2276,8 +2276,8 @@ byte nextintr()
 	//Check APIC first!
 	if (APIC_currentintnr!=-1) //APIC interrupt requested to fire?
 	{
-		result = APIC_currentintnr; //Accept!
-		APIC_currentintnr = -1; //Invalidate!
+		result = APIC_currentintnr[activeCPU]; //Accept!
+		APIC_currentintnr[activeCPU] = -1; //Invalidate!
 		//Now that we've selected the highest priority IR, start firing it!
 		return (byte)result; //Give the interrupt vector number!
 	}
