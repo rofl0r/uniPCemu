@@ -30,7 +30,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 
 void CPU686_OP0F0D_16()
 {
-	if (unlikely(cpudebugger)) //Debugger on?
+	if (unlikely(CPU[activeCPU].cpudebugger)) //Debugger on?
 	{
 		modrm_generateInstructionTEXT("NOP", 16, 0, PARAM_MODRM_0);
 	}
@@ -43,7 +43,7 @@ void CPU686_OP0F0D_16()
 
 void CPU686_OP0F0D_32()
 {
-	if (unlikely(cpudebugger)) //Debugger on?
+	if (unlikely(CPU[activeCPU].cpudebugger)) //Debugger on?
 	{
 		modrm_generateInstructionTEXT("NOP", 32, 0, PARAM_MODRM_0);
 	}
@@ -55,10 +55,10 @@ void CPU686_OP0F0D_32()
 
 void CPU686_OP0F18_16()
 {
-	if (unlikely(cpudebugger))
+	if (unlikely(CPU[activeCPU].cpudebugger))
 	{
-		modrm_debugger16(&params, MODRM_src0, MODRM_src1); //Get src!
-		switch (thereg) //What function?
+		modrm_debugger16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0, CPU[activeCPU].MODRM_src1); //Get src!
+		switch (CPU[activeCPU].thereg) //What function?
 		{
 		case 4: //HINT_NOP
 		case 5: //HINT_NOP
@@ -75,10 +75,10 @@ void CPU686_OP0F18_16()
 
 void CPU686_OP0F18_32()
 {
-	if (unlikely(cpudebugger))
+	if (unlikely(CPU[activeCPU].cpudebugger))
 	{
-		modrm_debugger32(&params, MODRM_src0, MODRM_src1); //Get src!
-		switch (thereg) //What function?
+		modrm_debugger32(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0, CPU[activeCPU].MODRM_src1); //Get src!
+		switch (CPU[activeCPU].thereg) //What function?
 		{
 		case 4: //HINT_NOP
 		case 5: //HINT_NOP
@@ -95,22 +95,22 @@ void CPU686_OP0F18_32()
 
 void CPU686_OP0FNOP_16()
 {
-	modrm_debugger16(&params, MODRM_src0, MODRM_src1); //Get src!
+	modrm_debugger16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0, CPU[activeCPU].MODRM_src1); //Get src!
 	modrm_generateInstructionTEXT("HINT_NOP", 16, 0, PARAM_MODRM_0);
 }
 
 void CPU686_OP0FNOP_32()
 {
-	modrm_debugger32(&params, MODRM_src0, MODRM_src1); //Get src!
+	modrm_debugger32(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0, CPU[activeCPU].MODRM_src1); //Get src!
 	modrm_generateInstructionTEXT("HINT_NOP", 32, 0, PARAM_MODRM_0);
 }
 
 void CPU686_OP0F1F_16()
 {
-	if (unlikely(cpudebugger))
+	if (unlikely(CPU[activeCPU].cpudebugger))
 	{
-		modrm_debugger16(&params, MODRM_src0, MODRM_src1); //Get src!
-		switch (thereg) //What function?
+		modrm_debugger16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0, CPU[activeCPU].MODRM_src1); //Get src!
+		switch (CPU[activeCPU].thereg) //What function?
 		{
 		case 1: //HINT_NOP
 		case 2: //HINT_NOP
@@ -130,10 +130,10 @@ void CPU686_OP0F1F_16()
 
 void CPU686_OP0F1F_32()
 {
-	if (unlikely(cpudebugger))
+	if (unlikely(CPU[activeCPU].cpudebugger))
 	{
-		modrm_debugger32(&params, MODRM_src0, MODRM_src1); //Get src!
-		switch (thereg) //What function?
+		modrm_debugger32(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0, CPU[activeCPU].MODRM_src1); //Get src!
+		switch (CPU[activeCPU].thereg) //What function?
 		{
 		case 1: //HINT_NOP
 		case 2: //HINT_NOP
@@ -153,7 +153,7 @@ void CPU686_OP0F1F_32()
 
 void CPU686_OP0F33()
 {
-	if (unlikely(cpudebugger)) //Debugger on?
+	if (unlikely(CPU[activeCPU].cpudebugger)) //Debugger on?
 	{
 		modrm_generateInstructionTEXT("RDPMC", 32, 0, PARAM_NONE);
 	}
@@ -203,13 +203,13 @@ void CPU686_OP0F40_16()
 	modrm_generateInstructionTEXT("CMOVO", 16, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
 	{
-		if (modrm_check16(&params, MODRM_src0, 0)) return;
-		if (modrm_check16(&params, MODRM_src1, 1)) return;
+		if (modrm_check16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0, 0)) return;
+		if (modrm_check16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src1, 1)) return;
 	}
 	if (FLAG_OF)
 	{
-		if (CPU8086_instructionstepreadmodrmw(0, &instructionbufferw, MODRM_src1)) return;
-		if (CPU8086_instructionstepwritemodrmw(2, instructionbufferw, MODRM_src0, 0)) return;
+		if (CPU8086_instructionstepreadmodrmw(0, &CPU[activeCPU].instructionbufferw, CPU[activeCPU].MODRM_src1)) return;
+		if (CPU8086_instructionstepwritemodrmw(2, CPU[activeCPU].instructionbufferw, CPU[activeCPU].MODRM_src0, 0)) return;
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVO r/m16
@@ -218,13 +218,13 @@ void CPU686_OP0F41_16()
 	modrm_generateInstructionTEXT("CMOVNO", 16, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
 	{
-		if (modrm_check16(&params, MODRM_src0, 0)) return;
-		if (modrm_check16(&params, MODRM_src1, 1)) return;
+		if (modrm_check16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0, 0)) return;
+		if (modrm_check16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src1, 1)) return;
 	}
 	if (FLAG_OF ^ 1)
 	{
-		if (CPU8086_instructionstepreadmodrmw(0, &instructionbufferw, MODRM_src1)) return;
-		if (CPU8086_instructionstepwritemodrmw(2, instructionbufferw, MODRM_src0, 0)) return;
+		if (CPU8086_instructionstepreadmodrmw(0, &CPU[activeCPU].instructionbufferw, CPU[activeCPU].MODRM_src1)) return;
+		if (CPU8086_instructionstepwritemodrmw(2, CPU[activeCPU].instructionbufferw, CPU[activeCPU].MODRM_src0, 0)) return;
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVNO r/m16
@@ -233,15 +233,15 @@ void CPU686_OP0F42_16()
 	modrm_generateInstructionTEXT("CMOVC", 16, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
 	{
-		if (modrm_check16(&params, MODRM_src0, 0)) return;
-		if (modrm_check16(&params, MODRM_src1, 1)) return;
+		if (modrm_check16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0, 0)) return;
+		if (modrm_check16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src1, 1)) return;
 	}
 	if (FLAG_CF)
 	{
-		if (CPU8086_instructionstepreadmodrmw(0, &instructionbufferw, MODRM_src1)) return;
-		if (CPU8086_instructionstepwritemodrmw(2, instructionbufferw, MODRM_src0, 0)) return;
+		if (CPU8086_instructionstepreadmodrmw(0, &CPU[activeCPU].instructionbufferw, CPU[activeCPU].MODRM_src1)) return;
+		if (CPU8086_instructionstepwritemodrmw(2, CPU[activeCPU].instructionbufferw, CPU[activeCPU].MODRM_src0, 0)) return;
 	}
-	if (CPU8086_instructionstepwritemodrmb(0, FLAG_CF, MODRM_src0)) return;
+	if (CPU8086_instructionstepwritemodrmb(0, FLAG_CF, CPU[activeCPU].MODRM_src0)) return;
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVC r/m16
 void CPU686_OP0F43_16()
@@ -249,13 +249,13 @@ void CPU686_OP0F43_16()
 	modrm_generateInstructionTEXT("CMOVNC", 16, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
 	{
-		if (modrm_check16(&params, MODRM_src0, 0)) return;
-		if (modrm_check16(&params, MODRM_src1, 1)) return;
+		if (modrm_check16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0, 0)) return;
+		if (modrm_check16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src1, 1)) return;
 	}
 	if (FLAG_CF ^ 1)
 	{
-		if (CPU8086_instructionstepreadmodrmw(0, &instructionbufferw, MODRM_src1)) return;
-		if (CPU8086_instructionstepwritemodrmw(2, instructionbufferw, MODRM_src0, 0)) return;
+		if (CPU8086_instructionstepreadmodrmw(0, &CPU[activeCPU].instructionbufferw, CPU[activeCPU].MODRM_src1)) return;
+		if (CPU8086_instructionstepwritemodrmw(2, CPU[activeCPU].instructionbufferw, CPU[activeCPU].MODRM_src0, 0)) return;
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVAE r/m16
@@ -264,13 +264,13 @@ void CPU686_OP0F44_16()
 	modrm_generateInstructionTEXT("CMOVZ", 16, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
 	{
-		if (modrm_check16(&params, MODRM_src0, 0)) return;
-		if (modrm_check16(&params, MODRM_src1, 1)) return;
+		if (modrm_check16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0, 0)) return;
+		if (modrm_check16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src1, 1)) return;
 	}
 	if (FLAG_ZF)
 	{
-		if (CPU8086_instructionstepreadmodrmw(0, &instructionbufferw, MODRM_src1)) return;
-		if (CPU8086_instructionstepwritemodrmw(2, instructionbufferw, MODRM_src0, 0)) return;
+		if (CPU8086_instructionstepreadmodrmw(0, &CPU[activeCPU].instructionbufferw, CPU[activeCPU].MODRM_src1)) return;
+		if (CPU8086_instructionstepwritemodrmw(2, CPU[activeCPU].instructionbufferw, CPU[activeCPU].MODRM_src0, 0)) return;
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVE r/m16
@@ -279,13 +279,13 @@ void CPU686_OP0F45_16()
 	modrm_generateInstructionTEXT("CMOVNZ", 16, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
 	{
-		if (modrm_check16(&params, MODRM_src0, 0)) return;
-		if (modrm_check16(&params, MODRM_src1, 1)) return;
+		if (modrm_check16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0, 0)) return;
+		if (modrm_check16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src1, 1)) return;
 	}
 	if (FLAG_ZF ^ 1)
 	{
-		if (CPU8086_instructionstepreadmodrmw(0, &instructionbufferw, MODRM_src1)) return;
-		if (CPU8086_instructionstepwritemodrmw(2, instructionbufferw, MODRM_src0, 0)) return;
+		if (CPU8086_instructionstepreadmodrmw(0, &CPU[activeCPU].instructionbufferw, CPU[activeCPU].MODRM_src1)) return;
+		if (CPU8086_instructionstepwritemodrmw(2, CPU[activeCPU].instructionbufferw, CPU[activeCPU].MODRM_src0, 0)) return;
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVNE r/m16
@@ -294,13 +294,13 @@ void CPU686_OP0F46_16()
 	modrm_generateInstructionTEXT("CMOVBE", 16, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
 	{
-		if (modrm_check16(&params, MODRM_src0, 0)) return;
-		if (modrm_check16(&params, MODRM_src1, 1)) return;
+		if (modrm_check16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0, 0)) return;
+		if (modrm_check16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src1, 1)) return;
 	}
 	if ((FLAG_CF | FLAG_ZF)!=0)
 	{
-		if (CPU8086_instructionstepreadmodrmw(0, &instructionbufferw, MODRM_src1)) return;
-		if (CPU8086_instructionstepwritemodrmw(2, instructionbufferw, MODRM_src0, 0)) return;
+		if (CPU8086_instructionstepreadmodrmw(0, &CPU[activeCPU].instructionbufferw, CPU[activeCPU].MODRM_src1)) return;
+		if (CPU8086_instructionstepwritemodrmw(2, CPU[activeCPU].instructionbufferw, CPU[activeCPU].MODRM_src0, 0)) return;
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVNA r/m16
@@ -309,13 +309,13 @@ void CPU686_OP0F47_16()
 	modrm_generateInstructionTEXT("CMOVNBE", 16, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
 	{
-		if (modrm_check16(&params, MODRM_src0, 0)) return;
-		if (modrm_check16(&params, MODRM_src1, 1)) return;
+		if (modrm_check16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0, 0)) return;
+		if (modrm_check16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src1, 1)) return;
 	}
 	if ((FLAG_CF | FLAG_ZF) ^ 1)
 	{
-		if (CPU8086_instructionstepreadmodrmw(0, &instructionbufferw, MODRM_src1)) return;
-		if (CPU8086_instructionstepwritemodrmw(2, instructionbufferw, MODRM_src0, 0)) return;
+		if (CPU8086_instructionstepreadmodrmw(0, &CPU[activeCPU].instructionbufferw, CPU[activeCPU].MODRM_src1)) return;
+		if (CPU8086_instructionstepwritemodrmw(2, CPU[activeCPU].instructionbufferw, CPU[activeCPU].MODRM_src0, 0)) return;
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVA r/m16
@@ -324,13 +324,13 @@ void CPU686_OP0F48_16()
 	modrm_generateInstructionTEXT("CMOVS", 16, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
 	{
-		if (modrm_check16(&params, MODRM_src0, 0)) return;
-		if (modrm_check16(&params, MODRM_src1, 1)) return;
+		if (modrm_check16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0, 0)) return;
+		if (modrm_check16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src1, 1)) return;
 	}
 	if (FLAG_SF)
 	{
-		if (CPU8086_instructionstepreadmodrmw(0, &instructionbufferw, MODRM_src1)) return;
-		if (CPU8086_instructionstepwritemodrmw(2, instructionbufferw, MODRM_src0, 0)) return;
+		if (CPU8086_instructionstepreadmodrmw(0, &CPU[activeCPU].instructionbufferw, CPU[activeCPU].MODRM_src1)) return;
+		if (CPU8086_instructionstepwritemodrmw(2, CPU[activeCPU].instructionbufferw, CPU[activeCPU].MODRM_src0, 0)) return;
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVS r/m16
@@ -339,13 +339,13 @@ void CPU686_OP0F49_16()
 	modrm_generateInstructionTEXT("CMOVNS", 16, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
 	{
-		if (modrm_check16(&params, MODRM_src0, 0)) return;
-		if (modrm_check16(&params, MODRM_src1, 1)) return;
+		if (modrm_check16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0, 0)) return;
+		if (modrm_check16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src1, 1)) return;
 	}
 	if (FLAG_SF ^ 1)
 	{
-		if (CPU8086_instructionstepreadmodrmw(0, &instructionbufferw, MODRM_src1)) return;
-		if (CPU8086_instructionstepwritemodrmw(2, instructionbufferw, MODRM_src0, 0)) return;
+		if (CPU8086_instructionstepreadmodrmw(0, &CPU[activeCPU].instructionbufferw, CPU[activeCPU].MODRM_src1)) return;
+		if (CPU8086_instructionstepwritemodrmw(2, CPU[activeCPU].instructionbufferw, CPU[activeCPU].MODRM_src0, 0)) return;
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVNS r/m16
@@ -354,13 +354,13 @@ void CPU686_OP0F4A_16()
 	modrm_generateInstructionTEXT("CMOVP", 16, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
 	{
-		if (modrm_check16(&params, MODRM_src0, 0)) return;
-		if (modrm_check16(&params, MODRM_src1, 1)) return;
+		if (modrm_check16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0, 0)) return;
+		if (modrm_check16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src1, 1)) return;
 	}
 	if (FLAG_PF)
 	{
-		if (CPU8086_instructionstepreadmodrmw(0, &instructionbufferw, MODRM_src1)) return;
-		if (CPU8086_instructionstepwritemodrmw(2, instructionbufferw, MODRM_src0, 0)) return;
+		if (CPU8086_instructionstepreadmodrmw(0, &CPU[activeCPU].instructionbufferw, CPU[activeCPU].MODRM_src1)) return;
+		if (CPU8086_instructionstepwritemodrmw(2, CPU[activeCPU].instructionbufferw, CPU[activeCPU].MODRM_src0, 0)) return;
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVP r/m16
@@ -369,13 +369,13 @@ void CPU686_OP0F4B_16()
 	modrm_generateInstructionTEXT("CMOVNP", 16, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
 	{
-		if (modrm_check16(&params, MODRM_src0, 0)) return;
-		if (modrm_check16(&params, MODRM_src1, 1)) return;
+		if (modrm_check16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0, 0)) return;
+		if (modrm_check16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src1, 1)) return;
 	}
 	if (FLAG_PF ^ 1)
 	{
-		if (CPU8086_instructionstepreadmodrmw(0, &instructionbufferw, MODRM_src1)) return;
-		if (CPU8086_instructionstepwritemodrmw(2, instructionbufferw, MODRM_src0, 0)) return;
+		if (CPU8086_instructionstepreadmodrmw(0, &CPU[activeCPU].instructionbufferw, CPU[activeCPU].MODRM_src1)) return;
+		if (CPU8086_instructionstepwritemodrmw(2, CPU[activeCPU].instructionbufferw, CPU[activeCPU].MODRM_src0, 0)) return;
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVNP r/m16
@@ -384,13 +384,13 @@ void CPU686_OP0F4C_16()
 	modrm_generateInstructionTEXT("CMOVL", 16, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
 	{
-		if (modrm_check16(&params, MODRM_src0, 0)) return;
-		if (modrm_check16(&params, MODRM_src1, 1)) return;
+		if (modrm_check16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0, 0)) return;
+		if (modrm_check16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src1, 1)) return;
 	}
 	if ((FLAG_SF ^ FLAG_OF)!=0)
 	{
-		if (CPU8086_instructionstepreadmodrmw(0, &instructionbufferw, MODRM_src1)) return;
-		if (CPU8086_instructionstepwritemodrmw(2, instructionbufferw, MODRM_src0, 0)) return;
+		if (CPU8086_instructionstepreadmodrmw(0, &CPU[activeCPU].instructionbufferw, CPU[activeCPU].MODRM_src1)) return;
+		if (CPU8086_instructionstepwritemodrmw(2, CPU[activeCPU].instructionbufferw, CPU[activeCPU].MODRM_src0, 0)) return;
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVL r/m16
@@ -399,13 +399,13 @@ void CPU686_OP0F4D_16()
 	modrm_generateInstructionTEXT("CMOVGE", 16, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
 	{
-		if (modrm_check16(&params, MODRM_src0, 0)) return;
-		if (modrm_check16(&params, MODRM_src1, 1)) return;
+		if (modrm_check16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0, 0)) return;
+		if (modrm_check16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src1, 1)) return;
 	}
 	if ((FLAG_SF ^ FLAG_OF) ^ 1)
 	{
-		if (CPU8086_instructionstepreadmodrmw(0, &instructionbufferw, MODRM_src1)) return;
-		if (CPU8086_instructionstepwritemodrmw(2, instructionbufferw, MODRM_src0, 0)) return;
+		if (CPU8086_instructionstepreadmodrmw(0, &CPU[activeCPU].instructionbufferw, CPU[activeCPU].MODRM_src1)) return;
+		if (CPU8086_instructionstepwritemodrmw(2, CPU[activeCPU].instructionbufferw, CPU[activeCPU].MODRM_src0, 0)) return;
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVGE r/m16
@@ -414,13 +414,13 @@ void CPU686_OP0F4E_16()
 	modrm_generateInstructionTEXT("CMOVLE", 16, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
 	{
-		if (modrm_check16(&params, MODRM_src0, 0)) return;
-		if (modrm_check16(&params, MODRM_src1, 1)) return;
+		if (modrm_check16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0, 0)) return;
+		if (modrm_check16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src1, 1)) return;
 	}
 	if ((FLAG_SF ^ FLAG_OF) | FLAG_ZF)
 	{
-		if (CPU8086_instructionstepreadmodrmw(0, &instructionbufferw, MODRM_src1)) return;
-		if (CPU8086_instructionstepwritemodrmw(2, instructionbufferw, MODRM_src0, 0)) return;
+		if (CPU8086_instructionstepreadmodrmw(0, &CPU[activeCPU].instructionbufferw, CPU[activeCPU].MODRM_src1)) return;
+		if (CPU8086_instructionstepwritemodrmw(2, CPU[activeCPU].instructionbufferw, CPU[activeCPU].MODRM_src0, 0)) return;
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVLE r/m16
@@ -429,13 +429,13 @@ void CPU686_OP0F4F_16()
 	modrm_generateInstructionTEXT("CMOVG", 16, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
 	{
-		if (modrm_check16(&params, MODRM_src0, 0)) return;
-		if (modrm_check16(&params, MODRM_src1, 1)) return;
+		if (modrm_check16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0, 0)) return;
+		if (modrm_check16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src1, 1)) return;
 	}
 	if ((((FLAG_SF ^ FLAG_OF) ^ 1) & (FLAG_ZF ^ 1))!=0)
 	{
-		if (CPU8086_instructionstepreadmodrmw(0, &instructionbufferw, MODRM_src1)) return;
-		if (CPU8086_instructionstepwritemodrmw(2, instructionbufferw, MODRM_src0, 0)) return;
+		if (CPU8086_instructionstepreadmodrmw(0, &CPU[activeCPU].instructionbufferw, CPU[activeCPU].MODRM_src1)) return;
+		if (CPU8086_instructionstepwritemodrmw(2, CPU[activeCPU].instructionbufferw, CPU[activeCPU].MODRM_src0, 0)) return;
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVG r/m16
@@ -447,13 +447,13 @@ void CPU686_OP0F40_32()
 	modrm_generateInstructionTEXT("CMOVO", 32, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
 	{
-		if (modrm_check32(&params, MODRM_src0, 0)) return;
-		if (modrm_check32(&params, MODRM_src1, 1)) return;
+		if (modrm_check32(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0, 0)) return;
+		if (modrm_check32(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src1, 1)) return;
 	}
 	if (FLAG_OF)
 	{
-		if (CPU80386_instructionstepreadmodrmdw(0, &instructionbufferd, MODRM_src1)) return;
-		if (CPU80386_instructionstepwritemodrmdw(2, instructionbufferd, MODRM_src0)) return;
+		if (CPU80386_instructionstepreadmodrmdw(0, &CPU[activeCPU].instructionbufferd, CPU[activeCPU].MODRM_src1)) return;
+		if (CPU80386_instructionstepwritemodrmdw(2, CPU[activeCPU].instructionbufferd, CPU[activeCPU].MODRM_src0)) return;
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVO r/m32
@@ -462,13 +462,13 @@ void CPU686_OP0F41_32()
 	modrm_generateInstructionTEXT("CMOVNO", 32, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
 	{
-		if (modrm_check32(&params, MODRM_src0, 0)) return;
-		if (modrm_check32(&params, MODRM_src1, 1)) return;
+		if (modrm_check32(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0, 0)) return;
+		if (modrm_check32(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src1, 1)) return;
 	}
 	if (FLAG_OF ^ 1)
 	{
-		if (CPU80386_instructionstepreadmodrmdw(0, &instructionbufferd, MODRM_src1)) return;
-		if (CPU80386_instructionstepwritemodrmdw(2, instructionbufferd, MODRM_src0)) return;
+		if (CPU80386_instructionstepreadmodrmdw(0, &CPU[activeCPU].instructionbufferd, CPU[activeCPU].MODRM_src1)) return;
+		if (CPU80386_instructionstepwritemodrmdw(2, CPU[activeCPU].instructionbufferd, CPU[activeCPU].MODRM_src0)) return;
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVNO r/m32
@@ -477,15 +477,15 @@ void CPU686_OP0F42_32()
 	modrm_generateInstructionTEXT("CMOVC", 32, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
 	{
-		if (modrm_check32(&params, MODRM_src0, 0)) return;
-		if (modrm_check32(&params, MODRM_src1, 1)) return;
+		if (modrm_check32(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0, 0)) return;
+		if (modrm_check32(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src1, 1)) return;
 	}
 	if (FLAG_CF)
 	{
-		if (CPU80386_instructionstepreadmodrmdw(0, &instructionbufferd, MODRM_src1)) return;
-		if (CPU80386_instructionstepwritemodrmdw(2, instructionbufferd, MODRM_src0)) return;
+		if (CPU80386_instructionstepreadmodrmdw(0, &CPU[activeCPU].instructionbufferd, CPU[activeCPU].MODRM_src1)) return;
+		if (CPU80386_instructionstepwritemodrmdw(2, CPU[activeCPU].instructionbufferd, CPU[activeCPU].MODRM_src0)) return;
 	}
-	if (CPU8086_instructionstepwritemodrmb(0, FLAG_CF, MODRM_src0)) return;
+	if (CPU8086_instructionstepwritemodrmb(0, FLAG_CF, CPU[activeCPU].MODRM_src0)) return;
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVC r/m32
 void CPU686_OP0F43_32()
@@ -493,13 +493,13 @@ void CPU686_OP0F43_32()
 	modrm_generateInstructionTEXT("CMOVNC", 32, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
 	{
-		if (modrm_check32(&params, MODRM_src0, 0)) return;
-		if (modrm_check32(&params, MODRM_src1, 1)) return;
+		if (modrm_check32(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0, 0)) return;
+		if (modrm_check32(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src1, 1)) return;
 	}
 	if (FLAG_CF ^ 1)
 	{
-		if (CPU80386_instructionstepreadmodrmdw(0, &instructionbufferd, MODRM_src1)) return;
-		if (CPU80386_instructionstepwritemodrmdw(2, instructionbufferd, MODRM_src0)) return;
+		if (CPU80386_instructionstepreadmodrmdw(0, &CPU[activeCPU].instructionbufferd, CPU[activeCPU].MODRM_src1)) return;
+		if (CPU80386_instructionstepwritemodrmdw(2, CPU[activeCPU].instructionbufferd, CPU[activeCPU].MODRM_src0)) return;
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVAE r/m32
@@ -508,13 +508,13 @@ void CPU686_OP0F44_32()
 	modrm_generateInstructionTEXT("CMOVZ", 32, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
 	{
-		if (modrm_check32(&params, MODRM_src0, 0)) return;
-		if (modrm_check32(&params, MODRM_src1, 1)) return;
+		if (modrm_check32(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0, 0)) return;
+		if (modrm_check32(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src1, 1)) return;
 	}
 	if (FLAG_ZF)
 	{
-		if (CPU80386_instructionstepreadmodrmdw(0, &instructionbufferd, MODRM_src1)) return;
-		if (CPU80386_instructionstepwritemodrmdw(2, instructionbufferd, MODRM_src0)) return;
+		if (CPU80386_instructionstepreadmodrmdw(0, &CPU[activeCPU].instructionbufferd, CPU[activeCPU].MODRM_src1)) return;
+		if (CPU80386_instructionstepwritemodrmdw(2, CPU[activeCPU].instructionbufferd, CPU[activeCPU].MODRM_src0)) return;
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVE r/m32
@@ -523,13 +523,13 @@ void CPU686_OP0F45_32()
 	modrm_generateInstructionTEXT("CMOVNZ", 32, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
 	{
-		if (modrm_check32(&params, MODRM_src0, 0)) return;
-		if (modrm_check32(&params, MODRM_src1, 1)) return;
+		if (modrm_check32(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0, 0)) return;
+		if (modrm_check32(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src1, 1)) return;
 	}
 	if (FLAG_ZF ^ 1)
 	{
-		if (CPU80386_instructionstepreadmodrmdw(0, &instructionbufferd, MODRM_src1)) return;
-		if (CPU80386_instructionstepwritemodrmdw(2, instructionbufferd, MODRM_src0)) return;
+		if (CPU80386_instructionstepreadmodrmdw(0, &CPU[activeCPU].instructionbufferd, CPU[activeCPU].MODRM_src1)) return;
+		if (CPU80386_instructionstepwritemodrmdw(2, CPU[activeCPU].instructionbufferd, CPU[activeCPU].MODRM_src0)) return;
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVNE r/m32
@@ -538,13 +538,13 @@ void CPU686_OP0F46_32()
 	modrm_generateInstructionTEXT("CMOVBE", 32, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
 	{
-		if (modrm_check32(&params, MODRM_src0, 0)) return;
-		if (modrm_check32(&params, MODRM_src1, 1)) return;
+		if (modrm_check32(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0, 0)) return;
+		if (modrm_check32(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src1, 1)) return;
 	}
 	if ((FLAG_CF | FLAG_ZF) != 0)
 	{
-		if (CPU80386_instructionstepreadmodrmdw(0, &instructionbufferd, MODRM_src1)) return;
-		if (CPU80386_instructionstepwritemodrmdw(2, instructionbufferd, MODRM_src0)) return;
+		if (CPU80386_instructionstepreadmodrmdw(0, &CPU[activeCPU].instructionbufferd, CPU[activeCPU].MODRM_src1)) return;
+		if (CPU80386_instructionstepwritemodrmdw(2, CPU[activeCPU].instructionbufferd, CPU[activeCPU].MODRM_src0)) return;
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVNA r/m32
@@ -553,13 +553,13 @@ void CPU686_OP0F47_32()
 	modrm_generateInstructionTEXT("CMOVNBE", 32, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
 	{
-		if (modrm_check32(&params, MODRM_src0, 0)) return;
-		if (modrm_check32(&params, MODRM_src1, 1)) return;
+		if (modrm_check32(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0, 0)) return;
+		if (modrm_check32(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src1, 1)) return;
 	}
 	if ((FLAG_CF | FLAG_ZF) ^ 1)
 	{
-		if (CPU80386_instructionstepreadmodrmdw(0, &instructionbufferd, MODRM_src1)) return;
-		if (CPU80386_instructionstepwritemodrmdw(2, instructionbufferd, MODRM_src0)) return;
+		if (CPU80386_instructionstepreadmodrmdw(0, &CPU[activeCPU].instructionbufferd, CPU[activeCPU].MODRM_src1)) return;
+		if (CPU80386_instructionstepwritemodrmdw(2, CPU[activeCPU].instructionbufferd, CPU[activeCPU].MODRM_src0)) return;
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVA r/m32
@@ -568,13 +568,13 @@ void CPU686_OP0F48_32()
 	modrm_generateInstructionTEXT("CMOVS", 32, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
 	{
-		if (modrm_check32(&params, MODRM_src0, 0)) return;
-		if (modrm_check32(&params, MODRM_src1, 1)) return;
+		if (modrm_check32(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0, 0)) return;
+		if (modrm_check32(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src1, 1)) return;
 	}
 	if (FLAG_SF)
 	{
-		if (CPU80386_instructionstepreadmodrmdw(0, &instructionbufferd, MODRM_src1)) return;
-		if (CPU80386_instructionstepwritemodrmdw(2, instructionbufferd, MODRM_src0)) return;
+		if (CPU80386_instructionstepreadmodrmdw(0, &CPU[activeCPU].instructionbufferd, CPU[activeCPU].MODRM_src1)) return;
+		if (CPU80386_instructionstepwritemodrmdw(2, CPU[activeCPU].instructionbufferd, CPU[activeCPU].MODRM_src0)) return;
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVS r/m32
@@ -583,13 +583,13 @@ void CPU686_OP0F49_32()
 	modrm_generateInstructionTEXT("CMOVNS", 32, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
 	{
-		if (modrm_check32(&params, MODRM_src0, 0)) return;
-		if (modrm_check32(&params, MODRM_src1, 1)) return;
+		if (modrm_check32(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0, 0)) return;
+		if (modrm_check32(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src1, 1)) return;
 	}
 	if (FLAG_SF ^ 1)
 	{
-		if (CPU80386_instructionstepreadmodrmdw(0, &instructionbufferd, MODRM_src1)) return;
-		if (CPU80386_instructionstepwritemodrmdw(2, instructionbufferd, MODRM_src0)) return;
+		if (CPU80386_instructionstepreadmodrmdw(0, &CPU[activeCPU].instructionbufferd, CPU[activeCPU].MODRM_src1)) return;
+		if (CPU80386_instructionstepwritemodrmdw(2, CPU[activeCPU].instructionbufferd, CPU[activeCPU].MODRM_src0)) return;
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVNS r/m32
@@ -598,13 +598,13 @@ void CPU686_OP0F4A_32()
 	modrm_generateInstructionTEXT("CMOVP", 32, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
 	{
-		if (modrm_check32(&params, MODRM_src0, 0)) return;
-		if (modrm_check32(&params, MODRM_src1, 1)) return;
+		if (modrm_check32(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0, 0)) return;
+		if (modrm_check32(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src1, 1)) return;
 	}
 	if (FLAG_PF)
 	{
-		if (CPU80386_instructionstepreadmodrmdw(0, &instructionbufferd, MODRM_src1)) return;
-		if (CPU80386_instructionstepwritemodrmdw(2, instructionbufferd, MODRM_src0)) return;
+		if (CPU80386_instructionstepreadmodrmdw(0, &CPU[activeCPU].instructionbufferd, CPU[activeCPU].MODRM_src1)) return;
+		if (CPU80386_instructionstepwritemodrmdw(2, CPU[activeCPU].instructionbufferd, CPU[activeCPU].MODRM_src0)) return;
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVP r/m32
@@ -613,13 +613,13 @@ void CPU686_OP0F4B_32()
 	modrm_generateInstructionTEXT("CMOVNP", 32, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
 	{
-		if (modrm_check32(&params, MODRM_src0, 0)) return;
-		if (modrm_check32(&params, MODRM_src1, 1)) return;
+		if (modrm_check32(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0, 0)) return;
+		if (modrm_check32(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src1, 1)) return;
 	}
 	if (FLAG_PF ^ 1)
 	{
-		if (CPU80386_instructionstepreadmodrmdw(0, &instructionbufferd, MODRM_src1)) return;
-		if (CPU80386_instructionstepwritemodrmdw(2, instructionbufferd, MODRM_src0)) return;
+		if (CPU80386_instructionstepreadmodrmdw(0, &CPU[activeCPU].instructionbufferd, CPU[activeCPU].MODRM_src1)) return;
+		if (CPU80386_instructionstepwritemodrmdw(2, CPU[activeCPU].instructionbufferd, CPU[activeCPU].MODRM_src0)) return;
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVNP r/m32
@@ -628,13 +628,13 @@ void CPU686_OP0F4C_32()
 	modrm_generateInstructionTEXT("CMOVL", 32, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
 	{
-		if (modrm_check32(&params, MODRM_src0, 0)) return;
-		if (modrm_check32(&params, MODRM_src1, 1)) return;
+		if (modrm_check32(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0, 0)) return;
+		if (modrm_check32(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src1, 1)) return;
 	}
 	if ((FLAG_SF ^ FLAG_OF) != 0)
 	{
-		if (CPU80386_instructionstepreadmodrmdw(0, &instructionbufferd, MODRM_src1)) return;
-		if (CPU80386_instructionstepwritemodrmdw(2, instructionbufferd, MODRM_src0)) return;
+		if (CPU80386_instructionstepreadmodrmdw(0, &CPU[activeCPU].instructionbufferd, CPU[activeCPU].MODRM_src1)) return;
+		if (CPU80386_instructionstepwritemodrmdw(2, CPU[activeCPU].instructionbufferd, CPU[activeCPU].MODRM_src0)) return;
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVL r/m32
@@ -643,13 +643,13 @@ void CPU686_OP0F4D_32()
 	modrm_generateInstructionTEXT("CMOVGE", 32, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
 	{
-		if (modrm_check32(&params, MODRM_src0, 0)) return;
-		if (modrm_check32(&params, MODRM_src1, 1)) return;
+		if (modrm_check32(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0, 0)) return;
+		if (modrm_check32(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src1, 1)) return;
 	}
 	if ((FLAG_SF ^ FLAG_OF) ^ 1)
 	{
-		if (CPU80386_instructionstepreadmodrmdw(0, &instructionbufferd, MODRM_src1)) return;
-		if (CPU80386_instructionstepwritemodrmdw(2, instructionbufferd, MODRM_src0)) return;
+		if (CPU80386_instructionstepreadmodrmdw(0, &CPU[activeCPU].instructionbufferd, CPU[activeCPU].MODRM_src1)) return;
+		if (CPU80386_instructionstepwritemodrmdw(2, CPU[activeCPU].instructionbufferd, CPU[activeCPU].MODRM_src0)) return;
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVGE r/m32
@@ -658,13 +658,13 @@ void CPU686_OP0F4E_32()
 	modrm_generateInstructionTEXT("CMOVLE", 32, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
 	{
-		if (modrm_check32(&params, MODRM_src0, 0)) return;
-		if (modrm_check32(&params, MODRM_src1, 1)) return;
+		if (modrm_check32(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0, 0)) return;
+		if (modrm_check32(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src1, 1)) return;
 	}
 	if ((FLAG_SF ^ FLAG_OF) | FLAG_ZF)
 	{
-		if (CPU80386_instructionstepreadmodrmdw(0, &instructionbufferd, MODRM_src1)) return;
-		if (CPU80386_instructionstepwritemodrmdw(2, instructionbufferd, MODRM_src0)) return;
+		if (CPU80386_instructionstepreadmodrmdw(0, &CPU[activeCPU].instructionbufferd, CPU[activeCPU].MODRM_src1)) return;
+		if (CPU80386_instructionstepwritemodrmdw(2, CPU[activeCPU].instructionbufferd, CPU[activeCPU].MODRM_src0)) return;
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVLE r/m32
@@ -673,13 +673,13 @@ void CPU686_OP0F4F_32()
 	modrm_generateInstructionTEXT("CMOVG", 32, 0, PARAM_MODRM_0);
 	if (unlikely(CPU[activeCPU].modrmstep == 0))
 	{
-		if (modrm_check32(&params, MODRM_src0, 0)) return;
-		if (modrm_check32(&params, MODRM_src1, 1)) return;
+		if (modrm_check32(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0, 0)) return;
+		if (modrm_check32(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src1, 1)) return;
 	}
 	if ((((FLAG_SF ^ FLAG_OF) ^ 1) & (FLAG_ZF ^ 1)) != 0)
 	{
-		if (CPU80386_instructionstepreadmodrmdw(0, &instructionbufferd, MODRM_src1)) return;
-		if (CPU80386_instructionstepwritemodrmdw(2, instructionbufferd, MODRM_src0)) return;
+		if (CPU80386_instructionstepreadmodrmdw(0, &CPU[activeCPU].instructionbufferd, CPU[activeCPU].MODRM_src1)) return;
+		if (CPU80386_instructionstepwritemodrmdw(2, CPU[activeCPU].instructionbufferd, CPU[activeCPU].MODRM_src0)) return;
 	}
 	CPU_apply286cycles(); /* Apply cycles */
 } //CMOVG r/m32
