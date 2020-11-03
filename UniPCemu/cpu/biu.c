@@ -727,7 +727,7 @@ byte CPU_readOP(byte *result, byte singlefetch) //Reads the operation (byte) at 
 		{
 			BIU_instructionStart();
 		}
-		if (unlikely(BIU_DosboxTickPending)) //Tick is pending? Handle any that needs ticking when fetching!
+		if (unlikely(BIU_DosboxTickPending[activeCPU])) //Tick is pending? Handle any that needs ticking when fetching!
 		{
 			BIU_dosboxTick(); //Tick like DOSBox does(fill the PIQ up as much as possible without cycle timing)!
 			BIU_DosboxTickPending[activeCPU] = 0; //Not pending anymore!
