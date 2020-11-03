@@ -1345,9 +1345,9 @@ void copyint(byte src, byte dest); //Copy interrupt handler pointer to different
 #include "headers/cpu/modrm.h" //MODR/M comp!
 
 //Read signed numbers from CS:(E)IP!
-#define imm8() unsigned2signed8(immb)
-#define imm16() unsigned2signed16(immw)
-#define imm32s() unsigned2signed32(imm32)
+#define imm8() unsigned2signed8(CPU[activeCPU].immb)
+#define imm16() unsigned2signed16(CPU[activeCPU].immw)
+#define imm32s() unsigned2signed32(CPU[activeCPU].imm32)
 
 //Exceptions!
 
