@@ -1242,6 +1242,10 @@ typedef struct
 	uint_32 bpdatad;
 	word POPF_tempflags;
 	word ARPL_destRPL, ARPL_srcRPL;
+	word LXS_segment;
+	uint_32 LXS_offsetw;
+	uint_32 LXS_offsetd;
+	word destCS;
 } CPU_type;
 
 #ifndef IS_CPU
