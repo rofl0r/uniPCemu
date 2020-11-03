@@ -24,6 +24,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/hardware/ports.h" //I/O port support!
 #include "headers/hardware/pci.h" //PCI configuration space!
 #include "headers/hardware/i430fx.h" //i430fx support!
+#include "headers/cpu/cpu.h" //Multi core CPU support!
 
 byte *configurationspaces[0x100]; //All possible configuation spaces!
 byte configurationsizes[0x100]; //The size of the configuration!
@@ -38,14 +39,14 @@ uint_32 PCI_address, PCI_data, PCI_status; //Address data and status buffers!
 byte lastwriteindex = 0;
 
 uint_32 PCI_device, PCI_currentaddress; //What registered device and data address is used(valid after a call to PCI_decodedevice)?
-byte PCI_transferring = 0;
+byte PCI_transferring[MAXCPUS] = { 0,0 };
 byte PCI_lastindex = 0;
 
 void PCI_finishtransfer()
 {
 	if (unlikely(PCI_transferring)) //Were we tranaferring?
 	{
-		PCI_transferring = 0; //Not anymore!
+		PCI_transferring[activeCPU] = 0; //Not anymore!
 		if (configurationchanges[PCI_device]) //Change registered?
 		{
 			configurationchanges[PCI_device](PCI_currentaddress|PCI_lastindex,configurationdevices[PCI_device],configurationfunctions[PCI_device],1); //We've updated 1 byte of configuration data!
@@ -116,7 +117,7 @@ OPTINLINE void PCI_write_data(uint_32 address, byte index, byte value) //Write d
 		configurationspaces[PCI_device][PCI_currentaddress|index] = value; //Set the data!
 		if (configurationchanges[PCI_device]) //Change registered?
 		{
-			PCI_transferring = 1; //Transferring!
+			PCI_transferring[activeCPU] = 1; //Transferring!
 			PCI_lastindex = index; //Last index written!
 			configurationchanges[PCI_device](PCI_currentaddress|index,configurationdevices[PCI_device],configurationfunctions[PCI_device],1); //We've updated 1 byte of configuration data!
 		}
@@ -240,7 +241,7 @@ void initPCI()
 	memset(&configurationdevices,0,sizeof(configurationdevices)); //No handlers!
 	memset(&configurationfunctions,0,sizeof(configurationfunctions)); //No handlers!
 	PCI_decodedevice(PCI_address); //Initialise our status!
-	PCI_transferring = 0; //Initialize!
+	PCI_transferring[activeCPU] = 0; //Initialize!
 }
 
 void PCI_unusedBAR(PCI_GENERALCONFIG* config, byte BAR)
