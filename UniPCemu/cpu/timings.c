@@ -1131,24 +1131,24 @@ byte CPU_apply286cycles() //Apply the 80286+ cycles method. Result: 0 when to ap
 	word currentinstructiontimingindex;
 	MemoryTimingInfo* currenttimingcheck; //Current timing check!
 	//80286 uses other timings than the other chips!
-	ismemory = modrm_ismemory(params) ? 1 : 0; //Are we accessing memory?
+	ismemory = modrm_ismemory(CPU[activeCPU].params) ? 1 : 0; //Are we accessing memory?
 	if (ismemory)
 	{
-		modrm_threevariablesused = MODRM_threevariables(params); //Three variables used?
+		modrm_threevariablesused = MODRM_threevariables(CPU[activeCPU].params); //Three variables used?
 	}
 	else
 	{
 		modrm_threevariablesused = 0; //Only 2 or less variables used in calculating the ModR/M.
 	}
 
-	if (CPU_interruptraised) //Any fault is raised?
+	if (CPU[activeCPU].CPU_interruptraised) //Any fault is raised?
 	{
 		ismemory = modrm_threevariablesused = 0; //Not to be applied with this!
 		currentinstructiontiming = &timing286lookup[isPM() | ((CPU[activeCPU].CPU_Operand_size) << 1)][0][0][0xCD][0x00][0]; //Start by pointing to our records to process! Enforce interrupt!
 	}
 	else
 	{
-		currentinstructiontiming = &timing286lookup[isPM() | ((CPU[activeCPU].CPU_Operand_size) << 1)][ismemory][CPU[activeCPU].is0Fopcode][CPU[activeCPU].currentopcode][MODRM_REG(params.modrm)][0]; //Start by pointing to our records to process!
+		currentinstructiontiming = &timing286lookup[isPM() | ((CPU[activeCPU].CPU_Operand_size) << 1)][ismemory][CPU[activeCPU].is0Fopcode][CPU[activeCPU].currentopcode][MODRM_REG(CPU[activeCPU].params.modrm)][0]; //Start by pointing to our records to process!
 	}
 	//Try to use the lookup table!
 	for (instructiontiming = 0; ((instructiontiming < 8) && *currentinstructiontiming); ++instructiontiming, ++currentinstructiontiming) //Process all timing candidates!
@@ -1161,10 +1161,10 @@ byte CPU_apply286cycles() //Apply the 80286+ cycles method. Result: 0 when to ap
 				currenttimingcheck = &CPUPMTimings[currentinstructiontimingindex].CPUmode[isPM()].ismemory[ismemory]; //Our current info to check!
 				if (currenttimingcheck->addclock & 0x80) //Multiply BST_cnt and add to this to get the correct timing?
 				{
-					if ((currenttimingcheck->n & 0x80) == ((protection_PortRightsLookedup & 1) << 7)) //Match case?
+					if ((currenttimingcheck->n & 0x80) == ((CPU[activeCPU].protection_PortRightsLookedup & 1) << 7)) //Match case?
 					{
 						//REP support added for string instructions!
-						if (didNewREP || ((currenttimingcheck->addclock & 2) == 0)) //Including the REP, first instruction?
+						if (CPU[activeCPU].didNewREP || ((currenttimingcheck->addclock & 2) == 0)) //Including the REP, first instruction?
 						{
 							CPU[activeCPU].cycles_OP += currenttimingcheck->basetiming; //Use base timing specified only!
 						}
@@ -1179,18 +1179,18 @@ byte CPU_apply286cycles() //Apply the 80286+ cycles method. Result: 0 when to ap
 				else if (currenttimingcheck->addclock & 0x40) //Multiply BST_cnt and add to this to get the correct timing?
 				{
 					CPU[activeCPU].cycles_OP += currenttimingcheck->basetiming; //Use base timing specified only!
-					CPU[activeCPU].cycles_OP += currenttimingcheck->n * BST_cnt; //This adds the n value for each level linearly!
+					CPU[activeCPU].cycles_OP += currenttimingcheck->n * CPU[activeCPU].BST_cnt; //This adds the n value for each level linearly!
 					if (modrm_threevariablesused && (currenttimingcheck->addclock & 1)) ++CPU[activeCPU].cycles_OP; //One cycle to add with added clock!
 					return 1; //Apply the cycles!									
 				}
 				else if (currenttimingcheck->addclock & 0x20) //L of instruction doesn't fit in 1 bit?
 				{
-					if ((ENTER_L & 1) != ENTER_L) //Doesn't fit in 1 bit?
+					if ((CPU[activeCPU].ENTER_L & 1) != CPU[activeCPU].ENTER_L) //Doesn't fit in 1 bit?
 					{
-						if ((ENTER_L & 1) == currenttimingcheck->n) //Matching timing?
+						if ((CPU[activeCPU].ENTER_L & 1) == currenttimingcheck->n) //Matching timing?
 						{
 							CPU[activeCPU].cycles_OP += currenttimingcheck->basetiming; //Use base timing specified only!
-							CPU[activeCPU].cycles_OP += currenttimingcheck->n * (ENTER_L - 1); //This adds the n value for each level after level 1 linearly!
+							CPU[activeCPU].cycles_OP += currenttimingcheck->n * (CPU[activeCPU].ENTER_L - 1); //This adds the n value for each level after level 1 linearly!
 							if (modrm_threevariablesused && (currenttimingcheck->addclock & 1)) ++CPU[activeCPU].cycles_OP; //One cycle to add with added clock!
 							return 1; //Apply the cycles!									
 						}
@@ -1198,9 +1198,9 @@ byte CPU_apply286cycles() //Apply the 80286+ cycles method. Result: 0 when to ap
 				}
 				else if (currenttimingcheck->addclock & 0x10) //L of instruction fits in 1 bit and matches?
 				{
-					if ((ENTER_L & 1) == ENTER_L) //Fits in 1 bit?
+					if ((CPU[activeCPU].ENTER_L & 1) == CPU[activeCPU].ENTER_L) //Fits in 1 bit?
 					{
-						if ((ENTER_L & 1) == currenttimingcheck->n) //Matching timing?
+						if ((CPU[activeCPU].ENTER_L & 1) == currenttimingcheck->n) //Matching timing?
 						{
 							CPU[activeCPU].cycles_OP += currenttimingcheck->basetiming; //Use base timing specified only!
 							if (modrm_threevariablesused && (currenttimingcheck->addclock & 1)) ++CPU[activeCPU].cycles_OP; //One cycle to add with added clock!
@@ -1210,7 +1210,7 @@ byte CPU_apply286cycles() //Apply the 80286+ cycles method. Result: 0 when to ap
 				}
 				else if (currenttimingcheck->addclock & 0x08) //Only when jump taken?
 				{
-					if (didJump) //Did we jump?
+					if (CPU[activeCPU].didJump) //Did we jump?
 					{
 						CPU[activeCPU].cycles_OP += currenttimingcheck->basetiming; //Use base timing specified only!								
 						if (modrm_threevariablesused && (currenttimingcheck->addclock & 1)) ++CPU[activeCPU].cycles_OP; //One cycle to add with added clock!
@@ -1219,7 +1219,7 @@ byte CPU_apply286cycles() //Apply the 80286+ cycles method. Result: 0 when to ap
 				}
 				else if (currenttimingcheck->addclock & 0x04) //Gate type has to match in order to be processed?
 				{
-					if (currenttimingcheck->n == hascallinterrupttaken_type) //Did we execute this kind of gate?
+					if (currenttimingcheck->n == CPU[activeCPU].hascallinterrupttaken_type) //Did we execute this kind of gate?
 					{
 						CPU[activeCPU].cycles_OP += currenttimingcheck->basetiming; //Use base timing specified only!								
 						if (modrm_threevariablesused && (currenttimingcheck->addclock & 1)) ++CPU[activeCPU].cycles_OP; //One cycle to add with added clock!
@@ -1228,9 +1228,9 @@ byte CPU_apply286cycles() //Apply the 80286+ cycles method. Result: 0 when to ap
 				}
 				else if (currenttimingcheck->addclock & 0x02) //REP((N)Z) instruction prefix only?
 				{
-					if (didRepeating) //Are we executing a repeat?
+					if (CPU[activeCPU].didRepeating) //Are we executing a repeat?
 					{
-						if (didNewREP) //Including the REP, first instruction?
+						if (CPU[activeCPU].didNewREP) //Including the REP, first instruction?
 						{
 							CPU[activeCPU].cycles_OP += currenttimingcheck->basetiming; //Use base timing specified only!
 						}
