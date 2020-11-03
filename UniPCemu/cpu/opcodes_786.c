@@ -35,7 +35,7 @@ void CPU786_OP0F30() //WRMSR
 	CPUMSR* MSR;
 	uint_32 validbitslo;
 	uint_32 validbitshi;
-	if (unlikely(cpudebugger)) //Debugger on?
+	if (unlikely(CPU[activeCPU].cpudebugger)) //Debugger on?
 	{
 		modrm_generateInstructionTEXT("WRMSR", 0, 0, PARAM_NONE);
 	}
@@ -97,7 +97,7 @@ void CPU786_OP0F30() //WRMSR
 void CPU786_OP0F32() //RDMSR
 {
 	CPUMSR* MSR;
-	if (unlikely(cpudebugger)) //Debugger on?
+	if (unlikely(CPU[activeCPU].cpudebugger)) //Debugger on?
 	{
 		modrm_generateInstructionTEXT("RDMSR", 0, 0, PARAM_NONE);
 	}
@@ -164,7 +164,7 @@ byte loadSYSENTERLEAVEdescriptor(int segment, word value, byte PL)
 	*CPU[activeCPU].SEGMENT_REGISTERS[segment] = (value | PL); //Set the segment value!
 	if (segment == CPU_SEGMENT_CS) //Code?
 	{
-		REG_EIP = destEIP; //Destination EIP!
+		REG_EIP = CPU[activeCPU].destEIP; //Destination EIP!
 		CPU_calcSegmentPrecalcs(1, &CPU[activeCPU].SEG_DESCRIPTOR[segment]); //Calculate any precalcs for the segment descriptor(do it here since we don't load descriptors externally)!
 		if (CPU_condflushPIQ(-1)) return 1; //We're jumping to another address!
 		//Don't check limits, as this can't go wrong!
@@ -179,7 +179,7 @@ byte loadSYSENTERLEAVEdescriptor(int segment, word value, byte PL)
 
 void CPU786_OP0F34() //SYSENTER
 {
-	if (unlikely(cpudebugger)) //Debugger on?
+	if (unlikely(CPU[activeCPU].cpudebugger)) //Debugger on?
 	{
 		modrm_generateInstructionTEXT("SYSENTER", 0, 0, PARAM_NONE);
 	}
@@ -194,7 +194,7 @@ void CPU786_OP0F34() //SYSENTER
 	FLAGW_IF(0); //Clear Interrupt flag!
 	updateCPUmode(); //Update the CPU mode!
 	REG_ESP = CPU[activeCPU].registers->IA32_SYSENTER_ESP.lo; //ESP!
-	destEIP = CPU[activeCPU].registers->IA32_SYSENTER_EIP.lo; //EIP!
+	CPU[activeCPU].destEIP = CPU[activeCPU].registers->IA32_SYSENTER_EIP.lo; //EIP!
 	if (loadSYSENTERLEAVEdescriptor(CPU_SEGMENT_SS, ((CPU[activeCPU].registers->IA32_SYSENTER_CS.lo & 0xFFFC) + 8), 0)) //SS failed?
 	{
 		return; //Abort!
@@ -208,7 +208,7 @@ void CPU786_OP0F34() //SYSENTER
 
 void CPU786_OP0F35() //SYSEXIT
 {
-	if (unlikely(cpudebugger)) //Debugger on?
+	if (unlikely(CPU[activeCPU].cpudebugger)) //Debugger on?
 	{
 		modrm_generateInstructionTEXT("SYSEXIT", 0, 0, PARAM_NONE);
 	}
@@ -224,7 +224,7 @@ void CPU786_OP0F35() //SYSEXIT
 	FLAGW_IF(0); //Clear Interrupt flag!
 	updateCPUmode(); //Update the CPU mode!
 	REG_ESP = REG_ECX; //ESP from ECX!
-	destEIP = REG_EDX; //EIP from EDX!
+	CPU[activeCPU].destEIP = REG_EDX; //EIP from EDX!
 	//Perform SS first to set a proper privilege level(although it's documented first CS then SS)!
 	if (loadSYSENTERLEAVEdescriptor(CPU_SEGMENT_SS, ((CPU[activeCPU].registers->IA32_SYSENTER_CS.lo & 0xFFFC) + 24), 3)) //SS failed?
 	{
