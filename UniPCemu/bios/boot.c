@@ -69,7 +69,7 @@ int CPU_boot(int device) //Boots from an i/o device (result TRUE: booted, FALSE:
 				MMU_wb(-1,loadedsegment,BOOT_OFFSET+dataindex,boot_bootsector[dataindex],1); //Write the data to memory!
 			}
 			REG_DL = getdiskbymount(device); //Drive number we loaded from!
-			destEIP = BOOT_OFFSET; //Where to start booting! Loaded boot sector executable!
+			CPU[activeCPU].destEIP = BOOT_OFFSET; //Where to start booting! Loaded boot sector executable!
 			segmentWritten(CPU_SEGMENT_CS,loadedsegment,1); //Jump to the boot sector!
 			return BOOT_OK; //Booted!
 		}
@@ -106,7 +106,7 @@ int CPU_boot(int device) //Boots from an i/o device (result TRUE: booted, FALSE:
 				return FALSE; //Error loading data file!
 			}
 			REG_DL = getdiskbymount(device); //Drive number we loaded from!
-			destEIP = (uint_32)0x7C00; //Where to start booting! Loaded boot sector executable!
+			CPU[activeCPU].destEIP = (uint_32)0x7C00; //Where to start booting! Loaded boot sector executable!
 			segmentWritten(CPU_SEGMENT_CS,ISOREADER_SEGMENT,1); //Jump to the boot sector!
 			REG_DL = getdiskbymount(device); //Drive number we loaded from!
 			return BOOT_OK; //Booted!

@@ -2115,7 +2115,7 @@ performRecheck:
 	}
 }
 
-sword APIC_currentintnr[MAXCPUS] = -1;
+sword APIC_currentintnr[MAXCPUS] = { -1,-1 };
 
 byte PICInterrupt() //We have an interrupt ready to process? This is the primary PIC's INTA!
 {
@@ -2274,7 +2274,7 @@ byte nextintr()
 	if (__HW_DISABLED) return 0; //Abort!
 
 	//Check APIC first!
-	if (APIC_currentintnr!=-1) //APIC interrupt requested to fire?
+	if (APIC_currentintnr[activeCPU]!=-1) //APIC interrupt requested to fire?
 	{
 		result = APIC_currentintnr[activeCPU]; //Accept!
 		APIC_currentintnr[activeCPU] = -1; //Invalidate!

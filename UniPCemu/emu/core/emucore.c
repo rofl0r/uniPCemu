@@ -1197,7 +1197,7 @@ OPTINLINE byte coreHandler()
 			{
 				CPU[activeCPU].waitingforSIPI = 0; //Interrupt->Resume from HLT
 				//Start execution at xx00:0000?
-				destEIP = 0;
+				CPU[activeCPU].destEIP = 0;
 				destCS = (CPU[activeCPU].SIPIreceived&0xFF)<<8;
 				segmentWritten(CPU_SEGMENT_CS,destCS,1); //Jump to the designated address!
 				CPU[activeCPU].SIPIreceived = 0; //Not received anymore!

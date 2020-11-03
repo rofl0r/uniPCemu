@@ -962,7 +962,7 @@ OPTINLINE void debugger_autolog()
 				if (!((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT))) safestrcpy(fullcmd,sizeof(fullcmd),"<Debugger not implemented: "); //Set to the last opcode!
 				for (i = 0; i < (int)CPU[activeCPU].OPlength; i++) //List the full command!
 				{
-					if (!((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT))) snprintf(fullcmd,sizeof(fullcmd), "%s%02X", debugger_command_text, OPbuffer[i]); //Add part of the opcode!
+					if (!((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT))) snprintf(fullcmd,sizeof(fullcmd), "%s%02X", debugger_command_text, CPU[activeCPU].OPbuffer[i]); //Add part of the opcode!
 					else snprintf(fullcmd,sizeof(fullcmd), fullcmd[0]?"%s %02X":"%s%02X", debugger_command_text, CPU[activeCPU].OPbuffer[i]); //Add part of the opcode!
 				}
 				if (!((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT))) safestrcat(fullcmd,sizeof(fullcmd), ">"); //End of #UNKOP!
@@ -972,7 +972,7 @@ OPTINLINE void debugger_autolog()
 				if (!((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT))) safestrcpy(fullcmd,sizeof(fullcmd), "(");
 				for (i = 0; i < (int)CPU[activeCPU].OPlength; i++) //List the full command!
 				{
-					if (!((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT))) safescatnprintf(fullcmd,sizeof(fullcmd), "%02X", OPbuffer[i]); //Add part of the opcode!
+					if (!((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT))) safescatnprintf(fullcmd,sizeof(fullcmd), "%02X", CPU[activeCPU].OPbuffer[i]); //Add part of the opcode!
 					else { safescatnprintf(fullcmd,sizeof(fullcmd), fullcmd[0]?" %02X":"%02X", CPU[activeCPU].OPbuffer[i]); } //Add part of the opcode!
 				}
 				if (!((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT))) safestrcat(fullcmd,sizeof(fullcmd), ")"); //Our opcode before disassembly!
@@ -1214,7 +1214,7 @@ void debugger_screen() //Show debugger info on-screen!
 		GPU_textprintf(frameratesurface, fontcolor, backcolor, "Command: %s%s", debugger_prefix, debugger_command_text); //Show our command!
 		debuggerrow = GPU_TEXT_DEBUGGERROW; //The debug row we're writing to!	
 		GPU_textgotoxy(frameratesurface, GPU_TEXTSURFACE_WIDTH - 22, debuggerrow++); //First debug row!
-		GPU_textprintf(frameratesurface, fontcolor, backcolor, "Prefix(0):%02X; ROP: %02X%u", OPbuffer[0], CPU[activeCPU].currentopcode, MODRM_REG(CPU[activeCPU].currentmodrm)); //Debug opcode and executed opcode!
+		GPU_textprintf(frameratesurface, fontcolor, backcolor, "Prefix(0):%02X; ROP: %02X%u", CPU[activeCPU].OPbuffer[0], CPU[activeCPU].currentopcode, MODRM_REG(CPU[activeCPU].currentmodrm)); //Debug opcode and executed opcode!
 
 		//First: location!
 		if ((((debuggerregisters.CR0&1)==0) || (REGD_EFLAGS(debuggerregisters)&F_V8)) || (EMULATED_CPU == CPU_80286)) //Real mode, virtual 8086 mode or normal real-mode registers used in 16-bit protected mode?
@@ -1572,7 +1572,7 @@ void debugger_step() //Processes the debugging step!
 				}
 				else if ((REGD_EIP(debuggerregisters) == skipopcodes_destEIP) && (REGD_CS(debuggerregisters) == skipopcodes_destCS)) //We've reached the destination address?
 				{
-					if ((skipstep==4) && didJump) //Jumped at our specified step?
+					if ((skipstep==4) && CPU[activeCPU].didJump) //Jumped at our specified step?
 					{
 						skipstep = 0; //We're finished!
 					}
