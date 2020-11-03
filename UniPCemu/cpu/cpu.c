@@ -1920,7 +1920,6 @@ extern byte BIU_buslocked; //BUS locked?
 
 void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 {
-	static uint_32 previousCSstart;
 	static char debugtext[256]; //Debug text!
 	uint_32 REPcondition; //What kind of condition?
 	//byte cycles_counted = 0; //Cycles have been counted?
@@ -1960,7 +1959,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 			BIU_instructionStart(); //Handle all when instructions are starting!
 		}
 
-		previousCSstart = (uint_32)CPU_MMU_start(CPU_SEGMENT_CS,REG_CS); //Save the used CS start address!
+		CPU[activeCPU].newpreviousCSstart = (uint_32)CPU_MMU_start(CPU_SEGMENT_CS,REG_CS); //Save the used CS start address!
 
 		if (CPU[activeCPU].permanentreset) //We've entered a permanent reset?
 		{
@@ -2008,7 +2007,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		{
 			if (CPU[activeCPU].allowInterrupts) //Do we allow interrupts(and traps) to be fired?
 			{
-				if (checkProtectedModeDebugger(previousCSstart+CPU[activeCPU].exec_EIP,PROTECTEDMODEDEBUGGER_TYPE_EXECUTION)) //Breakpoint at the current address(linear address space)?
+				if (checkProtectedModeDebugger(CPU[activeCPU].newpreviousCSstart+CPU[activeCPU].exec_EIP,PROTECTEDMODEDEBUGGER_TYPE_EXECUTION)) //Breakpoint at the current address(linear address space)?
 				{
 					return; //Protected mode debugger activated! Don't fetch or execute!
 				}
@@ -2417,7 +2416,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		CPU[activeCPU].previousopcode = CPU[activeCPU].currentopcode; //Last executed OPcode for reference purposes!
 		CPU[activeCPU].previousopcode0F = CPU[activeCPU].is0Fopcode; //Last executed OPcode for reference purposes!
 		CPU[activeCPU].previousmodrm = CPU[activeCPU].currentmodrm; //Last executed OPcode for reference purposes!
-		CPU[activeCPU].previousCSstart = previousCSstart; //Save the start address of CS for the last instruction!
+		CPU[activeCPU].previousCSstart = CPU[activeCPU].newpreviousCSstart; //Save the start address of CS for the last instruction!
 	}
 	if ((CPU[activeCPU].cycles|CPU[activeCPU].cycles_stallBUS)==0) //Nothing ticking?
 	{
