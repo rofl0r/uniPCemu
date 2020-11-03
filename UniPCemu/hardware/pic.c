@@ -258,9 +258,7 @@ byte APIC_getISRV(byte whichCPU)
 {
 	byte IRgroup;
 	byte IR;
-	int APIC_highestpriority; //-1=Nothing yet, otherwise, highest priority level detected
-	byte APIC_highestpriorityIR; //Highest priority IR detected!
-	uint_32 APIC_IRQsrequested[8], APIC_requestbit, APIC_requestsleft, APIC_requestbithighestpriority;
+	uint_32 APIC_IRQsrequested[8], APIC_requestbit, APIC_requestsleft;
 	//Determine PPR from ISRV(highest ISR vector number) and TPR.
 
 	//First, find the MSb of the ISR to get the ISRV!
@@ -286,17 +284,12 @@ byte APIC_getISRV(byte whichCPU)
 			//First, determine the highest priority IR to use!
 			APIC_requestbit = (1U << 31); //What bit is requested first!
 			APIC_requestsleft = 32; //How many are left!
-			APIC_requestbithighestpriority = 0; //Default: no highest priority found yet!
-			APIC_highestpriority = -1; //Default: no highest priority level found yet!
-			APIC_highestpriorityIR = 0; //Default: No highest priority IR loaded yet!
 			//Note: this way of handling the priority is done by the LAPIC as well(high nibble of the interrupt vector determines the priority)!
 			for (IR = 31; APIC_requestsleft; --IR) //Check all requests!
 			{
 				if (APIC_IRQsrequested[IRgroup] & APIC_requestbit) //Are we requested to fire?
 				{
 					//Priority is based on the high nibble of the interrupt vector. The low nibble is ignored!
-					APIC_highestpriorityIR = IR; //What IR has the highest priority now!
-					APIC_requestbithighestpriority = APIC_requestbit; //What bit was the highest priority?
 					goto foundPrioritizedISRV; //handle it!
 				}
 				APIC_requestbit >>= 1; //Next bit to check!
@@ -312,9 +305,7 @@ byte APIC_getIRRV(byte whichCPU)
 {
 	byte IRgroup;
 	byte IR;
-	int APIC_highestpriority; //-1=Nothing yet, otherwise, highest priority level detected
-	byte APIC_highestpriorityIR; //Highest priority IR detected!
-	uint_32 APIC_IRQsrequested[8], APIC_requestbit, APIC_requestsleft, APIC_requestbithighestpriority;
+	uint_32 APIC_IRQsrequested[8], APIC_requestbit, APIC_requestsleft;
 	//Determine PPR from ISRV(highest ISR vector number) and TPR.
 
 	//First, find the MSb of the ISR to get the ISRV!
@@ -340,17 +331,12 @@ byte APIC_getIRRV(byte whichCPU)
 			//First, determine the highest priority IR to use!
 			APIC_requestbit = (1U << 31); //What bit is requested first!
 			APIC_requestsleft = 32; //How many are left!
-			APIC_requestbithighestpriority = 0; //Default: no highest priority found yet!
-			APIC_highestpriority = -1; //Default: no highest priority level found yet!
-			APIC_highestpriorityIR = 0; //Default: No highest priority IR loaded yet!
 			//Note: this way of handling the priority is done by the LAPIC as well(high nibble of the interrupt vector determines the priority)!
 			for (IR = 31; APIC_requestsleft; --IR) //Check all requests!
 			{
 				if (APIC_IRQsrequested[IRgroup] & APIC_requestbit) //Are we requested to fire?
 				{
 					//Priority is based on the high nibble of the interrupt vector. The low nibble is ignored!
-					APIC_highestpriorityIR = IR; //What IR has the highest priority now!
-					APIC_requestbithighestpriority = APIC_requestbit; //What bit was the highest priority?
 					goto foundPrioritizedIRRV; //handle it!
 				}
 				APIC_requestbit >>= 1; //Next bit to check!
@@ -1154,9 +1140,7 @@ sword LAPIC_acnowledgeRequests(byte whichCPU)
 	byte IRgroupsleft;
 	byte IR;
 	byte APIC_intnr;
-	int APIC_highestpriority; //-1=Nothing yet, otherwise, highest priority level detected
-	byte APIC_highestpriorityIR; //Highest priority IR detected!
-	uint_32 APIC_IRQsrequested[8], APIC_requestbit, APIC_requestsleft, APIC_requestbithighestpriority;
+	uint_32 APIC_IRQsrequested[8], APIC_requestbit, APIC_requestsleft;
 	APIC_IRQsrequested[0] = LAPIC[whichCPU].IRR[0] & (~LAPIC[whichCPU].ISR[0]); //What can we handle!
 	APIC_IRQsrequested[1] = LAPIC[whichCPU].IRR[1] & (~LAPIC[whichCPU].ISR[1]); //What can we handle!
 	APIC_IRQsrequested[2] = LAPIC[whichCPU].IRR[2] & (~LAPIC[whichCPU].ISR[2]); //What can we handle!
@@ -1178,9 +1162,6 @@ sword LAPIC_acnowledgeRequests(byte whichCPU)
 			//First, determine the highest priority IR to use!
 			APIC_requestbit = (1U << 31); //What bit is requested first!
 			APIC_requestsleft = 32; //How many are left!
-			APIC_requestbithighestpriority = 0; //Default: no highest priority found yet!
-			APIC_highestpriority = -1; //Default: no highest priority level found yet!
-			APIC_highestpriorityIR = 0; //Default: No highest priority IR loaded yet!
 			//Note: this way of handling the priority is done by the LAPIC as well(high nibble of the interrupt vector determines the priority)!
 			for (IR = 31; APIC_requestsleft; --IR) //Check all requests!
 			{
@@ -1193,8 +1174,6 @@ sword LAPIC_acnowledgeRequests(byte whichCPU)
 						goto skipPriorityIRR; //Skip this group!
 					}
 					//Priority is based on the high nibble of the interrupt vector. The low nibble is ignored!
-					APIC_highestpriorityIR = IR; //What IR has the highest priority now!
-					APIC_requestbithighestpriority = APIC_requestbit; //What bit was the highest priority?
 					goto firePrioritizedIR; //handle it!
 				}
 				skipPriorityIRR: //Skipping it because of priority!
@@ -1227,11 +1206,10 @@ extern byte memory_datasize; //The size of the data that has been read!
 byte APIC_memIO_wb(uint_32 offset, byte value)
 {
 	byte is_internalexternalAPIC;
-	uint_32 tempoffset, storedvalue, ROMbits, address;
+	uint_32 storedvalue, ROMbits, address;
 	uint_32* whatregister; //What register is addressed?
 	byte updateredirection;
 	updateredirection = 0; //Init!
-	tempoffset = offset; //Backup!
 
 	is_internalexternalAPIC = 0; //Default: no APIC chip!
 	if (((offset & 0xFFFFFF000ULL) == LAPIC[activeCPU].baseaddr)) //LAPIC?
@@ -1536,11 +1514,14 @@ byte APIC_memIO_rb(uint_32 offset, byte index)
 {
 	byte uncachableaddr;
 	byte is_internalexternalAPIC;
-	uint_32 temp, tempoffset, value, address;
+	uint_32 temp, tempoffset, address;
+	union
+	{
+		uint_32 value32;
+		word value16;
+	} converter16;
 	uint_32* whatregister; //What register is accessed?
-	byte updateredirection;
 	tempoffset = offset; //Backup!
-	updateredirection = 0;
 
 	uncachableaddr = 0; //Default: cachable address!
 
@@ -1743,10 +1724,10 @@ byte APIC_memIO_rb(uint_32 offset, byte index)
 	else
 		return 0; //Abort!
 
-	value = *whatregister; //Take the register's value that's there!
+	converter16.value32 = *whatregister; //Take the register's value that's there!
 	if (whatregister == &LAPIC[activeCPU].CurrentCountRegister) //Latched?
 	{
-		value = LAPIC[activeCPU].CurrentCountRegisterlatched; //Latch read!
+		converter16.value32 = LAPIC[activeCPU].CurrentCountRegisterlatched; //Latch read!
 	}
 
 	tempoffset = (offset & 3); //What DWord byte is addressed?
@@ -1760,7 +1741,7 @@ byte APIC_memIO_rb(uint_32 offset, byte index)
 		tempoffset &= ~3; //Round down to the dword address!
 		if (likely(((tempoffset | 3) < 0x1000))) //Enough to read a dword?
 		{
-			memory_dataread = SDL_SwapLE32(*((uint_32*)(&value))); //Read the data from the result!
+			memory_dataread = SDL_SwapLE32(*((uint_32*)(&converter16.value32))); //Read the data from the result!
 			memory_datasize = tempoffset = 4 - (temp - tempoffset); //What is read from the whole dword!
 			memory_dataread >>= ((4 - tempoffset) << 3); //Discard the bytes that are not to be read(before the requested address)!
 			return 1; //Done: we've been read!
@@ -1771,23 +1752,24 @@ byte APIC_memIO_rb(uint_32 offset, byte index)
 			tempoffset &= ~1; //Round down to the word address!
 			if (likely(((tempoffset | 1) < 0x1000))) //Enough to read a word, aligned?
 			{
-				memory_dataread = SDL_SwapLE16(*((word*)(&value))); //Read the data from the result!
+				converter16.value32 >>= ((offset&2)<<3); //Take the lower or upper word correctly to read!
+				memory_dataread = SDL_SwapLE16(*((word*)(&converter16.value16))); //Read the data from the result!
 				memory_datasize = tempoffset = 2 - (temp - tempoffset); //What is read from the whole word!
 				memory_dataread >>= ((2 - tempoffset) << 3); //Discard the bytes that are not to be read(before the requested address)!
-				return 1; //Done: we've been read!				
+				return 1; //Done: we've been read!
 			}
 			else //Enough to read a byte only?
 			{
-				memory_dataread = value>>((tempoffset&3)<<3); //Read the data from the result!
+				memory_dataread = converter16.value32>>((tempoffset&3)<<3); //Read the data from the result!
 				memory_datasize = 1; //Only 1 byte!
-				return 1; //Done: we've been read!				
+				return 1; //Done: we've been read!
 			}
 		}
 	}
 	else //Enough to read a byte only?
 	#endif
 	{
-		memory_dataread = value>>((tempoffset&3)<<3); //Read the data from the ROM, reversed!
+		memory_dataread = converter16.value32>>((tempoffset&3)<<3); //Read the data from the ROM, reversed!
 		memory_datasize = 1; //Only 1 byte!
 		return 1; //Done: we've been read!				
 	}
