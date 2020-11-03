@@ -119,8 +119,8 @@ void CPU_executionphase_normal() //Executing an opcode?
 
 void CPU_executionphase_taskswitch() //Are we to switch tasks?
 {
-	taskswitch_result = CPU_switchtask(TASKSWITCH_INFO.whatsegment, &TASKSWITCH_INFO.LOADEDDESCRIPTOR,TASKSWITCH_INFO.segment, TASKSWITCH_INFO.destinationtask, TASKSWITCH_INFO.isJMPorCALL, TASKSWITCH_INFO.gated, TASKSWITCH_INFO.errorcode); //Execute a task switch?
-	if (taskswitch_result) //Unfinished task switch?
+	CPU[activeCPU].taskswitch_result = CPU_switchtask(CPU[activeCPU].TASKSWITCH_INFO.whatsegment, &CPU[activeCPU].TASKSWITCH_INFO.LOADEDDESCRIPTOR, CPU[activeCPU].TASKSWITCH_INFO.segment, CPU[activeCPU].TASKSWITCH_INFO.destinationtask, CPU[activeCPU].TASKSWITCH_INFO.isJMPorCALL, CPU[activeCPU].TASKSWITCH_INFO.gated, CPU[activeCPU].TASKSWITCH_INFO.errorcode); //Execute a task switch?
+	if (CPU[activeCPU].taskswitch_result) //Unfinished task switch?
 	{
 		CPU[activeCPU].executed = 0; //Finished and ready for execution!
 	}
@@ -133,19 +133,19 @@ void CPU_executionphase_interrupt() //Executing an interrupt?
 {
 	if (EMULATED_CPU<=CPU_NECV30) //16-bit CPU?
 	{
-		interrupt_result = call_soft_inthandler(CPU_executionphaseinterrupt_nr,CPU_executionphaseinterrupt_errorcode,CPU_executionphaseinterrupt_is_interrupt);
-		if (interrupt_result) //Final stage?
+		CPU[activeCPU].interrupt_result = call_soft_inthandler(CPU[activeCPU].CPU_executionphaseinterrupt_nr, CPU[activeCPU].CPU_executionphaseinterrupt_errorcode, CPU[activeCPU].CPU_executionphaseinterrupt_is_interrupt);
+		if (CPU[activeCPU].interrupt_result) //Final stage?
 		{
 			CPU[activeCPU].cycles_stallBIU += CPU[activeCPU].cycles_OP; /*Stall the BIU completely now!*/
 		}
-		if (interrupt_result==0) return; //Execute the interupt!
+		if (CPU[activeCPU].interrupt_result==0) return; //Execute the interupt!
 		CPU[activeCPU].faultraised = 2; //Special condition: non-fault interrupt! This is to prevent stuff like REP post-processing from executing, as this is already handled by the interrupt handler itself!
 		CPU[activeCPU].allowTF = 0; //Don't allow traps to trigger!
 	}
 	else //Unsupported CPU? Use plain general interrupt handling instead!
 	{
-		interrupt_result = call_soft_inthandler(CPU_executionphaseinterrupt_nr,CPU_executionphaseinterrupt_errorcode,CPU_executionphaseinterrupt_is_interrupt);
-		if (interrupt_result==0) return; //Execute the interupt!
+		CPU[activeCPU].interrupt_result = call_soft_inthandler(CPU[activeCPU].CPU_executionphaseinterrupt_nr, CPU[activeCPU].CPU_executionphaseinterrupt_errorcode, CPU[activeCPU].CPU_executionphaseinterrupt_is_interrupt);
+		if (CPU[activeCPU].interrupt_result==0) return; //Execute the interupt!
 		CPU[activeCPU].faultraised = 2; //Special condition: non-fault interrupt! This is to prevent stuff like REP post-processing from executing, as this is already handled by the interrupt handler itself!
 		CPU[activeCPU].allowTF = 0; //Don't allow traps to trigger!
 		if (CPU_apply286cycles()) return; //80286+ cycles instead?
@@ -154,8 +154,8 @@ void CPU_executionphase_interrupt() //Executing an interrupt?
 
 void CPU_executionphase_newopcode() //Starting a new opcode to handle?
 {
-	CPU_executionphaseinterrupt_is_interrupt = 0; //Not an interrupt!
-	currentEUphasehandler = &CPU_executionphase_normal; //Starting a opcode phase handler!
+	CPU[activeCPU].CPU_executionphaseinterrupt_is_interrupt = 0; //Not an interrupt!
+	CPU[activeCPU].currentEUphasehandler = &CPU_executionphase_normal; //Starting a opcode phase handler!
 }
 
 
@@ -163,16 +163,16 @@ void CPU_executionphase_newopcode() //Starting a new opcode to handle?
 //errorcode: >=0: error code, -1=No error code, -2=Plain INT without error code, -3=T-bit in TSS is being triggered, -4=VME V86-mode IVT-style interrupt.
 void CPU_executionphase_startinterrupt(byte vectornr, byte type, int_64 errorcode) //Starting a new interrupt to handle?
 {
-	currentEUphasehandler = &CPU_executionphase_interrupt; //Starting a interrupt phase handler!
+	CPU[activeCPU].currentEUphasehandler = &CPU_executionphase_interrupt; //Starting a interrupt phase handler!
 	CPU[activeCPU].internalinterruptstep = 0; //Reset the interrupt step!
 	//Copy all parameters used!
-	CPU_executionphaseinterrupt_errorcode = errorcode; //Save the error code!
-	CPU_executionphaseinterrupt_nr = vectornr; //Vector number!
-	CPU_executionphaseinterrupt_type = type; //Are we a what kind of type are we?
-	CPU_executionphaseinterrupt_is_interrupt = ((((errorcode==-2)|(errorcode==-4))?(1|((type<<1)&0x10)):(0|((type<<1)&0x10)))|(type<<1)); //Interrupt?
+	CPU[activeCPU].CPU_executionphaseinterrupt_errorcode = errorcode; //Save the error code!
+	CPU[activeCPU].CPU_executionphaseinterrupt_nr = vectornr; //Vector number!
+	CPU[activeCPU].CPU_executionphaseinterrupt_type = type; //Are we a what kind of type are we?
+	CPU[activeCPU].CPU_executionphaseinterrupt_is_interrupt = ((((errorcode==-2)|(errorcode==-4))?(1|((type<<1)&0x10)):(0|((type<<1)&0x10)))|(type<<1)); //Interrupt?
 	CPU[activeCPU].executed = 0; //Not executed yet!
-	INTreturn_CS = REG_CS; //Return segment!
-	INTreturn_EIP = REG_EIP; //Save the return offset!
+	CPU[activeCPU].INTreturn_CS = REG_CS; //Return segment!
+	CPU[activeCPU].INTreturn_EIP = REG_EIP; //Save the return offset!
 	#ifdef DEBUGBOOT
 	if (CPU_executionphaseinterrupt_nr==0x13) //To debug?
 	{
@@ -184,7 +184,7 @@ void CPU_executionphase_startinterrupt(byte vectornr, byte type, int_64 errorcod
 	#endif
 	if (errorcode==-3) //Special value for T-bit in TSS being triggered?
 	{
-		CPU_executionphaseinterrupt_errorcode = -1; //No error code, fault!
+		CPU[activeCPU].CPU_executionphaseinterrupt_errorcode = -1; //No error code, fault!
 		return; //Don't execute right away to prevent looping because of T-bit in debugger TSS.
 	}
 	CPU_OP(); //Execute right away for simple timing compatibility!
@@ -192,38 +192,38 @@ void CPU_executionphase_startinterrupt(byte vectornr, byte type, int_64 errorcod
 
 byte CPU_executionphase_starttaskswitch(int whatsegment, SEGMENT_DESCRIPTOR *LOADEDDESCRIPTOR,word *segment, word destinationtask, byte isJMPorCALL, byte gated, int_64 errorcode) //Switching to a certain task?
 {
-	currentEUphasehandler = &CPU_executionphase_taskswitch; //Starting a task switch phase handler!
+	CPU[activeCPU].currentEUphasehandler = &CPU_executionphase_taskswitch; //Starting a task switch phase handler!
 	//Copy all parameters used!
-	memcpy(&TASKSWITCH_INFO.LOADEDDESCRIPTOR,LOADEDDESCRIPTOR,sizeof(TASKSWITCH_INFO.LOADEDDESCRIPTOR)); //Copy the descriptor over!
-	TASKSWITCH_INFO.whatsegment = whatsegment;
-	TASKSWITCH_INFO.segment = segment;
-	TASKSWITCH_INFO.destinationtask = destinationtask;
-	TASKSWITCH_INFO.isJMPorCALL = isJMPorCALL;
-	TASKSWITCH_INFO.gated = gated;
-	TASKSWITCH_INFO.errorcode = errorcode;
+	memcpy(&CPU[activeCPU].TASKSWITCH_INFO.LOADEDDESCRIPTOR,LOADEDDESCRIPTOR,sizeof(CPU[activeCPU].TASKSWITCH_INFO.LOADEDDESCRIPTOR)); //Copy the descriptor over!
+	CPU[activeCPU].TASKSWITCH_INFO.whatsegment = whatsegment;
+	CPU[activeCPU].TASKSWITCH_INFO.segment = segment;
+	CPU[activeCPU].TASKSWITCH_INFO.destinationtask = destinationtask;
+	CPU[activeCPU].TASKSWITCH_INFO.isJMPorCALL = isJMPorCALL;
+	CPU[activeCPU].TASKSWITCH_INFO.gated = gated;
+	CPU[activeCPU].TASKSWITCH_INFO.errorcode = errorcode;
 	CPU[activeCPU].executed = 0; //Not executed yet!
 	CPU_OP(); //Execute right away for simple timing compatility!
-	return taskswitch_result; //Default to an abort of the current instruction!
+	return CPU[activeCPU].taskswitch_result; //Default to an abort of the current instruction!
 }
 
 byte CPU_executionphase_busy() //Are we busy?
 {
-	return (currentEUphasehandler?1:0); //Are we operating on something other than a (new) instruction?
+	return (CPU[activeCPU].currentEUphasehandler?1:0); //Are we operating on something other than a (new) instruction?
 }
 
 //Actual phase handler that transfers to the current phase!
 void CPU_OP() //Normal CPU opcode execution!
 {
-	if (unlikely(currentEUphasehandler==NULL)) { dolog("cpu","Warning: nothing to do?"); return; } //Abort when invalid!
-	currentEUphasehandler(); //Start execution of the current phase in the EU!
+	if (unlikely(CPU[activeCPU].currentEUphasehandler==NULL)) { dolog("cpu","Warning: nothing to do?"); return; } //Abort when invalid!
+	CPU[activeCPU].currentEUphasehandler(); //Start execution of the current phase in the EU!
 	if (unlikely(CPU[activeCPU].executed))
 	{
 		BIU_terminatemem(); //Terminate memory access pending!
-		currentEUphasehandler = NULL; //Finished instruction!
+		CPU[activeCPU].currentEUphasehandler = NULL; //Finished instruction!
 	}
 }
 
 void CPU_executionphase_init()
 {
-	currentEUphasehandler = NULL; //Nothing running yet!
+	CPU[activeCPU].currentEUphasehandler = NULL; //Nothing running yet!
 }

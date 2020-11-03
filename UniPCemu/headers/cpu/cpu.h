@@ -1229,6 +1229,7 @@ typedef struct
 	byte calledinterruptnumber; //Called interrupt number for unkint funcs!
 	byte custommem; //Custom memory address used?
 	uint_32 customoffset; //What custom memory address used!
+	byte taskswitch_result; //Result of a task switch!
 } CPU_type;
 
 #ifndef IS_CPU
