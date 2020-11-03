@@ -455,7 +455,7 @@ void MMU_precalcMemoryHoles()
 				{
 					memoryhole = 0; //Not a memory hole!
 				}
-				else if (is_i430fx && (address >= 0xA0000) && SMRAM_enabled) //SMRAM?
+				else if (is_i430fx && (address >= 0xA0000) && SMRAM_enabled[activeCPU]) //SMRAM?
 				{
 					memoryhole = 0; //Not a memory hole!
 				}
