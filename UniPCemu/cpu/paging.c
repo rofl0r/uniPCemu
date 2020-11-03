@@ -109,7 +109,7 @@ void raisePF(uint_32 address, word flags)
 		dolog("debugger","#PF fault(%08X,%08X)!",address,flags);
 	}
 	CPU[activeCPU].registers->CR2 = address; //Fill CR2 with the address cause!
-	PFflags = flags; //Save a copy of the flags for debugging purposes!
+	CPU[activeCPU].PFflags = flags; //Save a copy of the flags for debugging purposes!
 	//Call interrupt!
 	CPU_resetOP(); //Go back to the start of the instruction!
 	/*
@@ -423,7 +423,7 @@ uint_64 mappagenonPSE(uint_32 address, byte iswrite, byte CPL) //Maps a page to 
 {
 	uint_64 result; //What address?
 	uint_32 passthroughmask;
-	successfullpagemapping = 1; //Set the flag for debugging!
+	CPU[activeCPU].successfullpagemapping = 1; //Set the flag for debugging!
 	if (is_paging()==0) return address; //Direct address when not paging!
 	byte effectiveUS;
 	byte RW;
@@ -456,7 +456,7 @@ uint_64 mappagenonPSE(uint_32 address, byte iswrite, byte CPL) //Maps a page to 
 			}
 		}
 	}
-	successfullpagemapping = 0; //Insuccessful: errored out!
+	CPU[activeCPU].successfullpagemapping = 0; //Insuccessful: errored out!
 	return address; //Untranslated!
 }
 
@@ -464,7 +464,7 @@ uint_64 mappagePSE(uint_32 address, byte iswrite, byte CPL) //Maps a page to rea
 {
 	uint_64 result; //What address?
 	uint_32 passthroughmask;
-	successfullpagemapping = 1; //Set the flag for debugging!
+	CPU[activeCPU].successfullpagemapping = 1; //Set the flag for debugging!
 	if (is_paging() == 0) return address; //Direct address when not paging!
 	byte effectiveUS;
 	byte RW;
@@ -507,7 +507,7 @@ uint_64 mappagePSE(uint_32 address, byte iswrite, byte CPL) //Maps a page to rea
 			}
 		}
 	}
-	successfullpagemapping = 0; //Insuccessful: errored out!
+	CPU[activeCPU].successfullpagemapping = 0; //Insuccessful: errored out!
 	return address; //Untranslated!
 }
 
@@ -527,7 +527,7 @@ OPTINLINE void PagingTLB_initlists()
 	byte setsize;
 	byte indexsize;
 	byte whichentry;
-	mostrecentTAGvalid = 0; //Invalidate to be sure!
+	CPU[activeCPU].mostrecentTAGvalid = 0; //Invalidate to be sure!
 	setsize = /*(8<<((EMULATED_CPU>=CPU_80486)?1:0))*/ 16;
 	indexsize = /*(8>>((EMULATED_CPU>=CPU_80486)?1:0))*/ 4;
 	for (set = 0; set < setsize; ++set) //process all sets!
@@ -551,7 +551,7 @@ OPTINLINE void PagingTLB_clearlists()
 	byte setsize;
 	byte indexsize;
 	byte whichentry;
-	mostrecentTAGvalid = 0; //Invalidate to be sure!
+	CPU[activeCPU].mostrecentTAGvalid = 0; //Invalidate to be sure!
 	setsize = /*(8<<((EMULATED_CPU>=CPU_80486)?1:0)) =*/ 16;
 	indexsize = /*(8>>((EMULATED_CPU>=CPU_80486)?1:0))*/ 4;
 	for (set = 0; set < setsize; ++set) //process all sets!
@@ -628,7 +628,7 @@ OPTINLINE TLB_ptr *allocTLB(sbyte set) //Allocate a TLB entry!
 	TLB_ptr *result;
 	if (CPU[activeCPU].Paging_TLB.TLB_freelist_head[set]) //Anything available?
 	{
-		mostrecentTAGvalid = 0; //Invalidate to be sure!
+		CPU[activeCPU].mostrecentTAGvalid = 0; //Invalidate to be sure!
 		result = CPU[activeCPU].Paging_TLB.TLB_freelist_head[set]; //What item are we allocating, take it from the free list!
 		//Now take the item from the pool and move it to the used list!
 		CPU[activeCPU].Paging_TLB.TLB_freelist_head[set]->allocated = 1; //We're allocated now!
@@ -647,7 +647,7 @@ OPTINLINE void freeTLB(sbyte set, TLB_ptr *listitem) //Make an entry available a
 {
 	if (listitem->allocated) //Are we allocated at all?
 	{
-		mostrecentTAGvalid = 0; //Invalidate last read TLB to be sure!
+		CPU[activeCPU].mostrecentTAGvalid = 0; //Invalidate last read TLB to be sure!
 		listitem->allocated = 0; //Mark us as freed!
 		Paging_moveListItem(listitem, //What item to take!
 			&CPU[activeCPU].Paging_TLB.TLB_freelist_head[set], //destination head
@@ -659,7 +659,7 @@ OPTINLINE void freeTLB(sbyte set, TLB_ptr *listitem) //Make an entry available a
 
 OPTINLINE void Paging_setNewestTLB(sbyte set, TLB_ptr *listitem) //Tick an TLB entry for making it the most recently used!
 {
-	mostrecentTAGvalid = 0; //Invalidate to be sure!
+	CPU[activeCPU].mostrecentTAGvalid = 0; //Invalidate to be sure!
 	if (listitem->allocated) //Are we allocated at all?
 	{
 		Paging_moveListItem(listitem,
@@ -703,7 +703,7 @@ OPTINLINE TLBEntry *Paging_oldestTLB(sbyte set) //Find a TLB to be used/overwrit
 	indexsize = /*(8>>((EMULATED_CPU>=CPU_80486)?1:0))*/ 4;
 	whichentry = (set*indexsize)+3; //Which one?
 
-	mostrecentTAGvalid = 0; //Invalidate to be sure!
+	CPU[activeCPU].mostrecentTAGvalid = 0; //Invalidate to be sure!
 	return &CPU[activeCPU].Paging_TLB.TLB[whichentry]; //Safety: return the final entry! Shouldn't happen under normal circumstances.
 }
 
@@ -815,7 +815,7 @@ void Paging_writeTLB(sbyte TLB_way, uint_32 logicaladdress, byte W, byte U, byte
 	curentry->addrmaskset = (addrmask|0xFFF); //Save the address mask for matching a TLB entry after it's stored!
 	curentry->passthroughmask = passthroughmask; //Save the passthrough mask for giving a physical address!
 	curentry->isglobal = G; //Global or not!
-	mostrecentTAGvalid = 0; //Invalidate to be sure!
+	CPU[activeCPU].mostrecentTAGvalid = 0; //Invalidate to be sure!
 	BIU_recheckmemory(); //Recheck anything that's fetching from now on!
 }
 
@@ -834,13 +834,13 @@ byte Paging_readTLB(byte *TLB_way, uint_32 logicaladdress, uint_32 LWUDAS, byte 
 		TAG = LWUDAS; //Generate a TAG!
 		TAG &= TAGMask; //Premask the search tag for faster comparison!
 
-		if (likely((mostrecentTAGread==TAG) && (mostrecentTAGmask==TAGMask) && mostrecentTAGvalid)) //Same tag read again(and no extra action needed)?
+		if (likely((CPU[activeCPU].mostrecentTAGread==TAG) && (CPU[activeCPU].mostrecentTAGmask==TAGMask) && CPU[activeCPU].mostrecentTAGvalid)) //Same tag read again(and no extra action needed)?
 		{
-			*result = mostrecentTAGresult; //Give the most recent result!
-			*passthroughmask = mostrecentTAGpassthroughmask; //Give the most recent passthrough bitmask!
+			*result = CPU[activeCPU].mostrecentTAGresult; //Give the most recent result!
+			*passthroughmask = CPU[activeCPU].mostrecentTAGpassthroughmask; //Give the most recent passthrough bitmask!
 			if (unlikely(TLB_way)) //Requested way?
 			{
-				*TLB_way = mostrecentTAGway; //What way was found!
+				*TLB_way = CPU[activeCPU].mostrecentTAGway; //What way was found!
 			}
 			return 1; //Found!
 		}
@@ -849,17 +849,17 @@ byte Paging_readTLB(byte *TLB_way, uint_32 logicaladdress, uint_32 LWUDAS, byte 
 		{
 			if (likely((curentry->entry->TAG&TAGMask) == TAG)) //Found and allocated?
 			{
-				mostrecentTAGread = TAG; //Most recent tag that has been read!
-				mostrecentTAGmask = TAGMask; //What to count!
-				*result = mostrecentTAGresult = curentry->entry->data; //Give the stored data!
-				*passthroughmask = mostrecentTAGpassthroughmask = curentry->entry->passthroughmask; //What bits to pass through!
+				CPU[activeCPU].mostrecentTAGread = TAG; //Most recent tag that has been read!
+				CPU[activeCPU].mostrecentTAGmask = TAGMask; //What to count!
+				*result = CPU[activeCPU].mostrecentTAGresult = curentry->entry->data; //Give the stored data!
+				*passthroughmask = CPU[activeCPU].mostrecentTAGpassthroughmask = curentry->entry->passthroughmask; //What bits to pass through!
 				Paging_setNewestTLB(TLB_set, curentry); //Set us as the newest TLB!
-				mostrecentTAGway = curentry->index; //The way found!
+				CPU[activeCPU].mostrecentTAGway = curentry->index; //The way found!
 				if (unlikely(TLB_way)) //Requested way?
 				{
-					*TLB_way = mostrecentTAGway; //What way was found!
+					*TLB_way = CPU[activeCPU].mostrecentTAGway; //What way was found!
 				}
-				mostrecentTAGvalid = 1; //Valid tag in the cache!
+				CPU[activeCPU].mostrecentTAGvalid = 1; //Valid tag in the cache!
 				return 1; //Found!
 			}
 			curentry = (TLB_ptr *)(curentry->next); //Next entry!
@@ -908,14 +908,14 @@ void Paging_clearTLB()
 		}
 	}
 	//Finish up!
-	mostrecentTAGvalid = 0; //Invalidate to be sure!
+	CPU[activeCPU].mostrecentTAGvalid = 0; //Invalidate to be sure!
 	BIU_recheckmemory(); //Recheck anything that's fetching from now on!
 }
 
 void Paging_initTLB()
 {
 	PagingTLB_initlists(); //Initialize the TLB lists to become empty!
-	mostrecentTAGvalid = 0; //Invalidate to be sure!
+	CPU[activeCPU].mostrecentTAGvalid = 0; //Invalidate to be sure!
 	PagingTLB_clearlists(); //Initialize the TLB lists to become empty!
 	effectivemappageHandler = (EMULATED_CPU >= CPU_PENTIUM) ? &mappagePSE : &mappagenonPSE; //Use either a PSE or non-PSE paging handler!
 	BIU_recheckmemory(); //Recheck anything that's fetching from now on!
