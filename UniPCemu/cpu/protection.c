@@ -88,7 +88,7 @@ void CPU_doublefault()
 byte CPU_faultraised(byte type)
 {
 	if (EMULATED_CPU<CPU_80286) return 1; //Always allow on older processors without protection!
-	if ((hascallinterrupttaken_type!=0xFF) || (CPU_interruptraised)) //Were we caused while raising an interrupt or other pending timing?
+	if ((CPU[activeCPU].hascallinterrupttaken_type!=0xFF) || (CPU[activeCPU].CPU_interruptraised)) //Were we caused while raising an interrupt or other pending timing?
 	{
 		CPU_apply286cycles(); //Apply any cycles that need to be applied for the current interrupt to happen!
 	}
@@ -327,7 +327,7 @@ void protection_nextOP() //We're executing the next OPcode?
 {
 	CPU[activeCPU].faultraised = 0; //We don't have a fault raised anymore, so we can raise again!
 	CPU[activeCPU].faultlevel = 0; //Reset the current fault level!
-	protection_PortRightsLookedup = 0; //Are the port rights looked up, to be reset?
+	CPU[activeCPU].protection_PortRightsLookedup = 0; //Are the port rights looked up, to be reset?
 }
 
 byte STACK_SEGMENT_DESCRIPTOR_B_BIT() //80286+: Gives the B-Bit of the DATA DESCRIPTOR TABLE FOR SS-register!
@@ -565,7 +565,7 @@ void CPU_calcSegmentPrecalcs(byte is_CS, SEGMENT_DESCRIPTOR *descriptor)
 
 sbyte LOADDESCRIPTOR(int segment, word segmentval, SEGMENT_DESCRIPTOR *container, word isJMPorCALL) //Result: 0=#GP, 1=container=descriptor.
 {
-	LOADDESCRIPTOR_segmentval = segmentval;
+	CPU[activeCPU].LOADDESCRIPTOR_segmentval = segmentval;
 	uint_32 descriptor_address = 0;
 	descriptor_address = (uint_32)((segmentval & 4) ? CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_LDTR].PRECALCS.base : CPU[activeCPU].registers->GDTR.base); //LDT/GDT selector!
 
@@ -1065,11 +1065,11 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 		}
 		if (callgatetype) //To process a call gate's parameters and offsets?
 		{
-			destEIP = (uint_32)GATEDESCRIPTOR.desc.callgate_base_low; //16-bit EIP!
+			CPU[activeCPU].destEIP = (uint_32)GATEDESCRIPTOR.desc.callgate_base_low; //16-bit EIP!
 			if (callgatetype == 2) //32-bit destination?
 			{
-				destEIP |= (((uint_32)GATEDESCRIPTOR.desc.callgate_base_mid)<<16); //Mid EIP!
-				destEIP |= (((uint_32)GATEDESCRIPTOR.desc.callgate_base_high)<<24); //High EIP!
+				CPU[activeCPU].destEIP |= (((uint_32)GATEDESCRIPTOR.desc.callgate_base_mid)<<16); //Mid EIP!
+				CPU[activeCPU].destEIP |= (((uint_32)GATEDESCRIPTOR.desc.callgate_base_high)<<24); //High EIP!
 			}
 			uint_32 argument; //Current argument to copy to the destination stack!
 			word arguments;
@@ -1081,7 +1081,7 @@ SEGMENT_DESCRIPTOR *getsegment_seg(int segment, SEGMENT_DESCRIPTOR *dest, word *
 				//Now, copy the stack arguments!
 
 				*isdifferentCPL = 1; //We're a different level!
-				arguments = CALLGATE_NUMARGUMENTS =  (GATEDESCRIPTOR.desc.ParamCnt&0x1F); //Amount of parameters!
+				arguments = CPU[activeCPU].CALLGATE_NUMARGUMENTS =  (GATEDESCRIPTOR.desc.ParamCnt&0x1F); //Amount of parameters!
 				CPU[activeCPU].CallGateParamCount = 0; //Initialize the amount of arguments that we're storing!
 				if (checkStackAccess(arguments,0,(callgatetype==2)?1:0)) return NULL; //Abort on stack fault! Use #SS(0) because we're on the unchanged stack still!
 				for (;arguments--;) //Copy as many arguments as needed!
@@ -1151,7 +1151,7 @@ OPTINLINE byte CPU_MMU_checkrights(int segment, word segmentval, uint_64 offset,
 
 	if (unlikely(descriptor->PRECALCS.notpresent)) //Not present(invalid in the cache)? This also applies to NULL descriptors!
 	{
-		CPU_MMU_checkrights_cause = 1; //What cause?
+		CPU[activeCPU].CPU_MMU_checkrights_cause = 1; //What cause?
 		return 1; //#GP fault: not present in descriptor cache mean invalid, thus #GP!
 	}
 
@@ -1162,7 +1162,7 @@ OPTINLINE byte CPU_MMU_checkrights(int segment, word segmentval, uint_64 offset,
 		//To ignore an entry for errors, specify mask 0, non-equals nonzero, comparison 0(a.k.a. ((forreading&0)!=0)
 		if (unlikely(descriptor->PRECALCS.rwe_errorout[forreading])) //Are we to error out on this read/write/execute operation?
 		{
-			CPU_MMU_checkrights_cause = 3; //What cause?
+			CPU[activeCPU].CPU_MMU_checkrights_cause = 3; //What cause?
 			return 1; //Error!
 		}
 	}
@@ -1176,7 +1176,7 @@ OPTINLINE byte CPU_MMU_checkrights(int segment, word segmentval, uint_64 offset,
 	result = invalidLimit(descriptor, offset); //Error out?
 	if (likely(result == 0)) return 0; //Not erroring out?
 	result |= (result << 1); //3-bit mask! Set both bits for determining the result! Thus it's 3 or 0 now!
-	CPU_MMU_checkrights_cause = (result<<1); //What cause? A limit-determined fault! 6 for errors, 0 otherwise!
+	CPU[activeCPU].CPU_MMU_checkrights_cause = (result<<1); //What cause? A limit-determined fault! 6 for errors, 0 otherwise!
 	result >>= ((segment!=CPU_SEGMENT_SS)&1); //1 instead of 3 if erroring out on a non-stack fault!
 	return result; //Give the result!
 
@@ -1271,26 +1271,26 @@ byte CPU_segmentWritten_protectedmode_JMPCALL(word *value, word isJMPorCALL, SEG
 
 	if (isDifferentCPL == 1) //Different CPL?
 	{
-		hascallinterrupttaken_type = CALLGATE_NUMARGUMENTS ? CALLGATE_DIFFERENTLEVEL_XPARAMETERS : CALLGATE_DIFFERENTLEVEL_NOPARAMETERS; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task gate flag. Left at 0xFF when nothing is used(unknown case?)
+		CPU[activeCPU].hascallinterrupttaken_type = CPU[activeCPU].CALLGATE_NUMARGUMENTS ? CALLGATE_DIFFERENTLEVEL_XPARAMETERS : CALLGATE_DIFFERENTLEVEL_NOPARAMETERS; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task gate flag. Left at 0xFF when nothing is used(unknown case?)
 	}
 	else //Same CPL call gate?
 	{
-		hascallinterrupttaken_type = CALLGATE_SAMELEVEL; //Same level call gate!
+		CPU[activeCPU].hascallinterrupttaken_type = CALLGATE_SAMELEVEL; //Same level call gate!
 	}
 	return 0; //OK!
 }
 
 byte CPU_segmentWritten_protectedmode_RETF(byte oldCPL, word value, word isJMPorCALL, byte *RETF_segmentregister)
 {
-	if (is_stackswitching == 0) //We're ready to process?
+	if (CPU[activeCPU].is_stackswitching == 0) //We're ready to process?
 	{
 		if (STACK_SEGMENT_DESCRIPTOR_B_BIT())
 		{
-			REG_ESP += RETF_popbytes; //Process ESP!
+			REG_ESP += CPU[activeCPU].RETF_popbytes; //Process ESP!
 		}
 		else
 		{
-			REG_SP += RETF_popbytes; //Process SP!
+			REG_SP += CPU[activeCPU].RETF_popbytes; //Process SP!
 		}
 		if (oldCPL < getRPL(value)) //Lowering privilege?
 		{
@@ -1301,41 +1301,41 @@ byte CPU_segmentWritten_protectedmode_RETF(byte oldCPL, word value, word isJMPor
 	if (oldCPL < getRPL(value)) //CPL changed or still busy for this stage?
 	{
 		//Now, return to the old prvilege level!
-		hascallinterrupttaken_type = RET_DIFFERENTLEVEL; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task
+		CPU[activeCPU].hascallinterrupttaken_type = RET_DIFFERENTLEVEL; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task
 		if (CPU[activeCPU].CPU_Operand_size)
 		{
-			if (CPU80386_internal_POPdw(6, &segmentWritten_tempESP))
+			if (CPU80386_internal_POPdw(6, &CPU[activeCPU].segmentWritten_tempESP))
 			{
 				//CPU[activeCPU].CPL = oldCPL; //Restore CPL for continuing!
-				is_stackswitching = 1; //We're stack switching!
+				CPU[activeCPU].is_stackswitching = 1; //We're stack switching!
 				return 1; //POP ESP!
 			}
 		}
 		else
 		{
-			if (CPU8086_internal_POPw(6, &segmentWritten_tempSP, 0))
+			if (CPU8086_internal_POPw(6, &CPU[activeCPU].segmentWritten_tempSP, 0))
 			{
 				//CPU[activeCPU].CPL = oldCPL; //Restore CPL for continuing!
-				is_stackswitching = 1; //We're stack switching!
+				CPU[activeCPU].is_stackswitching = 1; //We're stack switching!
 				return 1; //POP SP!
 			}
 		}
-		if (CPU8086_internal_POPw(8, &segmentWritten_tempSS, CPU[activeCPU].CPU_Operand_size))
+		if (CPU8086_internal_POPw(8, &CPU[activeCPU].segmentWritten_tempSS, CPU[activeCPU].CPU_Operand_size))
 		{
 			//CPU[activeCPU].CPL = oldCPL; //Restore CPL for continuing!
-			is_stackswitching = 1; //We're stack switching!
+			CPU[activeCPU].is_stackswitching = 1; //We're stack switching!
 			return 1; //POPped?
 		}
-		is_stackswitching = 0; //We've finished stack switching!
+		CPU[activeCPU].is_stackswitching = 0; //We've finished stack switching!
 		//Privilege change!
-		if (segmentWritten(CPU_SEGMENT_SS, segmentWritten_tempSS, (getRPL(value) << 13) | 0x1000)) return 1; //Back to our calling stack!
+		if (segmentWritten(CPU_SEGMENT_SS, CPU[activeCPU].segmentWritten_tempSS, (getRPL(value) << 13) | 0x1000)) return 1; //Back to our calling stack!
 		if (CPU[activeCPU].CPU_Operand_size)
 		{
-			REG_ESP = segmentWritten_tempESP; //POP ESP!
+			REG_ESP = CPU[activeCPU].segmentWritten_tempESP; //POP ESP!
 		}
 		else
 		{
-			REG_ESP = (uint_32)segmentWritten_tempSP; //POP SP!
+			REG_ESP = (uint_32)CPU[activeCPU].segmentWritten_tempSP; //POP SP!
 		}
 		*RETF_segmentregister = 1; //We're checking the segments for privilege changes to be invalidated!
 	}
@@ -1346,7 +1346,7 @@ byte CPU_segmentWritten_protectedmode_RETF(byte oldCPL, word value, word isJMPor
 	}
 	else //Same privilege? (E)SP on the destination stack is already processed, don't process again!
 	{
-		RETF_popbytes = 0; //Nothing to pop anymore!
+		CPU[activeCPU].RETF_popbytes = 0; //Nothing to pop anymore!
 	}
 	return 0; //OK!
 }
@@ -1366,9 +1366,9 @@ byte CPU_segmentWritten_protectedmode_IRET(byte oldCPL, word value, word isJMPor
 			tempesp = CPU_POP16(CPU[activeCPU].CPU_Operand_size);
 		}
 
-		segmentWritten_tempSS = CPU_POP16(CPU[activeCPU].CPU_Operand_size);
+		CPU[activeCPU].segmentWritten_tempSS = CPU_POP16(CPU[activeCPU].CPU_Operand_size);
 
-		if (segmentWritten(CPU_SEGMENT_SS, segmentWritten_tempSS, (getRPL(value) << 13) | 0x1000)) return 1; //Back to our calling stack!
+		if (segmentWritten(CPU_SEGMENT_SS, CPU[activeCPU].segmentWritten_tempSS, (getRPL(value) << 13) | 0x1000)) return 1; //Back to our calling stack!
 		if (STACK_SEGMENT_DESCRIPTOR_B_BIT()) //32-bit stack write (undocumented)?
 		{
 			REG_ESP = tempesp; //32-bits written!
@@ -1429,7 +1429,7 @@ byte CPU_segmentWritten_protectedmode_TR(int segment, word value, word isJMPorCA
 
 byte CPU_segmentWritten_protectedmode_CS(word isJMPorCALL)
 {
-	REG_EIP = destEIP; //The current OPCode: just jump to the address specified by the descriptor OR command!
+	REG_EIP = CPU[activeCPU].destEIP; //The current OPCode: just jump to the address specified by the descriptor OR command!
 	if (((isJMPorCALL & 0x1FF) == 4) || ((isJMPorCALL & 0x1FF) == 3)) //IRET/RETF required limit check!
 	{
 		if (CPU_MMU_checkrights(CPU_SEGMENT_CS, REG_CS, REG_EIP, 3, &CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS], 2, CPU[activeCPU].CPU_Operand_size)) //Limit broken or protection fault?
@@ -1511,8 +1511,8 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 	byte oldCPL= getCPL();
 	byte isDifferentCPL;
 	sbyte loadresult;
-	segmentWrittenVal = value; //What value is written!
-	isJMPorCALLval = isJMPorCALL; //What type of write are we?
+	CPU[activeCPU].segmentWrittenVal = value; //What value is written!
+	CPU[activeCPU].isJMPorCALLval = isJMPorCALL; //What type of write are we?
 	if (getcpumode()==CPU_MODE_PROTECTED) //Protected mode, must not be real or V8086 mode, so update the segment descriptor cache!
 	{
 		isDifferentCPL = 0; //Default: same CPL!
@@ -1674,7 +1674,7 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 				CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].desc.AccessRights = 0x93; //Load default access rights!
 			}
 			CPU_calcSegmentPrecalcs(1, &CPU[activeCPU].SEG_DESCRIPTOR[segment]); //Calculate any precalcs for the segment descriptor(do it here since we don't load descriptors externally)!
-			REG_EIP = destEIP; //... The current OPCode: just jump to the address!
+			REG_EIP = CPU[activeCPU].destEIP; //... The current OPCode: just jump to the address!
 			if (CPU_MMU_checkrights(CPU_SEGMENT_CS, REG_CS, REG_EIP, 3, &CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS], 2, CPU[activeCPU].CPU_Operand_size)) //Limit broken or protection fault?
 			{
 				THROWDESCGP(0, 0, 0); //#GP(0) when out of limit range!
@@ -1712,7 +1712,7 @@ int CPU_MMU_checklimit(int segment, word segmentval, uint_64 offset, word forrea
 	{
 		if (unlikely(segment==-1))
 		{
-			CPU_MMU_checkrights_cause = 0x80; //What cause?
+			CPU[activeCPU].CPU_MMU_checkrights_cause = 0x80; //What cause?
 			return 0; //Enable: we're an emulator call!
 		}
 		
@@ -1724,7 +1724,7 @@ int CPU_MMU_checklimit(int segment, word segmentval, uint_64 offset, word forrea
 			{
 			default: //Unknown status? Count #GP by default!
 			case 1: //#GP(0) or pseudo protection fault(Real/V86 mode(V86 mode only during limit range exceptions, otherwise error code 0))?
-				if (unlikely((forreading&0x10)==0)) CPU_GP(((getcpumode()==CPU_MODE_PROTECTED) || (!(((CPU_MMU_checkrights_cause==6) && (getcpumode()==CPU_MODE_8086)) || (getcpumode()==CPU_MODE_REAL))))?(0|((forreading&0x200)?((forreading&0x400)>>10):0)):-2); //Throw (pseudo) fault when not prefetching!
+				if (unlikely((forreading&0x10)==0)) CPU_GP(((getcpumode()==CPU_MODE_PROTECTED) || (!(((CPU[activeCPU].CPU_MMU_checkrights_cause==6) && (getcpumode()==CPU_MODE_8086)) || (getcpumode()==CPU_MODE_REAL))))?(0|((forreading&0x200)?((forreading&0x400)>>10):0)):-2); //Throw (pseudo) fault when not prefetching!
 				return 1; //Error out!
 				break;
 			case 2: //#NP?
@@ -1732,7 +1732,7 @@ int CPU_MMU_checklimit(int segment, word segmentval, uint_64 offset, word forrea
 				return 1; //Error out!
 				break;
 			case 3: //#SS(0) or pseudo protection fault(Real/V86 mode)?
-				if (unlikely((forreading&0x10)==0)) CPU_StackFault(((getcpumode()==CPU_MODE_PROTECTED) || (!(((CPU_MMU_checkrights_cause==6) && (getcpumode()==CPU_MODE_8086)) || (getcpumode()==CPU_MODE_REAL))))?((((forreading&0x100))?((REG_SS&0xFFF8)|(((REG_SS&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT)<<1)):0)|((forreading&0x200)?((forreading&0x400)>>10):0)):-2); //Throw (pseudo) fault when not prefetching! Set EXT bit(bit7) when requested(bit6) and give SS instead of 0!
+				if (unlikely((forreading&0x10)==0)) CPU_StackFault(((getcpumode()==CPU_MODE_PROTECTED) || (!(((CPU[activeCPU].CPU_MMU_checkrights_cause==6) && (getcpumode()==CPU_MODE_8086)) || (getcpumode()==CPU_MODE_REAL))))?((((forreading&0x100))?((REG_SS&0xFFF8)|(((REG_SS&4)?EXCEPTION_TABLE_LDT:EXCEPTION_TABLE_GDT)<<1)):0)|((forreading&0x200)?((forreading&0x400)>>10):0)):-2); //Throw (pseudo) fault when not prefetching! Set EXT bit(bit7) when requested(bit6) and give SS instead of 0!
 				return 1; //Error out!
 				break;
 			}
@@ -1781,7 +1781,7 @@ byte checkPortRights(word port) //Are we allowed to not use this port?
 {
 	if (checkPortRightsRestricted()) //We're to check the I/O permission bitmap! 286+ only!
 	{
-		protection_PortRightsLookedup = 1; //The port rights are looked up!
+		CPU[activeCPU].protection_PortRightsLookedup = 1; //The port rights are looked up!
 		uint_32 maplocation;
 		byte mappos;
 		byte mapvalue;
@@ -1810,11 +1810,11 @@ byte checkPortRights(word port) //Are we allowed to not use this port?
 		}
 		if (mapvalue) //The map bit is set(or not a 32-bit task)? We're to trigger an exception!
 		{
-			portExceptionResult = checkProtectedModeDebugger(port, PROTECTEDMODEDEBUGGER_TYPE_IOREADWRITE); //Check for the debugger always!
-			return (portExceptionResult|1); //Trigger an exception!
+			CPU[activeCPU].portExceptionResult = checkProtectedModeDebugger(port, PROTECTEDMODEDEBUGGER_TYPE_IOREADWRITE); //Check for the debugger always!
+			return (CPU[activeCPU].portExceptionResult|1); //Trigger an exception!
 		}
 	}
-	portExceptionResult = checkProtectedModeDebugger(port, PROTECTEDMODEDEBUGGER_TYPE_IOREADWRITE); //Check for the debugger always!
+	CPU[activeCPU].portExceptionResult = checkProtectedModeDebugger(port, PROTECTEDMODEDEBUGGER_TYPE_IOREADWRITE); //Check for the debugger always!
 	return 0; //Allow all for now!
 }
 
@@ -1916,7 +1916,7 @@ byte CPU_ProtectedModeInterrupt(byte intnr, word returnsegment, uint_32 returnof
 	uint_32 base;
 	base = (intnr<<3); //The base offset of the interrupt in the IDT!
 
-	hascallinterrupttaken_type = (getCPL())?INTERRUPTGATETIMING_SAMELEVEL:INTERRUPTGATETIMING_DIFFERENTLEVEL; //Assume we're jumping to CPL0 when erroring out!
+	CPU[activeCPU].hascallinterrupttaken_type = (getCPL())?INTERRUPTGATETIMING_SAMELEVEL:INTERRUPTGATETIMING_DIFFERENTLEVEL; //Assume we're jumping to CPL0 when erroring out!
 
 	CPU[activeCPU].executed = 0; //Default: still busy executing!
 	if (CPU[activeCPU].faultraised==2) CPU[activeCPU].faultraised = 0; //Clear non-fault, if present!
@@ -1970,7 +1970,7 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 	base = descriptorbase; //The base offset of the interrupt in the IDT!
 	oldCPL = getCPL(); //Save the old CPL for reference!
 
-	hascallinterrupttaken_type = (getRPL(theidtentry->selector)==oldCPL)?INTERRUPTGATETIMING_SAMELEVEL:INTERRUPTGATETIMING_DIFFERENTLEVEL;
+	CPU[activeCPU].hascallinterrupttaken_type = (getRPL(theidtentry->selector)==oldCPL)?INTERRUPTGATETIMING_SAMELEVEL:INTERRUPTGATETIMING_DIFFERENTLEVEL;
 
 	if (errorcode<0) //Invalid error code to use?
 	{
@@ -2034,7 +2034,7 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 		{
 		case IDTENTRY_INTERRUPTGATE: //interrupt gate?
 		case IDTENTRY_TRAPGATE: //trap gate?
-			hascallinterrupttaken_type = (getRPL(idtentry.selector)==oldCPL)?INTERRUPTGATETIMING_SAMELEVEL:INTERRUPTGATETIMING_DIFFERENTLEVEL;
+			CPU[activeCPU].hascallinterrupttaken_type = (getRPL(idtentry.selector)==oldCPL)?INTERRUPTGATETIMING_SAMELEVEL:INTERRUPTGATETIMING_DIFFERENTLEVEL;
 
 			//Table can be found at: http://www.read.seas.harvard.edu/~kohler/class/04f-aos/ref/i386/s15_03.htm#fig15-3
 
@@ -2047,7 +2047,7 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 				return 0; //Error, by specified reason!
 			}
 
-			hascallinterrupttaken_type = (GENERALSEGMENT_DPL(newdescriptor)==oldCPL)?INTERRUPTGATETIMING_SAMELEVEL:INTERRUPTGATETIMING_DIFFERENTLEVEL; //Assume destination privilege level for faults!
+			CPU[activeCPU].hascallinterrupttaken_type = (GENERALSEGMENT_DPL(newdescriptor)==oldCPL)?INTERRUPTGATETIMING_SAMELEVEL:INTERRUPTGATETIMING_DIFFERENTLEVEL; //Assume destination privilege level for faults!
 
 			if (
 				(getLoadedTYPE(&newdescriptor) != 1) //Not an executable segment?
@@ -2093,7 +2093,7 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 
 			if (FLAG_V8 && (INTTYPE==1)) //Virtual 8086 mode to monitor switching to CPL 0?
 			{
-				hascallinterrupttaken_type = (newCPL==oldCPL)?INTERRUPTGATETIMING_SAMELEVEL:INTERRUPTGATETIMING_DIFFERENTLEVEL;
+				CPU[activeCPU].hascallinterrupttaken_type = (newCPL==oldCPL)?INTERRUPTGATETIMING_SAMELEVEL:INTERRUPTGATETIMING_DIFFERENTLEVEL;
 				#ifdef LOG_VIRTUALMODECALLS
 				if ((MMU_logging == 1) && advancedlog)
 				{
@@ -2295,7 +2295,7 @@ byte CPU_handleInterruptGate(byte EXT, byte table,uint_32 descriptorbase, RAWSEG
 				return 1; //Abort on fault!
 			}
 
-			hascallinterrupttaken_type = (getCPL()==oldCPL)?INTERRUPTGATETIMING_SAMELEVEL:INTERRUPTGATETIMING_DIFFERENTLEVEL;
+			CPU[activeCPU].hascallinterrupttaken_type = (getCPL()==oldCPL)?INTERRUPTGATETIMING_SAMELEVEL:INTERRUPTGATETIMING_DIFFERENTLEVEL;
 			CPU[activeCPU].executed = 1; //We've executed, start any post-instruction stuff!
 			CPU_interruptcomplete(); //Prepare us for new instructions!
 			CPU_flushPIQ(-1); //We're jumping to another address!
