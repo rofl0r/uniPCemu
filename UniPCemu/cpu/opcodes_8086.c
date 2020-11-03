@@ -74,8 +74,8 @@ Start of help for debugging
 
 OPTINLINE char *getLEAtext(MODRM_PARAMS *theparams)
 {
-	modrm_lea16_text(theparams,1,&LEAtext[0]);    //Help function for LEA instruction!
-	return &LEAtext[0];
+	modrm_lea16_text(theparams,1,&CPU[activeCPU].LEAtext[0]);    //Help function for LEA instruction!
+	return &CPU[activeCPU].LEAtext[0];
 }
 
 /*
@@ -141,86 +141,86 @@ WE START WITH ALL HELP FUNCTIONS
 
 OPTINLINE void op_adc8()
 {
-	res8 = oper1b + oper2b + FLAG_CF;
-	flag_adc8 (oper1b, oper2b, FLAG_CF);
+	CPU[activeCPU].res8 = CPU[activeCPU].oper1b + CPU[activeCPU].oper2b + FLAG_CF;
+	flag_adc8 (CPU[activeCPU].oper1b, CPU[activeCPU].oper2b, FLAG_CF);
 }
 
 OPTINLINE void op_adc16()
 {
-	res16 = oper1 + oper2 + FLAG_CF;
-	flag_adc16 (oper1, oper2, FLAG_CF);
+	CPU[activeCPU].res16 = CPU[activeCPU].oper1 + CPU[activeCPU].oper2 + FLAG_CF;
+	flag_adc16 (CPU[activeCPU].oper1, CPU[activeCPU].oper2, FLAG_CF);
 }
 
 OPTINLINE void op_add8()
 {
-	res8 = oper1b + oper2b;
-	flag_add8 (oper1b, oper2b);
+	CPU[activeCPU].res8 = CPU[activeCPU].oper1b + CPU[activeCPU].oper2b;
+	flag_add8 (CPU[activeCPU].oper1b, CPU[activeCPU].oper2b);
 }
 
 OPTINLINE void op_add16()
 {
-	res16 = oper1 + oper2;
-	flag_add16 (oper1, oper2);
+	CPU[activeCPU].res16 = CPU[activeCPU].oper1 + CPU[activeCPU].oper2;
+	flag_add16 (CPU[activeCPU].oper1, CPU[activeCPU].oper2);
 }
 
 OPTINLINE void op_and8()
 {
-	res8 = oper1b & oper2b;
-	flag_log8 (res8);
+	CPU[activeCPU].res8 = CPU[activeCPU].oper1b & CPU[activeCPU].oper2b;
+	flag_log8 (CPU[activeCPU].res8);
 }
 
 OPTINLINE void op_and16()
 {
-	res16 = oper1 & oper2;
-	flag_log16 (res16);
+	CPU[activeCPU].res16 = CPU[activeCPU].oper1 & CPU[activeCPU].oper2;
+	flag_log16 (CPU[activeCPU].res16);
 }
 
 OPTINLINE void op_or8()
 {
-	res8 = oper1b | oper2b;
-	flag_log8 (res8);
+	CPU[activeCPU].res8 = CPU[activeCPU].oper1b | CPU[activeCPU].oper2b;
+	flag_log8 (CPU[activeCPU].res8);
 }
 
 OPTINLINE void op_or16()
 {
-	res16 = oper1 | oper2;
-	flag_log16 (res16);
+	CPU[activeCPU].res16 = CPU[activeCPU].oper1 | CPU[activeCPU].oper2;
+	flag_log16 (CPU[activeCPU].res16);
 }
 
 OPTINLINE void op_xor8()
 {
-	res8 = oper1b ^ oper2b;
-	flag_log8 (res8);
+	CPU[activeCPU].res8 = CPU[activeCPU].oper1b ^ CPU[activeCPU].oper2b;
+	flag_log8 (CPU[activeCPU].res8);
 }
 
 OPTINLINE void op_xor16()
 {
-	res16 = oper1 ^ oper2;
-	flag_log16 (res16);
+	CPU[activeCPU].res16 = CPU[activeCPU].oper1 ^ CPU[activeCPU].oper2;
+	flag_log16 (CPU[activeCPU].res16);
 }
 
 OPTINLINE void op_sub8()
 {
-	res8 = oper1b - oper2b;
-	flag_sub8 (oper1b, oper2b);
+	CPU[activeCPU].res8 = CPU[activeCPU].oper1b - CPU[activeCPU].oper2b;
+	flag_sub8 (CPU[activeCPU].oper1b, CPU[activeCPU].oper2b);
 }
 
 OPTINLINE void op_sub16()
 {
-	res16 = oper1 - oper2;
-	flag_sub16 (oper1, oper2);
+	CPU[activeCPU].res16 = CPU[activeCPU].oper1 - CPU[activeCPU].oper2;
+	flag_sub16 (CPU[activeCPU].oper1, CPU[activeCPU].oper2);
 }
 
 OPTINLINE void op_sbb8()
 {
-	res8 = oper1b - (oper2b + FLAG_CF);
-	flag_sbb8 (oper1b, oper2b, FLAG_CF);
+	CPU[activeCPU].res8 = CPU[activeCPU].oper1b - (CPU[activeCPU].oper2b + FLAG_CF);
+	flag_sbb8 (CPU[activeCPU].oper1b, CPU[activeCPU].oper2b, FLAG_CF);
 }
 
 OPTINLINE void op_sbb16()
 {
-	res16 = oper1 - (oper2 + FLAG_CF);
-	flag_sbb16 (oper1, oper2, FLAG_CF);
+	CPU[activeCPU].res16 = CPU[activeCPU].oper1 - (CPU[activeCPU].oper2 + FLAG_CF);
+	flag_sbb16 (CPU[activeCPU].oper1, CPU[activeCPU].oper2, FLAG_CF);
 }
 
 //Stack operation support through the BIU!
@@ -593,7 +593,7 @@ byte CPU8086_instructionstepreadmodrmb(word base, byte *result, byte paramnr) //
 	byte BIUtype;
 	if (CPU[activeCPU].modrmstep==base) //First step? Request!
 	{
-		if ((BIUtype = modrm_read8_BIU(&params,paramnr,result))==0) //Not ready?
+		if ((BIUtype = modrm_read8_BIU(&CPU[activeCPU].params,paramnr,result))==0) //Not ready?
 		{
 			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
 			CPU[activeCPU].executed = 0; //Not executed!
@@ -627,7 +627,7 @@ byte CPU8086_instructionstepreadmodrmw(word base, word *result, byte paramnr)
 	byte BIUtype;
 	if (CPU[activeCPU].modrmstep==base) //First step? Request!
 	{
-		if ((BIUtype = modrm_read16_BIU(&params,paramnr,result))==0) //Not ready?
+		if ((BIUtype = modrm_read16_BIU(&CPU[activeCPU].params,paramnr,result))==0) //Not ready?
 		{
 			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
 			CPU[activeCPU].executed = 0; //Not executed!
@@ -662,7 +662,7 @@ byte CPU8086_instructionstepwritemodrmb(word base, byte value, byte paramnr) //B
 	byte BIUtype;
 	if (CPU[activeCPU].modrmstep==base) //First step? Request!
 	{
-		if ((BIUtype = modrm_write8_BIU(&params,paramnr,value))==0) //Not ready?
+		if ((BIUtype = modrm_write8_BIU(&CPU[activeCPU].params,paramnr,value))==0) //Not ready?
 		{
 			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
 			CPU[activeCPU].executed = 0; //Not executed!
@@ -697,7 +697,7 @@ byte CPU8086_instructionstepwritemodrmw(word base, word value, byte paramnr, byt
 	byte BIUtype;
 	if (CPU[activeCPU].modrmstep == base) //First step? Request!
 	{
-		if ((BIUtype = modrm_write16_BIU(&params, paramnr, value, isJMPorCALL)) == 0) //Not ready?
+		if ((BIUtype = modrm_write16_BIU(&CPU[activeCPU].params, paramnr, value, isJMPorCALL)) == 0) //Not ready?
 		{
 			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
 			CPU[activeCPU].executed = 0; //Not executed!
@@ -838,7 +838,7 @@ byte CPU8086_internal_stepreadmodrmb(word base, byte *result, byte paramnr) //Ba
 	byte BIUtype;
 	if (CPU[activeCPU].internalmodrmstep==base) //First step? Request!
 	{
-		if ((BIUtype = modrm_read8_BIU(&params,paramnr,result))==0) //Not ready?
+		if ((BIUtype = modrm_read8_BIU(&CPU[activeCPU].params,paramnr,result))==0) //Not ready?
 		{
 			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
 			CPU[activeCPU].executed = 0; //Not executed!
@@ -872,7 +872,7 @@ byte CPU8086_internal_stepreadmodrmw(word base, word *result, byte paramnr)
 	byte BIUtype;
 	if (CPU[activeCPU].internalmodrmstep==base) //First step? Request!
 	{
-		if ((BIUtype = modrm_read16_BIU(&params,paramnr,result))==0) //Not ready?
+		if ((BIUtype = modrm_read16_BIU(&CPU[activeCPU].params,paramnr,result))==0) //Not ready?
 		{
 			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
 			CPU[activeCPU].executed = 0; //Not executed!
@@ -907,7 +907,7 @@ byte CPU8086_internal_stepwritemodrmb(word base, byte value, byte paramnr) //Bas
 	byte BIUtype;
 	if (CPU[activeCPU].internalmodrmstep==base) //First step? Request!
 	{
-		if ((BIUtype = modrm_write8_BIU(&params,paramnr,value))==0) //Not ready?
+		if ((BIUtype = modrm_write8_BIU(&CPU[activeCPU].params,paramnr,value))==0) //Not ready?
 		{
 			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
 			CPU[activeCPU].executed = 0; //Not executed!
@@ -1074,7 +1074,7 @@ byte CPU8086_internal_stepwritemodrmw(word base, word value, byte paramnr, byte 
 	byte BIUtype;
 	if (CPU[activeCPU].internalmodrmstep==base) //First step? Request!
 	{
-		if ((BIUtype = modrm_write16_BIU(&params,paramnr,value,isJMPorCALL))==0) //Not ready?
+		if ((BIUtype = modrm_write16_BIU(&CPU[activeCPU].params,paramnr,value,isJMPorCALL))==0) //Not ready?
 		{
 			CPU[activeCPU].cycles_OP += 1; //Take 1 cycle only!
 			CPU[activeCPU].executed = 0; //Not executed!
@@ -1117,7 +1117,7 @@ OPTINLINE void CMP_w(word a, word b, byte flags) //Compare instruction!
 		CPU[activeCPU].cycles_OP += 2; //Imm-Reg
 		break;
 	case 2: //Determined by ModR/M?
-		if (params.EA_cycles) //Memory is used?
+		if (CPU[activeCPU].params.EA_cycles) //Memory is used?
 		{
 			CPU[activeCPU].cycles_OP += 1; //Mem->Reg!
 		}
@@ -1127,7 +1127,7 @@ OPTINLINE void CMP_w(word a, word b, byte flags) //Compare instruction!
 		}
 		break;
 	case 3: //ModR/M+imm?
-		if (params.EA_cycles) //Memory is used?
+		if (CPU[activeCPU].params.EA_cycles) //Memory is used?
 		{
 			CPU[activeCPU].cycles_OP += 5; //Mem->Reg!
 		}
@@ -1158,7 +1158,7 @@ OPTINLINE void CMP_b(byte a, byte b, byte flags)
 		CPU[activeCPU].cycles_OP += 2; //Imm-Reg
 		break;
 	case 2: //Determined by ModR/M?
-		if (params.EA_cycles) //Memory is used?
+		if (CPU[activeCPU].params.EA_cycles) //Memory is used?
 		{
 			CPU[activeCPU].cycles_OP += 1; //Mem->Reg!
 		}
@@ -1168,7 +1168,7 @@ OPTINLINE void CMP_b(byte a, byte b, byte flags)
 		}
 		break;
 	case 3: //ModR/M+imm?
-		if (params.EA_cycles) //Memory is used?
+		if (CPU[activeCPU].params.EA_cycles) //Memory is used?
 		{
 			CPU[activeCPU].cycles_OP += 5; //Mem->Reg!
 		}
@@ -1204,20 +1204,20 @@ OPTINLINE byte CPU8086_internal_INC16(word *reg)
 		{
 			if (reg==NULL) 
 			{
-				if (modrm_check16(&params,MODRM_src0,0|0x40)) return 1; //Abort on fault!
-				if (modrm_check16(&params,MODRM_src0,0|0xA0)) return 1; //Abort on fault!
+				if (modrm_check16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0,0|0x40)) return 1; //Abort on fault!
+				if (modrm_check16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0,0|0xA0)) return 1; //Abort on fault!
 			}
 		}
 		if (reg==NULL) //Needs a read from memory?
 		{
-			if (CPU8086_internal_stepreadmodrmw(0,&oper1,MODRM_src0)) return 1;
+			if (CPU8086_internal_stepreadmodrmw(0,&CPU[activeCPU].oper1, CPU[activeCPU].MODRM_src0)) return 1;
 		}
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 	}
 	if (CPU[activeCPU].internalinstructionstep==1) //Execution step?
 	{
-		oper1 = reg?*reg:oper1;
-		oper2 = 1;
+		CPU[activeCPU].oper1 = reg?*reg: CPU[activeCPU].oper1;
+		CPU[activeCPU].oper2 = 1;
 		op_add16();
 		FLAGW_CF(tempCF);
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
@@ -1233,17 +1233,17 @@ OPTINLINE byte CPU8086_internal_INC16(word *reg)
 	}
 	if (reg) //Register?
 	{
-		*reg = res16;
+		*reg = CPU[activeCPU].res16;
 		if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
 		{
-			CPU[activeCPU].cycles_OP += 1 + (params.notdecoded ? 0 : 1); //16-bit reg!
+			CPU[activeCPU].cycles_OP += 1 + (CPU[activeCPU].params.notdecoded ? 0 : 1); //16-bit reg!
 		}
 	}
 	else //Memory?
 	{
 		if (reg==NULL) //Needs a read from memory?
 		{
-			if (CPU8086_internal_stepwritemodrmw(2,res16,MODRM_src0,0)) return 1;
+			if (CPU8086_internal_stepwritemodrmw(2, CPU[activeCPU].res16, CPU[activeCPU].MODRM_src0,0)) return 1;
 		}
 	}
 	CPUPROT2
@@ -1259,20 +1259,20 @@ OPTINLINE byte CPU8086_internal_DEC16(word *reg)
 		{
 			if (reg==NULL)
 			{
-				if (modrm_check16(&params,MODRM_src0,0|0x40)) return 1; //Abort on fault!
-				if (modrm_check16(&params,MODRM_src0,0|0xA0)) return 1; //Abort on fault!
+				if (modrm_check16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0,0|0x40)) return 1; //Abort on fault!
+				if (modrm_check16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0,0|0xA0)) return 1; //Abort on fault!
 			}
 		}
 		if (reg==NULL) //Needs a read from memory?
 		{
-			if (CPU8086_internal_stepreadmodrmw(0,&oper1,MODRM_src0)) return 1;
+			if (CPU8086_internal_stepreadmodrmw(0,&CPU[activeCPU].oper1, CPU[activeCPU].MODRM_src0)) return 1;
 		}
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 	}
 	if (CPU[activeCPU].internalinstructionstep==1) //Execution step?
 	{
-		oper1 = reg?*reg:oper1;
-		oper2 = 1;
+		CPU[activeCPU].oper1 = reg?*reg: CPU[activeCPU].oper1;
+		CPU[activeCPU].oper2 = 1;
 		op_sub16();
 		FLAGW_CF(tempCF);
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
@@ -1288,17 +1288,17 @@ OPTINLINE byte CPU8086_internal_DEC16(word *reg)
 	}
 	if (reg) //Register?
 	{
-		*reg = res16;
+		*reg = CPU[activeCPU].res16;
 		if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
 		{
-			CPU[activeCPU].cycles_OP += 1 + (params.notdecoded ? 0 : 1); //16-bit reg!
+			CPU[activeCPU].cycles_OP += 1 + (CPU[activeCPU].params.notdecoded ? 0 : 1); //16-bit reg!
 		}
 	}
 	else //Memory?
 	{
 		if (reg==NULL) //Needs a read from memory?
 		{
-			if (CPU8086_internal_stepwritemodrmw(2,res16,MODRM_src0,0)) return 1;
+			if (CPU8086_internal_stepwritemodrmw(2, CPU[activeCPU].res16, CPU[activeCPU].MODRM_src0,0)) return 1;
 		}
 	}
 	CPUPROT2
@@ -1315,20 +1315,20 @@ OPTINLINE byte CPU8086_internal_INC8(byte *reg)
 		{
 			if (reg==NULL)
 			{
-				if (modrm_check8(&params,MODRM_src0,0|0x40)) return 1; //Abort on fault!
-				if (modrm_check8(&params,MODRM_src0,0|0xA0)) return 1; //Abort on fault!
+				if (modrm_check8(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0,0|0x40)) return 1; //Abort on fault!
+				if (modrm_check8(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0,0|0xA0)) return 1; //Abort on fault!
 			}
 		}
 		if (reg==NULL) //Needs a read from memory?
 		{
-			if (CPU8086_internal_stepreadmodrmb(0,&oper1b,MODRM_src0)) return 1;
+			if (CPU8086_internal_stepreadmodrmb(0,&CPU[activeCPU].oper1b, CPU[activeCPU].MODRM_src0)) return 1;
 		}
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 	}
 	if (CPU[activeCPU].internalinstructionstep==1) //Execution step?
 	{
-		oper1b = reg?*reg:oper1b;
-		oper2b = 1;
+		CPU[activeCPU].oper1b = reg?*reg: CPU[activeCPU].oper1b;
+		CPU[activeCPU].oper2b = 1;
 		op_add8();
 		FLAGW_CF(tempCF);
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
@@ -1344,7 +1344,7 @@ OPTINLINE byte CPU8086_internal_INC8(byte *reg)
 	}
 	if (reg) //Register?
 	{
-		*reg = res8;
+		*reg = CPU[activeCPU].res8;
 		if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
 		{
 			CPU[activeCPU].cycles_OP += 2; //8-bit reg!
@@ -1354,7 +1354,7 @@ OPTINLINE byte CPU8086_internal_INC8(byte *reg)
 	{
 		if (reg==NULL) //Needs a read from memory?
 		{
-			if (CPU8086_internal_stepwritemodrmb(2,res8,MODRM_src0)) return 1;
+			if (CPU8086_internal_stepwritemodrmb(2, CPU[activeCPU].res8, CPU[activeCPU].MODRM_src0)) return 1;
 		}
 	}
 	CPUPROT2
@@ -1370,20 +1370,20 @@ OPTINLINE byte CPU8086_internal_DEC8(byte *reg)
 		{
 			if (reg==NULL)
 			{
-				if (modrm_check8(&params,MODRM_src0,0|0x40)) return 1; //Abort on fault!
-				if (modrm_check8(&params,MODRM_src0,0|0xA0)) return 1; //Abort on fault!
+				if (modrm_check8(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0,0|0x40)) return 1; //Abort on fault!
+				if (modrm_check8(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0,0|0xA0)) return 1; //Abort on fault!
 			}
 		}
 		if (reg==NULL) //Needs a read from memory?
 		{
-			if (CPU8086_internal_stepreadmodrmb(0,&oper1b,MODRM_src0)) return 1;
+			if (CPU8086_internal_stepreadmodrmb(0,&CPU[activeCPU].oper1b, CPU[activeCPU].MODRM_src0)) return 1;
 		}
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 	}
 	if (CPU[activeCPU].internalinstructionstep==1) //Execution step?
 	{
-		oper1b = reg?*reg:oper1b;
-		oper2b = 1;
+		CPU[activeCPU].oper1b = reg?*reg: CPU[activeCPU].oper1b;
+		CPU[activeCPU].oper2b = 1;
 		op_sub8();
 		FLAGW_CF(tempCF);
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
@@ -1399,7 +1399,7 @@ OPTINLINE byte CPU8086_internal_DEC8(byte *reg)
 	}
 	if (reg) //Register?
 	{
-		*reg = res8;
+		*reg = CPU[activeCPU].res8;
 		if (CPU_apply286cycles()==0) //No 80286+ cycles instead?
 		{
 			CPU[activeCPU].cycles_OP += 2; //8-bit reg!
@@ -1409,7 +1409,7 @@ OPTINLINE byte CPU8086_internal_DEC8(byte *reg)
 	{
 		if (reg==NULL) //Needs a read from memory?
 		{
-			if (CPU8086_internal_stepwritemodrmb(2,res8,MODRM_src0)) return 1;
+			if (CPU8086_internal_stepwritemodrmb(2, CPU[activeCPU].res8, CPU[activeCPU].MODRM_src0)) return 1;
 		}
 	}
 	CPUPROT2
@@ -1428,7 +1428,7 @@ OPTINLINE void timing_AND_OR_XOR_ADD_SUB8(byte *dest, byte flags)
 		CPU[activeCPU].cycles_OP += 2; //Accumulator!
 		break;
 	case 2: //Determined by ModR/M?
-		if (params.EA_cycles) //Memory is used?
+		if (CPU[activeCPU].params.EA_cycles) //Memory is used?
 		{
 			if (dest) //Mem->Reg?
 			{
@@ -1445,7 +1445,7 @@ OPTINLINE void timing_AND_OR_XOR_ADD_SUB8(byte *dest, byte flags)
 		}
 		break;
 	case 3: //ModR/M+imm?
-		if (params.EA_cycles) //Memory is used?
+		if (CPU[activeCPU].params.EA_cycles) //Memory is used?
 		{
 			if (dest) //Imm->Reg?
 			{
@@ -1478,7 +1478,7 @@ OPTINLINE void timing_AND_OR_XOR_ADD_SUB16(word *dest, byte flags)
 		CPU[activeCPU].cycles_OP += 2; //Accumulator!
 		break;
 	case 2: //Determined by ModR/M?
-		if (params.EA_cycles) //Memory is used?
+		if (CPU[activeCPU].params.EA_cycles) //Memory is used?
 		{
 			if (dest) //Mem->Reg?
 			{
@@ -1495,7 +1495,7 @@ OPTINLINE void timing_AND_OR_XOR_ADD_SUB16(word *dest, byte flags)
 		}
 		break;
 	case 3: //ModR/M+imm?
-		if (params.EA_cycles) //Memory is used?
+		if (CPU[activeCPU].params.EA_cycles) //Memory is used?
 		{
 			if (dest) //Imm->Reg?
 			{
@@ -1526,20 +1526,20 @@ OPTINLINE byte CPU8086_internal_ADD8(byte *dest, byte addition, byte flags)
 		{
 			if (dest==NULL)
 			{
-				if (modrm_check8(&params,MODRM_src0,0|0x40)) return 1; //Abort on fault!
-				if (modrm_check8(&params,MODRM_src0,0|0xA0)) return 1; //Abort on fault!
+				if (modrm_check8(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0,0|0x40)) return 1; //Abort on fault!
+				if (modrm_check8(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0,0|0xA0)) return 1; //Abort on fault!
 			}
 		}
 		if (dest==NULL) //Needs a read from memory?
 		{
-			if (CPU8086_internal_stepreadmodrmb(0,&oper1b,MODRM_src0)) return 1;
+			if (CPU8086_internal_stepreadmodrmb(0,&CPU[activeCPU].oper1b, CPU[activeCPU].MODRM_src0)) return 1;
 		}
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 	}
 	if (CPU[activeCPU].internalinstructionstep==1) //Execution step?
 	{
-		oper1b = dest?*dest:oper1b;
-		oper2b = addition;
+		CPU[activeCPU].oper1b = dest?*dest: CPU[activeCPU].oper1b;
+		CPU[activeCPU].oper2b = addition;
 		op_add8();
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 		timing_AND_OR_XOR_ADD_SUB8(dest, flags);
@@ -1551,13 +1551,13 @@ OPTINLINE byte CPU8086_internal_ADD8(byte *dest, byte addition, byte flags)
 	}
 	if (dest) //Register?
 	{
-		*dest = res8;
+		*dest = CPU[activeCPU].res8;
 	}
 	else //Memory?
 	{
 		if (dest==NULL) //Needs a read from memory?
 		{
-			if (CPU8086_internal_stepwritemodrmb(2,res8,MODRM_src0)) return 1;
+			if (CPU8086_internal_stepwritemodrmb(2, CPU[activeCPU].res8, CPU[activeCPU].MODRM_src0)) return 1;
 		}
 	}
 	CPUPROT2
@@ -1572,20 +1572,20 @@ OPTINLINE byte CPU8086_internal_ADD16(word *dest, word addition, byte flags)
 		{
 			if (dest==NULL)
 			{
-				if (modrm_check16(&params,MODRM_src0,0|0x40)) return 1; //Abort on fault!
-				if (modrm_check16(&params,MODRM_src0,0|0xA0)) return 1; //Abort on fault!
+				if (modrm_check16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0,0|0x40)) return 1; //Abort on fault!
+				if (modrm_check16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0,0|0xA0)) return 1; //Abort on fault!
 			}
 		}
 		if (dest==NULL) //Needs a read from memory?
 		{
-			if (CPU8086_internal_stepreadmodrmw(0,&oper1,MODRM_src0)) return 1;
+			if (CPU8086_internal_stepreadmodrmw(0,&CPU[activeCPU].oper1, CPU[activeCPU].MODRM_src0)) return 1;
 		}
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 	}
 	if (CPU[activeCPU].internalinstructionstep==1) //Execution step?
 	{
-		oper1 = dest?*dest:oper1;
-		oper2 = addition;
+		CPU[activeCPU].oper1 = dest?*dest: CPU[activeCPU].oper1;
+		CPU[activeCPU].oper2 = addition;
 		op_add16();
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 		timing_AND_OR_XOR_ADD_SUB16(dest, flags);
@@ -1597,13 +1597,13 @@ OPTINLINE byte CPU8086_internal_ADD16(word *dest, word addition, byte flags)
 	}
 	if (dest) //Register?
 	{
-		*dest = res16;
+		*dest = CPU[activeCPU].res16;
 	}
 	else //Memory?
 	{
 		if (dest==NULL) //Needs a read from memory?
 		{
-			if (CPU8086_internal_stepwritemodrmw(2,res16,MODRM_src0,0)) return 1;
+			if (CPU8086_internal_stepwritemodrmw(2, CPU[activeCPU].res16, CPU[activeCPU].MODRM_src0,0)) return 1;
 		}
 	}
 	CPUPROT2
