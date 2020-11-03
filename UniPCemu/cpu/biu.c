@@ -779,7 +779,6 @@ byte CPU_readOP(byte *result, byte singlefetch) //Reads the operation (byte) at 
 
 byte CPU_readOPw(word *result, byte singlefetch) //Reads the operation (word) at CS:EIP
 {
-	static byte temp, temp2;
 	if (EMULATED_CPU>=CPU_80286) //80286+ reads it in one go(one single cycle)?
 	{
 		if (likely(BIU[activeCPU].PIQ)) //PIQ installed?
@@ -799,7 +798,7 @@ byte CPU_readOPw(word *result, byte singlefetch) //Reads the operation (word) at
 			}
 			if (fifobuffer_freesize(BIU[activeCPU].PIQ)<(BIU[activeCPU].PIQ->size-1)) //Enough free to read the entire part?
 			{
-				if (CPU_readOP(&temp,0)) return 1; //Read OPcode!
+				if (CPU_readOP(&BIU[activeCPU].temp,0)) return 1; //Read OPcode!
 				if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 				++CPU[activeCPU].instructionfetch.CPU_fetchparameterPos; //Next position!
 				goto fetchsecondhalfw; //Go fetch the second half
@@ -815,24 +814,23 @@ byte CPU_readOPw(word *result, byte singlefetch) //Reads the operation (word) at
 	}
 	if ((CPU[activeCPU].instructionfetch.CPU_fetchparameterPos&1)==0) //First opcode half?
 	{
-		if (CPU_readOP(&temp,1)) return 1; //Read OPcode!
+		if (CPU_readOP(&BIU[activeCPU].temp,1)) return 1; //Read OPcode!
 		if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 		++CPU[activeCPU].instructionfetch.CPU_fetchparameterPos; //Next position!
 	}
 	if ((CPU[activeCPU].instructionfetch.CPU_fetchparameterPos&1)==1) //First second half?
 	{
 		fetchsecondhalfw: //Fetching the second half of the data?
-		if (CPU_readOP(&temp2,singlefetch)) return 1; //Read OPcode!
+		if (CPU_readOP(&BIU[activeCPU].temp2,singlefetch)) return 1; //Read OPcode!
 		if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 		++CPU[activeCPU].instructionfetch.CPU_fetchparameterPos; //Next position!
-		*result = LE_16BITS(temp|(temp2<<8)); //Give result!
+		*result = LE_16BITS(BIU[activeCPU].temp|(BIU[activeCPU].temp2<<8)); //Give result!
 	}
 	return 0; //We're fetched!
 }
 
 byte CPU_readOPdw(uint_32 *result, byte singlefetch) //Reads the operation (32-bit unsigned integer) at CS:EIP
 {
-	static word resultw1, resultw2;
 	if (likely(EMULATED_CPU>=CPU_80386)) //80386+ reads it in one go(one single cycle)?
 	{
 		if (likely(BIU[activeCPU].PIQ)) //PIQ installed?
@@ -852,7 +850,7 @@ byte CPU_readOPdw(uint_32 *result, byte singlefetch) //Reads the operation (32-b
 			}
 			if (fifobuffer_freesize(BIU[activeCPU].PIQ)<(BIU[activeCPU].PIQ->size-3)) //Enough free to read the entire part?
 			{
-				if (CPU_readOPw(&resultw1,0)) return 1; //Read OPcode!
+				if (CPU_readOPw(&BIU[activeCPU].resultw1,0)) return 1; //Read OPcode!
 				if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 				++CPU[activeCPU].instructionfetch.CPU_fetchparameterPos; //Next position!
 				goto fetchsecondhalfd; //Go fetch the second half
@@ -868,15 +866,15 @@ byte CPU_readOPdw(uint_32 *result, byte singlefetch) //Reads the operation (32-b
 	}
 	if ((CPU[activeCPU].instructionfetch.CPU_fetchparameterPos&2)==0) //First opcode half?
 	{
-		if (CPU_readOPw(&resultw1,1)) return 1; //Read OPcode!
+		if (CPU_readOPw(&BIU[activeCPU].resultw1,1)) return 1; //Read OPcode!
 		if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 	}
 	if ((CPU[activeCPU].instructionfetch.CPU_fetchparameterPos&2)==2) //Second opcode half?
 	{
 		fetchsecondhalfd: //Fetching the second half of the data?
-		if (CPU_readOPw(&resultw2,singlefetch)) return 1; //Read OPcode!
+		if (CPU_readOPw(&BIU[activeCPU].resultw2,singlefetch)) return 1; //Read OPcode!
 		if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
-		*result = LE_32BITS((((uint_32)resultw2)<<16)|((uint_32)resultw1)); //Give result!
+		*result = LE_32BITS((((uint_32)BIU[activeCPU].resultw2)<<16)|((uint_32)BIU[activeCPU].resultw1)); //Give result!
 	}
 	return 0; //We're fetched!
 }

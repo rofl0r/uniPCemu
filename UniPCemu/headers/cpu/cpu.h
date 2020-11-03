@@ -1246,6 +1246,7 @@ typedef struct
 	uint_32 LXS_offsetw;
 	uint_32 LXS_offsetd;
 	word destCS;
+	word PUSHA_oldSP;
 } CPU_type;
 
 #ifndef IS_CPU

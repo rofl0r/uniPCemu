@@ -64,6 +64,8 @@ typedef struct
 	byte newtransfer_size; //Size of the transfer!
 	byte terminationpending; //Termination is still pending?
 	CPU_CycleTimingInfo* currentcycleinfo;
+	byte temp, temp2;
+	word resultw1, resultw2;
 } BIU_type;
 
 void CPU_initBIU(); //Initialize the BIU!

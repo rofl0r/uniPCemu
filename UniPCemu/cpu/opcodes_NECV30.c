@@ -192,8 +192,7 @@ void CPU186_OP60()
 		if (checkStackAccess(8, 1, 0)) return; /*Abort on fault!*/
 		++CPU[activeCPU].stackchecked;
 	}
-	static word oldSP;
-	oldSP = (word)CPU[activeCPU].oldESP;    //PUSHA
+	CPU[activeCPU].PUSHA_oldSP = (word)CPU[activeCPU].oldESP;    //PUSHA
 	if (CPU8086_PUSHw(0,&REG_AX,0)) return;
 	CPUPROT1
 	if (CPU8086_PUSHw(2,&REG_CX,0)) return;
@@ -202,7 +201,7 @@ void CPU186_OP60()
 	CPUPROT1
 	if (CPU8086_PUSHw(6,&REG_BX,0)) return;
 	CPUPROT1
-	if (CPU8086_PUSHw(8,&oldSP,0)) return;
+	if (CPU8086_PUSHw(8,&CPU[activeCPU].PUSHA_oldSP,0)) return;
 	CPUPROT1
 	if (CPU8086_PUSHw(10,&REG_BP,0)) return;
 	CPUPROT1
