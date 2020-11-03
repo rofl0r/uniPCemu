@@ -31,10 +31,10 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 extern byte is_i430fx; //Are we an i430fx motherboard?
 byte i430fx_memorymappings_read[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}; //All read memory/PCI! Set=DRAM, clear=PCI!
 byte i430fx_memorymappings_write[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}; //All write memory/PCI! Set=DRAM, clear=PCI!
-byte SMRAM_enabled = 0; //SMRAM enabled?
+byte SMRAM_enabled[MAXCPUS] = 0; //SMRAM enabled?
 byte SMRAM_data = 1; //SMRAM responds to data accesses?
 byte SMRAM_locked = 0; //Are we locked?
-byte SMRAM_SMIACT = 0; //SMI activated
+byte SMRAM_SMIACT[MAXCPUS] = 0; //SMI activated
 extern byte MMU_memoryholespec; //memory hole specification? 0=Normal, 1=512K, 2=15M.
 byte i430fx_previousDRAM[8]; //Previous DRAM values
 byte i430fx_DRAMsettings[8]; //Previous DRAM values
@@ -75,11 +75,13 @@ void i430fx_updateSMRAM()
 	}
 	if (i430fx_configuration[0x72] & 0x40) //SMRAM enabled always?
 	{
-		SMRAM_enabled = (i430fx_configuration[0x72] & 0x08); //Enabled!
+		SMRAM_enabled[0] = (i430fx_configuration[0x72] & 0x08); //Enabled!
+		SMRAM_enabled[1] = (i430fx_configuration[0x72] & 0x08); //Enabled!
 	}
 	else
 	{
-		SMRAM_enabled = SMRAM_SMIACT && (i430fx_configuration[0x72] & 0x08); //Enabled for SMIACT!
+		SMRAM_enabled[0] = SMRAM_SMIACT[0] && (i430fx_configuration[0x72] & 0x08); //Enabled for SMIACT!
+		SMRAM_enabled[1] = SMRAM_SMIACT[1] && (i430fx_configuration[0x72] & 0x08); //Enabled for SMIACT!
 	}
 	SMRAM_data = (i430fx_configuration[0x72]&0x20)?0:1; //SMRAM responds to data accesses?
 	MMU_RAMlayoutupdated(); //Update the RAM layout!
