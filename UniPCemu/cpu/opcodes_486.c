@@ -60,7 +60,7 @@ void CPU486_CPUID()
 void CPU486_OP0F01_32()
 {
 	uint_32 linearaddr;
-	if (thereg==7) //INVLPG?
+	if (CPU[activeCPU].thereg==7) //INVLPG?
 	{
 		modrm_generateInstructionTEXT("INVLPG",16,0,PARAM_MODRM_1);
 		if (getcpumode()!=CPU_MODE_REAL) //Protected mode?
@@ -71,12 +71,12 @@ void CPU486_OP0F01_32()
 				return;
 			}
 		}
-		if ((modrm_isregister(params)) /*&& (getcpumode() != CPU_MODE_8086)*/) //Register (not for V86 mode)? #UD
+		if ((modrm_isregister(CPU[activeCPU].params)) /*&& (getcpumode() != CPU_MODE_8086)*/) //Register (not for V86 mode)? #UD
 		{
 			unkOP0F_286(); //We're not recognized in real mode!
 			return;
 		}
-		linearaddr = MMU_realaddr(params.info[MODRM_src0].segmentregister_index,*params.info[MODRM_src0].segmentregister,params.info[MODRM_src0].mem_offset,0,params.info[MODRM_src0].is16bit); //Linear address!
+		linearaddr = MMU_realaddr(CPU[activeCPU].params.info[CPU[activeCPU].MODRM_src0].segmentregister_index,*CPU[activeCPU].params.info[CPU[activeCPU].MODRM_src0].segmentregister, CPU[activeCPU].params.info[CPU[activeCPU].MODRM_src0].mem_offset,0, CPU[activeCPU].params.info[CPU[activeCPU].MODRM_src0].is16bit); //Linear address!
 		Paging_Invalidate(linearaddr); //Invalidate the address that's used!
 	}
 	else
@@ -88,7 +88,7 @@ void CPU486_OP0F01_32()
 void CPU486_OP0F01_16()
 {
 	uint_32 linearaddr;
-	if (thereg==7) //INVLPG?
+	if (CPU[activeCPU].thereg==7) //INVLPG?
 	{
 		modrm_generateInstructionTEXT("INVLPG",32,0,PARAM_MODRM2);
 		if (getcpumode() != CPU_MODE_REAL) //Protected mode?
@@ -99,12 +99,12 @@ void CPU486_OP0F01_16()
 				return;
 			}
 		}
-		if ((modrm_isregister(params)) /*&& (getcpumode()!=CPU_MODE_8086)*/) //Register (not for V86 mode)? #UD
+		if ((modrm_isregister(CPU[activeCPU].params)) /*&& (getcpumode()!=CPU_MODE_8086)*/) //Register (not for V86 mode)? #UD
 		{
 			unkOP0F_286(); //We're not recognized in real mode!
 			return;
 		}
-		linearaddr = MMU_realaddr(params.info[MODRM_src0].segmentregister_index,*params.info[MODRM_src0].segmentregister,params.info[MODRM_src0].mem_offset,0,params.info[MODRM_src0].is16bit); //Linear address!
+		linearaddr = MMU_realaddr(CPU[activeCPU].params.info[CPU[activeCPU].MODRM_src0].segmentregister_index,*CPU[activeCPU].params.info[CPU[activeCPU].MODRM_src0].segmentregister, CPU[activeCPU].params.info[CPU[activeCPU].MODRM_src0].mem_offset,0, CPU[activeCPU].params.info[CPU[activeCPU].MODRM_src0].is16bit); //Linear address!
 		Paging_Invalidate(linearaddr); //Invalidate the address that's used!
 	}
 	else
@@ -143,13 +143,13 @@ void CPU486_OP0FB0()
 {
 	byte temp;
 	modrm_generateInstructionTEXT("CMPXCHG", 8, 0, PARAM_MODRM_0_ACCUM_1);
-	if (modrm_check8(&params,MODRM_src0,1)) return;
-	temp = modrm_read8(&params,MODRM_src0);
+	if (modrm_check8(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0,1)) return;
+	temp = modrm_read8(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0);
 	if (REG_AL==temp)
 	{
-		if (modrm_check8(&params,MODRM_src0,0)) return;
+		if (modrm_check8(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0,0)) return;
 		FLAGW_ZF(1);
-		modrm_write8(&params,MODRM_src0,modrm_read8(&params,MODRM_src1)); /* r/m8=r8 */
+		modrm_write8(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0,modrm_read8(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src1)); /* r/m8=r8 */
 	}
 	else
 	{
@@ -161,15 +161,15 @@ void CPU486_OP0FB1_16()
 {
 	word temp;
 	modrm_generateInstructionTEXT("CMPXCHG", 16, 0, PARAM_MODRM_0_ACCUM_1);
-	if (modrm_check16(&params,MODRM_src0,1|0x40)) return;
-	if (modrm_check16(&params,MODRM_src0,1|0xA0)) return;
-	temp = modrm_read16(&params,MODRM_src0);
+	if (modrm_check16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0,1|0x40)) return;
+	if (modrm_check16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0,1|0xA0)) return;
+	temp = modrm_read16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0);
 	if (REG_AX==temp)
 	{
-		if (modrm_check16(&params,MODRM_src0,0|0x40)) return;
-		if (modrm_check16(&params,MODRM_src0,0|0xA0)) return;
+		if (modrm_check16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0,0|0x40)) return;
+		if (modrm_check16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0,0|0xA0)) return;
 		FLAGW_ZF(1);
-		modrm_write16(&params,MODRM_src0,modrm_read16(&params,MODRM_src1),0); /* r/m16=r16 */
+		modrm_write16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0,modrm_read16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src1),0); /* r/m16=r16 */
 	}
 	else
 	{
@@ -181,15 +181,15 @@ void CPU486_OP0FB1_32()
 {
 	uint_32 temp;
 	modrm_generateInstructionTEXT("CMPXCHG", 32, 0, PARAM_MODRM_0_ACCUM_1);
-	if (modrm_check32(&params,MODRM_src0,1|0x40)) return;
-	if (modrm_check32(&params,MODRM_src0,1|0xA0)) return;
-	temp = modrm_read32(&params,MODRM_src0);
+	if (modrm_check32(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0,1|0x40)) return;
+	if (modrm_check32(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0,1|0xA0)) return;
+	temp = modrm_read32(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0);
 	if (REG_EAX==temp)
 	{
-		if (modrm_check32(&params,MODRM_src0,0|0x40)) return;
-		if (modrm_check32(&params,MODRM_src0,0|0xA0)) return;
+		if (modrm_check32(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0,0|0x40)) return;
+		if (modrm_check32(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0,0|0xA0)) return;
 		FLAGW_ZF(1);
-		modrm_write32(&params,MODRM_src0,modrm_read32(&params,MODRM_src1)); /* r/m32=r32 */
+		modrm_write32(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0,modrm_read32(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src1)); /* r/m32=r32 */
 	}
 	else
 	{
@@ -200,53 +200,53 @@ void CPU486_OP0FB1_32()
 
 OPTINLINE void op_add8_486()
 {
-	res8 = oper1b + oper2b;
-	flag_add8 (oper1b, oper2b);
+	CPU[activeCPU].res8 = CPU[activeCPU].oper1b + CPU[activeCPU].oper2b;
+	flag_add8 (CPU[activeCPU].oper1b, CPU[activeCPU].oper2b);
 }
 
 OPTINLINE void op_add16_486()
 {
-	res16 = oper1 + oper2;
-	flag_add16 (oper1, oper2);
+	CPU[activeCPU].res16 = CPU[activeCPU].oper1 + CPU[activeCPU].oper2;
+	flag_add16 (CPU[activeCPU].oper1, CPU[activeCPU].oper2);
 }
 
 OPTINLINE void op_add32_486()
 {
-	res32 = oper1d + oper2d;
-	flag_add32 (oper1d, oper2d);
+	CPU[activeCPU].res32 = CPU[activeCPU].oper1d + CPU[activeCPU].oper2d;
+	flag_add32 (CPU[activeCPU].oper1d, CPU[activeCPU].oper2d);
 }
 
 void CPU486_OP0FC0()
 {
 	modrm_generateInstructionTEXT("XADD",8,0,PARAM_MODRM21);
-	if (modrm_check8(&params,MODRM_src0,0)) return;
-	oper1b = modrm_read8(&params,MODRM_src1);
-	oper2b = modrm_read8(&params,MODRM_src0);
+	if (modrm_check8(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0,0)) return;
+	CPU[activeCPU].oper1b = modrm_read8(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src1);
+	CPU[activeCPU].oper2b = modrm_read8(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0);
 	op_add8_486();
-	modrm_write8(&params,MODRM_src1,oper2b);
-	modrm_write8(&params,MODRM_src0,res8);
+	modrm_write8(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src1, CPU[activeCPU].oper2b);
+	modrm_write8(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0, CPU[activeCPU].res8);
 } //XADD r/m8,r8
 void CPU486_OP0FC1_16()
 {
 	modrm_generateInstructionTEXT("XADD",16,0,PARAM_MODRM21);
-	if (modrm_check16(&params,MODRM_src0,0|0x40)) return;
-	if (modrm_check16(&params,MODRM_src0,0|0xA0)) return;
-	oper1 = modrm_read16(&params,MODRM_src1);
-	oper2 = modrm_read16(&params,MODRM_src0);
+	if (modrm_check16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0,0|0x40)) return;
+	if (modrm_check16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0,0|0xA0)) return;
+	CPU[activeCPU].oper1 = modrm_read16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src1);
+	CPU[activeCPU].oper2 = modrm_read16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0);
 	op_add16_486();
-	modrm_write16(&params,MODRM_src1,oper2,0);
-	modrm_write16(&params,MODRM_src0,res16,0);
+	modrm_write16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src1, CPU[activeCPU].oper2,0);
+	modrm_write16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0, CPU[activeCPU].res16,0);
 } //XADD r/m16,r16
 void CPU486_OP0FC1_32()
 {
 	modrm_generateInstructionTEXT("XADD",32,0,PARAM_MODRM21);
-	if (modrm_check32(&params,MODRM_src0,0|0x40)) return;
-	if (modrm_check32(&params,MODRM_src0,0|0xA0)) return;
-	oper1d = modrm_read32(&params,MODRM_src1);
-	oper2d = modrm_read32(&params,MODRM_src0);
+	if (modrm_check32(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0,0|0x40)) return;
+	if (modrm_check32(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0,0|0xA0)) return;
+	CPU[activeCPU].oper1d = modrm_read32(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src1);
+	CPU[activeCPU].oper2d = modrm_read32(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0);
 	op_add32_486();
-	modrm_write32(&params,MODRM_src1,oper2d);
-	modrm_write32(&params,MODRM_src0,res32);
+	modrm_write32(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src1, CPU[activeCPU].oper2d);
+	modrm_write32(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0, CPU[activeCPU].res32);
 } //XADD r/m32,r32
 
 void CPU486_BSWAP32(uint_32 *reg)
