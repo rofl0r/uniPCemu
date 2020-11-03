@@ -1240,6 +1240,8 @@ typedef struct
 	uint_32 frametempd;
 	word bpdataw;
 	uint_32 bpdatad;
+	word POPF_tempflags;
+	word ARPL_destRPL, ARPL_srcRPL;
 } CPU_type;
 
 #ifndef IS_CPU
