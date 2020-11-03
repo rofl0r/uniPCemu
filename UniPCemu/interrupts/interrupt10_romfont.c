@@ -30,7 +30,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/hardware/vga/vga.h" //VGA information!
 #include "headers/interrupts/interrupt10.h" //Basic function support!
 
-uint_32 i;
+uint_32 interrupt10_romfont_i;
 OPTINLINE void MEM_BlockCopy(word segment, word offset, word fontseg, word fontoffs, Bitu height)
 {
 	uint_32 counter;
@@ -155,7 +155,7 @@ void INT10_LoadFont(word fontseg, word fontoffs,bool reload,Bitu count,Bitu offs
 	IO_Write(0x3ce, 0x6);
 	IO_Write(0x3cf, backup_3ce_6&~0xE); //Clear bits 1-3 to set the linear mode and read/write mode!
 
-	for (i=0;i<count;i++) {
+	for (interrupt10_romfont_i=0;interrupt10_romfont_i<count;interrupt10_romfont_i++) {
 		MEM_BlockCopy(ftwhere,ftoffs,fontseg,fontoffs,height);
 		ftoffs+=32; //Increment VRAM!
 		fontoffs+=height; //Increment buffer!
@@ -258,27 +258,27 @@ void INT10_SetupRomMemory(byte setinterrupts)
 		int10.rom.used=0x100; //Start of our data!
 	}
 	int10.rom.font_8_first=int10.rom.used;
-	for (i=0;i<128*8;i++) {
-		EMU_VGAROM[int10.rom.used++] = int10_font_08[i];
+	for (interrupt10_romfont_i=0;interrupt10_romfont_i<128*8;interrupt10_romfont_i++) {
+		EMU_VGAROM[int10.rom.used++] = int10_font_08[interrupt10_romfont_i];
 	}
 	int10.rom.font_8_second=int10.rom.used;
-	for (i=0;i<128*8;i++) {
-		EMU_VGAROM[int10.rom.used++] = int10_font_08[i+128*8];
+	for (interrupt10_romfont_i=0;interrupt10_romfont_i<128*8;interrupt10_romfont_i++) {
+		EMU_VGAROM[int10.rom.used++] = int10_font_08[interrupt10_romfont_i+128*8];
 	}
 	int10.rom.font_14=int10.rom.used;
-	for (i=0;i<256*14;i++) {
-		EMU_VGAROM[int10.rom.used++] = int10_font_14[i];
+	for (interrupt10_romfont_i=0;interrupt10_romfont_i<256*14;interrupt10_romfont_i++) {
+		EMU_VGAROM[int10.rom.used++] = int10_font_14[interrupt10_romfont_i];
 	}
 	int10.rom.font_16=int10.rom.used;
-	for (i=0;i<256*16;i++) {
-		EMU_VGAROM[int10.rom.used++] = int10_font_16[i];
+	for (interrupt10_romfont_i=0;interrupt10_romfont_i<256*16;interrupt10_romfont_i++) {
+		EMU_VGAROM[int10.rom.used++] = int10_font_16[interrupt10_romfont_i];
 	}
 	int10.rom.static_state=int10.rom.used;
-	for (i=0;i<0x10;i++) {
-		EMU_VGAROM[int10.rom.used++] = static_functionality[i];
+	for (interrupt10_romfont_i=0;interrupt10_romfont_i<0x10;interrupt10_romfont_i++) {
+		EMU_VGAROM[int10.rom.used++] = static_functionality[interrupt10_romfont_i];
 	}
-	for (i=0;i<128*8;i++) {
-		EMU_BIOS[i+0xfa6e] = int10_font_08[i]; //Small ROM!
+	for (interrupt10_romfont_i=0;interrupt10_romfont_i<128*8;interrupt10_romfont_i++) {
+		EMU_BIOS[interrupt10_romfont_i+0xfa6e] = int10_font_08[interrupt10_romfont_i]; //Small ROM!
 	}
 	if (setinterrupts)
 	{
@@ -362,23 +362,23 @@ void INT10_ReloadRomFonts() {
 	// 16x8 font
 	/*
 	PhysPt font16pt=Real2Phys(int10.rom.font_16);
-	Bitu i;
-	for (i=0;i<256*16;i++) {
-		phys_writeb(font16pt+i,int10_font_16[i]);
+	Bitu interrupt10_romfont_i;
+	for (interrupt10_romfont_i=0;interrupt10_romfont_i<256*16;interrupt10_romfont_i++) {
+		phys_writeb(font16pt+interrupt10_romfont_i,int10_font_16[interrupt10_romfont_i]);
 	}
 	// 14x8 font
 	PhysPt font14pt=Real2Phys(int10.rom.font_14);
-	for (i=0;i<256*14;i++) {
-		phys_writeb(font14pt+i,int10_font_14[i]);
+	for (interrupt10_romfont_i=0;interrupt10_romfont_i<256*14;interrupt10_romfont_i++) {
+		phys_writeb(font14pt+interrupt10_romfont_i,int10_font_14[interrupt10_romfont_i]);
 	}
 	// 8x8 fonts
 	PhysPt font8pt=Real2Phys(int10.rom.font_8_first);
-	for (i=0;i<128*8;i++) {
-		phys_writeb(font8pt+i,int10_font_08[i]);
+	for (interrupt10_romfont_i=0;interrupt10_romfont_i<128*8;interrupt10_romfont_i++) {
+		phys_writeb(font8pt+interrupt10_romfont_i,int10_font_08[interrupt10_romfont_i]);
 	}
 	font8pt=Real2Phys(int10.rom.font_8_second);
-	for (i=0;i<128*8;i++) {
-		phys_writeb(font8pt+i,int10_font_08[i+128*8]);
+	for (interrupt10_romfont_i=0;interrupt10_romfont_i<128*8;interrupt10_romfont_i++) {
+		phys_writeb(font8pt+interrupt10_romfont_i,int10_font_08[interrupt10_romfont_i+128*8]);
 	}
 	*/ //This isn't needed: it's stored in a ROM!
 }
@@ -389,8 +389,8 @@ void INT10_SetupRomMemoryChecksum() {
 		Bit8u sum = 0;
 		//uint_32 rom_base = 0;
 		Bitu last_rombyte = 64*1024 - 1;		//64 KB romsize(32KB isn't enough!)
-		for (i = 0;i < last_rombyte;i++)
-			sum += (Bit8u)EMU_VGAROM[i];	//OVERFLOW IS OKAY
+		for (interrupt10_romfont_i = 0;interrupt10_romfont_i < last_rombyte;interrupt10_romfont_i++)
+			sum += (Bit8u)EMU_VGAROM[interrupt10_romfont_i];	//OVERFLOW IS OKAY
 		sum = (Bit8u)((256 - (Bitu)sum)&0xff);
 		EMU_VGAROM[last_rombyte] = sum;
 	}
