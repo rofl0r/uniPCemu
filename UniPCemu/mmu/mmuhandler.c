@@ -229,7 +229,6 @@ byte checkMemoryHoles(uint_32 realaddress, byte isread); //Prototype!
 
 byte index_readprecalcs[0x200]; //Read precalcs for index memory hole handling!
 byte index_writeprecalcs[0x200]; //Read precalcs for index memory hole handling!
-byte index_writeprecalcs[0x200]; //Read precalcs for index memory hole handling!
 
 //Handler for special MMU-based I/O, direct addresses used!
 OPTINLINE byte MMU_IO_writehandler(uint_32 offset, byte value, word index)
