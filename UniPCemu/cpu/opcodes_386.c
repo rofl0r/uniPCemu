@@ -1452,7 +1452,7 @@ OPTINLINE byte CPU80386_internal_MOV8(byte *dest, byte val, byte flags)
 		{
 			if (custommem)
 			{
-				if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(customoffset&CPU[activeCPU].address_size),0,getCPL(),!CPU_Address_size[activeCPU],0)) //Error accessing memory?
+				if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(customoffset&CPU[activeCPU].address_size),0,getCPL(),!CPU[activeCPU].CPU_Address_size,0)) //Error accessing memory?
 				{
 					return 1; //Abort on fault!
 				}
@@ -1520,7 +1520,7 @@ OPTINLINE byte CPU80386_internal_MOV8(byte *dest, byte val, byte flags)
 	{
 		if (custommem)
 		{
-			if (CPU8086_internal_stepwritedirectb(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(customoffset&CPU[activeCPU].address_size),val,!CPU_Address_size[activeCPU])) return 1; //Write to memory directly!
+			if (CPU8086_internal_stepwritedirectb(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(customoffset&CPU[activeCPU].address_size),val,!CPU[activeCPU].CPU_Address_size)) return 1; //Write to memory directly!
 		}
 		else //ModR/M?
 		{
@@ -1595,11 +1595,11 @@ OPTINLINE byte CPU80386_internal_MOV16(word *dest, word val, byte flags)
 		{
 			if (custommem)
 			{
-				if (checkMMUaccess16(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(customoffset&CPU[activeCPU].address_size),0|0x40,getCPL(),!CPU_Address_size[activeCPU],0|0x8)) //Error accessing memory?
+				if (checkMMUaccess16(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(customoffset&CPU[activeCPU].address_size),0|0x40,getCPL(),!CPU[activeCPU].CPU_Address_size,0|0x8)) //Error accessing memory?
 				{
 					return 1; //Abort on fault!
 				}
-				if (checkMMUaccess16(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (customoffset&CPU[activeCPU].address_size), 0|0xA0, getCPL(), !CPU_Address_size[activeCPU], 0 | 0x8)) //Error accessing memory?
+				if (checkMMUaccess16(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (customoffset&CPU[activeCPU].address_size), 0|0xA0, getCPL(), !CPU[activeCPU].CPU_Address_size, 0 | 0x8)) //Error accessing memory?
 				{
 					return 1; //Abort on fault!
 				}
@@ -1668,7 +1668,7 @@ OPTINLINE byte CPU80386_internal_MOV16(word *dest, word val, byte flags)
 	{
 		if (custommem)
 		{
-			if (CPU8086_internal_stepwritedirectw(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(customoffset&CPU[activeCPU].address_size),val,!CPU_Address_size[activeCPU])) return 1; //Write to memory directly!
+			if (CPU8086_internal_stepwritedirectw(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(customoffset&CPU[activeCPU].address_size),val,!CPU[activeCPU].CPU_Address_size)) return 1; //Write to memory directly!
 		}
 		else //ModR/M?
 		{
@@ -1753,11 +1753,11 @@ OPTINLINE byte CPU80386_internal_MOV32(uint_32 *dest, uint_32 val, byte flags)
 		{
 			if (custommem)
 			{
-				if (checkMMUaccess32(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(customoffset&CPU[activeCPU].address_size),0|0x40,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) //Error accessing memory?
+				if (checkMMUaccess32(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(customoffset&CPU[activeCPU].address_size),0|0x40,getCPL(),!CPU[activeCPU].CPU_Address_size,0|0x10)) //Error accessing memory?
 				{
 					return 1; //Abort on fault!
 				}
-				if (checkMMUaccess32(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (customoffset&CPU[activeCPU].address_size), 0|0xA0, getCPL(), !CPU_Address_size[activeCPU], 0 | 0x10)) //Error accessing memory?
+				if (checkMMUaccess32(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (customoffset&CPU[activeCPU].address_size), 0|0xA0, getCPL(), !CPU[activeCPU].CPU_Address_size, 0 | 0x10)) //Error accessing memory?
 				{
 					return 1; //Abort on fault!
 				}
@@ -1826,7 +1826,7 @@ OPTINLINE byte CPU80386_internal_MOV32(uint_32 *dest, uint_32 val, byte flags)
 	{
 		if (custommem)
 		{
-			if (CPU80386_internal_stepwritedirectdw(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(customoffset&CPU[activeCPU].address_size),val,!CPU_Address_size[activeCPU])) return 1; //Write to memory directly!
+			if (CPU80386_internal_stepwritedirectdw(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(customoffset&CPU[activeCPU].address_size),val,!CPU[activeCPU].CPU_Address_size)) return 1; //Write to memory directly!
 		}
 		else //ModR/M?
 		{
@@ -1905,19 +1905,19 @@ OPTINLINE byte CPU80386_internal_MOVSD()
 	if (blockREP) return 1; //Disabled REP!
 	if (unlikely(CPU[activeCPU].internalinstructionstep==0)) //First step?
 	{
-		if (checkMMUaccess32(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI),1|0x40,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) //Error accessing memory?
+		if (checkMMUaccess32(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU[activeCPU].CPU_Address_size?REG_ESI:REG_SI),1|0x40,getCPL(),!CPU[activeCPU].CPU_Address_size,0|0x10)) //Error accessing memory?
 		{
 			return 1; //Abort on fault!
 		}
-		if (checkMMUaccess32(CPU_SEGMENT_ES,REG_ES,(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),0|0x40,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) //Error accessing memory?
+		if (checkMMUaccess32(CPU_SEGMENT_ES,REG_ES,(CPU[activeCPU].CPU_Address_size?REG_EDI:REG_DI),0|0x40,getCPL(),!CPU[activeCPU].CPU_Address_size,0|0x10)) //Error accessing memory?
 		{
 			return 1; //Abort on fault!
 		}
-		if (checkMMUaccess32(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU] ? REG_ESI : REG_SI), 1|0xA0, getCPL(), !CPU_Address_size[activeCPU], 0 | 0x10)) //Error accessing memory?
+		if (checkMMUaccess32(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU[activeCPU].CPU_Address_size ? REG_ESI : REG_SI), 1|0xA0, getCPL(), !CPU[activeCPU].CPU_Address_size, 0 | 0x10)) //Error accessing memory?
 		{
 			return 1; //Abort on fault!
 		}
-		if (checkMMUaccess32(CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU] ? REG_EDI : REG_DI), 0|0xA0, getCPL(), !CPU_Address_size[activeCPU], 0 | 0x10)) //Error accessing memory?
+		if (checkMMUaccess32(CPU_SEGMENT_ES, REG_ES, (CPU[activeCPU].CPU_Address_size ? REG_EDI : REG_DI), 0|0xA0, getCPL(), !CPU[activeCPU].CPU_Address_size, 0 | 0x10)) //Error accessing memory?
 		{
 			return 1; //Abort on fault!
 		}
@@ -1926,7 +1926,7 @@ OPTINLINE byte CPU80386_internal_MOVSD()
 	if (CPU[activeCPU].internalinstructionstep==1) //First Execution step?
 	{
 		//Needs a read from memory?
-		if (CPU80386_internal_stepreaddirectdw(0,CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI), &MOVSD_data,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
+		if (CPU80386_internal_stepreaddirectdw(0,CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU[activeCPU].CPU_Address_size?REG_ESI:REG_SI), &MOVSD_data,!CPU[activeCPU].CPU_Address_size)) return 1; //Try to read the data!
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 	}
 	if (CPU[activeCPU].internalinstructionstep==2) //Execution step?
@@ -1953,11 +1953,11 @@ OPTINLINE byte CPU80386_internal_MOVSD()
 		CPU[activeCPU].executed = 0; return 1; //Wait for execution phase to finish!
 	}
 	//Writeback phase!
-	if (CPU80386_internal_stepwritedirectdw(2,CPU_SEGMENT_ES,REG_ES,(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),MOVSD_data,!CPU_Address_size[activeCPU])) return 1;
+	if (CPU80386_internal_stepwritedirectdw(2,CPU_SEGMENT_ES,REG_ES,(CPU[activeCPU].CPU_Address_size?REG_EDI:REG_DI),MOVSD_data,!CPU[activeCPU].CPU_Address_size)) return 1;
 	CPUPROT1
 	if (FLAG_DF)
 	{
-		if (CPU_Address_size[activeCPU])
+		if (CPU[activeCPU].CPU_Address_size)
 		{
 			REG_ESI -= 4;
 			REG_EDI -= 4;
@@ -1970,7 +1970,7 @@ OPTINLINE byte CPU80386_internal_MOVSD()
 	}
 	else
 	{
-		if (CPU_Address_size[activeCPU])
+		if (CPU[activeCPU].CPU_Address_size)
 		{
 			REG_ESI += 4;
 			REG_EDI += 4;
@@ -1990,19 +1990,19 @@ OPTINLINE byte CPU80386_internal_CMPSD()
 	if (blockREP) return 1; //Disabled REP!
 	if (unlikely(CPU[activeCPU].internalinstructionstep==0)) //First step?
 	{
-		if (checkMMUaccess32(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI),1|0x40,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) //Error accessing memory?
+		if (checkMMUaccess32(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS),(CPU[activeCPU].CPU_Address_size?REG_ESI:REG_SI),1|0x40,getCPL(),!CPU[activeCPU].CPU_Address_size,0|0x10)) //Error accessing memory?
 		{
 			return 1; //Abort on fault!
 		}
-		if (checkMMUaccess32(CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI),1|0x40,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) //Error accessing memory?
+		if (checkMMUaccess32(CPU_SEGMENT_ES, REG_ES, (CPU[activeCPU].CPU_Address_size?REG_EDI:REG_DI),1|0x40,getCPL(),!CPU[activeCPU].CPU_Address_size,0|0x10)) //Error accessing memory?
 		{
 			return 1; //Abort on fault!
 		}
-		if (checkMMUaccess32(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU] ? REG_ESI : REG_SI), 1|0xA0, getCPL(), !CPU_Address_size[activeCPU], 0 | 0x10)) //Error accessing memory?
+		if (checkMMUaccess32(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU[activeCPU].CPU_Address_size ? REG_ESI : REG_SI), 1|0xA0, getCPL(), !CPU[activeCPU].CPU_Address_size, 0 | 0x10)) //Error accessing memory?
 		{
 			return 1; //Abort on fault!
 		}
-		if (checkMMUaccess32(CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU] ? REG_EDI : REG_DI), 1|0xA0, getCPL(), !CPU_Address_size[activeCPU], 0 | 0x10)) //Error accessing memory?
+		if (checkMMUaccess32(CPU_SEGMENT_ES, REG_ES, (CPU[activeCPU].CPU_Address_size ? REG_EDI : REG_DI), 1|0xA0, getCPL(), !CPU[activeCPU].CPU_Address_size, 0 | 0x10)) //Error accessing memory?
 		{
 			return 1; //Abort on fault!
 		}
@@ -2011,15 +2011,15 @@ OPTINLINE byte CPU80386_internal_CMPSD()
 	if (CPU[activeCPU].internalinstructionstep==1) //First Execution step?
 	{
 		//Needs a read from memory?
-		if (CPU80386_internal_stepreaddirectdw(0,CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI),&CMPSD_data1,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
-		if (CPU80386_internal_stepreaddirectdw(2,CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI), &CMPSD_data2,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
+		if (CPU80386_internal_stepreaddirectdw(0,CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU[activeCPU].CPU_Address_size?REG_ESI:REG_SI),&CMPSD_data1,!CPU[activeCPU].CPU_Address_size)) return 1; //Try to read the data!
+		if (CPU80386_internal_stepreaddirectdw(2,CPU_SEGMENT_ES, REG_ES, (CPU[activeCPU].CPU_Address_size?REG_EDI:REG_DI), &CMPSD_data2,!CPU[activeCPU].CPU_Address_size)) return 1; //Try to read the data!
 		
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 	}
 	CMP_dw(CMPSD_data1,CMPSD_data2,4);
 	if (FLAG_DF)
 	{
-		if (CPU_Address_size[activeCPU])
+		if (CPU[activeCPU].CPU_Address_size)
 		{
 			REG_ESI -= 4;
 			REG_EDI -= 4;
@@ -2032,7 +2032,7 @@ OPTINLINE byte CPU80386_internal_CMPSD()
 	}
 	else
 	{
-		if (CPU_Address_size[activeCPU])
+		if (CPU[activeCPU].CPU_Address_size)
 		{
 			REG_ESI += 4;
 			REG_EDI += 4;
@@ -2070,11 +2070,11 @@ OPTINLINE byte CPU80386_internal_STOSD()
 	if (blockREP) return 1; //Disabled REP!
 	if (unlikely(CPU[activeCPU].internalinstructionstep==0)) //First step?
 	{
-		if (checkMMUaccess32(CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI),0|0x40,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) //Error accessing memory?
+		if (checkMMUaccess32(CPU_SEGMENT_ES, REG_ES, (CPU[activeCPU].CPU_Address_size?REG_EDI:REG_DI),0|0x40,getCPL(),!CPU[activeCPU].CPU_Address_size,0|0x10)) //Error accessing memory?
 		{
 			return 1; //Abort on fault!
 		}
-		if (checkMMUaccess32(CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU] ? REG_EDI : REG_DI), 0|0xA0, getCPL(), !CPU_Address_size[activeCPU], 0 | 0x10)) //Error accessing memory?
+		if (checkMMUaccess32(CPU_SEGMENT_ES, REG_ES, (CPU[activeCPU].CPU_Address_size ? REG_EDI : REG_DI), 0|0xA0, getCPL(), !CPU[activeCPU].CPU_Address_size, 0 | 0x10)) //Error accessing memory?
 		{
 			return 1; //Abort on fault!
 		}
@@ -2083,13 +2083,13 @@ OPTINLINE byte CPU80386_internal_STOSD()
 	if (CPU[activeCPU].internalinstructionstep==1) //First Execution step?
 	{
 		//Needs a read from memory?
-		if (CPU80386_internal_stepwritedirectdw(0,CPU_SEGMENT_ES,REG_ES,(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),REG_EAX,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
+		if (CPU80386_internal_stepwritedirectdw(0,CPU_SEGMENT_ES,REG_ES,(CPU[activeCPU].CPU_Address_size?REG_EDI:REG_DI),REG_EAX,!CPU[activeCPU].CPU_Address_size)) return 1; //Try to read the data!
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 	}
 	CPUPROT1
 	if (FLAG_DF)
 	{
-		if (CPU_Address_size[activeCPU])
+		if (CPU[activeCPU].CPU_Address_size)
 		{
 			REG_EDI -= 4;
 		}
@@ -2100,7 +2100,7 @@ OPTINLINE byte CPU80386_internal_STOSD()
 	}
 	else
 	{
-		if (CPU_Address_size[activeCPU])
+		if (CPU[activeCPU].CPU_Address_size)
 		{
 			REG_EDI += 4;
 		}
@@ -2137,11 +2137,11 @@ OPTINLINE byte CPU80386_internal_LODSD()
 	if (blockREP) return 1; //Disabled REP!
 	if (unlikely(CPU[activeCPU].internalinstructionstep==0)) //First step?
 	{
-		if (checkMMUaccess32(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI),1|0x40,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) //Error accessing memory?
+		if (checkMMUaccess32(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU[activeCPU].CPU_Address_size?REG_ESI:REG_SI),1|0x40,getCPL(),!CPU[activeCPU].CPU_Address_size,0|0x10)) //Error accessing memory?
 		{
 			return 1; //Abort on fault!
 		}
-		if (checkMMUaccess32(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU] ? REG_ESI : REG_SI), 1|0xA0, getCPL(), !CPU_Address_size[activeCPU], 0 | 0x10)) //Error accessing memory?
+		if (checkMMUaccess32(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU[activeCPU].CPU_Address_size ? REG_ESI : REG_SI), 1|0xA0, getCPL(), !CPU[activeCPU].CPU_Address_size, 0 | 0x10)) //Error accessing memory?
 		{
 			return 1; //Abort on fault!
 		}
@@ -2150,14 +2150,14 @@ OPTINLINE byte CPU80386_internal_LODSD()
 	if (CPU[activeCPU].internalinstructionstep==1) //First Execution step?
 	{
 		//Needs a read from memory?
-		if (CPU80386_internal_stepreaddirectdw(0,CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU]?REG_ESI:REG_SI), &LODSD_value,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
+		if (CPU80386_internal_stepreaddirectdw(0,CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU[activeCPU].CPU_Address_size?REG_ESI:REG_SI), &LODSD_value,!CPU[activeCPU].CPU_Address_size)) return 1; //Try to read the data!
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 	}
 	CPUPROT1
 	REG_EAX = LODSD_value;
 	if (FLAG_DF)
 	{
-		if (CPU_Address_size[activeCPU])
+		if (CPU[activeCPU].CPU_Address_size)
 		{
 			REG_ESI -= 4;
 		}
@@ -2168,7 +2168,7 @@ OPTINLINE byte CPU80386_internal_LODSD()
 	}
 	else
 	{
-		if (CPU_Address_size[activeCPU])
+		if (CPU[activeCPU].CPU_Address_size)
 		{
 			REG_ESI += 4;
 		}
@@ -2204,11 +2204,11 @@ OPTINLINE byte CPU80386_internal_SCASD()
 	if (blockREP) return 1; //Disabled REP!
 	if (unlikely(CPU[activeCPU].internalinstructionstep==0)) //First step?
 	{
-		if (checkMMUaccess32(CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI),1|0x40,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) //Error accessing memory?
+		if (checkMMUaccess32(CPU_SEGMENT_ES, REG_ES, (CPU[activeCPU].CPU_Address_size?REG_EDI:REG_DI),1|0x40,getCPL(),!CPU[activeCPU].CPU_Address_size,0|0x10)) //Error accessing memory?
 		{
 			return 1; //Abort on fault!
 		}
-		if (checkMMUaccess32(CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU] ? REG_EDI : REG_DI), 1|0xA0, getCPL(), !CPU_Address_size[activeCPU], 0 | 0x10)) //Error accessing memory?
+		if (checkMMUaccess32(CPU_SEGMENT_ES, REG_ES, (CPU[activeCPU].CPU_Address_size ? REG_EDI : REG_DI), 1|0xA0, getCPL(), !CPU[activeCPU].CPU_Address_size, 0 | 0x10)) //Error accessing memory?
 		{
 			return 1; //Abort on fault!
 		}
@@ -2217,7 +2217,7 @@ OPTINLINE byte CPU80386_internal_SCASD()
 	if (CPU[activeCPU].internalinstructionstep==1) //First Execution step?
 	{
 		//Needs a read from memory?
-		if (CPU80386_internal_stepreaddirectdw(0,CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU]?REG_EDI:REG_DI), &SCASD_cmp1,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
+		if (CPU80386_internal_stepreaddirectdw(0,CPU_SEGMENT_ES, REG_ES, (CPU[activeCPU].CPU_Address_size?REG_EDI:REG_DI), &SCASD_cmp1,!CPU[activeCPU].CPU_Address_size)) return 1; //Try to read the data!
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 	}
 
@@ -2225,7 +2225,7 @@ OPTINLINE byte CPU80386_internal_SCASD()
 	CMP_dw(REG_EAX,SCASD_cmp1,4);
 	if (FLAG_DF)
 	{
-		if (CPU_Address_size[activeCPU])
+		if (CPU[activeCPU].CPU_Address_size)
 		{
 			REG_EDI -= 4;
 		}
@@ -2236,7 +2236,7 @@ OPTINLINE byte CPU80386_internal_SCASD()
 	}
 	else
 	{
-		if (CPU_Address_size[activeCPU])
+		if (CPU[activeCPU].CPU_Address_size)
 		{
 			REG_EDI += 4;
 		}
@@ -2392,13 +2392,13 @@ OPTINLINE byte CPU80386_internal_XLAT()
 	}
 	if (unlikely(CPU[activeCPU].internalinstructionstep==0)) //First step?
 	{
-		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(((CPU_Address_size[activeCPU]?REG_EBX:REG_BX)+REG_AL)&CPU[activeCPU].address_size),1,getCPL(),!CPU_Address_size[activeCPU],0)) return 1; //Abort on fault!
+		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(((CPU[activeCPU].CPU_Address_size?REG_EBX:REG_BX)+REG_AL)&CPU[activeCPU].address_size),1,getCPL(),!CPU[activeCPU].CPU_Address_size,0)) return 1; //Abort on fault!
 		++CPU[activeCPU].internalinstructionstep; //Next step!
 	}
 	if (CPU[activeCPU].internalinstructionstep==1) //First Execution step?
 	{
 		//Needs a read from memory?
-		if (CPU8086_internal_stepreaddirectb(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(((CPU_Address_size[activeCPU]?REG_EBX:REG_BX)+REG_AL)&CPU[activeCPU].address_size),&XLAT_value,!CPU_Address_size[activeCPU])) return 1; //Try to read the data!
+		if (CPU8086_internal_stepreaddirectb(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(((CPU[activeCPU].CPU_Address_size?REG_EBX:REG_BX)+REG_AL)&CPU[activeCPU].address_size),&XLAT_value,!CPU[activeCPU].CPU_Address_size)) return 1; //Try to read the data!
 		++CPU[activeCPU].internalinstructionstep; //Next internal instruction step!
 	}
 	CPUPROT1
@@ -3277,7 +3277,7 @@ OPTINLINE void CPU80386_OPA0_8exec_addr32()
 	debugger_setcommand("MOV AL,byte %s:[%08X]",CPU_textsegment(CPU_SEGMENT_DS),immaddr32);/*MOV AL,[imm32]*/
 	if (unlikely(CPU[activeCPU].modrmstep==0))
 	{
-		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(immaddr32&CPU[activeCPU].address_size),1,getCPL(),!CPU_Address_size[activeCPU],0)) return;
+		if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(immaddr32&CPU[activeCPU].address_size),1,getCPL(),!CPU[activeCPU].CPU_Address_size,0)) return;
 	}
 	if (CPU8086_instructionstepreaddirectb(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(immaddr32&CPU[activeCPU].address_size),&instructionbufferb,0)) return;
 	CPU80386_internal_MOV8(&REG_AL,instructionbufferb,1);/*MOV AL,[imm32]*/
@@ -3289,8 +3289,8 @@ OPTINLINE void CPU80386_OPA1_16exec_addr32()
 	debugger_setcommand("MOV AX,word %s:[%08X]",CPU_textsegment(CPU_SEGMENT_DS),immaddr32);/*MOV AX,[imm32]*/
 	if (unlikely(CPU[activeCPU].modrmstep==0))
 	{
-		if (checkMMUaccess16(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(immaddr32&CPU[activeCPU].address_size),1|0x40,getCPL(),!CPU_Address_size[activeCPU],0|0x8)) return;
-		if (checkMMUaccess16(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (immaddr32&CPU[activeCPU].address_size), 1|0xA0, getCPL(), !CPU_Address_size[activeCPU], 0 | 0x8)) return;
+		if (checkMMUaccess16(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(immaddr32&CPU[activeCPU].address_size),1|0x40,getCPL(),!CPU[activeCPU].CPU_Address_size,0|0x8)) return;
+		if (checkMMUaccess16(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (immaddr32&CPU[activeCPU].address_size), 1|0xA0, getCPL(), !CPU[activeCPU].CPU_Address_size, 0 | 0x8)) return;
 	}
 	if (CPU8086_instructionstepreaddirectw(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(immaddr32&CPU[activeCPU].address_size),&instructionbufferw,0)) return;
 	CPU80386_internal_MOV16(&REG_AX,instructionbufferw,1);/*MOV AX,[imm32]*/
@@ -3300,8 +3300,8 @@ OPTINLINE void CPU80386_OPA1_32exec_addr16()
 	debugger_setcommand("MOV EAX,dword %s:[%04X]",CPU_textsegment(CPU_SEGMENT_DS),immaddr32);/*MOV AX,[imm32]*/
 	if (unlikely(CPU[activeCPU].modrmstep==0))
 	{
-		if (checkMMUaccess32(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(immaddr32&CPU[activeCPU].address_size),1|0x40,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) return;
-		if (checkMMUaccess32(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (immaddr32&CPU[activeCPU].address_size), 1|0xA0, getCPL(), !CPU_Address_size[activeCPU], 0 | 0x10)) return;
+		if (checkMMUaccess32(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(immaddr32&CPU[activeCPU].address_size),1|0x40,getCPL(),!CPU[activeCPU].CPU_Address_size,0|0x10)) return;
+		if (checkMMUaccess32(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (immaddr32&CPU[activeCPU].address_size), 1|0xA0, getCPL(), !CPU[activeCPU].CPU_Address_size, 0 | 0x10)) return;
 	}
 	if (CPU80386_instructionstepreaddirectdw(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(immaddr32&CPU[activeCPU].address_size),&instructionbufferd,1)) return;
 	CPU80386_internal_MOV32(&REG_EAX,instructionbufferd,1);/*MOV EAX,[imm16]*/
@@ -3311,8 +3311,8 @@ OPTINLINE void CPU80386_OPA1_32exec_addr32()
 	debugger_setcommand("MOV EAX,dword %s:[%08X]",CPU_textsegment(CPU_SEGMENT_DS),immaddr32);/*MOV AX,[imm32]*/
 	if (unlikely(CPU[activeCPU].modrmstep==0))
 	{
-		if (checkMMUaccess32(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(immaddr32&CPU[activeCPU].address_size),1|0x40,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) return;
-		if (checkMMUaccess32(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (immaddr32&CPU[activeCPU].address_size), 1|0xA0, getCPL(), !CPU_Address_size[activeCPU], 0 | 0x10)) return;
+		if (checkMMUaccess32(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(immaddr32&CPU[activeCPU].address_size),1|0x40,getCPL(),!CPU[activeCPU].CPU_Address_size,0|0x10)) return;
+		if (checkMMUaccess32(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (immaddr32&CPU[activeCPU].address_size), 1|0xA0, getCPL(), !CPU[activeCPU].CPU_Address_size, 0 | 0x10)) return;
 	}
 	if (CPU80386_instructionstepreaddirectdw(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(immaddr32&CPU[activeCPU].address_size),&instructionbufferd,0)) return;
 	CPU80386_internal_MOV32(&REG_EAX,instructionbufferd,1);/*MOV EAX,[imm32]*/ }
@@ -3357,28 +3357,28 @@ OPTINLINE void CPU80386_OPA3_32exec_addr32()
 //16-bits versions having a new 32-bit address size override!
 void CPU80386_OPA0_16()
 {
-	if (CPU_Address_size[activeCPU])
+	if (CPU[activeCPU].CPU_Address_size)
 		CPU80386_OPA0_8exec_addr32();
 	else
 		CPU8086_OPA0();
 }
 void CPU80386_OPA1_16()
 {
-	if (CPU_Address_size[activeCPU])
+	if (CPU[activeCPU].CPU_Address_size)
 		CPU80386_OPA1_16exec_addr32();
 	else
 		CPU8086_OPA1();
 }
 void CPU80386_OPA2_16()
 {
-	if (CPU_Address_size[activeCPU])
+	if (CPU[activeCPU].CPU_Address_size)
 		CPU80386_OPA2_8exec_addr32();
 	else
 		CPU8086_OPA2();
 }
 void CPU80386_OPA3_16()
 {
-	if (CPU_Address_size[activeCPU])
+	if (CPU[activeCPU].CPU_Address_size)
 		CPU80386_OPA3_16exec_addr32();
 	else
 		CPU8086_OPA3();
@@ -3386,14 +3386,14 @@ void CPU80386_OPA3_16()
 //32-bits versions having a new 32-bit address size override and operand size override, except 8-bit instructions!
 void CPU80386_OPA1_32()
 {
-	if (CPU_Address_size[activeCPU])
+	if (CPU[activeCPU].CPU_Address_size)
 		CPU80386_OPA1_32exec_addr32();
 	else
 		CPU80386_OPA1_32exec_addr16();
 }
 void CPU80386_OPA3_32()
 {
-	if (CPU_Address_size[activeCPU])
+	if (CPU[activeCPU].CPU_Address_size)
 		CPU80386_OPA3_32exec_addr32();
 	else
 		CPU80386_OPA3_32exec_addr16();
@@ -3407,7 +3407,7 @@ void CPU80386_OPA5()
 }
 void CPU80386_OPA7()
 {
-	debugger_setcommand(CPU_Address_size[activeCPU]?"CMPSD %s:[ESI],ES:[EDI]":"CMPSD %s:[SI],ES:[DI]",CPU_textsegment(CPU_SEGMENT_DS));/*CMPSD*/
+	debugger_setcommand(CPU[activeCPU].CPU_Address_size?"CMPSD %s:[ESI],ES:[EDI]":"CMPSD %s:[SI],ES:[DI]",CPU_textsegment(CPU_SEGMENT_DS));/*CMPSD*/
 	CPU80386_internal_CMPSD();/*CMPSD*/
 }
 void CPU80386_OPA9()
@@ -3587,7 +3587,7 @@ void CPU80386_OPD7()
 } //We depend on the address size instead!
 void CPU80386_OPE0()
 {
-	if (!CPU_Address_size[activeCPU])
+	if (!CPU[activeCPU].CPU_Address_size)
 	{
 		CPU8086_OPE0();
 		return; /* Use CX instead! */
@@ -3617,7 +3617,7 @@ void CPU80386_OPE0()
 }
 void CPU80386_OPE1()
 {
-	if (!CPU_Address_size[activeCPU])
+	if (!CPU[activeCPU].CPU_Address_size)
 	{
 		CPU8086_OPE1();
 		return; /* Use CX instead! */
@@ -3647,7 +3647,7 @@ void CPU80386_OPE1()
 }
 void CPU80386_OPE2()
 {
-	if (!CPU_Address_size[activeCPU])
+	if (!CPU[activeCPU].CPU_Address_size)
 	{
 		CPU8086_OPE2();
 		return; /* Use CX instead! */
@@ -3677,7 +3677,7 @@ void CPU80386_OPE2()
 }
 void CPU80386_OPE3()
 {
-	if (!CPU_Address_size[activeCPU])
+	if (!CPU[activeCPU].CPU_Address_size)
 	{
 		CPU8086_OPE3();
 		return; /* Use CX instead! */
@@ -5042,16 +5042,16 @@ void CPU386_OP6D()
 	static uint_32 data;
 	if (unlikely(CPU[activeCPU].internalinstructionstep==0))
 	{
-		if (checkMMUaccess32(CPU_SEGMENT_ES,REG_ES,(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),0|0x40,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) return; //Abort on fault!
-		if (checkMMUaccess32(CPU_SEGMENT_ES, REG_ES, (CPU_Address_size[activeCPU] ? REG_EDI : REG_DI), 0|0xA0, getCPL(), !CPU_Address_size[activeCPU], 0 | 0x10)) return; //Abort on fault!
+		if (checkMMUaccess32(CPU_SEGMENT_ES,REG_ES,(CPU[activeCPU].CPU_Address_size?REG_EDI:REG_DI),0|0x40,getCPL(),!CPU[activeCPU].CPU_Address_size,0|0x10)) return; //Abort on fault!
+		if (checkMMUaccess32(CPU_SEGMENT_ES, REG_ES, (CPU[activeCPU].CPU_Address_size ? REG_EDI : REG_DI), 0|0xA0, getCPL(), !CPU[activeCPU].CPU_Address_size, 0 | 0x10)) return; //Abort on fault!
 	}
 	if (CPU_PORT_IN_D(0,REG_DX, &data)) return; //Read the port!
 	CPUPROT1
-	if (CPU80386_instructionstepwritedirectdw(0,CPU_SEGMENT_ES,REG_ES,(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),data,!CPU_Address_size[activeCPU])) return; //INSD
+	if (CPU80386_instructionstepwritedirectdw(0,CPU_SEGMENT_ES,REG_ES,(CPU[activeCPU].CPU_Address_size?REG_EDI:REG_DI),data,!CPU[activeCPU].CPU_Address_size)) return; //INSD
 	CPUPROT1
 	if (FLAG_DF)
 	{
-		if (CPU_Address_size[activeCPU])
+		if (CPU[activeCPU].CPU_Address_size)
 		{
 			REG_EDI -= 4;
 		}
@@ -5062,7 +5062,7 @@ void CPU386_OP6D()
 	}
 	else
 	{
-		if (CPU_Address_size[activeCPU])
+		if (CPU[activeCPU].CPU_Address_size)
 		{
 			REG_EDI += 4;
 		}
@@ -5083,16 +5083,16 @@ void CPU386_OP6F()
 	static uint_32 data;
 	if (unlikely(CPU[activeCPU].modrmstep==0))
 	{
-		if (checkMMUaccess32(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI),1|0x40,getCPL(),!CPU_Address_size[activeCPU],0|0x10)) return; //Abort on fault!
-		if (checkMMUaccess32(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU] ? REG_ESI : REG_SI), 1|0xA0, getCPL(), !CPU_Address_size[activeCPU], 0 | 0x10)) return; //Abort on fault!
+		if (checkMMUaccess32(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU[activeCPU].CPU_Address_size?REG_ESI:REG_SI),1|0x40,getCPL(),!CPU[activeCPU].CPU_Address_size,0|0x10)) return; //Abort on fault!
+		if (checkMMUaccess32(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU[activeCPU].CPU_Address_size ? REG_ESI : REG_SI), 1|0xA0, getCPL(), !CPU[activeCPU].CPU_Address_size, 0 | 0x10)) return; //Abort on fault!
 	}
-	if (CPU80386_instructionstepreaddirectdw(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI),&data,!CPU_Address_size[activeCPU])) return; //OUTSD
+	if (CPU80386_instructionstepreaddirectdw(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU[activeCPU].CPU_Address_size?REG_ESI:REG_SI),&data,!CPU[activeCPU].CPU_Address_size)) return; //OUTSD
 	CPUPROT1
 	if (CPU_PORT_OUT_D(0,REG_DX,data)) return;    //OUTS DX,Xz
 	CPUPROT1
 	if (FLAG_DF)
 	{
-		if (CPU_Address_size[activeCPU])
+		if (CPU[activeCPU].CPU_Address_size)
 		{
 			REG_ESI -= 4;
 		}
@@ -5103,7 +5103,7 @@ void CPU386_OP6F()
 	}
 	else
 	{
-		if (CPU_Address_size[activeCPU])
+		if (CPU[activeCPU].CPU_Address_size)
 		{
 			REG_ESI += 4;
 		}

@@ -73,9 +73,9 @@ OPTINLINE void CPU186_internal_MOV16(word *dest, word val) //Copy of 8086 versio
 		{
 			if (custommem)
 			{
-				if (checkMMUaccess16(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (customoffset&CPU[activeCPU].address_size),0|0x40,getCPL(),!CPU_Address_size[activeCPU],0|0x8)) return; //Abort on fault!
-				if (checkMMUaccess16(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (customoffset&CPU[activeCPU].address_size), 0|0xA0, getCPL(), !CPU_Address_size[activeCPU], 0 | 0x8)) return; //Abort on fault!
-				if (CPU8086_internal_stepwritedirectw(0,CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), customoffset, val,!CPU_Address_size[activeCPU])) return; //Write to memory directly!
+				if (checkMMUaccess16(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (customoffset&CPU[activeCPU].address_size),0|0x40,getCPL(),!CPU[activeCPU].CPU_Address_size,0|0x8)) return; //Abort on fault!
+				if (checkMMUaccess16(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (customoffset&CPU[activeCPU].address_size), 0|0xA0, getCPL(), !CPU[activeCPU].CPU_Address_size, 0 | 0x8)) return; //Abort on fault!
+				if (CPU8086_internal_stepwritedirectw(0,CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), customoffset, val,!CPU[activeCPU].CPU_Address_size)) return; //Write to memory directly!
 				CPU_apply286cycles(); //Apply the 80286+ cycles!
 			}
 			else //ModR/M?
@@ -419,14 +419,14 @@ void CPU186_OP6C()
 	debugger_setcommand("INSB");
 	if (blockREP) return; //Disabled REP!
 	static byte data;
-	if (unlikely(CPU[activeCPU].internalinstructionstep==0)) if (checkMMUaccess(CPU_SEGMENT_ES,REG_ES,(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),0,getCPL(),!CPU_Address_size[activeCPU],0)) return; //Abort on fault!
+	if (unlikely(CPU[activeCPU].internalinstructionstep==0)) if (checkMMUaccess(CPU_SEGMENT_ES,REG_ES,(CPU[activeCPU].CPU_Address_size?REG_EDI:REG_DI),0,getCPL(),!CPU[activeCPU].CPU_Address_size,0)) return; //Abort on fault!
 	if (CPU_PORT_IN_B(0,REG_DX,&data)) return; //Read the port!
 	CPUPROT1
-	if (CPU8086_instructionstepwritedirectb(0,CPU_SEGMENT_ES,REG_ES,(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),data,!CPU_Address_size[activeCPU])) return; //INSB
+	if (CPU8086_instructionstepwritedirectb(0,CPU_SEGMENT_ES,REG_ES,(CPU[activeCPU].CPU_Address_size?REG_EDI:REG_DI),data,!CPU[activeCPU].CPU_Address_size)) return; //INSB
 	CPUPROT1
 	if (FLAG_DF)
 	{
-		if (CPU_Address_size[activeCPU])
+		if (CPU[activeCPU].CPU_Address_size)
 		{
 			--REG_EDI;
 		}
@@ -437,7 +437,7 @@ void CPU186_OP6C()
 	}
 	else
 	{
-		if (CPU_Address_size[activeCPU])
+		if (CPU[activeCPU].CPU_Address_size)
 		{
 			++REG_EDI;
 		}
@@ -458,16 +458,16 @@ void CPU186_OP6D()
 	static word data;
 	if (unlikely(CPU[activeCPU].internalinstructionstep==0))
 	{
-		if (checkMMUaccess16(CPU_SEGMENT_ES,REG_ES,(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),0|0x40,getCPL(),!CPU_Address_size[activeCPU],0|0x8)) return; //Abort on fault!
-		if (checkMMUaccess16(CPU_SEGMENT_ES,REG_ES, (CPU_Address_size[activeCPU] ? REG_EDI : REG_DI), 0|0xA0, getCPL(), !CPU_Address_size[activeCPU], 0 | 0x8)) return; //Abort on fault!
+		if (checkMMUaccess16(CPU_SEGMENT_ES,REG_ES,(CPU[activeCPU].CPU_Address_size?REG_EDI:REG_DI),0|0x40,getCPL(),!CPU[activeCPU].CPU_Address_size,0|0x8)) return; //Abort on fault!
+		if (checkMMUaccess16(CPU_SEGMENT_ES,REG_ES, (CPU[activeCPU].CPU_Address_size ? REG_EDI : REG_DI), 0|0xA0, getCPL(), !CPU[activeCPU].CPU_Address_size, 0 | 0x8)) return; //Abort on fault!
 	}
 	if (CPU_PORT_IN_W(0,REG_DX, &data)) return; //Read the port!
 	CPUPROT1
-	if (CPU8086_instructionstepwritedirectw(0,CPU_SEGMENT_ES,REG_ES,(CPU_Address_size[activeCPU]?REG_EDI:REG_DI),data,!CPU_Address_size[activeCPU])) return; //INSW
+	if (CPU8086_instructionstepwritedirectw(0,CPU_SEGMENT_ES,REG_ES,(CPU[activeCPU].CPU_Address_size?REG_EDI:REG_DI),data,!CPU[activeCPU].CPU_Address_size)) return; //INSW
 	CPUPROT1
 	if (FLAG_DF)
 	{
-		if (CPU_Address_size[activeCPU])
+		if (CPU[activeCPU].CPU_Address_size)
 		{
 			REG_EDI -= 2;
 		}
@@ -478,7 +478,7 @@ void CPU186_OP6D()
 	}
 	else
 	{
-		if (CPU_Address_size[activeCPU])
+		if (CPU[activeCPU].CPU_Address_size)
 		{
 			REG_EDI += 2;
 		}
@@ -497,14 +497,14 @@ void CPU186_OP6E()
 	debugger_setcommand("OUTSB");
 	if (blockREP) return; //Disabled REP!
 	static byte data;
-	if (unlikely(CPU[activeCPU].modrmstep==0)) if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI),1,getCPL(),!CPU_Address_size[activeCPU],0)) return; //Abort on fault!
-	if (CPU8086_instructionstepreaddirectb(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI),&data,!CPU_Address_size[activeCPU])) return; //OUTSB
+	if (unlikely(CPU[activeCPU].modrmstep==0)) if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU[activeCPU].CPU_Address_size?REG_ESI:REG_SI),1,getCPL(),!CPU[activeCPU].CPU_Address_size,0)) return; //Abort on fault!
+	if (CPU8086_instructionstepreaddirectb(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU[activeCPU].CPU_Address_size?REG_ESI:REG_SI),&data,!CPU[activeCPU].CPU_Address_size)) return; //OUTSB
 	CPUPROT1
 	if (CPU_PORT_OUT_B(0,REG_DX,data)) return; //OUTS DX,Xb
 	CPUPROT1
 	if (FLAG_DF)
 	{
-		if (CPU_Address_size[activeCPU])
+		if (CPU[activeCPU].CPU_Address_size)
 		{
 			--REG_ESI;
 		}
@@ -515,7 +515,7 @@ void CPU186_OP6E()
 	}
 	else
 	{
-		if (CPU_Address_size[activeCPU])
+		if (CPU[activeCPU].CPU_Address_size)
 		{
 			++REG_ESI;
 		}
@@ -536,16 +536,16 @@ void CPU186_OP6F()
 	static word data;
 	if (unlikely(CPU[activeCPU].modrmstep==0))
 	{
-		if (checkMMUaccess16(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI),1|0x40,getCPL(),!CPU_Address_size[activeCPU],0|0x8)) return; //Abort on fault!
-		if (checkMMUaccess16(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU_Address_size[activeCPU] ? REG_ESI : REG_SI), 1|0xA0, getCPL(), !CPU_Address_size[activeCPU], 0 | 0x8)) return; //Abort on fault!
+		if (checkMMUaccess16(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU[activeCPU].CPU_Address_size?REG_ESI:REG_SI),1|0x40,getCPL(),!CPU[activeCPU].CPU_Address_size,0|0x8)) return; //Abort on fault!
+		if (checkMMUaccess16(CPU_segment_index(CPU_SEGMENT_DS), CPU_segment(CPU_SEGMENT_DS), (CPU[activeCPU].CPU_Address_size ? REG_ESI : REG_SI), 1|0xA0, getCPL(), !CPU[activeCPU].CPU_Address_size, 0 | 0x8)) return; //Abort on fault!
 	}
-	if (CPU8086_instructionstepreaddirectw(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU_Address_size[activeCPU]?REG_ESI:REG_SI),&data,!CPU_Address_size[activeCPU])) return; //OUTSW
+	if (CPU8086_instructionstepreaddirectw(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU[activeCPU].CPU_Address_size?REG_ESI:REG_SI),&data,!CPU[activeCPU].CPU_Address_size)) return; //OUTSW
 	CPUPROT1
 	if (CPU_PORT_OUT_W(0,REG_DX,data)) return;    //OUTS DX,Xz
 	CPUPROT1
 	if (FLAG_DF)
 	{
-		if (CPU_Address_size[activeCPU])
+		if (CPU[activeCPU].CPU_Address_size)
 		{
 			REG_ESI -= 2;
 		}
@@ -556,7 +556,7 @@ void CPU186_OP6F()
 	}
 	else
 	{
-		if (CPU_Address_size[activeCPU])
+		if (CPU[activeCPU].CPU_Address_size)
 		{
 			REG_ESI += 2;
 		}

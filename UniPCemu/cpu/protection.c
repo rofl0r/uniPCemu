@@ -1242,7 +1242,7 @@ byte CPU_segmentWritten_protectedmode_JMPCALL(word *value, word isJMPorCALL, SEG
 	}
 	else if (isDifferentCPL == 0) //Unchanging CPL? Take call size from operand size!
 	{
-		CPU[activeCPU].CallGateSize = CPU_Operand_size[activeCPU]; //Use the call instruction size!
+		CPU[activeCPU].CallGateSize = CPU[activeCPU].CPU_Operand_size; //Use the call instruction size!
 	}
 	//Else, call by call gate size!
 
@@ -1294,7 +1294,7 @@ byte CPU_segmentWritten_protectedmode_RETF(byte oldCPL, word value, word isJMPor
 		}
 		if (oldCPL < getRPL(value)) //Lowering privilege?
 		{
-			if (checkStackAccess(2, 0, CPU_Operand_size[activeCPU])) return 1; //Stack fault?
+			if (checkStackAccess(2, 0, CPU[activeCPU].CPU_Operand_size)) return 1; //Stack fault?
 		}
 	}
 
@@ -1302,7 +1302,7 @@ byte CPU_segmentWritten_protectedmode_RETF(byte oldCPL, word value, word isJMPor
 	{
 		//Now, return to the old prvilege level!
 		hascallinterrupttaken_type = RET_DIFFERENTLEVEL; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task
-		if (CPU_Operand_size[activeCPU])
+		if (CPU[activeCPU].CPU_Operand_size)
 		{
 			if (CPU80386_internal_POPdw(6, &segmentWritten_tempESP))
 			{
@@ -1320,7 +1320,7 @@ byte CPU_segmentWritten_protectedmode_RETF(byte oldCPL, word value, word isJMPor
 				return 1; //POP SP!
 			}
 		}
-		if (CPU8086_internal_POPw(8, &segmentWritten_tempSS, CPU_Operand_size[activeCPU]))
+		if (CPU8086_internal_POPw(8, &segmentWritten_tempSS, CPU[activeCPU].CPU_Operand_size))
 		{
 			//CPU[activeCPU].CPL = oldCPL; //Restore CPL for continuing!
 			is_stackswitching = 1; //We're stack switching!
@@ -1329,7 +1329,7 @@ byte CPU_segmentWritten_protectedmode_RETF(byte oldCPL, word value, word isJMPor
 		is_stackswitching = 0; //We've finished stack switching!
 		//Privilege change!
 		if (segmentWritten(CPU_SEGMENT_SS, segmentWritten_tempSS, (getRPL(value) << 13) | 0x1000)) return 1; //Back to our calling stack!
-		if (CPU_Operand_size[activeCPU])
+		if (CPU[activeCPU].CPU_Operand_size)
 		{
 			REG_ESP = segmentWritten_tempESP; //POP ESP!
 		}
@@ -1356,17 +1356,17 @@ byte CPU_segmentWritten_protectedmode_IRET(byte oldCPL, word value, word isJMPor
 	uint_32 tempesp;
 	if (getRPL(value) > oldCPL) //Stack needs to be restored when returning to outer privilege level!
 	{
-		if (checkStackAccess(2, 0, CPU_Operand_size[activeCPU])) return 1; //First level IRET data?
-		if (CPU_Operand_size[activeCPU])
+		if (checkStackAccess(2, 0, CPU[activeCPU].CPU_Operand_size)) return 1; //First level IRET data?
+		if (CPU[activeCPU].CPU_Operand_size)
 		{
 			tempesp = CPU_POP32();
 		}
 		else
 		{
-			tempesp = CPU_POP16(CPU_Operand_size[activeCPU]);
+			tempesp = CPU_POP16(CPU[activeCPU].CPU_Operand_size);
 		}
 
-		segmentWritten_tempSS = CPU_POP16(CPU_Operand_size[activeCPU]);
+		segmentWritten_tempSS = CPU_POP16(CPU[activeCPU].CPU_Operand_size);
 
 		if (segmentWritten(CPU_SEGMENT_SS, segmentWritten_tempSS, (getRPL(value) << 13) | 0x1000)) return 1; //Back to our calling stack!
 		if (STACK_SEGMENT_DESCRIPTOR_B_BIT()) //32-bit stack write (undocumented)?
@@ -1432,7 +1432,7 @@ byte CPU_segmentWritten_protectedmode_CS(word isJMPorCALL)
 	REG_EIP = destEIP; //The current OPCode: just jump to the address specified by the descriptor OR command!
 	if (((isJMPorCALL & 0x1FF) == 4) || ((isJMPorCALL & 0x1FF) == 3)) //IRET/RETF required limit check!
 	{
-		if (CPU_MMU_checkrights(CPU_SEGMENT_CS, REG_CS, REG_EIP, 3, &CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS], 2, CPU_Operand_size[activeCPU])) //Limit broken or protection fault?
+		if (CPU_MMU_checkrights(CPU_SEGMENT_CS, REG_CS, REG_EIP, 3, &CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS], 2, CPU[activeCPU].CPU_Operand_size)) //Limit broken or protection fault?
 		{
 			THROWDESCGP(0, 0, 0); //#GP(0) when out of limit range!
 			return 1; //Abort on fault!
@@ -1623,7 +1623,7 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 	{
 		if ((isJMPorCALL&0x1FF) == 2) //CALL needs pushed data?
 		{
-			if ((CPU_Operand_size[activeCPU]) && (EMULATED_CPU>=CPU_80386)) //32-bit?
+			if ((CPU[activeCPU].CPU_Operand_size) && (EMULATED_CPU>=CPU_80386)) //32-bit?
 			{
 				if (CPU[activeCPU].internalinstructionstep==0) if (checkStackAccess(2, 1, 1)) return 1; //We're trying to push on the stack!
 				uint_32 pushingval;
@@ -1675,7 +1675,7 @@ byte segmentWritten(int segment, word value, word isJMPorCALL) //A segment regis
 			}
 			CPU_calcSegmentPrecalcs(1, &CPU[activeCPU].SEG_DESCRIPTOR[segment]); //Calculate any precalcs for the segment descriptor(do it here since we don't load descriptors externally)!
 			REG_EIP = destEIP; //... The current OPCode: just jump to the address!
-			if (CPU_MMU_checkrights(CPU_SEGMENT_CS, REG_CS, REG_EIP, 3, &CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS], 2, CPU_Operand_size[activeCPU])) //Limit broken or protection fault?
+			if (CPU_MMU_checkrights(CPU_SEGMENT_CS, REG_CS, REG_EIP, 3, &CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS], 2, CPU[activeCPU].CPU_Operand_size)) //Limit broken or protection fault?
 			{
 				THROWDESCGP(0, 0, 0); //#GP(0) when out of limit range!
 				return 1; //Abort on fault!

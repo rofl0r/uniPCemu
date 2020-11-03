@@ -47,7 +47,7 @@ extern byte advancedlog; //Advanced log setting
 //whichregister: 1=R/M, other=register!
 OPTINLINE byte modrm_useSIB(MODRM_PARAMS *params, int size) //Use SIB byte?
 {
-	if (CPU_Address_size[activeCPU]) //32-bit mode?
+	if (CPU[activeCPU].CPU_Address_size) //32-bit mode?
 	{
 		if ((MODRM_RM(params->modrm) == 4) && (MODRM_MOD(params->modrm) != 3)) //Have a SIB byte?
 		{
@@ -70,7 +70,7 @@ OPTINLINE byte modrm_useDisplacement(MODRM_PARAMS *params, int size)
 
 	if (((params->specialflags==3) || (params->specialflags==4) || (params->specialflags==7))) return 0; //No displacement on register-only operands(forced to mode 3): REQUIRED FOR SOME OPCODES!!!
 
-	if (CPU_Address_size[activeCPU]==0)   //16 bits operand size?
+	if (CPU[activeCPU].CPU_Address_size==0)   //16 bits operand size?
 	{
 		//figure out 16 bit displacement size
 		switch (MODRM_MOD(params->modrm)) //MOD?
@@ -151,7 +151,7 @@ void reset_modrmall()
 
 void modrm_notdecoded(MODRM_PARAMS *params)
 {
-	dolog("modrm", "Not properly loaded and used with opcode: is32:%i 0F: %i OP:%02X R/M:%02X", CPU_Operand_size[activeCPU], CPU[activeCPU].is0Fopcode, CPU[activeCPU].currentopcode, params->modrm); //Log the invalid access!
+	dolog("modrm", "Not properly loaded and used with opcode: is32:%i 0F: %i OP:%02X R/M:%02X", CPU[activeCPU].CPU_Operand_size, CPU[activeCPU].is0Fopcode, CPU[activeCPU].currentopcode, params->modrm); //Log the invalid access!
 }
 
 byte modrm_check8(MODRM_PARAMS *params, int whichregister, byte isread)
@@ -1343,7 +1343,7 @@ void modrm_decode32(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 
 	//Determine R/M (reg2=>RM) pointer!
 
-	if (CPU_Address_size[activeCPU]==0) //We need to decode as a 16-bit pointer instead?
+	if (CPU[activeCPU].CPU_Address_size==0) //We need to decode as a 16-bit pointer instead?
 	{
 		modrm_decode16(params,result,whichregister); //Decode 16-bit pointer!
 		return; //Don't decode ourselves!
@@ -1731,7 +1731,7 @@ void modrm_decode16(MODRM_PARAMS *params, MODRM_PTR *result, byte whichregister)
 
 	//Determine R/M (reg2=>RM) pointer!
 
-	if (CPU_Address_size[activeCPU]) //We need to decode as a 32-bit pointer instead?
+	if (CPU[activeCPU].CPU_Address_size) //We need to decode as a 32-bit pointer instead?
 	{
 		modrm_decode32(params,result,whichregister); //Decode 32-bit pointer!
 		return; //Don't decode ourselves!

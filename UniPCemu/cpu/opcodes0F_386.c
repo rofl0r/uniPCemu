@@ -95,7 +95,7 @@ void CPU386_OP0F00() //Various extended 286+ instructions GRP opcode.
 	switch (thereg) //What function?
 	{
 	case 0: //SLDT
-		if ((CPU_Operand_size[activeCPU]==0) || (modrm_ismemory(params))) //Force 16-bit?
+		if ((CPU[activeCPU].CPU_Operand_size==0) || (modrm_ismemory(params))) //Force 16-bit?
 		{
 			CPU286_OP0F00(); //Same as 80286!
 			return;
@@ -115,7 +115,7 @@ void CPU386_OP0F00() //Various extended 286+ instructions GRP opcode.
 		CPU_apply286cycles(); //Apply the 80286+ cycles!
 		break;
 	case 1: //STR
-		if ((CPU_Operand_size[activeCPU]==0) || (modrm_ismemory(params))) //Force 16-bit?
+		if ((CPU[activeCPU].CPU_Operand_size==0) || (modrm_ismemory(params))) //Force 16-bit?
 		{
 			CPU286_OP0F00(); //Same as 80286!
 			return;
@@ -146,7 +146,7 @@ void CPU386_OP0F01() //Various extended 286+ instruction GRP opcode.
 	switch (thereg) //What function?
 	{
 	case 0: //SGDT
-		if (CPU_Operand_size[activeCPU] == 0) //16-bit?
+		if (CPU[activeCPU].CPU_Operand_size == 0) //16-bit?
 		{
 			CPU286_OP0F01(); //Same as 80286!
 			return;
@@ -179,7 +179,7 @@ void CPU386_OP0F01() //Various extended 286+ instruction GRP opcode.
 		modrm_addoffset = 0; //Add no bytes to the offset!
 		break;
 	case 1: //SIDT
-		if (CPU_Operand_size[activeCPU] == 0) //16-bit?
+		if (CPU[activeCPU].CPU_Operand_size == 0) //16-bit?
 		{
 			CPU286_OP0F01(); //Same as 80286!
 			return;
@@ -215,7 +215,7 @@ void CPU386_OP0F01() //Various extended 286+ instruction GRP opcode.
 		modrm_addoffset = 0; //Add no bytes to the offset!
 		break;
 	case 2: //LGDT
-		if (CPU_Operand_size[activeCPU]==0) //16-bit version?
+		if (CPU[activeCPU].CPU_Operand_size==0) //16-bit version?
 		{
 			CPU286_OP0F01(); //Redirect 16-bits!
 			return;
@@ -258,7 +258,7 @@ void CPU386_OP0F01() //Various extended 286+ instruction GRP opcode.
 		modrm_addoffset = 0; //Add no bytes to the offset!
 		break;
 	case 3: //LIDT
-		if (CPU_Operand_size[activeCPU] == 0) //16-bit version?
+		if (CPU[activeCPU].CPU_Operand_size == 0) //16-bit version?
 		{
 			CPU286_OP0F01(); //Redirect 16-bits!
 			return;
@@ -301,7 +301,7 @@ void CPU386_OP0F01() //Various extended 286+ instruction GRP opcode.
 		modrm_addoffset = 0; //Add no bytes to the offset!
 		break;
 	case 4: //SMSW
-		if ((CPU_Operand_size[activeCPU]==0) || (modrm_ismemory(params))) //Force 16-bit?
+		if ((CPU[activeCPU].CPU_Operand_size==0) || (modrm_ismemory(params))) //Force 16-bit?
 		{
 			CPU286_OP0F01(); //Same as 80286!
 			return;
@@ -1655,10 +1655,10 @@ void CPU80386_OP0FA0()
 	modrm_generateInstructionTEXT("PUSH FS",0,0,PARAM_NONE);/*PUSH FS*/
 	if (unlikely(CPU[activeCPU].stackchecked==0))
 	{
-		if (checkStackAccess(1,1,CPU_Operand_size[activeCPU]|2)) return;
+		if (checkStackAccess(1,1,CPU[activeCPU].CPU_Operand_size|2)) return;
 		++CPU[activeCPU].stackchecked;
 	}
-	if (CPU8086_PUSHw(0,&REG_FS,CPU_Operand_size[activeCPU]|2)) return;/*PUSH FS*/
+	if (CPU8086_PUSHw(0,&REG_FS,CPU[activeCPU].CPU_Operand_size|2)) return;/*PUSH FS*/
 	CPU_apply286cycles(); /* Apply cycles */
 } //PUSH FS
 void CPU80386_OP0FA1()
@@ -1666,10 +1666,10 @@ void CPU80386_OP0FA1()
 	modrm_generateInstructionTEXT("POP FS",0,0,PARAM_NONE);/*POP FS*/
 	if (unlikely(CPU[activeCPU].stackchecked==0))
 	{
-		if (checkStackAccess(1,0,CPU_Operand_size[activeCPU]|2)) return;
+		if (checkStackAccess(1,0,CPU[activeCPU].CPU_Operand_size|2)) return;
 		++CPU[activeCPU].stackchecked;
 	}
-	if (CPU8086_POPw(0,&instructionbufferw,CPU_Operand_size[activeCPU]|2)) return;
+	if (CPU8086_POPw(0,&instructionbufferw,CPU[activeCPU].CPU_Operand_size|2)) return;
 	if (segmentWritten(CPU_SEGMENT_FS,instructionbufferw,0)) return;
 	CPU_apply286cycles(); /* Apply cycles */
 } //POP FS
@@ -1679,10 +1679,10 @@ void CPU80386_OP0FA8()
 	modrm_generateInstructionTEXT("PUSH GS",0,0,PARAM_NONE);/*PUSH GS*/
 	if (unlikely(CPU[activeCPU].stackchecked==0))
 	{
-		if (checkStackAccess(1,1,CPU_Operand_size[activeCPU]|2)) return;
+		if (checkStackAccess(1,1,CPU[activeCPU].CPU_Operand_size|2)) return;
 		++CPU[activeCPU].stackchecked;
 	}
-	if (CPU8086_PUSHw(0,&REG_GS,CPU_Operand_size[activeCPU]|2)) return;/*PUSH FS*/
+	if (CPU8086_PUSHw(0,&REG_GS,CPU[activeCPU].CPU_Operand_size|2)) return;/*PUSH FS*/
 	CPU_apply286cycles(); /* Apply cycles */
 } //PUSH GS
 void CPU80386_OP0FA9()
@@ -1690,10 +1690,10 @@ void CPU80386_OP0FA9()
 	modrm_generateInstructionTEXT("POP GS",0,0,PARAM_NONE);/*POP GS*/
 	if (unlikely(CPU[activeCPU].stackchecked==0))
 	{
-		if (checkStackAccess(1,0,CPU_Operand_size[activeCPU]|2)) return;
+		if (checkStackAccess(1,0,CPU[activeCPU].CPU_Operand_size|2)) return;
 		++CPU[activeCPU].stackchecked;
 	}
-	if (CPU8086_POPw(0,&instructionbufferw,CPU_Operand_size[activeCPU]|2)) return;
+	if (CPU8086_POPw(0,&instructionbufferw,CPU[activeCPU].CPU_Operand_size|2)) return;
 	if (segmentWritten(CPU_SEGMENT_GS,instructionbufferw,0)) return;
 	CPU_apply286cycles(); /* Apply cycles */
 } //POP GS
