@@ -1192,7 +1192,7 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates, byte bus_waitstates)
 							BIU[activeCPU].datawritesizeexpected = 1; //Expect 1 byte for all other bytes!
 							memory_datawritesize = 1; //1 byte from now on!
 						}
-						else if (useIPSclock) //Data already fully written in IPS clocking mode?
+						else if (useIPSclock && (BIU[activeCPU].datawritesizeexpected==BIU[activeCPU].newtransfer_size)) //Data already fully written in IPS clocking mode?
 						{
 							if (BIU_response(1)) //Result given? We're giving OK!
 							{
