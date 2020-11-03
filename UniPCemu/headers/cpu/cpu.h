@@ -1082,6 +1082,7 @@ typedef struct
 	byte tempCF2;
 
 	VAL32Splitter temp1, temp2, temp3, temp4, temp5; //All temporary values!
+	VAL64Splitter temp1l, temp2l, temp3l, temp4l, temp5l; //All temporary values!
 	uint_32 temp32, tempaddr32; //Defined in opcodes_8086.c
 	word temp8Edata;
 	uint_32 oper1d, oper2d; //DWord variants!
@@ -1151,7 +1152,7 @@ typedef struct
 	byte CPU_Address_size; //Address size for this opcode!
 
 	//Internal prefix table for below functions!
-	byte CPU_prefixes[2][32]; //All prefixes, packed in a bitfield!
+	byte CPU_prefixes[32]; //All prefixes, packed in a bitfield!
 	byte OPbuffer[256]; //A large opcode buffer!
 	word OPlength; //The length of the opcode buffer!
 	uint_32 oldCR0;
@@ -1226,6 +1227,8 @@ typedef struct
 
 	uint_32 CALLGATE_NUMARGUMENTS; //The amount of arguments of the call gate!
 	byte calledinterruptnumber; //Called interrupt number for unkint funcs!
+	byte custommem; //Custom memory address used?
+	uint_32 customoffset; //What custom memory address used!
 } CPU_type;
 
 #ifndef IS_CPU

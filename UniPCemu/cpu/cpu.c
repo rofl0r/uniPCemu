@@ -475,19 +475,19 @@ void CPU_CPUID()
 //x86 IMUL for opcodes 69h/6Bh.
 void CPU_CIMUL(uint_32 base, byte basesize, uint_32 multiplicant, byte multiplicantsize, uint_32 *result, byte resultsize)
 {
-	temp1.val64 = signextend64(base,basesize); //Read reg instead! Word register = Word register * imm16!
-	temp2.val64 = signextend64(multiplicant,multiplicantsize); //Immediate word is second/third parameter!
-	temp3.val64s = temp1.val64s; //Load and...
-	temp3.val64s *= temp2.val64s; //Signed multiplication!
-	temp2.val64 = signextend64(temp3.val64,resultsize); //For checking for overflow and giving the correct result!
+	CPU[activeCPU].temp1l.val64 = signextend64(base,basesize); //Read reg instead! Word register = Word register * imm16!
+	CPU[activeCPU].temp2l.val64 = signextend64(multiplicant,multiplicantsize); //Immediate word is second/third parameter!
+	CPU[activeCPU].temp3l.val64s = CPU[activeCPU].temp1l.val64s; //Load and...
+	CPU[activeCPU].temp3l.val64s *= CPU[activeCPU].temp2l.val64s; //Signed multiplication!
+	CPU[activeCPU].temp2l.val64 = signextend64(CPU[activeCPU].temp3l.val64,resultsize); //For checking for overflow and giving the correct result!
 	switch (resultsize) //What result size?
 	{
 	default:
-	case 8: flag_log8((byte)temp2.val64); break;
-	case 16: flag_log16((word)temp2.val64); break;
-	case 32: flag_log32((uint_32)temp2.val64); break;
+	case 8: flag_log8((byte)CPU[activeCPU].temp2l.val64); break;
+	case 16: flag_log16((word)CPU[activeCPU].temp2l.val64); break;
+	case 32: flag_log32((uint_32)CPU[activeCPU].temp2l.val64); break;
 	}
-	if (temp3.val64s==temp2.val64s) FLAGW_OF(0); //Overflow flag is cleared when high word is a sign extension of the low word(values are equal)!
+	if (CPU[activeCPU].temp3l.val64s== CPU[activeCPU].temp2l.val64s) FLAGW_OF(0); //Overflow flag is cleared when high word is a sign extension of the low word(values are equal)!
 	else FLAGW_OF(1);
 	FLAGW_CF(FLAG_OF); //OF=CF!
 	/*
@@ -495,7 +495,7 @@ void CPU_CIMUL(uint_32 base, byte basesize, uint_32 multiplicant, byte multiplic
 	FLAGW_PF(parity[temp3.val16&0xFF]); //Parity flag!
 	FLAGW_ZF((temp3.val64==0)?1:0); //Set the zero flag!	
 	*/
-	*result = (uint_32)temp2.val64; //Save the result, truncated to used size as 64-bit sign extension!
+	*result = (uint_32)CPU[activeCPU].temp2l.val64; //Save the result, truncated to used size as 64-bit sign extension!
 }
 
 //Now the code!
@@ -504,7 +504,7 @@ void CPU_JMPrel(int_32 reladdr, byte useAddressSize)
 {
 	REG_EIP += reladdr; //Apply to EIP!
 	REG_EIP &= CPU_EIPmask(useAddressSize); //Only 16-bits when required!
-	if (CPU_MMU_checkrights_jump(CPU_SEGMENT_CS,REG_CS,REG_EIP,3,&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS],2,CPU_Operand_size[activeCPU])) //Limit broken or protection fault?
+	if (CPU_MMU_checkrights_jump(CPU_SEGMENT_CS,REG_CS,REG_EIP,3,&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS],2, CPU[activeCPU].CPU_Operand_size)) //Limit broken or protection fault?
 	{
 		THROWDESCGP(0,0,0); //#GP(0) when out of limit range!
 	}
@@ -514,7 +514,7 @@ void CPU_JMPabs(uint_32 addr, byte useAddressSize)
 {
 	REG_EIP = addr; //Apply to EIP!
 	REG_EIP &= CPU_EIPmask(useAddressSize); //Only 16-bits when required!
-	if (CPU_MMU_checkrights_jump(CPU_SEGMENT_CS,REG_CS,REG_EIP,3,&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS],2,CPU_Operand_size[activeCPU])) //Limit broken or protection fault?
+	if (CPU_MMU_checkrights_jump(CPU_SEGMENT_CS,REG_CS,REG_EIP,3,&CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS],2, CPU[activeCPU].CPU_Operand_size)) //Limit broken or protection fault?
 	{
 		THROWDESCGP(0,0,0); //#GP(0) when out of limit range!
 	}
@@ -522,7 +522,7 @@ void CPU_JMPabs(uint_32 addr, byte useAddressSize)
 
 uint_32 CPU_EIPmask(byte useAddressSize)
 {
-	if (((CPU_Operand_size[activeCPU]==0) && (useAddressSize==0)) || ((CPU_Address_size[activeCPU]==0) && useAddressSize)) //16-bit movement?
+	if (((CPU[activeCPU].CPU_Operand_size==0) && (useAddressSize==0)) || ((CPU[activeCPU].CPU_Address_size==0) && useAddressSize)) //16-bit movement?
 	{
 		return 0xFFFF; //16-bit mask!
 	}
@@ -539,10 +539,10 @@ void modrm_debugger8(MODRM_PARAMS *theparams, byte whichregister1, byte whichreg
 {
 	if (cpudebugger)
 	{
-		cleardata(&modrm_param1[0],sizeof(modrm_param1));
-		cleardata(&modrm_param2[0],sizeof(modrm_param2));
-		modrm_text8(theparams,whichregister1,&modrm_param1[0]);
-		modrm_text8(theparams,whichregister2,&modrm_param2[0]);
+		cleardata(&CPU[activeCPU].modrm_param1[0],sizeof(CPU[activeCPU].modrm_param1));
+		cleardata(&CPU[activeCPU].modrm_param2[0],sizeof(CPU[activeCPU].modrm_param2));
+		modrm_text8(theparams,whichregister1,&CPU[activeCPU].modrm_param1[0]);
+		modrm_text8(theparams,whichregister2,&CPU[activeCPU].modrm_param2[0]);
 	}
 }
 
@@ -550,10 +550,10 @@ void modrm_debugger16(MODRM_PARAMS *theparams, byte whichregister1, byte whichre
 {
 	if (cpudebugger)
 	{
-		cleardata(&modrm_param1[0],sizeof(modrm_param1));
-		cleardata(&modrm_param2[0],sizeof(modrm_param2));
-		modrm_text16(theparams,whichregister1,&modrm_param1[0]);
-		modrm_text16(theparams,whichregister2,&modrm_param2[0]);
+		cleardata(&CPU[activeCPU].modrm_param1[0],sizeof(CPU[activeCPU].modrm_param1));
+		cleardata(&CPU[activeCPU].modrm_param2[0],sizeof(CPU[activeCPU].modrm_param2));
+		modrm_text16(theparams,whichregister1,&CPU[activeCPU].modrm_param1[0]);
+		modrm_text16(theparams,whichregister2,&CPU[activeCPU].modrm_param2[0]);
 	}
 }
 
@@ -561,10 +561,10 @@ void modrm_debugger32(MODRM_PARAMS *theparams, byte whichregister1, byte whichre
 {
 	if (cpudebugger)
 	{
-		cleardata(&modrm_param1[0],sizeof(modrm_param1));
-		cleardata(&modrm_param2[0],sizeof(modrm_param2));
-		modrm_text32(theparams,whichregister1,&modrm_param1[0]);
-		modrm_text32(theparams,whichregister2,&modrm_param2[0]);
+		cleardata(&CPU[activeCPU].modrm_param1[0],sizeof(CPU[activeCPU].modrm_param1));
+		cleardata(&CPU[activeCPU].modrm_param2[0],sizeof(CPU[activeCPU].modrm_param2));
+		modrm_text32(theparams,whichregister1,&CPU[activeCPU].modrm_param1[0]);
+		modrm_text32(theparams,whichregister2,&CPU[activeCPU].modrm_param2[0]);
 	}
 }
 
@@ -612,13 +612,13 @@ void modrm_generateInstructionTEXT(char *instruction, byte debuggersize, uint_32
 				switch (debuggersize)
 				{
 					case 8:
-						modrm_debugger8(&params,0,1);
+						modrm_debugger8(&CPU[activeCPU].params,0,1);
 						break;
 					case 16:
-						modrm_debugger16(&params,0,1);
+						modrm_debugger16(&CPU[activeCPU].params,0,1);
 						break;
 					case 32:
-						modrm_debugger32(&params,0,1);
+						modrm_debugger32(&CPU[activeCPU].params,0,1);
 						break;
 					default: //None?
 						//Don't use modr/m!
@@ -638,13 +638,13 @@ void modrm_generateInstructionTEXT(char *instruction, byte debuggersize, uint_32
 				switch (debuggersize)
 				{
 					case 8:
-						modrm_debugger8(&params,MODRM_src0,MODRM_src1);
+						modrm_debugger8(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0, CPU[activeCPU].MODRM_src1);
 						break;
 					case 16:
-						modrm_debugger16(&params,MODRM_src0,MODRM_src1);
+						modrm_debugger16(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0, CPU[activeCPU].MODRM_src1);
 						break;
 					case 32:
-						modrm_debugger32(&params,MODRM_src0,MODRM_src1);
+						modrm_debugger32(&CPU[activeCPU].params, CPU[activeCPU].MODRM_src0, CPU[activeCPU].MODRM_src1);
 						break;
 					default: //None?
 						//Don't use modr/m!
@@ -662,12 +662,12 @@ void modrm_generateInstructionTEXT(char *instruction, byte debuggersize, uint_32
 			case PARAM_MODRM_0:
 			case PARAM_MODRM1: //Param1 only?
 				safestrcat(result,sizeof(result)," %s"); //1 param!
-				debugger_setcommand(result,modrm_param1);
+				debugger_setcommand(result, CPU[activeCPU].modrm_param1);
 				break;
 			case PARAM_MODRM_1:
 			case PARAM_MODRM2: //Param2 only?
 				safestrcat(result,sizeof(result)," %s"); //1 param!
-				debugger_setcommand(result,modrm_param2);
+				debugger_setcommand(result, CPU[activeCPU].modrm_param2);
 				break;
 			case PARAM_MODRM_0_ACCUM_1: //0,accumulator,1?
 				switch (debuggersize)
@@ -685,37 +685,37 @@ void modrm_generateInstructionTEXT(char *instruction, byte debuggersize, uint_32
 					//Don't use modr/m!
 					break;
 				}
-				debugger_setcommand(result, modrm_param1, modrm_param2);
+				debugger_setcommand(result, CPU[activeCPU].modrm_param1, CPU[activeCPU].modrm_param2);
 				break;
 			case PARAM_MODRM_01:
 			case PARAM_MODRM12: //param1,param2
 				safestrcat(result,sizeof(result)," %s,%s"); //2 params!
-				debugger_setcommand(result,modrm_param1,modrm_param2);
+				debugger_setcommand(result, CPU[activeCPU].modrm_param1, CPU[activeCPU].modrm_param2);
 				break;
 			case PARAM_MODRM_01_IMM8:
 			case PARAM_MODRM12_IMM8: //param1,param2,imm8
 				safestrcat(result,sizeof(result)," %s,%s,%02X"); //2 params!
-				debugger_setcommand(result,modrm_param1,modrm_param2,paramdata);
+				debugger_setcommand(result, CPU[activeCPU].modrm_param1, CPU[activeCPU].modrm_param2,paramdata);
 				break;
 			case PARAM_MODRM_01_CL:
 			case PARAM_MODRM12_CL: //param1,param2,CL
 				safestrcat(result,sizeof(result)," %s,%s,CL"); //2 params!
-				debugger_setcommand(result,modrm_param1,modrm_param2);
+				debugger_setcommand(result, CPU[activeCPU].modrm_param1, CPU[activeCPU].modrm_param2);
 				break;
 			case PARAM_MODRM_10:
 			case PARAM_MODRM21: //param2,param1
 				safestrcat(result,sizeof(result)," %s,%s"); //2 params!
-				debugger_setcommand(result,modrm_param2,modrm_param1);
+				debugger_setcommand(result, CPU[activeCPU].modrm_param2, CPU[activeCPU].modrm_param1);
 				break;
 			case PARAM_MODRM_10_IMM8:
 			case PARAM_MODRM21_IMM8: //param2,param1,imm8
 				safestrcat(result,sizeof(result)," %s,%s,%02X"); //2 params!
-				debugger_setcommand(result,modrm_param2,modrm_param1,paramdata);
+				debugger_setcommand(result, CPU[activeCPU].modrm_param2, CPU[activeCPU].modrm_param1,paramdata);
 				break;
 			case PARAM_MODRM_10_CL:
 			case PARAM_MODRM21_CL: //param2,param1,CL
 				safestrcat(result,sizeof(result)," %s,%s,CL"); //2 params!
-				debugger_setcommand(result,modrm_param2,modrm_param1);
+				debugger_setcommand(result, CPU[activeCPU].modrm_param2, CPU[activeCPU].modrm_param1);
 				break;
 			case PARAM_IMM8: //imm8
 				safestrcat(result,sizeof(result)," %02X"); //1 param!
@@ -753,9 +753,9 @@ byte CPU_PORT_OUT_B(word base, word port, byte data)
 	//Check rights!
 	if (getcpumode() != CPU_MODE_REAL) //Protected mode?
 	{
-		if ((portrights_error = checkPortRights(port))) //Not allowed?
+		if ((CPU[activeCPU].portrights_error = checkPortRights(port))) //Not allowed?
 		{
-			if (portrights_error==1) THROWDESCGP(0,0,0); //#GP!
+			if (CPU[activeCPU].portrights_error==1) THROWDESCGP(0,0,0); //#GP!
 			return 1; //Abort!
 		}
 	}
@@ -789,14 +789,14 @@ byte CPU_PORT_OUT_W(word base, word port, word data)
 {
 	if (getcpumode() != CPU_MODE_REAL) //Protected mode?
 	{
-		if ((portrights_error = checkPortRights(port))) //Not allowed?
+		if ((CPU[activeCPU].portrights_error = checkPortRights(port))) //Not allowed?
 		{
-			if (portrights_error==1) THROWDESCGP(0,0,0); //#GP!
+			if (CPU[activeCPU].portrights_error==1) THROWDESCGP(0,0,0); //#GP!
 			return 1; //Abort!
 		}
-		if ((portrights_error = checkPortRights(port+1))) //Not allowed?
+		if ((CPU[activeCPU].portrights_error = checkPortRights(port+1))) //Not allowed?
 		{
-			if (portrights_error==1) THROWDESCGP(0,0,0); //#GP!
+			if (CPU[activeCPU].portrights_error==1) THROWDESCGP(0,0,0); //#GP!
 			return 1; //Abort!
 		}
 	}
@@ -830,24 +830,24 @@ byte CPU_PORT_OUT_D(word base, word port, uint_32 data)
 {
 	if (getcpumode() != CPU_MODE_REAL) //Protected mode?
 	{
-		if ((portrights_error = checkPortRights(port))) //Not allowed?
+		if ((CPU[activeCPU].portrights_error = checkPortRights(port))) //Not allowed?
 		{
-			if (portrights_error==1) THROWDESCGP(0,0,0); //#GP!
+			if (CPU[activeCPU].portrights_error==1) THROWDESCGP(0,0,0); //#GP!
 			return 1; //Abort!
 		}
-		if ((portrights_error = checkPortRights(port + 1))) //Not allowed?
+		if ((CPU[activeCPU].portrights_error = checkPortRights(port + 1))) //Not allowed?
 		{
-			if (portrights_error==1) THROWDESCGP(0,0,0); //#GP!
+			if (CPU[activeCPU].portrights_error==1) THROWDESCGP(0,0,0); //#GP!
 			return 1; //Abort!
 		}
-		if ((portrights_error = checkPortRights(port + 2))) //Not allowed?
+		if ((CPU[activeCPU].portrights_error = checkPortRights(port + 2))) //Not allowed?
 		{
-			if (portrights_error==1) THROWDESCGP(0,0,0); //#GP!
+			if (CPU[activeCPU].portrights_error==1) THROWDESCGP(0,0,0); //#GP!
 			return 1; //Abort!
 		}
-		if ((portrights_error = checkPortRights(port + 3))) //Not allowed?
+		if ((CPU[activeCPU].portrights_error = checkPortRights(port + 3))) //Not allowed?
 		{
-			if (portrights_error==1) THROWDESCGP(0,0,0); //#GP!
+			if (CPU[activeCPU].portrights_error==1) THROWDESCGP(0,0,0); //#GP!
 			return 1; //Abort!
 		}
 	}
@@ -881,9 +881,9 @@ byte CPU_PORT_IN_B(word base, word port, byte *result)
 {
 	if (getcpumode() != CPU_MODE_REAL) //Protected mode?
 	{
-		if ((portrights_error = checkPortRights(port))) //Not allowed?
+		if ((CPU[activeCPU].portrights_error = checkPortRights(port))) //Not allowed?
 		{
-			if (portrights_error==1) THROWDESCGP(0,0,0); //#GP!
+			if (CPU[activeCPU].portrights_error==1) THROWDESCGP(0,0,0); //#GP!
 			return 1; //Abort!
 		}
 	}
@@ -916,14 +916,14 @@ byte CPU_PORT_IN_W(word base, word port, word *result)
 {
 	if (getcpumode() != CPU_MODE_REAL) //Protected mode?
 	{
-		if ((portrights_error = checkPortRights(port))) //Not allowed?
+		if ((CPU[activeCPU].portrights_error = checkPortRights(port))) //Not allowed?
 		{
-			if (portrights_error==1) THROWDESCGP(0,0,0); //#GP!
+			if (CPU[activeCPU].portrights_error==1) THROWDESCGP(0,0,0); //#GP!
 			return 1; //Abort!
 		}
-		if ((portrights_error = checkPortRights(port + 1))) //Not allowed?
+		if ((CPU[activeCPU].portrights_error = checkPortRights(port + 1))) //Not allowed?
 		{
-			if (portrights_error==1) THROWDESCGP(0,0,0); //#GP!
+			if (CPU[activeCPU].portrights_error==1) THROWDESCGP(0,0,0); //#GP!
 			return 1; //Abort!
 		}
 	}
@@ -956,24 +956,24 @@ byte CPU_PORT_IN_D(word base, word port, uint_32 *result)
 {
 	if (getcpumode() != CPU_MODE_REAL) //Protected mode?
 	{
-		if ((portrights_error = checkPortRights(port))) //Not allowed?
+		if ((CPU[activeCPU].portrights_error = checkPortRights(port))) //Not allowed?
 		{
-			if (portrights_error==1) THROWDESCGP(0,0,0); //#GP!
+			if (CPU[activeCPU].portrights_error==1) THROWDESCGP(0,0,0); //#GP!
 			return 1; //Abort!
 		}
-		if ((portrights_error = checkPortRights(port + 1))) //Not allowed?
+		if ((CPU[activeCPU].portrights_error = checkPortRights(port + 1))) //Not allowed?
 		{
-			if (portrights_error==1) THROWDESCGP(0,0,0); //#GP!
+			if (CPU[activeCPU].portrights_error==1) THROWDESCGP(0,0,0); //#GP!
 			return 1; //Abort!
 		}
-		if ((portrights_error = checkPortRights(port + 2))) //Not allowed?
+		if ((CPU[activeCPU].portrights_error = checkPortRights(port + 2))) //Not allowed?
 		{
-			if (portrights_error==1) THROWDESCGP(0,0,0); //#GP!
+			if (CPU[activeCPU].portrights_error==1) THROWDESCGP(0,0,0); //#GP!
 			return 1; //Abort!
 		}
-		if ((portrights_error = checkPortRights(port + 3))) //Not allowed?
+		if ((CPU[activeCPU].portrights_error = checkPortRights(port + 3))) //Not allowed?
 		{
-			if (portrights_error==1) THROWDESCGP(0,0,0); //#GP!
+			if (CPU[activeCPU].portrights_error==1) THROWDESCGP(0,0,0); //#GP!
 			return 1; //Abort!
 		}
 	}
@@ -1006,7 +1006,7 @@ byte call_soft_inthandler(byte intnr, int_64 errorcode, byte is_interrupt)
 {
 	//Now call handler!
 	//CPU[activeCPU].cycles_HWOP += 61; /* Normal interrupt as hardware interrupt */
-	calledinterruptnumber = intnr; //Save called interrupt number!
+	CPU[activeCPU].calledinterruptnumber = intnr; //Save called interrupt number!
 	return CPU_INT(intnr,errorcode,is_interrupt); //Call interrupt!
 }
 
@@ -1014,7 +1014,7 @@ void call_hard_inthandler(byte intnr) //Hardware interrupt handler (FROM hardwar
 {
 //Now call handler!
 	//CPU[activeCPU].cycles_HWOP += 61; /* Normal interrupt as hardware interrupt */
-	calledinterruptnumber = intnr; //Save called interrupt number!
+	CPU[activeCPU].calledinterruptnumber = intnr; //Save called interrupt number!
 	CPU_executionphase_startinterrupt(intnr,2,-1); //Start the interrupt handler!
 }
 
@@ -1041,7 +1041,7 @@ extern byte CPU_databussize; //0=16/32-bit bus! 1=8-bit bus when possible (8088/
 
 OPTINLINE void CPU_resetPrefixes() //Resets all prefixes we use!
 {
-	memset(&CPU_prefixes[activeCPU], 0, sizeof(CPU_prefixes[activeCPU])); //Reset prefixes!
+	memset(&CPU[activeCPU].CPU_prefixes, 0, sizeof(CPU[activeCPU].CPU_prefixes)); //Reset prefixes!
 }
 
 OPTINLINE void CPU_initPrefixes()
@@ -1062,7 +1062,7 @@ OPTINLINE void free_CPUregisters()
 {
 	if (CPU[activeCPU].registers) //Still allocated?
 	{
-		oldCR0 = CPU[activeCPU].registers->CR0; //Save the old value for INIT purposes!
+		CPU[activeCPU].oldCR0 = CPU[activeCPU].registers->CR0; //Save the old value for INIT purposes!
 		freez((void **)&CPU[activeCPU].registers, sizeof(*CPU[activeCPU].registers), "CPU_REGISTERS"); //Release the registers if needed!
 	}
 }
@@ -1190,7 +1190,7 @@ OPTINLINE void CPU_initRegisters(byte isInit) //Init the registers!
 	{
 		if ((isInit&0xF)==0) //Were we not an init?
 		{
-			CPU[activeCPU].registers->CR0 = oldCR0; //Restore before resetting, if possible!
+			CPU[activeCPU].registers->CR0 = CPU[activeCPU].oldCR0; //Restore before resetting, if possible!
 		}
 		else
 		{
@@ -1387,12 +1387,12 @@ For prefix groups 3&4: one specified in said group in total has effect once(mult
 
 byte CPU_getprefix(byte prefix) //Prefix set?
 {
-	return ((CPU_prefixes[activeCPU][prefix >> 3] >> (prefix & 7)) & 1); //Get prefix set or reset!
+	return ((CPU[activeCPU].CPU_prefixes[prefix >> 3] >> (prefix & 7)) & 1); //Get prefix set or reset!
 }
 
 void CPU_clearprefix(byte prefix) //Sets a prefix on!
 {
-	CPU_prefixes[activeCPU][(prefix >> 3)] &= ~(1 << (prefix & 7)); //Don't have prefix!
+	CPU[activeCPU].CPU_prefixes[(prefix >> 3)] &= ~(1 << (prefix & 7)); //Don't have prefix!
 }
 
 void CPU_setprefix(byte prefix) //Sets a prefix on!
@@ -1447,7 +1447,7 @@ void CPU_setprefix(byte prefix) //Sets a prefix on!
 	default: //Unknown special prefix action?
 		break; //Do nothing!
 	}
-	CPU_prefixes[activeCPU][(prefix >> 3)] |= (1 << (prefix & 7)); //Have prefix!
+	CPU[activeCPU].CPU_prefixes[(prefix >> 3)] |= (1 << (prefix & 7)); //Have prefix!
 }
 
 OPTINLINE byte CPU_isPrefix(byte prefix)
@@ -1484,9 +1484,9 @@ OPTINLINE void CPU_resetInstructionSteps()
 	CPU[activeCPU].instructionstep = CPU[activeCPU].internalinstructionstep = CPU[activeCPU].modrmstep = CPU[activeCPU].internalmodrmstep = CPU[activeCPU].internalinterruptstep = CPU[activeCPU].stackchecked = 0; //Start the instruction-specific stage!
 	CPU[activeCPU].timingpath = 0; //Reset timing oath!
 	CPU[activeCPU].pushbusy = 0;
-	custommem = 0; //Not using custom memory addresses for MOV!
-	customoffset = 0; //See custommem!
-	blockREP = 0; //Not blocking REP!
+	CPU[activeCPU].custommem = 0; //Not using custom memory addresses for MOV!
+	CPU[activeCPU].customoffset = 0; //See custommem!
+	CPU[activeCPU].blockREP = 0; //Not blocking REP!
 }
 
 void CPU_interruptcomplete()
@@ -1509,9 +1509,9 @@ OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 		{
 			CPU_resetPrefixes(); //Reset all prefixes for this opcode!
 			reset_modrm(); //Reset modr/m for the current opcode, for detecting it!
-			CPU[activeCPU].InterruptReturnEIP = last_eip = REG_EIP; //Interrupt return point by default!
+			CPU[activeCPU].InterruptReturnEIP = CPU[activeCPU].last_eip = REG_EIP; //Interrupt return point by default!
 			CPU[activeCPU].instructionfetch.CPU_fetchphase = 2; //Reading prefixes or opcode!
-			ismultiprefix = 0; //Default to not being multi prefix!
+			CPU[activeCPU].ismultiprefix = 0; //Default to not being multi prefix!
 		}
 		if (CPU[activeCPU].instructionfetch.CPU_fetchphase==2) //Reading prefixes or opcode?
 		{
@@ -1521,13 +1521,13 @@ OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 			if (CPU_isPrefix(*OP)) //We're a prefix?
 			{
 				CPU[activeCPU].cycles_Prefix += 2; //Add timing for the prefix!
-				if (ismultiprefix && (EMULATED_CPU <= CPU_80286)) //This CPU has the bug and multiple prefixes are added?
+				if (CPU[activeCPU].ismultiprefix && (EMULATED_CPU <= CPU_80286)) //This CPU has the bug and multiple prefixes are added?
 				{
-					CPU[activeCPU].InterruptReturnEIP = last_eip; //Return to the last prefix only!
+					CPU[activeCPU].InterruptReturnEIP = CPU[activeCPU].last_eip; //Return to the last prefix only!
 				}
 				CPU_setprefix(*OP); //Set the prefix ON!
-				last_eip = REG_EIP; //Save the current EIP of the last prefix possibility!
-				ismultiprefix = 1; //We're multi-prefix now when triggered again!
+				CPU[activeCPU].last_eip = REG_EIP; //Save the current EIP of the last prefix possibility!
+				CPU[activeCPU].ismultiprefix = 1; //We're multi-prefix now when triggered again!
 				goto nextprefix; //Try the next prefix!
 			}
 			else //No prefix? We've read the actual opcode!
@@ -1546,7 +1546,7 @@ OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 				CPU[activeCPU].instructionfetch.CPU_fetchphase = 0; //We're fetched completely! Ready for first decode!
 				CPU[activeCPU].instructionfetch.CPU_fetchingRM = 1; //Fetching R/M, if any!
 				CPU[activeCPU].instructionfetch.CPU_fetchparameterPos = 0; //Init parameter position!
-				memset(&params.instructionfetch,0,sizeof(params.instructionfetch)); //Init instruction fetch status!
+				memset(&CPU[activeCPU].params.instructionfetch,0,sizeof(CPU[activeCPU].params.instructionfetch)); //Init instruction fetch status!
 			}
 			else //Normal instruction?
 			{
@@ -1554,41 +1554,41 @@ OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 				CPU[activeCPU].instructionfetch.CPU_fetchphase = 0; //We're fetched completely! Ready for first decode!
 				CPU[activeCPU].instructionfetch.CPU_fetchingRM = 1; //Fetching R/M, if any!
 				CPU[activeCPU].instructionfetch.CPU_fetchparameterPos = 0; //Init parameter position!
-				memset(&params.instructionfetch,0,sizeof(params.instructionfetch)); //Init instruction fetch status!
+				memset(&CPU[activeCPU].params.instructionfetch,0,sizeof(CPU[activeCPU].params.instructionfetch)); //Init instruction fetch status!
 			}
 
 			//Determine the stack&attribute sizes(286+)!
 			//Stack address size is automatically retrieved!
 
 			//32-bits operand&address defaulted? We're a 32-bit Operand&Address size to default to instead!
-			CPU_Operand_size[activeCPU] = CPU_Address_size[activeCPU] = (CODE_SEGMENT_DESCRIPTOR_D_BIT() & 1);
+			CPU[activeCPU].CPU_Operand_size = CPU[activeCPU].CPU_Address_size = (CODE_SEGMENT_DESCRIPTOR_D_BIT() & 1);
 
 			//Apply operand size/address size prefixes!
-			CPU_Operand_size[activeCPU] ^= CPU_getprefix(0x66); //Invert operand size?
-			CPU_Address_size[activeCPU] ^= CPU_getprefix(0x67); //Invert address size?
+			CPU[activeCPU].CPU_Operand_size ^= CPU_getprefix(0x66); //Invert operand size?
+			CPU[activeCPU].CPU_Address_size ^= CPU_getprefix(0x67); //Invert address size?
 
-			CPU[activeCPU].address_size = ((0xFFFFU | (0xFFFFU << (CPU_Address_size[activeCPU] << 4))) & 0xFFFFFFFFULL); //Effective address size for this instruction!
+			CPU[activeCPU].address_size = ((0xFFFFU | (0xFFFFU << (CPU[activeCPU].CPU_Address_size << 4))) & 0xFFFFFFFFULL); //Effective address size for this instruction!
 		}
 	}
 
 	//Now, check for the ModR/M byte, if present, and read the parameters if needed!
-	currentOpcodeInformation = &CPUOpcodeInformationPrecalcs[CPU_Operand_size[activeCPU]][(*OP<<1)|CPU[activeCPU].is0Fopcode]; //Only 2 modes implemented so far, 32-bit or 16-bit mode, with 0F opcode every odd entry!
+	CPU[activeCPU].currentOpcodeInformation = &CPUOpcodeInformationPrecalcs[CPU[activeCPU].CPU_Operand_size][(*OP<<1)|CPU[activeCPU].is0Fopcode]; //Only 2 modes implemented so far, 32-bit or 16-bit mode, with 0F opcode every odd entry!
 
-	if (((currentOpcodeInformation->readwritebackinformation&0x80)==0) && CPU_getprefix(0xF0) && (EMULATED_CPU>=CPU_NECV30)) //LOCK when not allowed, while the exception is supported?
+	if (((CPU[activeCPU].currentOpcodeInformation->readwritebackinformation&0x80)==0) && CPU_getprefix(0xF0) && (EMULATED_CPU>=CPU_NECV30)) //LOCK when not allowed, while the exception is supported?
 	{
 		goto invalidlockprefix;
 	}
 
-	if (currentOpcodeInformation->used==0) goto skipcurrentOpcodeInformations; //Are we not used?
-	if (currentOpcodeInformation->has_modrm && CPU[activeCPU].instructionfetch.CPU_fetchingRM) //Do we have ModR/M data?
+	if (CPU[activeCPU].currentOpcodeInformation->used==0) goto skipcurrentOpcodeInformations; //Are we not used?
+	if (CPU[activeCPU].currentOpcodeInformation->has_modrm && CPU[activeCPU].instructionfetch.CPU_fetchingRM) //Do we have ModR/M data?
 	{
-		if (modrm_readparams(&params,currentOpcodeInformation->modrm_size,currentOpcodeInformation->modrm_specialflags,*OP)) return 1; //Read the params!
+		if (modrm_readparams(&CPU[activeCPU].params, CPU[activeCPU].currentOpcodeInformation->modrm_size, CPU[activeCPU].currentOpcodeInformation->modrm_specialflags,*OP)) return 1; //Read the params!
 		CPU[activeCPU].instructionfetch.CPU_fetchparameterPos = 0; //Reset the parameter position again for new parameters!
 		if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
-		if (MODRM_ERROR(params)) //An error occurred in the read params?
+		if (MODRM_ERROR(CPU[activeCPU].params)) //An error occurred in the read params?
 		{
 			invalidlockprefix: //Lock prefix when not allowed? Count as #UD!
-			currentOP_handler = &CPU_unkOP; //Unknown opcode/parameter!
+			CPU[activeCPU].currentOP_handler = &CPU_unkOP; //Unknown opcode/parameter!
 			if (unlikely(EMULATED_CPU < CPU_NECV30)) //Not supporting #UD directly? Simply abort fetching and run a NOP 'instruction'!
 			{
 				return 0; //Just run the NOP instruction! Don't fetch anything more!
@@ -1596,93 +1596,93 @@ OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 			CPU_unkOP(); //Execute the unknown opcode handler!
 			return 1; //Abort!
 		}
-		MODRM_src0 = currentOpcodeInformation->modrm_src0; //First source!
-		MODRM_src1 = currentOpcodeInformation->modrm_src1; //Second source!
+		CPU[activeCPU].MODRM_src0 = CPU[activeCPU].currentOpcodeInformation->modrm_src0; //First source!
+		CPU[activeCPU].MODRM_src1 = CPU[activeCPU].currentOpcodeInformation->modrm_src1; //Second source!
 		CPU[activeCPU].instructionfetch.CPU_fetchingRM = 0; //We're done fetching the R/M parameters!
 	}
 
-	if (currentOpcodeInformation->parameters) //Gotten parameters?
+	if (CPU[activeCPU].currentOpcodeInformation->parameters) //Gotten parameters?
 	{
-		switch (currentOpcodeInformation->parameters&~4) //What parameters?
+		switch (CPU[activeCPU].currentOpcodeInformation->parameters&~4) //What parameters?
 		{
 			case 1: //imm8?
-				if (currentOpcodeInformation->parameters&4) //Only when ModR/M REG<2?
+				if (CPU[activeCPU].currentOpcodeInformation->parameters&4) //Only when ModR/M REG<2?
 				{
-					if (MODRM_REG(params.modrm)<2) //8-bit immediate?
+					if (MODRM_REG(CPU[activeCPU].params.modrm)<2) //8-bit immediate?
 					{
-						if (CPU_readOP(&immb,1)) return 1; //Read 8-bit immediate!
+						if (CPU_readOP(&CPU[activeCPU].immb,1)) return 1; //Read 8-bit immediate!
 						if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 					}
 				}
 				else //Normal imm8?
 				{
-					if (CPU_readOP(&immb,1)) return 1; //Read 8-bit immediate!
+					if (CPU_readOP(&CPU[activeCPU].immb,1)) return 1; //Read 8-bit immediate!
 					if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 				}
 				break;
 			case 2: //imm16?
-				if (currentOpcodeInformation->parameters&4) //Only when ModR/M REG<2?
+				if (CPU[activeCPU].currentOpcodeInformation->parameters&4) //Only when ModR/M REG<2?
 				{
-					if (MODRM_REG(params.modrm)<2) //16-bit immediate?
+					if (MODRM_REG(CPU[activeCPU].params.modrm)<2) //16-bit immediate?
 					{
-						if (CPU_readOPw(&immw,1)) return 1; //Read 16-bit immediate!
+						if (CPU_readOPw(&CPU[activeCPU].immw,1)) return 1; //Read 16-bit immediate!
 						if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 					}
 				}
 				else //Normal imm16?
 				{
-					if (CPU_readOPw(&immw,1)) return 1; //Read 16-bit immediate!
+					if (CPU_readOPw(&CPU[activeCPU].immw,1)) return 1; //Read 16-bit immediate!
 					if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 				}
 				break;
 			case 3: //imm32?
-				if (currentOpcodeInformation->parameters&4) //Only when ModR/M REG<2?
+				if (CPU[activeCPU].currentOpcodeInformation->parameters&4) //Only when ModR/M REG<2?
 				{
-					if (MODRM_REG(params.modrm)<2) //32-bit immediate?
+					if (MODRM_REG(CPU[activeCPU].params.modrm)<2) //32-bit immediate?
 					{
-						if (CPU_readOPdw(&imm32,1)) return 1; //Read 32-bit immediate!
+						if (CPU_readOPdw(&CPU[activeCPU].imm32,1)) return 1; //Read 32-bit immediate!
 						if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 					}
 				}
 				else //Normal imm32?
 				{
-					if (CPU_readOPdw(&imm32,1)) return 1; //Read 32-bit immediate!
+					if (CPU_readOPdw(&CPU[activeCPU].imm32,1)) return 1; //Read 32-bit immediate!
 					if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 				}
 				break;
 			case 8: //imm16 + imm8
 				if (CPU[activeCPU].instructionfetch.CPU_fetchparameters==0) //First parameter?
 				{
-					if (CPU_readOPw(&immw,1)) return 1; //Read 16-bit immediate!
+					if (CPU_readOPw(&CPU[activeCPU].immw,1)) return 1; //Read 16-bit immediate!
 					if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 					CPU[activeCPU].instructionfetch.CPU_fetchparameters = 1; //Start fetching the second parameter!
 					CPU[activeCPU].instructionfetch.CPU_fetchparameterPos = 0; //Init parameter position!
 				}
 				if (CPU[activeCPU].instructionfetch.CPU_fetchparameters==1) //Second parameter?
 				{
-					if (CPU_readOP(&immb,1)) return 1; //Read 8-bit immediate!
+					if (CPU_readOP(&CPU[activeCPU].immb,1)) return 1; //Read 8-bit immediate!
 					if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 					CPU[activeCPU].instructionfetch.CPU_fetchparameters = 2; //We're fetching the second(finished) parameter! This way, we're done fetching!
 				}
 				break;
 			case 9: //imm64(ptr16:32)?
-				if (currentOpcodeInformation->parameters & 4) //Only when ModR/M REG<2?
+				if (CPU[activeCPU].currentOpcodeInformation->parameters & 4) //Only when ModR/M REG<2?
 				{
-					if (MODRM_REG(params.modrm)<2) //32-bit immediate?
+					if (MODRM_REG(CPU[activeCPU].params.modrm)<2) //32-bit immediate?
 					{
 						if (CPU[activeCPU].instructionfetch.CPU_fetchparameters==0) //First parameter?
 						{
-							if (CPU_readOPdw(&imm32,1)) return 1; //Read 32-bit immediate offset!
+							if (CPU_readOPdw(&CPU[activeCPU].imm32,1)) return 1; //Read 32-bit immediate offset!
 							if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
-							imm64 = (uint_64)imm32; //Convert to 64-bit!
+							CPU[activeCPU].imm64 = (uint_64)CPU[activeCPU].imm32; //Convert to 64-bit!
 							CPU[activeCPU].instructionfetch.CPU_fetchparameters = 1; //Second parameter!
 							CPU[activeCPU].instructionfetch.CPU_fetchparameterPos = 0; //Init parameter position!
 						}
 						if (CPU[activeCPU].instructionfetch.CPU_fetchparameters==1) //Second parameter?
 						{
-							if (CPU_readOPw(&immw,1)) return 1; //Read another 16-bit immediate!
+							if (CPU_readOPw(&CPU[activeCPU].immw,1)) return 1; //Read another 16-bit immediate!
 							if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
-							imm64 |= ((uint_64)immw << 32);
+							CPU[activeCPU].imm64 |= ((uint_64)CPU[activeCPU].immw << 32);
 							CPU[activeCPU].instructionfetch.CPU_fetchparameters = 2; //We're finished!
 						}
 					}
@@ -1691,32 +1691,32 @@ OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 				{
 					if (CPU[activeCPU].instructionfetch.CPU_fetchparameters==0) //First parameter?
 					{
-						if (CPU_readOPdw(&imm32,1)) return 1; //Read 32-bit immediate offset!
+						if (CPU_readOPdw(&CPU[activeCPU].imm32,1)) return 1; //Read 32-bit immediate offset!
 						if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
-						imm64 = (uint_64)imm32; //Convert to 64-bit!
+						CPU[activeCPU].imm64 = (uint_64)CPU[activeCPU].imm32; //Convert to 64-bit!
 						CPU[activeCPU].instructionfetch.CPU_fetchparameters = 1; //Second parameter!
 						CPU[activeCPU].instructionfetch.CPU_fetchparameterPos = 0; //Init parameter position!
 					}
 					if (CPU[activeCPU].instructionfetch.CPU_fetchparameters==1) //Second parameter?
 					{
-						if (CPU_readOPw(&immw,1)) return 1; //Read another 16-bit immediate!
+						if (CPU_readOPw(&CPU[activeCPU].immw,1)) return 1; //Read another 16-bit immediate!
 						if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
-						imm64 |= ((uint_64)immw << 32);
+						CPU[activeCPU].imm64 |= ((uint_64)CPU[activeCPU].immw << 32);
 						if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 						CPU[activeCPU].instructionfetch.CPU_fetchparameters = 2; //We're finished!
 					}
 				}
 				break;
 			case 0xA: //imm16/32, depending on the address size?
-				if (CPU_Address_size[activeCPU]) //32-bit address?
+				if (CPU[activeCPU].CPU_Address_size) //32-bit address?
 				{
-					if (CPU_readOPdw(&immaddr32,1)) return 1; //Read 32-bit immediate offset!
+					if (CPU_readOPdw(&CPU[activeCPU].immaddr32,1)) return 1; //Read 32-bit immediate offset!
 					if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 				}
 				else //16-bit address?
 				{
-					if (CPU_readOPw(&immw,1)) return 1; //Read 32-bit immediate offset!
-					immaddr32 = (uint_32)immw; //Convert to 32-bit immediate!
+					if (CPU_readOPw(&CPU[activeCPU].immw,1)) return 1; //Read 32-bit immediate offset!
+					CPU[activeCPU].immaddr32 = (uint_32)CPU[activeCPU].immw; //Convert to 32-bit immediate!
 					if (CPU[activeCPU].faultraised) return 1; //Abort on fault!
 				}
 			default: //Unknown?
@@ -1729,10 +1729,10 @@ skipcurrentOpcodeInformations: //Skip all timings and parameters(invalid instruc
 	CPU_resetInstructionSteps(); //Reset the current instruction steps!
 	CPU[activeCPU].currentopcode = *OP; //Last OPcode for reference!
 	CPU[activeCPU].currentopcode0F = CPU[activeCPU].is0Fopcode; //Last OPcode for reference!
-	CPU[activeCPU].currentmodrm = (likely(currentOpcodeInformation)?currentOpcodeInformation->has_modrm:0)?params.modrm:0; //Modr/m if used!
+	CPU[activeCPU].currentmodrm = (likely(CPU[activeCPU].currentOpcodeInformation)? CPU[activeCPU].currentOpcodeInformation->has_modrm:0)? CPU[activeCPU].params.modrm:0; //Modr/m if used!
 	CPU[activeCPU].nextCS = REG_CS;
 	CPU[activeCPU].nextEIP = REG_EIP;
-	currentOP_handler = CurrentCPU_opcode_jmptbl[((word)*OP << 2) | (CPU[activeCPU].is0Fopcode<<1) | CPU_Operand_size[activeCPU]];
+	CPU[activeCPU].currentOP_handler = CurrentCPU_opcode_jmptbl[((word)*OP << 2) | (CPU[activeCPU].is0Fopcode<<1) | CPU[activeCPU].CPU_Operand_size];
 	CPU_executionphase_newopcode(); //We're starting a new opcode, notify the execution phase handlers!
 	return 0; //We're done fetching the instruction!
 }
@@ -1880,9 +1880,9 @@ void CPU_RealResetOP(byte doReset); //Rerun current Opcode? (From interrupt call
 //specialReset: 1 for exhibiting bug and flushing PIQ, 0 otherwise
 void CPU_8086REPPending(byte doReset) //Execute this before CPU_exec!
 {
-	if (REPPending) //Pending REP?
+	if (CPU[activeCPU].REPPending) //Pending REP?
 	{
-		REPPending = 0; //Disable pending REP!
+		CPU[activeCPU].REPPending = 0; //Disable pending REP!
 		CPU_RealResetOP(doReset); //Rerun the last instruction!
 	}
 }
@@ -1913,7 +1913,7 @@ void CPU_prepareHWint() //Prepares the CPU for hardware interrupts!
 {
 	MMU_resetaddr(); //Reset invalid address for our usage!
 	protection_nextOP(); //Prepare protection for the next instruction!
-	CPU_interruptraised = 0; //Default: no interrupt raised!
+	CPU[activeCPU].CPU_interruptraised = 0; //Default: no interrupt raised!
 	CPU[activeCPU].faultraised = 0; //Default fault raised!
 	CPU[activeCPU].faultlevel = 0; //Default to no fault level!
 }
@@ -1955,7 +1955,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		CPU_8086REPPending(0); //Process pending REP!
 		protection_nextOP(); //Prepare protection for the next instruction!
 		reset_modrmall(); //Reset all modr/m related settings that are supposed to be reset each instruction, both REP and non-REP!
-		blockREP = 0; //Default: nothing to do with REP!
+		CPU[activeCPU].blockREP = 0; //Default: nothing to do with REP!
 		if (!CPU[activeCPU].repeating)
 		{
 			MMU_clearOP(); //Clear the OPcode buffer in the MMU (equal to our instruction cache) when not repeating!
@@ -1983,10 +1983,10 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		CPU[activeCPU].have_oldEFLAGS = 0; //Default: no EFLAGS to return during exceptions!
 
 		//Initialize stuff needed for local CPU timing!
-		didJump = 0; //Default: we didn't jump!
-		ENTER_L = 0; //Default to no L depth!
-		hascallinterrupttaken_type = 0xFF; //Default to no call/interrupt taken type!
-		CPU_interruptraised = 0; //Default: no interrupt raised!
+		CPU[activeCPU].didJump = 0; //Default: we didn't jump!
+		CPU[activeCPU].ENTER_L = 0; //Default to no L depth!
+		CPU[activeCPU].hascallinterrupttaken_type = 0xFF; //Default to no call/interrupt taken type!
+		CPU[activeCPU].CPU_interruptraised = 0; //Default: no interrupt raised!
 
 		//Now, starting the instruction preprocessing!
 		CPU[activeCPU].is_reset = 0; //We're not reset anymore from now on!
@@ -2002,8 +2002,8 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		}
 	
 		//Save the starting point when debugging!
-		CPU_debugger_CS = CPU[activeCPU].exec_CS;
-		CPU_debugger_EIP = CPU[activeCPU].exec_EIP;
+		CPU[activeCPU].CPU_debugger_CS = CPU[activeCPU].exec_CS;
+		CPU[activeCPU].CPU_debugger_EIP = CPU[activeCPU].exec_EIP;
 		CPU_commitState(); //Save any fault data!
 
 		if (getcpumode()!=CPU_MODE_REAL) //Protected mode?
@@ -2039,7 +2039,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	if (CPU[activeCPU].repeating) //REPeating instruction?
 	{
 		OP = CPU[activeCPU].currentopcode; //Execute the last opcode again!
-		newREP = 0; //Not a new repeating instruction!
+		CPU[activeCPU].newREP = 0; //Not a new repeating instruction!
 		if (CPU[activeCPU].instructionfetch.CPU_isFetching && (CPU[activeCPU].instructionfetch.CPU_fetchphase==1)) //New instruction to start?
 		{
 			CPU_resetInstructionSteps(); //Reset all timing that's still running!
@@ -2073,18 +2073,18 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 			}
 		}
 		if (CPU[activeCPU].faultraised) goto skipexecutionOPfault; //Abort on fault!
-		newREP = 1; //We're a new repeating instruction!
+		CPU[activeCPU].newREP = 1; //We're a new repeating instruction!
 	}
 
 	//Handle all prefixes!
 	if (cpudebugger) debugger_setprefix(""); //Reset prefix for the debugger!
-	gotREP = 0; //Default: no REP-prefix used!
-	REPZ = 0; //Init REP to REPNZ/Unused zero flag(during REPNE)!
+	CPU[activeCPU].gotREP = 0; //Default: no REP-prefix used!
+	CPU[activeCPU].REPZ = 0; //Init REP to REPNZ/Unused zero flag(during REPNE)!
 	CPU[activeCPU].REPfinishtiming = 0; //Default: no finish timing!
 	if (CPU_getprefix(0xF2)) //REPNE Opcode set?
 	{
-		gotREP = 1; //We've gotten a repeat!
-		REPZ = 0; //Allow and we're not REPZ!
+		CPU[activeCPU].gotREP = 1; //We've gotten a repeat!
+		CPU[activeCPU].REPZ = 0; //Allow and we're not REPZ!
 		switch (OP) //Which special adjustment cycles Opcode?
 		{
 		//80186+ REP opcodes!
@@ -2109,12 +2109,12 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		//Old:
 		case 0xA6: //A6: REPNZ CMPSB
 			if (CPU[activeCPU].is0Fopcode) goto noREPNE0Fand8086; //0F opcode?
-			REPZ = 1; //Check the zero flag!
+			CPU[activeCPU].REPZ = 1; //Check the zero flag!
 			if (EMULATED_CPU<=CPU_NECV30) CPU[activeCPU].REPfinishtiming = 3; //Finish timing 3 in instruction!
 			break;
 		case 0xA7: //A7: REPNZ CMPSW
 			if (CPU[activeCPU].is0Fopcode) goto noREPNE0Fand8086; //0F opcode?
-			REPZ = 1; //Check the zero flag!
+			CPU[activeCPU].REPZ = 1; //Check the zero flag!
 			if (EMULATED_CPU<=CPU_NECV30) CPU[activeCPU].REPfinishtiming = 3; //Finish timing 3+4 in instruction!
 			break;
 
@@ -2135,25 +2135,25 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		//Old:
 		case 0xAE: //AE: REPNZ SCASB
 			if (CPU[activeCPU].is0Fopcode) goto noREPNE0Fand8086; //0F opcode?
-			REPZ = 1; //Check the zero flag!
+			CPU[activeCPU].REPZ = 1; //Check the zero flag!
 			if (EMULATED_CPU<=CPU_NECV30) CPU[activeCPU].REPfinishtiming += 3; //Finish timing 3+4 in instruction!
 			break;
 		case 0xAF: //AF: REPNZ SCASW
 			if (CPU[activeCPU].is0Fopcode) goto noREPNE0Fand8086; //0F opcode?
-			REPZ = 1; //Check the zero flag!
+			CPU[activeCPU].REPZ = 1; //Check the zero flag!
 			if (EMULATED_CPU<=CPU_NECV30) CPU[activeCPU].REPfinishtiming += 3; //Finish timing 3+4 in instruction!
 			break;
 		default: //Unknown yet?
 		noREPNE0Fand8086: //0F/8086 #UD exception!
-			gotREP = 0; //Dont allow after all!
+			CPU[activeCPU].gotREP = 0; //Dont allow after all!
 			CPU[activeCPU].cycles_OP = 0; //Unknown!
 			break; //Not supported yet!
 		}
 	}
 	else if (CPU_getprefix(0xF3)) //REP/REPE Opcode set?
 	{
-		gotREP = 1; //Allow!
-		REPZ = 0; //Don't check the zero flag: it maybe so in assembly, but not in execution!
+		CPU[activeCPU].gotREP = 1; //Allow!
+		CPU[activeCPU].REPZ = 0; //Don't check the zero flag: it maybe so in assembly, but not in execution!
 		switch (OP) //Which special adjustment cycles Opcode?
 		{
 		//80186+ REP opcodes!
@@ -2173,12 +2173,12 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 			break;
 		case 0xA6: //A6: REPE CMPSB
 			if (CPU[activeCPU].is0Fopcode) goto noREPE0Fand8086; //0F opcode?
-			REPZ = 1; //Check the zero flag!
+			CPU[activeCPU].REPZ = 1; //Check the zero flag!
 			if (EMULATED_CPU<=CPU_NECV30) CPU[activeCPU].REPfinishtiming = 3; //Finish timing 3+4 in instruction!
 			break;
 		case 0xA7: //A7: REPE CMPSW
 			if (CPU[activeCPU].is0Fopcode) goto noREPE0Fand8086; //0F opcode?
-			REPZ = 1; //Check the zero flag!
+			CPU[activeCPU].REPZ = 1; //Check the zero flag!
 			if (EMULATED_CPU<=CPU_NECV30) CPU[activeCPU].REPfinishtiming = 3; //Finish timing 3+4 in instruction!
 			break;
 		case 0xAA: //AA: REP STOSB
@@ -2195,26 +2195,26 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 			break;
 		case 0xAE: //AE: REPE SCASB
 			if (CPU[activeCPU].is0Fopcode) goto noREPE0Fand8086; //0F opcode?
-			REPZ = 1; //Check the zero flag!
+			CPU[activeCPU].REPZ = 1; //Check the zero flag!
 			if (EMULATED_CPU<=CPU_NECV30) CPU[activeCPU].REPfinishtiming = 3; //Finish timing 3+4 in instruction!
 			break;
 		case 0xAF: //AF: REPE SCASW
 			if (CPU[activeCPU].is0Fopcode) goto noREPE0Fand8086; //0F opcode?
-			REPZ = 1; //Check the zero flag!
+			CPU[activeCPU].REPZ = 1; //Check the zero flag!
 			if (EMULATED_CPU<=CPU_NECV30) CPU[activeCPU].REPfinishtiming = 3; //Finish timing 3+4 in instruction!
 			break;
 		default: //Unknown yet?
 			noREPE0Fand8086: //0F exception!
-			gotREP = 0; //Don't allow after all!
+			CPU[activeCPU].gotREP = 0; //Don't allow after all!
 			break; //Not supported yet!
 		}
 	}
 
-	if (gotREP) //Gotten REP?
+	if (CPU[activeCPU].gotREP) //Gotten REP?
 	{
-		if (!(CPU_Address_size[activeCPU]?REG_ECX:REG_CX)) //REP and finished?
+		if (!(CPU[activeCPU].CPU_Address_size?REG_ECX:REG_CX)) //REP and finished?
 		{
-			blockREP = 1; //Block the CPU instruction from executing!
+			CPU[activeCPU].blockREP = 1; //Block the CPU instruction from executing!
 		}
 	}
 
@@ -2224,7 +2224,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		{
 			debugger_setprefix("LOCK"); //LOCK!
 		}
-		if (gotREP) //REPeating something?
+		if (CPU[activeCPU].gotREP) //REPeating something?
 		{
 			if (CPU_getprefix(0xF2)) //REPNZ?
 			{
@@ -2232,7 +2232,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 			}
 			else if (CPU_getprefix(0xF3)) //REP/REPZ?
 			{
-				if (REPZ) //REPZ?
+				if (CPU[activeCPU].REPZ) //REPZ?
 				{
 					debugger_setprefix("REPZ"); //Set prefix!
 				}
@@ -2246,7 +2246,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 
 	CPU[activeCPU].preinstructiontimingnotready = 0; //Timing ready for the instruction to execute?
 	CPUtimingready: //Timing in preparation?
-	if ((CPU[activeCPU].is0Fopcode == 0) && newREP) //REP instruction affected?
+	if ((CPU[activeCPU].is0Fopcode == 0) && CPU[activeCPU].newREP) //REP instruction affected?
 	{
 		switch (OP) //Check for string instructions!
 		{
@@ -2266,7 +2266,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 			}
 			CPU[activeCPU].preinstructiontimingnotready = 2; //Finished and ready to check for cycles now!
 			if (BIU_getcycle() == 0) CPU[activeCPU].cycles_OP += 1; //1 cycle for idle bus?
-			if (((OP == 0xA4) || (OP == 0xA5)) && gotREP && (CPU[activeCPU].repeating==0)) //REP MOVS starting?
+			if (((OP == 0xA4) || (OP == 0xA5)) && CPU[activeCPU].gotREP && (CPU[activeCPU].repeating==0)) //REP MOVS starting?
 			{
 				CPU[activeCPU].cycles_OP += 1; //1 cycle for starting REP MOVS!
 			}
@@ -2291,7 +2291,7 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 			}
 			CPU[activeCPU].preinstructiontimingnotready = 2; //Finished and ready to check for cycles now!
 			if (BIU_getcycle() == 0) CPU[activeCPU].cycles_OP += 1; //1 cycle for idle bus?
-			if (gotREP && (CPU[activeCPU].repeating==0)) CPU[activeCPU].cycles_OP += 1; //1 cycle for REP prefix used!
+			if (CPU[activeCPU].gotREP && (CPU[activeCPU].repeating==0)) CPU[activeCPU].cycles_OP += 1; //1 cycle for REP prefix used!
 			break;
 		default: //Not a string instruction?
 			break;
@@ -2299,16 +2299,16 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 	}
 
 	//Perform REPaction timing before instructions!
-	if (gotREP) //Starting/continuing a REP instruction? Not finishing?
+	if (CPU[activeCPU].gotREP) //Starting/continuing a REP instruction? Not finishing?
 	{
 		//Don't apply finishing timing, this is done automatically!
 		CPU[activeCPU].cycles_OP += 2; //rep active!
 		//Check for pending interrupts could be done here?
-		if (unlikely(blockREP)) ++CPU[activeCPU].cycles_OP; //1 cycle for CX=0 or interrupt!
+		if (unlikely(CPU[activeCPU].blockREP)) ++CPU[activeCPU].cycles_OP; //1 cycle for CX=0 or interrupt!
 		else //Normally repeating?
 		{
 			CPU[activeCPU].cycles_OP += 2; //CX used!
-			if (newREP) CPU[activeCPU].cycles_OP += 2; //New REP takes two cycles!
+			if (CPU[activeCPU].newREP) CPU[activeCPU].cycles_OP += 2; //New REP takes two cycles!
 			switch (OP)
 			{
 			case 0xAC:
@@ -2332,9 +2332,9 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		}
 	}
 	
-	didRepeating = CPU[activeCPU].repeating; //Were we doing REP?
-	didNewREP = newREP; //Were we doing a REP for the first time?
-	CPU[activeCPU].gotREP = gotREP; //Did we got REP?
+	CPU[activeCPU].didRepeating = CPU[activeCPU].repeating; //Were we doing REP?
+	CPU[activeCPU].didNewREP = CPU[activeCPU].newREP; //Were we doing a REP for the first time?
+	CPU[activeCPU].gotREP = CPU[activeCPU].gotREP; //Did we got REP?
 	CPU[activeCPU].executed = 0; //Not executing it yet, wait for the BIU to catch up if required!
 	CPU[activeCPU].preinstructiontimingnotready = 0; //We're ready now!
 	goto fetchinginstruction; //Just update the BIU until it's ready to start executing the instruction!
@@ -2358,17 +2358,17 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		{
 			CPU[activeCPU].cycles_OP += 2; //finish rep! Both blocking and non-blocking!
 		}*/
-		if (gotREP && !CPU[activeCPU].faultraised && !blockREP) //Gotten REP, no fault/interrupt has been raised and we're executing?
+		if (CPU[activeCPU].gotREP && !CPU[activeCPU].faultraised && !CPU[activeCPU].blockREP) //Gotten REP, no fault/interrupt has been raised and we're executing?
 		{
-			if (unlikely(REPZ && (CPU_getprefix(0xF2) || CPU_getprefix(0xF3)))) //REP(N)Z used?
+			if (unlikely(CPU[activeCPU].REPZ && (CPU_getprefix(0xF2) || CPU_getprefix(0xF3)))) //REP(N)Z used?
 			{
-				gotREP &= (FLAG_ZF^CPU_getprefix(0xF2)); //Reset the opcode when ZF doesn't match(needs to be 0 to keep looping).
-				if (gotREP == 0) //Finished?
+				CPU[activeCPU].gotREP &= (FLAG_ZF^CPU_getprefix(0xF2)); //Reset the opcode when ZF doesn't match(needs to be 0 to keep looping).
+				if (CPU[activeCPU].gotREP == 0) //Finished?
 				{
 					CPU[activeCPU].cycles_OP += 4; //4 cycles for finishing!
 				}
 			}
-			if (CPU_Address_size[activeCPU]) //32-bit REP?
+			if (CPU[activeCPU].CPU_Address_size) //32-bit REP?
 			{
 				REPcondition = REG_ECX--; //ECX set and decremented?
 			}
@@ -2376,9 +2376,9 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 			{
 				REPcondition = REG_CX--; //CX set and decremented?
 			}
-			if (REPcondition && gotREP) //Still looping and allowed? Decrease (E)CX after checking for the final item!
+			if (REPcondition && CPU[activeCPU].gotREP) //Still looping and allowed? Decrease (E)CX after checking for the final item!
 			{
-				REPPending = CPU[activeCPU].repeating = 1; //Run the current instruction again and flag repeat!
+				CPU[activeCPU].REPPending = CPU[activeCPU].repeating = 1; //Run the current instruction again and flag repeat!
 			}
 			else //Finished looping?
 			{
@@ -2388,13 +2388,13 @@ void CPU_exec() //Processes the opcode at CS:EIP (386) or CS:IP (8086).
 		}
 		else
 		{
-			if (unlikely(gotREP && !CPU[activeCPU].faultraised)) //Finished REP?
+			if (unlikely(CPU[activeCPU].gotREP && !CPU[activeCPU].faultraised)) //Finished REP?
 			{
 				CPU[activeCPU].cycles_OP += CPU[activeCPU].REPfinishtiming; //Apply finishing REP timing!
 			}
-			REPPending = CPU[activeCPU].repeating = 0; //Not repeating anymore!
+			CPU[activeCPU].REPPending = CPU[activeCPU].repeating = 0; //Not repeating anymore!
 		}
-		blockREP = 0; //Don't block REP anymore!
+		CPU[activeCPU].blockREP = 0; //Don't block REP anymore!
 	}
 	fetchinginstruction: //We're still fetching the instruction in some way?
 	//Apply the ticks to our real-time timer and BIU!
@@ -2509,7 +2509,7 @@ void CPU_exSingleStep() //Single step (after the opcode only)
 	HWINT_nr = 1; //Trapped INT NR!
 	HWINT_saved = 1; //We're trapped!
 	//Points to next opcode!
-	tempcycles = CPU[activeCPU].cycles_OP; //Save old cycles!
+	CPU[activeCPU].tempcycles = CPU[activeCPU].cycles_OP; //Save old cycles!
 	//if (EMULATED_CPU >= CPU_80386) FLAGW_RF(1); //Automatically set the resume flag on a debugger fault!
 	SETBITS(CPU[activeCPU].registers->DR6, 14, 1, 1); //Set bit 14, the single-step trap indicator!
 	CPU_commitState(); //Save the current state for any future faults to return to!
@@ -2530,7 +2530,7 @@ void CPU_BoundException() //Bound exception!
 		return; //Abort handling when needed!
 	}
 	CPU_resetOP(); //Reset instruction to start of instruction!
-	tempcycles = CPU[activeCPU].cycles_OP; //Save old cycles!
+	CPU[activeCPU].tempcycles = CPU[activeCPU].cycles_OP; //Save old cycles!
 	CPU_executionphase_startinterrupt(EXCEPTION_BOUNDSCHECK,0,-1); //Execute INT1 normally using current CS:(E)IP!
 }
 
@@ -2547,7 +2547,7 @@ void THROWDESCNM() //#NM exception handler!
 		return; //Abort handling when needed!
 	}
 	CPU_resetOP(); //Reset instruction to start of instruction!
-	tempcycles = CPU[activeCPU].cycles_OP; //Save old cycles!
+	CPU[activeCPU].tempcycles = CPU[activeCPU].cycles_OP; //Save old cycles!
 	CPU_executionphase_startinterrupt(EXCEPTION_COPROCESSORNOTAVAILABLE,2,-1); //Execute INT1 normally using current CS:(E)IP! No error code is pushed!
 }
 
@@ -2569,7 +2569,7 @@ void THROWDESCMF() //#MF(Coprocessor Error) exception handler!
 		return; //Abort handling when needed!
 	}
 	CPU_resetOP(); //Reset instruction to start of instruction!
-	tempcycles = CPU[activeCPU].cycles_OP; //Save old cycles!
+	CPU[activeCPU].tempcycles = CPU[activeCPU].cycles_OP; //Save old cycles!
 	CPU_executionphase_startinterrupt(EXCEPTION_COPROCESSORERROR,2,-1); //Execute INT1 normally using current CS:(E)IP! No error code is pushed!
 }
 
