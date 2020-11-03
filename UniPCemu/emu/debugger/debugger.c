@@ -875,13 +875,6 @@ void debugger_logmisc(char *filename, CPU_registers *registers, byte halted, byt
 	log_logtimestamp(log_timestampbackup); //Restore state!
 }
 
-extern word modrm_lastsegment;
-extern uint_32 modrm_lastoffset;
-extern byte last_modrm; //Is the last opcode a modr/m read?
-
-extern byte OPbuffer[256];
-extern word OPlength; //The length of the OPbuffer!
-
 extern BIU_type BIU[MAXCPUS]; //The BIU we're emulating!
 
 extern byte DMA_S; //DMA state of transfer(clocks S0-S3), when active!
@@ -928,15 +921,15 @@ OPTINLINE void debugger_autolog()
 			{
 				if (advancedlog) //Advanced logging?
 				{
-					if (last_modrm)
+					if (CPU[activeCPU].last_modrm)
 					{
 						if (EMULATED_CPU <= CPU_80286) //16-bits addresses?
 						{
-							dolog("debugger", "ModR/M address: %04x:%04x=%08x", modrm_lastsegment, modrm_lastoffset, ((modrm_lastsegment << 4) + modrm_lastoffset));
+							dolog("debugger", "ModR/M address: %04x:%04x=%08x", CPU[activeCPU].modrm_lastsegment, CPU[activeCPU].modrm_lastoffset, ((CPU[activeCPU].modrm_lastsegment << 4) + CPU[activeCPU].modrm_lastoffset));
 						}
 						else //386+? Unknown addresses, so just take it as given!
 						{
-							dolog("debugger", "ModR/M address: %04x:%08x", modrm_lastsegment, modrm_lastoffset);
+							dolog("debugger", "ModR/M address: %04x:%08x", CPU[activeCPU].modrm_lastsegment, CPU[activeCPU].modrm_lastoffset);
 						}
 					}
 					if (MMU_invaddr()) //We've detected an invalid address?
@@ -967,20 +960,20 @@ OPTINLINE void debugger_autolog()
 			if (!debugger_set) //No debugger set?
 			{
 				if (!((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT))) safestrcpy(fullcmd,sizeof(fullcmd),"<Debugger not implemented: "); //Set to the last opcode!
-				for (i = 0; i < (int)OPlength; i++) //List the full command!
+				for (i = 0; i < (int)CPU[activeCPU].OPlength; i++) //List the full command!
 				{
 					if (!((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT))) snprintf(fullcmd,sizeof(fullcmd), "%s%02X", debugger_command_text, OPbuffer[i]); //Add part of the opcode!
-					else snprintf(fullcmd,sizeof(fullcmd), fullcmd[0]?"%s %02X":"%s%02X", debugger_command_text, OPbuffer[i]); //Add part of the opcode!
+					else snprintf(fullcmd,sizeof(fullcmd), fullcmd[0]?"%s %02X":"%s%02X", debugger_command_text, CPU[activeCPU].OPbuffer[i]); //Add part of the opcode!
 				}
 				if (!((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT))) safestrcat(fullcmd,sizeof(fullcmd), ">"); //End of #UNKOP!
 			}
 			else
 			{
 				if (!((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT))) safestrcpy(fullcmd,sizeof(fullcmd), "(");
-				for (i = 0; i < (int)OPlength; i++) //List the full command!
+				for (i = 0; i < (int)CPU[activeCPU].OPlength; i++) //List the full command!
 				{
 					if (!((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT))) safescatnprintf(fullcmd,sizeof(fullcmd), "%02X", OPbuffer[i]); //Add part of the opcode!
-					else { safescatnprintf(fullcmd,sizeof(fullcmd), fullcmd[0]?" %02X":"%02X", OPbuffer[i]); } //Add part of the opcode!
+					else { safescatnprintf(fullcmd,sizeof(fullcmd), fullcmd[0]?" %02X":"%02X", CPU[activeCPU].OPbuffer[i]); } //Add part of the opcode!
 				}
 				if (!((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT))) safestrcat(fullcmd,sizeof(fullcmd), ")"); //Our opcode before disassembly!
 				else safestrcat(fullcmd,sizeof(fullcmd), " "); //Our opcode before disassembly!
