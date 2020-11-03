@@ -156,7 +156,7 @@ uint_32 MMU_realaddr186(sword segdesc, word segment, uint_32 offset, byte wordop
 	//SEGMENT_DESCRIPTOR *descriptor; //For checking Expand-down data descriptors!
 	INLINEREGISTER uint_32 realaddress;
 
-	writeword = 0; //Reset word-write flag for checking next bytes!
+	CPU[activeCPU].writeword = 0; //Reset word-write flag for checking next bytes!
 	realaddress = offset; //Load the address!
 	realaddress &= addresswrappingbase[(((realaddress == 0x10000) && wordop) & 1)]; //Apply the correct wrapping!
 
@@ -177,7 +177,7 @@ uint_32 MMU_realaddr186CS(sword segdesc, word segment, uint_32 offset, byte word
 	//SEGMENT_DESCRIPTOR *descriptor; //For checking Expand-down data descriptors!
 	INLINEREGISTER uint_32 realaddress;
 
-	writeword = 0; //Reset word-write flag for checking next bytes!
+	CPU[activeCPU].writeword = 0; //Reset word-write flag for checking next bytes!
 	realaddress = offset; //Load the address!
 	realaddress &= addresswrappingbase[(((realaddress == 0x10000) && wordop) & 1)]; //Apply the correct wrapping!
 
@@ -189,7 +189,7 @@ uint_32 MMU_realaddrGeneric(sword segdesc, word segment, uint_32 offset, byte wo
 	//SEGMENT_DESCRIPTOR *descriptor; //For checking Expand-down data descriptors!
 	INLINEREGISTER uint_32 realaddress;
 
-	writeword = 0; //Reset word-write flag for checking next bytes!
+	CPU[activeCPU].writeword = 0; //Reset word-write flag for checking next bytes!
 	realaddress = offset; //Load the address!
 	realaddress &= addresswrappingbase_simple; //Apply address wrapping for the CPU offset, when needed!
 
@@ -210,7 +210,7 @@ uint_32 MMU_realaddrGenericCS(sword segdesc, word segment, uint_32 offset, byte 
 	//SEGMENT_DESCRIPTOR *descriptor; //For checking Expand-down data descriptors!
 	INLINEREGISTER uint_32 realaddress;
 
-	writeword = 0; //Reset word-write flag for checking next bytes!
+	CPU[activeCPU].writeword = 0; //Reset word-write flag for checking next bytes!
 	realaddress = offset; //Load the address!
 	realaddress &= addresswrappingbase_simple; //Apply address wrapping for the CPU offset, when needed!
 
@@ -234,7 +234,7 @@ uint_32 MMU_realaddrPhys(SEGMENT_DESCRIPTOR *segdesc, word segment, uint_32 offs
 
 	//word originalsegment = segment;
 	//uint_32 originaloffset = offset; //Save!
-	writeword = 0; //Reset word-write flag for checking next bytes!
+	CPU[activeCPU].writeword = 0; //Reset word-write flag for checking next bytes!
 	realaddress = offset; //Load the address!
 	if (likely(applyspecialaddress))
 	{
@@ -276,15 +276,15 @@ void processBUS(uint_32 address, byte index, byte data)
 //OPcodes for the debugger!
 void MMU_addOP(byte data)
 {
-	if (OPlength < sizeof(OPbuffer)) //Not finished yet?
+	if (CPU[activeCPU].OPlength < sizeof(CPU[activeCPU].OPbuffer)) //Not finished yet?
 	{
-		OPbuffer[OPlength++] = data; //Save a part of the opcode!
+		CPU[activeCPU].OPbuffer[CPU[activeCPU].OPlength++] = data; //Save a part of the opcode!
 	}
 }
 
 void MMU_clearOP()
 {
-	OPlength = 0; //Clear the buffer!
+	CPU[activeCPU].OPlength = 0; //Clear the buffer!
 }
 
 //CPU/EMU simple memory access routine.
@@ -497,7 +497,7 @@ byte Paging_directrb(sword segdesc, uint_32 realaddress, byte writewordbackup, b
 	{
 		if (writewordbackup==0) //First data of the (d)word access?
 		{
-			wordaddress = realaddress; //Word address used during memory access!
+			CPU[activeCPU].wordaddress = realaddress; //Word address used during memory access!
 		}
 	}
 
@@ -524,7 +524,7 @@ void Paging_directwb(sword segdesc, uint_32 realaddress, byte val, byte index, b
 	{
 		if (writewordbackup==0) //First data of the word access?
 		{
-			wordaddress = realaddress; //Word address used during memory access!
+			CPU[activeCPU].wordaddress = realaddress; //Word address used during memory access!
 		}
 	}
 
@@ -540,7 +540,7 @@ OPTINLINE byte MMU_INTERNAL_rb(sword segdesc, word segment, uint_32 offset, byte
 {
 	INLINEREGISTER byte result; //The result!
 	INLINEREGISTER uint_32 realaddress;
-	byte writewordbackup = writeword; //Save the old value first!
+	byte writewordbackup = CPU[activeCPU].writeword; //Save the old value first!
 	if (MMU.memory==NULL) //No mem?
 	{
 		//dolog("MMU","R:No memory present!");
@@ -548,7 +548,7 @@ OPTINLINE byte MMU_INTERNAL_rb(sword segdesc, word segment, uint_32 offset, byte
 		return 0xFF; //Out of bounds!
 	}
 
-	realaddress = MMU_realaddr(segdesc, segment, offset, writeword, is_offset16); //Real adress!
+	realaddress = MMU_realaddr(segdesc, segment, offset, CPU[activeCPU].writeword, is_offset16); //Real adress!
 
 	result = Paging_directrb(segdesc,realaddress,writewordbackup,opcode,index,getCPL()); //Read through the paging unit and hardware layer!
 
@@ -564,7 +564,7 @@ OPTINLINE byte MMU_INTERNAL_rb0(sword segdesc, word segment, uint_32 offset, byt
 {
 	INLINEREGISTER byte result; //The result!
 	INLINEREGISTER uint_32 realaddress;
-	byte writewordbackup = writeword; //Save the old value first!
+	byte writewordbackup = CPU[activeCPU].writeword; //Save the old value first!
 	if (MMU.memory==NULL) //No mem?
 	{
 		//dolog("MMU","R:No memory present!");
@@ -572,7 +572,7 @@ OPTINLINE byte MMU_INTERNAL_rb0(sword segdesc, word segment, uint_32 offset, byt
 		return 0xFF; //Out of bounds!
 	}
 
-	realaddress = MMU_realaddr(segdesc, segment, offset, writeword, is_offset16); //Real adress!
+	realaddress = MMU_realaddr(segdesc, segment, offset, CPU[activeCPU].writeword, is_offset16); //Real adress!
 
 	result = Paging_directrb(segdesc,realaddress,writewordbackup,opcode,index,0); //Read through the paging unit and hardware layer!
 
@@ -621,7 +621,7 @@ extern byte EMU_RUNNING; //Emulator is running?
 OPTINLINE void MMU_INTERNAL_wb(sword segdesc, word segment, uint_32 offset, byte val, byte index, byte is_offset16) //Set adress!
 {
 	INLINEREGISTER uint_32 realaddress;
-	byte writewordbackup = writeword; //Save the old value first!
+	byte writewordbackup = CPU[activeCPU].writeword; //Save the old value first!
 	if ((MMU.memory==NULL) || !MMU.size) //No mem?
 	{
 		//dolog("MMU","W:No memory present!");
@@ -634,7 +634,7 @@ OPTINLINE void MMU_INTERNAL_wb(sword segdesc, word segment, uint_32 offset, byte
 		dolog("debugger","MMU: Write to %04X:%08X=%02X",segment,offset,val); //Log our written value!
 	}*/
 
-	realaddress = MMU_realaddr(segdesc, segment, offset, writeword, is_offset16); //Real adress!
+	realaddress = MMU_realaddr(segdesc, segment, offset, CPU[activeCPU].writeword, is_offset16); //Real adress!
 
 	if (unlikely(MMU_logging==1)) //To log?
 	{
@@ -649,7 +649,7 @@ OPTINLINE void MMU_INTERNAL_ww(sword segdesc, word segment, uint_32 offset, word
 	INLINEREGISTER word w;
 	w = val;
 	MMU_INTERNAL_wb(segdesc,segment,offset,w&0xFF,(index|0x40),is_offset16); //Low first!
-	writeword = 1; //We're writing a 2nd byte word, for emulating the NEC V20/V30 0x10000 overflow bug.
+	CPU[activeCPU].writeword = 1; //We're writing a 2nd byte word, for emulating the NEC V20/V30 0x10000 overflow bug.
 	w >>= 8; //Shift low!
 	MMU_INTERNAL_wb(segdesc,segment,offset+1,(byte)w,(index|1|0x40),is_offset16); //High last!
 }

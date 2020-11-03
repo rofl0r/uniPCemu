@@ -1230,6 +1230,7 @@ typedef struct
 	byte custommem; //Custom memory address used?
 	uint_32 customoffset; //What custom memory address used!
 	byte taskswitch_result; //Result of a task switch!
+	uint_32 wordaddress;
 } CPU_type;
 
 #ifndef IS_CPU
