@@ -113,7 +113,7 @@ byte CPU_request_MMUwdw(sword segdesc, uint_32 offset, uint_32 val, byte is_offs
 
 void CPU_executionphase_normal() //Executing an opcode?
 {
-	currentOP_handler(); //Now go execute the OPcode once in the runtime!
+	CPU[activeCPU].currentOP_handler(); //Now go execute the OPcode once in the runtime!
 	//Don't handle unknown opcodes here: handled by native CPU parser, defined in the opcode jmptbl.
 }
 
