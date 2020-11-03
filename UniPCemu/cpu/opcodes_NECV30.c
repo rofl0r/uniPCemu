@@ -34,15 +34,6 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/cpu/cpu_stack.h" //Stack support!
 
 
-extern MODRM_PARAMS params;    //For getting all params!
-extern byte blockREP; //Block the instruction from executing (REP with (E)CX=0
-extern byte MODRM_src0; //What source is our modr/m? (1/2)
-extern byte MODRM_src1; //What source operand in our modr/m? (2/2)
-MODRM_PTR info, info2; //For storing ModR/M Info(second for 186+ IMUL instructions)!
-
-extern byte immb; //Immediate byte!
-extern word immw; //Immediate word!
-
 /*
 
 New instructions:
@@ -62,24 +53,7 @@ OUTS
 
 //Info: Gv,Ev=See 8086 opcode map; Ib/w=Immediate, Iz=Iw/Idw.
 
-extern byte oper1b, oper2b; //Byte variants!
-extern word oper1, oper2; //Word variants!
-extern byte res8; //Result 8-bit!
-extern word res16; //Result 16-bit!
-extern byte thereg; //For function number!
-
-extern VAL32Splitter temp1, temp2, temp3, temp4, temp5;
-
 //Help functions for debugging:
-extern char modrm_param1[256]; //Contains param/reg1
-extern char modrm_param2[256]; //Contains param/reg2
-extern byte cpudebugger; //CPU debugger active?
-extern byte custommem; //Custom memory address?
-
-extern uint_32 customoffset; //Offset to use!
-
-extern uint_32 destEIP; //For control transfers!
-
 OPTINLINE void CPU186_internal_MOV16(word *dest, word val) //Copy of 8086 version!
 {
 	CPUPROT1
@@ -279,8 +253,6 @@ void CPU186_OP61()
 	CPU_apply286cycles(); //Apply the 80286+ cycles!
 }
 
-extern int_32 modrm_addoffset; //Add this offset to ModR/M reads!
-
 //62 not implemented in fake86? Does this not exist?
 void CPU186_OP62()
 {
@@ -339,9 +311,6 @@ void CPU186_OP68()
 	CPU_apply286cycles(); //Apply the 80286+ cycles!
 }
 
-extern uint_32 IMULresult; //Buffer to use, general purpose!
-extern byte instructionbufferb, instructionbufferb2; //For 8-bit read storage!
-extern word instructionbufferw, instructionbufferw2; //For 16-bit read storage!
 void CPU186_OP69()
 {
 	memcpy(&info,&params.info[MODRM_src0],sizeof(info)); //Reg!
@@ -601,7 +570,6 @@ void CPU186_OP6F()
 	CPUPROT2
 }
 
-word temp8Edata;
 void CPU186_OP8E()
 {
 	modrm_debugger16(&params, MODRM_src0, MODRM_src1);
@@ -725,7 +693,6 @@ void CPU186_OPC1()
 	if (CPU8086_instructionstepwritemodrmw(2,res16,MODRM_src0,0)) return;
 } //GRP2 Ev,Ib
 
-extern byte ENTER_L; //Level value of the ENTER instruction!
 void CPU186_OPC8()
 {
 	word temp16;    //ENTER Iw,Ib

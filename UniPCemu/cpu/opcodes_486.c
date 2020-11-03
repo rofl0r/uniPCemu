@@ -29,10 +29,6 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/emu/debugger/debugger.h" //Debugger support!
 #include "headers/cpu/cpu_pmtimings.h" //Timing support!
 
-extern MODRM_PARAMS params; //For getting all params for the CPU!
-extern byte cpudebugger; //The debugging is on?
-extern byte blockREP; //Block the instruction from executing (REP with (E)CX=0
-
 //When using http://www.mlsite.net/8086/: G=Modr/m mod&r/m adress, E=Reg field in modr/m
 
 //INFO: http://www.mlsite.net/8086/
@@ -46,31 +42,9 @@ extern byte blockREP; //Block the instruction from executing (REP with (E)CX=0
 
 //Simplifier!
 
-extern uint_32 destEIP; //Destination address for CS JMP instruction!
-
-extern byte immb; //For CPU_readOP result!
-extern word immw; //For CPU_readOPw result!
-extern uint_32 imm32; //For CPU_readOPdw result!
-extern uint_64 imm64; //For CPU_readOPdw result!
-extern byte oper1b, oper2b; //Byte variants!
-extern word oper1, oper2; //Word variants!
-extern uint_32 oper1d, oper2d; //DWord variants!
-extern byte res8; //Result 8-bit!
-extern word res16; //Result 16-bit!
-extern uint_32 res32; //Result 32-bit!
-extern byte thereg; //For function number!
-extern byte tempCF2;
-
-extern VAL64Splitter temp1, temp2, temp3, temp4, temp5; //All temporary values!
-extern uint_32 temp32, tempaddr32; //Defined in opcodes_8086.c
-
 extern byte debuggerINT; //Interrupt special trigger?
 
-extern uint_32 immaddr32; //Immediate address, for instructions requiring it, either 16-bits or 32-bits of immediate data, depending on the address size!
-
 //Modr/m support, used when reg=NULL and custommem==0
-extern byte MODRM_src0; //What destination operand in our modr/m? (1/2)
-extern byte MODRM_src1; //What source operand in our modr/m? (2/2)
 
 void CPU486_CPUID()
 {

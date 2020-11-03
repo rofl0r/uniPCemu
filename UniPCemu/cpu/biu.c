@@ -93,7 +93,6 @@ Handler BIU_activeCycleHandler = NULL;
 byte BIU_is_486 = 0;
 byte BIU_numcyclesmask;
 
-extern byte cpudebugger; //To debug the CPU?
 byte CompaqWrapping[0x1000]; //Compaq Wrapping precalcs!
 extern byte is_Compaq; //Are we emulating a Compaq architecture?
 
@@ -387,9 +386,9 @@ extern MMU_type MMU; //MMU support!
 extern uint_32 effectivecpuaddresspins; //What address pins are supported?
 
 //Some cached memory line!
-uint_32 BIU_cachedmemoryaddr=0;
-uint_32 BIU_cachedmemoryread=0;
-byte BIU_cachedmemorysize=0;
+uint_32 BIU_cachedmemoryaddr[MAXCPUS]=0;
+uint_32 BIU_cachedmemoryread[MAXCPUS]=0;
+byte BIU_cachedmemorysize[MAXCPUS]=0;
 
 extern uint_32 memory_dataaddr; //The data address that's cached!
 extern uint_32 memory_dataread;
@@ -424,14 +423,14 @@ OPTINLINE byte BIU_directrb(uint_32 realaddress, word index)
 			goto uncachedread; //Uncached read!
 		}
 		//Now, validate the active address!
-		cachedmemorybyte = (realaddress - BIU_cachedmemoryaddr); //What byte in the cache are we?
+		cachedmemorybyte = (realaddress - BIU_cachedmemoryaddr[activeCPU]); //What byte in the cache are we?
 		if (unlikely((cachedmemorybyte >= BIU_cachedmemorysize) || (realaddress < BIU_cachedmemoryaddr))) //Past or before what's cached?
 		{
 			goto uncachedread; //Uncached read!
 		}
 		//We're the same address block that's already loaded!
 		cachedmemorybyte <<= 3; //Make it a multiple of 8 bits!
-		result = BIU_cachedmemoryread >> cachedmemorybyte; //Read the data from the local cache!
+		result = BIU_cachedmemoryread[activeCPU] >> cachedmemorybyte; //Read the data from the local cache!
 	}
 	else //Start uncached read!
 	{
@@ -443,15 +442,15 @@ OPTINLINE byte BIU_directrb(uint_32 realaddress, word index)
 		{
 			debugger_logmemoryaccess(0, originaladdr, result, LOGMEMORYACCESS_PAGED | (((index & 0x20) >> 5) << LOGMEMORYACCESS_PREFETCHBITSHIFT)); //Log it!
 		}
-		BIU_cachedmemoryaddr = memory_dataaddr; //The address that's cached now!
-		BIU_cachedmemoryread = memory_dataread; //What has been read!
+		BIU_cachedmemoryaddr[activeCPU] = memory_dataaddr; //The address that's cached now!
+		BIU_cachedmemoryread[activeCPU] = memory_dataread; //What has been read!
 		if (unlikely(memory_datasize > 1)) //Valid to cache?
 		{
-			BIU_cachedmemorysize = memory_datasize; //How much has been read!
+			BIU_cachedmemorysize[activeCPU] = memory_datasize; //How much has been read!
 		}
 		else
 		{
-			BIU_cachedmemorysize = 0; //Invalidate the local cache!
+			BIU_cachedmemorysize[activeCPU] = 0; //Invalidate the local cache!
 		}
 	}
 
@@ -531,7 +530,7 @@ void BIU_directwdw(uint_32 realaddress, uint_32 value, word index)
 extern MMU_realaddrHandler realaddrHandlerCS; //CS real addr handler!
 
 extern uint_32 checkMMUaccess_linearaddr; //Saved linear address for the BIU to use!
-byte PIQ_block = 0; //Blocking any PIQ access now?
+byte PIQ_block[MAXCPUS] = 0; //Blocking any PIQ access now?
 #ifdef IS_WINDOWS
 void CPU_fillPIQ() //Fill the PIQ until it's full!
 #else
@@ -583,7 +582,6 @@ OPTINLINE void CPU_fillPIQ() //Fill the PIQ until it's full!
 	BIU[activeCPU].requestready = 0; //We're starting a request!
 }
 
-extern byte CPU_MMU_checkrights_cause; //What cause?
 byte instructionlimit[6] = {10,15,15,15,15,15}; //What is the maximum instruction length in bytes?
 void BIU_dosboxTick()
 {
@@ -695,17 +693,15 @@ void BIU_dosboxTick()
 	}
 }
 
-byte BIU_DosboxTickPending = 0; //We're pending to reload the entire buffer with whatever's available?
+byte BIU_DosboxTickPending[MAXCPUS] = { 0,0 }; //We're pending to reload the entire buffer with whatever's available?
 
 void BIU_instructionStart() //Handle all when instructions are starting!
 {
 	if (unlikely(useIPSclock)) //Using IPS clock?
 	{
-		BIU_DosboxTickPending = 1; //We're pending to reload!
+		BIU_DosboxTickPending[activeCPU] = 1; //We're pending to reload!
 	}
 }
-
-extern word OPlength; //The length of the opcode buffer!
 
 byte CPU_readOP(byte *result, byte singlefetch) //Reads the operation (byte) at CS:EIP
 {
@@ -713,10 +709,10 @@ byte CPU_readOP(byte *result, byte singlefetch) //Reads the operation (byte) at 
 	if (unlikely(CPU[activeCPU].resetPending)) return 1; //Disable all instruction fetching when we're resetting!
 	if (likely(BIU[activeCPU].PIQ)) //PIQ present?
 	{
-		if (unlikely(BIU_DosboxTickPending)) //Tick is pending? Handle any that needs ticking when fetching!
+		if (unlikely(BIU_DosboxTickPending[activeCPU])) //Tick is pending? Handle any that needs ticking when fetching!
 		{
 			BIU_dosboxTick(); //Tick like DOSBox does(fill the PIQ up as much as possible without cycle timing)!
-			BIU_DosboxTickPending = 0; //Not pending anymore!
+			BIU_DosboxTickPending[activeCPU] = 0; //Not pending anymore!
 		}
 		//PIQ_retry: //Retry after refilling PIQ!
 		//if ((CPU[activeCPU].prefetchclock&(((EMULATED_CPU<=CPU_NECV30)<<1)|1))!=((EMULATED_CPU<=CPU_NECV30)<<1)) return 1; //Stall when not T3(80(1)8X) or T0(286+).
@@ -734,7 +730,7 @@ byte CPU_readOP(byte *result, byte singlefetch) //Reads the operation (byte) at 
 		if (unlikely(BIU_DosboxTickPending)) //Tick is pending? Handle any that needs ticking when fetching!
 		{
 			BIU_dosboxTick(); //Tick like DOSBox does(fill the PIQ up as much as possible without cycle timing)!
-			BIU_DosboxTickPending = 0; //Not pending anymore!
+			BIU_DosboxTickPending[activeCPU] = 0; //Not pending anymore!
 		}
 		if (EMULATED_CPU >= CPU_80286)
 		{
@@ -754,7 +750,7 @@ byte CPU_readOP(byte *result, byte singlefetch) //Reads the operation (byte) at 
 		}
 		else if (unlikely(useIPSclock)) //Using the IPS clocking mode? Since we're short on buffer, reload more into the buffer!
 		{
-			BIU_DosboxTickPending = 1; //Make sure we fill more buffer for this instruction, as not enough can be buffered!
+			BIU_DosboxTickPending[activeCPU] = 1; //Make sure we fill more buffer for this instruction, as not enough can be buffered!
 		}
 		//Not enough data in the PIQ? Refill for the next data!
 		return 1; //Wait for the PIQ to have new data! Don't change EIP(this is still the same)!
@@ -796,10 +792,10 @@ byte CPU_readOPw(word *result, byte singlefetch) //Reads the operation (word) at
 			{
 				BIU_instructionStart();
 			}
-			if (unlikely(BIU_DosboxTickPending)) //Tick is pending? Handle any that needs ticking when fetching!
+			if (unlikely(BIU_DosboxTickPending[activeCPU])) //Tick is pending? Handle any that needs ticking when fetching!
 			{
 				BIU_dosboxTick(); //Tick like DOSBox does(fill the PIQ up as much as possible without cycle timing)!
-				BIU_DosboxTickPending = 0; //Not pending anymore!
+				BIU_DosboxTickPending[activeCPU] = 0; //Not pending anymore!
 			}
 			if (fifobuffer_freesize(BIU[activeCPU].PIQ)<(BIU[activeCPU].PIQ->size-1)) //Enough free to read the entire part?
 			{
@@ -812,10 +808,10 @@ byte CPU_readOPw(word *result, byte singlefetch) //Reads the operation (word) at
 		}
 		//No PIQ installed? Use legacy method!
 	}
-	if (unlikely(BIU_DosboxTickPending)) //Tick is pending? Handle any that needs ticking when fetching!
+	if (unlikely(BIU_DosboxTickPending[activeCPU])) //Tick is pending? Handle any that needs ticking when fetching!
 	{
 		BIU_dosboxTick(); //Tick like DOSBox does(fill the PIQ up as much as possible without cycle timing)!
-		BIU_DosboxTickPending = 0; //Not pending anymore!
+		BIU_DosboxTickPending[activeCPU] = 0; //Not pending anymore!
 	}
 	if ((CPU[activeCPU].instructionfetch.CPU_fetchparameterPos&1)==0) //First opcode half?
 	{
@@ -849,10 +845,10 @@ byte CPU_readOPdw(uint_32 *result, byte singlefetch) //Reads the operation (32-b
 			{
 				BIU_instructionStart();
 			}
-			if (unlikely(BIU_DosboxTickPending)) //Tick is pending? Handle any that needs ticking when fetching!
+			if (unlikely(BIU_DosboxTickPending[activeCPU])) //Tick is pending? Handle any that needs ticking when fetching!
 			{
 				BIU_dosboxTick(); //Tick like DOSBox does(fill the PIQ up as much as possible without cycle timing)!
-				BIU_DosboxTickPending = 0; //Not pending anymore!
+				BIU_DosboxTickPending[activeCPU] = 0; //Not pending anymore!
 			}
 			if (fifobuffer_freesize(BIU[activeCPU].PIQ)<(BIU[activeCPU].PIQ->size-3)) //Enough free to read the entire part?
 			{
@@ -865,10 +861,10 @@ byte CPU_readOPdw(uint_32 *result, byte singlefetch) //Reads the operation (32-b
 		}
 		//No PIQ installed? Use legacy method!
 	}
-	if (unlikely(BIU_DosboxTickPending)) //Tick is pending? Handle any that needs ticking when fetching!
+	if (unlikely(BIU_DosboxTickPending[activeCPU])) //Tick is pending? Handle any that needs ticking when fetching!
 	{
 		BIU_dosboxTick(); //Tick like DOSBox does(fill the PIQ up as much as possible without cycle timing)!
-		BIU_DosboxTickPending = 0; //Not pending anymore!
+		BIU_DosboxTickPending[activeCPU] = 0; //Not pending anymore!
 	}
 	if ((CPU[activeCPU].instructionfetch.CPU_fetchparameterPos&2)==0) //First opcode half?
 	{
@@ -1336,9 +1332,9 @@ OPTINLINE byte BIU_processRequests(byte memory_waitstates, byte bus_waitstates)
 byte CPU386_WAITSTATE_DELAY = 0; //386+ Waitstate, which is software-programmed?
 
 //BIU current state handling information used by below state handlers!
-byte memory_waitstates, bus_waitstates;
-byte PIQ_RequiredSize,PIQ_CurrentBlockSize; //The required size for PIQ transfers!
-byte BIU_active; //Are we counted as active cycles?
+byte memory_waitstates[MAXCPUS], bus_waitstates[MAXCPUS];
+byte PIQ_RequiredSize[MAXCPUS],PIQ_CurrentBlockSize[MAXCPUS]; //The required size for PIQ transfers!
+byte BIU_active[MAXCPUS]; //Are we counted as active cycles?
 
 OPTINLINE void BIU_WaitState() //General Waitstate handler!
 {

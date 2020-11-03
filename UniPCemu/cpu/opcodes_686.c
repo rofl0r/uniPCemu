@@ -26,13 +26,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/cpu/easyregs.h" //Easy register support!
 #include "headers/cpu/protection.h" //CPL support!
 
-MODRM_PARAMS params; //For getting all params for the CPU!
-extern byte cpudebugger; //The debugging is on?
-extern byte thereg; //For function number!
-
 //Modr/m support, used when reg=NULL and custommem==0
-extern byte MODRM_src0; //What source is our modr/m? (1/2)
-extern byte MODRM_src1; //What source is our modr/m? (1/2)
 
 void CPU686_OP0F0D_16()
 {
@@ -179,9 +173,6 @@ void CPU686_OP0F33()
 //CMOVcc instructions
 
 //SETCC instructions
-
-extern word instructionbufferw; //For 16-bit read storage!
-extern uint_32 instructionbufferd; //For 32-bit read storage!
 
 /*
 

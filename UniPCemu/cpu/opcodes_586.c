@@ -32,14 +32,8 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #define EU_CYCLES_SUBSTRACT_ACCESSWRITE 4
 #define EU_CYCLES_SUBSTRACT_ACCESSRW 8
 
-extern MODRM_PARAMS params;    //For getting all params!
-extern byte immb; //For CPU_readOP result!
-extern int_32 modrm_addoffset; //Add this offset to ModR/M reads!
 
 //Modr/m support, used when reg=NULL and custommem==0
-extern byte MODRM_src0; //What destination operand in our modr/m? (1/2)
-extern byte MODRM_src1; //What source operand in our modr/m? (2/2)
-extern byte cpudebugger; //The debugging is on?
 
 OPTINLINE byte CPU80586_instructionstepPOPtimeout(word base)
 {

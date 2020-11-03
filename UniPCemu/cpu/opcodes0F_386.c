@@ -40,8 +40,6 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 
 //Opcodes based on: http://www.logix.cz/michal/doc/i386/chp17-a3.htm#17-03-A
 
-extern VAL64Splitter temp1, temp2, temp3, temp4, temp5; //All temporary values!
-
 /*
 
 First, 32-bit 80386 variants of the 80286 opcodes!
@@ -58,20 +56,7 @@ First, 32-bit 80386 variants of the 80286 opcodes!
 #define DESC_32BITS(x) (x)
 #endif
 
-extern BIOS_Settings_TYPE BIOS_Settings; //BIOS Settings!
-extern MODRM_PARAMS params;    //For getting all params!
-extern MODRM_PTR info; //For storing ModR/M Info!
-extern word oper1, oper2; //Buffers!
-extern uint_32 oper1d, oper2d; //Buffers!
-extern byte immb;
-extern word immw;
-extern uint_32 imm32;
-extern byte thereg; //For function number!
-extern int_32 modrm_addoffset; //Add this offset to ModR/M reads!
-
 //Modr/m support, used when reg=NULL and custommem==0
-extern byte MODRM_src0; //What destination operand in our modr/m? (1/2)
-extern byte MODRM_src1; //What source operand in our modr/m? (2/2)
 
 /*
 
@@ -99,11 +84,6 @@ Interrupts:
 */
 
 extern Handler CurrentCPU_opcode0F_jmptbl[512]; //Our standard internal standard opcode jmptbl!
-
-extern char modrm_param1[256]; //Contains param/reg1
-extern char modrm_param2[256]; //Contains param/reg2
-extern byte cpudebugger; //CPU debugger active?
-extern byte custommem; //Custom memory address?
 
 //0F opcodes for 286+ processors!
 
@@ -445,7 +425,6 @@ void CPU386_OP0F02() //LAR /r
 	CPUPROT2
 }
 
-extern byte protection_PortRightsLookedup; //Are the port rights looked up?
 void CPU386_OP0F03() //LSL /r
 {
 	uint_64 limit;
@@ -547,32 +526,6 @@ void CPU386_OP0F03() //LSL /r
 	CPUPROT2
 }
 
-#include "headers/packed.h" //Packed!
-typedef union PACKED
-{
-	struct
-	{
-		uint_32 AR;
-		uint_32 BASE;
-		uint_32 LIMIT;
-	};
-	uint_32 data[3]; //All our descriptor cache data!
-} DESCRIPTORCACHE386;
-#include "headers/endpacked.h" //Finished!
-
-#include "headers/packed.h" //Packed!
-typedef union PACKED
-{
-	struct
-	{
-		uint_32 AR;
-		uint_32 BASE;
-		uint_32 LIMIT;
-	};
-	uint_32 data[3];
-} DTRdata386;
-#include "headers/endpacked.h" //Finished!
-
 void CPU386_LOADALL_LoadDescriptor(DESCRIPTORCACHE386 *source, sword segment)
 {
 	CPU[activeCPU].SEG_DESCRIPTOR[segment].desc.limit_low = (source->LIMIT&0xFFFF);
@@ -633,49 +586,6 @@ byte LOADALL386_checkMMUaccess(word segment, uint_64 offset, byte readflags, byt
 	//We're valid?
 	return 0; //We're a valid access for both MMU and Paging! Allow this instruction to execute!
 }
-
-#include "headers/packed.h" //Packed
-static union PACKED
-{
-	struct
-	{
-		uint_32 CR0;
-		uint_32 EFLAGS;
-		uint_32 EIP;
-		uint_32 EDI;
-		uint_32 ESI;
-		uint_32 EBP;
-		uint_32 ESP;
-		uint_32 EBX;
-		uint_32 EDX;
-		uint_32 ECX;
-		uint_32 EAX;
-		uint_32 DR6;
-		uint_32 DR7;
-		uint_32 TR;
-		uint_32 LDTR;
-		uint_32 GS;
-		uint_32 FS;
-		uint_32	DS;
-		uint_32 SS;
-		uint_32 CS;
-		uint_32 ES;
-		DESCRIPTORCACHE386 TRdescriptor;
-		DTRdata386 IDTR;
-		DTRdata386 GDTR;
-		DESCRIPTORCACHE386 LDTRdescriptor;
-		DESCRIPTORCACHE386 GSdescriptor;
-		DESCRIPTORCACHE386 FSdescriptor;
-		DESCRIPTORCACHE386 DSdescriptor;
-		DESCRIPTORCACHE386 SSdescriptor;
-		DESCRIPTORCACHE386 CSdescriptor;
-		DESCRIPTORCACHE386 ESdescriptor;
-	} fields; //Fields
-	uint_32 datad[0x33]; //Our data size!
-} LOADALL386DATA;
-#include "headers/endpacked.h" //End packed!
-
-uint_32 loadall386loader[0x33]; //Loader data!
 
 void CPU386_OP0F07() //Undocumented LOADALL instruction
 {
@@ -752,8 +662,6 @@ void CPU386_OP0F07() //Undocumented LOADALL instruction
 	CPU_apply286cycles(); //Apply the 80286+ cycles!
 	CPU_flushPIQ(-1); //We're jumping to another address!
 }
-
-extern byte didJump; //Did we jump?
 
 //New: 16-bit and 32-bit variants of OP70-7F as a 0F opcode!
 //16-bits variant
@@ -1741,10 +1649,6 @@ void CPU80386_OP0F9F()
 	CPU_apply286cycles(); /* Apply cycles */
 } //SETG r/m8
 
-extern byte instructionbufferb, instructionbufferb2; //For 8-bit read storage!
-extern word instructionbufferw, instructionbufferw2; //For 16-bit read storage!
-extern uint_32 instructionbufferd, instructionbufferd2; //For 32-bit read storage!
-
 //Push/pop FS/GS instructions.
 void CPU80386_OP0FA0()
 {
@@ -2007,14 +1911,9 @@ void CPU80386_OP0FBF_32()
 	CPU_apply286cycles(); /* Apply cycles */
 } //MOVSX /r r32,r/m16
 
-extern byte BST_cnt; //How many of bit scan/test (forward) times are taken?
-
 //0F AA is RSM FLAGS on 386++
 
 //SHL/RD instructions.
-
-word tempSHLRDW;
-uint_32 tempSHLRDD;
 
 void CPU80386_SHLD_16(word *dest, word src, byte cnt)
 {
@@ -2305,7 +2204,6 @@ void CPU80386_OP0FAD_32()
 
 //IMUL instruction
 
-extern uint_32 IMULresult;
 void CPU80386_OP0FAF_16()
 { //IMUL /r r16,r/m16
 	modrm_generateInstructionTEXT("IMUL",16,0,PARAM_MODRM12);

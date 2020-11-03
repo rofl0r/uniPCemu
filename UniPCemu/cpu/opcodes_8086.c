@@ -38,10 +38,6 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/cpu/cpu_stack.h" //Stack support!
 
 
-MODRM_PARAMS params; //For getting all params for the CPU!
-extern byte cpudebugger; //The debugging is on?
-extern byte blockREP; //Block the instruction from executing (REP with (E)CX=0
-
 //How many cycles to substract from the documented instruction timings for the raw EU cycles for each BIU access?
 #define EU_CYCLES_SUBSTRACT_ACCESSREAD 4
 #define EU_CYCLES_SUBSTRACT_ACCESSWRITE 4
@@ -60,26 +56,7 @@ extern byte blockREP; //Block the instruction from executing (REP with (E)CX=0
 
 //Simplifier!
 
-extern uint_32 destEIP; //Destination address for CS JMP instruction!
-
-extern byte immb; //For CPU_readOP result!
-extern word immw; //For CPU_readOPw result!
-extern uint_32 imm32; //For CPU_readOPdw result!
-byte oper1b, oper2b; //Byte variants!
-word oper1, oper2; //Word variants!
-extern uint_32 oper1d, oper2d; //DWord variants for MUL!
-byte res8; //Result 8-bit!
-word res16; //Result 16-bit!
-extern uint_32 res32; //For cycle-accurate MUL!
-extern byte thereg; //For function number!
-byte tempCF2;
-
-VAL32Splitter temp1, temp2, temp3, temp4, temp5; //All temporary values!
-uint_32 temp32, tempaddr32; //Defined in opcodes_8086.c
-
 extern byte debuggerINT; //Interrupt special trigger?
-
-extern uint_32 immaddr32; //Immediate address, for instructions requiring it, either 16-bits or 32-bits of immediate data, depending on the address size!
 
 OPTINLINE void INTdebugger8086() //Special INTerrupt debugger!
 {
@@ -95,10 +72,6 @@ Start of help for debugging
 
 */
 
-extern char modrm_param1[256]; //Contains param/reg1
-extern char modrm_param2[256]; //Contains param/reg2
-
-char LEAtext[256];
 OPTINLINE char *getLEAtext(MODRM_PARAMS *theparams)
 {
 	modrm_lea16_text(theparams,1,&LEAtext[0]);    //Help function for LEA instruction!
@@ -112,7 +85,6 @@ Start of help for opcode processing
 */
 
 extern byte CPU_databussize; //0=16/32-bit bus! 1=8-bit bus when possible (8088/80188)!
-uint_32 wordaddress; //Word address used during memory access!
 
 OPTINLINE void CPU8086_IRET()
 {
@@ -1215,8 +1187,6 @@ OPTINLINE void CMP_b(byte a, byte b, byte flags)
 }
 
 //Modr/m support, used when reg=NULL and custommem==0
-extern byte MODRM_src0; //What destination operand in our modr/m? (1/2)
-extern byte MODRM_src1; //What source operand in our modr/m? (2/2)
 
 //Custom memory support!
 byte custommem = 0; //Used in some instructions!
@@ -3119,10 +3089,6 @@ OPTINLINE byte CPU8086_internal_CWD()
 
 //Now the repeatable instructions!
 
-extern byte newREP; //Are we a new repeating instruction (REP issued for a new instruction, not repeating?)
-byte counter;
-
-byte MOVSB_data;
 OPTINLINE byte CPU8086_internal_MOVSB()
 {
 	if (blockREP) return 1; //Disabled REP!
@@ -3217,7 +3183,6 @@ OPTINLINE byte CPU8086_internal_MOVSB()
 	return 0;
 }
 
-word MOVSW_data;
 OPTINLINE byte CPU8086_internal_MOVSW()
 {
 	if (blockREP) return 1; //Disabled REP!
@@ -3312,7 +3277,6 @@ OPTINLINE byte CPU8086_internal_MOVSW()
 	return 0;
 }
 
-byte CMPSB_data1,CMPSB_data2;
 OPTINLINE byte CPU8086_internal_CMPSB()
 {
 	if (blockREP) return 1; //Disabled REP!
@@ -3418,7 +3382,6 @@ OPTINLINE byte CPU8086_internal_CMPSB()
 	return 0;
 }
 
-word CMPSW_data1,CMPSW_data2;
 OPTINLINE byte CPU8086_internal_CMPSW()
 {
 	if (blockREP) return 1; //Disabled REP!
@@ -3670,7 +3633,6 @@ OPTINLINE byte CPU8086_internal_STOSW()
 	return 0;
 }
 //OK so far!
-byte LODSB_value;
 OPTINLINE byte CPU8086_internal_LODSB()
 {
 	if (blockREP) return 1; //Disabled REP!
@@ -3758,7 +3720,6 @@ OPTINLINE byte CPU8086_internal_LODSB()
 	return 0;
 }
 
-word LODSW_value;
 OPTINLINE byte CPU8086_internal_LODSW()
 {
 	if (blockREP) return 1; //Disabled REP!
@@ -3849,7 +3810,6 @@ OPTINLINE byte CPU8086_internal_LODSW()
 	return 0;
 }
 
-byte SCASB_cmp1;
 OPTINLINE byte CPU8086_internal_SCASB()
 {
 	if (blockREP) return 1; //Disabled REP!
@@ -3932,7 +3892,6 @@ OPTINLINE byte CPU8086_internal_SCASB()
 	return 0;
 }
 
-word SCASW_cmp1;
 OPTINLINE byte CPU8086_internal_SCASW()
 {
 	if (blockREP) return 1; //Disabled REP!
@@ -4028,7 +3987,6 @@ OPTINLINE byte CPU8086_internal_POPtimeout(word base)
 	return CPU8086_internal_delayBIU(base,2);//Delay 2 cycles for POPs to start!
 }
 
-word RET_val;
 OPTINLINE byte CPU8086_internal_RET(word popbytes, byte isimm)
 {
 	if (unlikely(CPU[activeCPU].stackchecked==0))
@@ -4063,10 +4021,6 @@ OPTINLINE byte CPU8086_internal_RET(word popbytes, byte isimm)
 	}
 	return 0;
 }
-
-word RETF_destCS;
-word RETF_val; //Far return
-word RETF_popbytes; //How many to pop?
 
 OPTINLINE byte CPU8086_internal_RETF(word popbytes, byte isimm)
 {
@@ -4143,8 +4097,6 @@ OPTINLINE byte CPU8086_internal_INTO()
 	return 0; //Finished: OK!
 }
 
-byte XLAT_value; //XLAT
-
 OPTINLINE byte CPU8086_internal_XLAT()
 {
 	if (unlikely(cpudebugger)) //Debugger on?
@@ -4177,7 +4129,6 @@ void CPU8086_external_XLAT()
 	CPU8086_internal_XLAT();
 } //External variant!
 
-byte secondparambase=0, writebackbase=0;
 OPTINLINE byte CPU8086_internal_XCHG8(byte *data1, byte *data2, byte flags)
 {
 	if (unlikely(CPU[activeCPU].internalinstructionstep==0))
@@ -4365,8 +4316,6 @@ OPTINLINE byte CPU8086_internal_XCHG16(word *data1, word *data2, byte flags)
 	return 0;
 }
 
-extern int_32 modrm_addoffset; //Add this offset to ModR/M reads!
-
 byte CPU8086_internal_LXS(int segmentregister) //LDS, LES etc.
 {
 	static word segment, offset;
@@ -4436,11 +4385,6 @@ byte CPU8086_CALLF(word segment, word offset)
 NOW THE REAL OPCODES!
 
 */
-
-extern byte didJump; //Did we jump this instruction?
-
-byte instructionbufferb=0, instructionbufferb2=0; //For 8-bit read storage!
-word instructionbufferw=0, instructionbufferw2=0; //For 16-bit read storage!
 
 void CPU8086_execute_ADD_modrmmodrm8()
 {
@@ -7749,13 +7693,7 @@ OPTINLINE void op_idiv8(word valdiv, byte divisor)
 	*/
 }
 
-byte tmps,tmpp; //Sign/parity backup!
-
 extern byte CPU_databussize; //Current data bus size!
-
-byte tempAL;
-word tempAX;
-uint_32 tempDXAX;
 
 void op_grp3_8()
 {

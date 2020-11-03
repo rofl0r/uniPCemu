@@ -37,8 +37,6 @@ extern word ISOREADER_SEGMENT; //Segment to load ISO boot record in!
 
 byte boot_bootsector[512]; //The full boot sector to use!
 
-extern uint_32 destEIP; //Where to start booting!
-
 int CPU_boot(int device) //Boots from an i/o device (result TRUE: booted, FALSE: unable to boot/unbootable/read error etc.)!
 {
 	int imagegotten = 0; //Image gotten?

@@ -824,6 +824,139 @@ typedef struct
 	byte CPU_fetchparameterPos; //Parameter position we're fetching. 0=First byte, 1=Second byte etc.
 } CPU_InstructionFetchingStatus;
 
+#include "headers/packed.h" //Packed!
+typedef union PACKED
+{
+	struct
+	{
+		word baselow; //First word
+		word basehighaccessrights; //Second word low bits=base high, high=access rights!
+		word limit; //Third word
+	};
+	word data[3]; //All our descriptor cache data!
+} DESCRIPTORCACHE286;
+#include "headers/endpacked.h" //Finished!
+
+#include "headers/packed.h" //Packed!
+typedef union PACKED
+{
+	struct
+	{
+		word baselow; //First word
+		word basehigh; //Second word low bits, high=zeroed!
+		word limit; //Third word
+	};
+	word data[3];
+} DTRdata286;
+#include "headers/endpacked.h" //Finished!
+
+#include "headers/packed.h" //Packed!
+typedef union PACKED
+{
+	struct
+	{
+		uint_32 AR;
+		uint_32 BASE;
+		uint_32 LIMIT;
+	};
+	uint_32 data[3]; //All our descriptor cache data!
+} DESCRIPTORCACHE386;
+#include "headers/endpacked.h" //Finished!
+
+#include "headers/packed.h" //Packed!
+typedef union PACKED
+{
+	struct
+	{
+		uint_32 AR;
+		uint_32 BASE;
+		uint_32 LIMIT;
+	};
+	uint_32 data[3];
+} DTRdata386;
+#include "headers/endpacked.h" //Finished!
+
+#include "headers/packed.h" //Packed
+typedef union PACKED
+{
+	struct
+	{
+		word unused[3];
+		word MSW;
+		word unused2[7];
+		word TR;
+		word flags;
+		word IP;
+		word LDT;
+		word DS;
+		word SS;
+		word CS;
+		word ES;
+		word DI;
+		word SI;
+		word BP;
+		word SP;
+		word BX;
+		word DX;
+		word CX;
+		word AX;
+		DESCRIPTORCACHE286 ESdescriptor;
+		DESCRIPTORCACHE286 CSdescriptor;
+		DESCRIPTORCACHE286 SSdescriptor;
+		DESCRIPTORCACHE286 DSdescriptor;
+		DTRdata286 GDTR;
+		DESCRIPTORCACHE286 LDTdescriptor;
+		DTRdata286 IDTR;
+		DESCRIPTORCACHE286 TSSdescriptor;
+	} fields; //Fields
+	word dataw[0x33]; //Word-sized data to be loaded, if any!
+} LOADALL286DATATYPE;
+#include "headers/endpacked.h"
+
+#include "headers/packed.h" //Packed
+typedef union PACKED
+{
+	struct
+	{
+		uint_32 CR0;
+		uint_32 EFLAGS;
+		uint_32 EIP;
+		uint_32 EDI;
+		uint_32 ESI;
+		uint_32 EBP;
+		uint_32 ESP;
+		uint_32 EBX;
+		uint_32 EDX;
+		uint_32 ECX;
+		uint_32 EAX;
+		uint_32 DR6;
+		uint_32 DR7;
+		uint_32 TR;
+		uint_32 LDTR;
+		uint_32 GS;
+		uint_32 FS;
+		uint_32	DS;
+		uint_32 SS;
+		uint_32 CS;
+		uint_32 ES;
+		DESCRIPTORCACHE386 TRdescriptor;
+		DTRdata386 IDTR;
+		DTRdata386 GDTR;
+		DESCRIPTORCACHE386 LDTRdescriptor;
+		DESCRIPTORCACHE386 GSdescriptor;
+		DESCRIPTORCACHE386 FSdescriptor;
+		DESCRIPTORCACHE386 DSdescriptor;
+		DESCRIPTORCACHE386 SSdescriptor;
+		DESCRIPTORCACHE386 CSdescriptor;
+		DESCRIPTORCACHE386 ESdescriptor;
+	} fields; //Fields
+	uint_32 datad[0x33]; //Our data size!
+} LOADALL386DATATYPE;
+#include "headers/endpacked.h" //End packed!
+
+#include "headers/cpu/modrm.h" //Param support!
+#include "headers/cpu/cpu_opcodeinformation.h" //Opcode information support!
+
 typedef struct
 {
 	CPU_registers *registers; //The registers of the CPU!
@@ -926,13 +1059,178 @@ typedef struct
 	word SIPIreceived; //SIPI received?
 	byte waitingforSIPI; //Waiting for SIPI? Set for CPU cores, but not the BSP!
 	byte CPUmode; //The current CPU mode!
+
+	//Runtime values
+	byte XLAT_value; //XLAT
+	byte writeword; //Hi-end word written?
+	byte secondparambase, writebackbase;
+	word oldCS, oldIP, waitingforiret;
+	byte tmps, tmpp; //Sign/parity backup!
+	byte thereg; //For function number!
+	word tempSHLRDW;
+	uint_32 tempSHLRDD;
+	uint_32 tempEAX;
+	uint_64 tempEDXEAX;
+	byte tempAL;
+	word tempAX;
+	uint_32 tempDXAX;
+	byte tempcycles;
+	byte oper1b, oper2b; //Byte variants!
+	word oper1, oper2; //Word variants!
+	byte res8; //Result 8-bit!
+	word res16; //Result 16-bit!
+	byte tempCF2;
+
+	VAL32Splitter temp1, temp2, temp3, temp4, temp5; //All temporary values!
+	uint_32 temp32, tempaddr32; //Defined in opcodes_8086.c
+	word temp8Edata;
+	uint_32 oper1d, oper2d; //DWord variants!
+	uint_32 res32; //Result 32-bit!
+
+	char tempbuf[256];
+	uint64_t dst, add, sub;
+
+	struct
+	{
+		int whatsegment;
+		SEGMENT_DESCRIPTOR LOADEDDESCRIPTOR;
+		word* segment;
+		word destinationtask;
+		byte isJMPorCALL;
+		byte gated;
+		int_64 errorcode;
+		byte taskswitch_result;
+	} TASKSWITCH_INFO;
+
+	byte successfullpagemapping;
+
+	word segmentWrittenVal, isJMPorCALLval;
+	word segmentWritten_tempSS;
+	uint_32 segmentWritten_tempESP;
+	word segmentWritten_tempSP;
+	byte is_stackswitching; //Are we busy stack switching?
+	byte SCASB_cmp1;
+	word SCASW_cmp1;
+	uint_32 SCASD_cmp1;
+	uint_32 RETFD_val; //Far return
+	word RETF_destCS;
+	word RETF_val; //Far return
+	word RETF_popbytes; //How many to pop?
+	uint_32 RETD_val;
+	word RET_val;
+	byte REPZ; //Default to REP!
+	byte didNewREP, didRepeating; //Did we do a REP?
+	byte BIUresponsedummy;
+	byte REPPending; //Pending REP reset?
+	word Rdata1, Rdata2; //3 words of data to access!
+	byte portrights_error;
+	byte portExceptionResult; //Init to 0xFF?
+	word PFflags;
+	//Small little cache for the most recent tags that are read!
+	byte mostrecentTAGvalid; //Invalid tag to cache!
+	sbyte mostrecentTAGway; //Most recent tag read way!
+	uint_32 mostrecentTAGread; //Most recent read tag in the TLB!
+	uint_32 mostrecentTAGmask; //Most recent read tag mask in the TLB!
+	uint_64 mostrecentTAGresult; //The result of the most recent tag read!
+	uint_32 mostrecentTAGpassthroughmask; //The result of the most recent tag read!
+	//Continuing on...
+	MODRM_PARAMS params; //For getting all params for the CPU!
+	byte MODRM_src0; //What source is our modr/m? (1/2)
+	byte MODRM_src1; //What source is our modr/m? (1/2)
+
+	//Immediate data read for execution!
+	byte immb; //For CPU_readOP result!
+	word immw; //For CPU_readOPw result!
+	uint_32 imm32; //For CPU_readOPdw result!
+	uint_64 imm64; //For CPU_readOPdw x2 result!
+	uint_32 immaddr32; //Immediate address, for instructions requiring it, either 16-bits or 32-bits of immediate data, depending on the address size!
+
+	//ModR/M information!
+	//Opcode&Stack sizes: 0=16-bits, 1=32-bits!
+	byte CPU_Operand_size; //Operand size for this opcode!
+	byte CPU_Address_size; //Address size for this opcode!
+
+	//Internal prefix table for below functions!
+	byte CPU_prefixes[2][32]; //All prefixes, packed in a bitfield!
+	byte OPbuffer[256]; //A large opcode buffer!
+	word OPlength; //The length of the opcode buffer!
+	uint_32 oldCR0;
+	byte NMIMasked; //Are NMI masked?
+	word IRET_IP, IRET_CS, IRET_FLAGS;
+	byte newREP; //Are we a new repeating instruction (REP issued?) Default = 1!
+	byte MOVSB_data;
+	word MOVSW_data;
+	uint_32 MOVSD_data;
+	byte counter;
+	char modrm_param1[256]; //Contains param/reg1
+	char modrm_param2[256]; //Contains param/reg2
+	word modrm_lastsegment;
+	uint_32 modrm_lastoffset;
+	byte last_modrm; //Is the last opcode a modr/m read?
+	int_32 modrm_addoffset; //To add this to the calculated offset!
+	byte LODSB_value;
+	word LODSW_value;
+	uint_32 LODSD_value;
+
+	word LOADDESCRIPTOR_segmentval;
+	uint_32 loadall386loader[0x33]; //Loader data!
+	LOADALL386DATATYPE LOADALL386DATA;
+	word loadall286loader[0x33]; //Word-sized data to be loaded, if any!
+	LOADALL286DATATYPE LOADALL286DATA;
+
+	char LEAtext[256];
+
+	uint_32 last_eip;
+	byte ismultiprefix; //Are we multi-prefix?
+
+	word INTreturn_CS;
+	uint_32 INTreturn_EIP;
+
+	byte CPU_executionphaseinterrupt_nr; //What interrupt to execute?
+	byte CPU_executionphaseinterrupt_type; //Are we a type3 interrupt(bit0) or external interrupt(bit1)?
+	int_64 CPU_executionphaseinterrupt_errorcode; //What code to push afterwards? Default: -1!
+	byte CPU_executionphaseinterrupt_is_interrupt; //int instruction?
+	byte interrupt_result;
+
+	byte instructionbufferb, instructionbufferb2; //For 8-bit read storage!
+	word instructionbufferw, instructionbufferw2; //For 16-bit read storage!
+	uint_32 instructionbufferd, instructionbufferd2; //For 16-bit read storage!
+
+	MODRM_PTR info, info2; //For storing ModR/M Info(second for 186+ IMUL instructions)!
+	
+	uint_32 IMULresult; //Buffer to use, general purpose!
+
+	//Stuff for CPU 286+ timing processing!
+	byte BST_cnt; //How many of bit scan/test (forward) times are taken?
+	byte protection_PortRightsLookedup; //Are the port rights looked up?
+	byte didJump; //Did we jump this instruction?
+	byte ENTER_L; //Level value of the ENTER instruction!
+	byte hascallinterrupttaken_type; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task gate flag. Left at 0xFF when nothing is used(unknown case?). Default = 0xFF
+	byte CPU_interruptraised; //Interrupt raised flag?
+
+	word destINTCS, destINTIP;
+	uint_32 destEIP; //Destination address for CS JMP instruction!
+	CPU_OpcodeInformation* currentOpcodeInformation; //The timing used for the current instruction!
+	Handler currentOP_handler; //Default = &CPU_unkOP
+	Handler currentEUphasehandler; //Current execution phase handler, start of with none loaded yet!
+
+	byte CPU_MMU_checkrights_cause; //What cause?
+
+	word CPU_debugger_CS; //OPCode CS
+	uint_32 CPU_debugger_EIP; //OPCode EIP
+	byte blockREP; //Block the instruction from executing (REP with (E)CX=0
+
+	byte CMPSB_data1, CMPSB_data2;
+	word CMPSW_data1, CMPSW_data2;
+	uint_32 CMPSD_data1, CMPSD_data2;
+
+	uint_32 CALLGATE_NUMARGUMENTS; //The amount of arguments of the call gate!
+	byte calledinterruptnumber; //Called interrupt number for unkint funcs!
 } CPU_type;
 
 #ifndef IS_CPU
 extern byte activeCPU; //That currently active CPU!
 extern CPU_type CPU[MAXCPUS]; //All CPUs itself!
-extern byte CPU_Operand_size[2]; //Operand size for this opcode!
-extern byte CPU_Address_size[2]; //Address size for this opcode!
 #endif
 
 //Overrides:

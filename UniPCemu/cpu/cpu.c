@@ -304,25 +304,6 @@ void CPU_initMSRs()
 //CPU timings information
 extern CPU_OpcodeInformation CPUOpcodeInformationPrecalcs[CPU_MODES][0x200]; //All normal and 0F CPU timings, which are used, for all modes available!
 
-//ModR/M information!
-MODRM_PARAMS params; //For getting all params for the CPU exection ModR/M data!
-byte MODRM_src0 = 0; //What source is our modr/m? (1/2)
-byte MODRM_src1 = 0; //What source is our modr/m? (1/2)
-
-//Immediate data read for execution!
-byte immb; //For CPU_readOP result!
-word immw; //For CPU_readOPw result!
-uint_32 imm32; //For CPU_readOPdw result!
-uint_64 imm64; //For CPU_readOPdw x2 result!
-uint_32 immaddr32; //Immediate address, for instructions requiring it, either 16-bits or 32-bits of immediate data, depending on the address size!
-
-//Opcode&Stack sizes: 0=16-bits, 1=32-bits!
-byte CPU_Operand_size[2] = { 0 , 0 }; //Operand size for this opcode!
-byte CPU_Address_size[2] = { 0 , 0 }; //Address size for this opcode!
-
-//Internal prefix table for below functions!
-byte CPU_prefixes[2][32]; //All prefixes, packed in a bitfield!
-
 //More info about interrupts: http://www.bioscentral.com/misc/interrupts.htm#
 //More info about interrupts: http://www.bioscentral.com/misc/interrupts.htm#
 
@@ -353,8 +334,6 @@ byte checkSignedOverflow(uint_64 unsignedval, byte calculatedbits, byte bits, by
 	}
 	return 0; //OK!
 }
-
-extern VAL64Splitter temp1, temp2, temp3, temp4, temp5; //All temporary values!
 
 uint_64 signextend64(uint_64 val, byte bits)
 {
@@ -494,7 +473,6 @@ void CPU_CPUID()
 }
 
 //x86 IMUL for opcodes 69h/6Bh.
-uint_32 IMULresult; //Buffer to use, general purpose!
 void CPU_CIMUL(uint_32 base, byte basesize, uint_32 multiplicant, byte multiplicantsize, uint_32 *result, byte resultsize)
 {
 	temp1.val64 = signextend64(base,basesize); //Read reg instead! Word register = Word register * imm16!
@@ -521,8 +499,6 @@ void CPU_CIMUL(uint_32 base, byte basesize, uint_32 multiplicant, byte multiplic
 }
 
 //Now the code!
-
-byte calledinterruptnumber = 0; //Called interrupt number for unkint funcs!
 
 void CPU_JMPrel(int_32 reladdr, byte useAddressSize)
 {
@@ -558,9 +534,6 @@ byte CPU_EIPSize(byte useAddressSize)
 	return ((CPU_EIPmask(useAddressSize)==0xFFFF) && (debugger_forceEIP()==0))?PARAM_IMM16:PARAM_IMM32; //Full mask or when forcing EIP to be used!
 }
 
-
-char modrm_param1[256]; //Contains param/reg1
-char modrm_param2[256]; //Contains param/reg2
 
 void modrm_debugger8(MODRM_PARAMS *theparams, byte whichregister1, byte whichregister2) //8-bit handler!
 {
@@ -775,7 +748,6 @@ void modrm_generateInstructionTEXT(char *instruction, byte debuggersize, uint_32
 }
 
 //PORT IN/OUT instructions!
-byte portrights_error = 0;
 byte CPU_PORT_OUT_B(word base, word port, byte data)
 {
 	//Check rights!
@@ -1086,7 +1058,6 @@ OPTINLINE void alloc_CPUregisters()
 	}
 }
 
-uint_32 oldCR0=0;
 OPTINLINE void free_CPUregisters()
 {
 	if (CPU[activeCPU].registers) //Still allocated?
@@ -1505,17 +1476,7 @@ OPTINLINE byte CPU_isPrefix(byte prefix)
 	return 0; //No prefix!
 }
 
-CPU_OpcodeInformation *currentOpcodeInformation = NULL; //The timing used for the current instruction!
-Handler currentOP_handler = &CPU_unkOP;
 extern Handler CurrentCPU_opcode_jmptbl[1024]; //Our standard internal standard opcode jmptbl!
-
-word CPU_debugger_CS; //OPCode CS
-uint_32 CPU_debugger_EIP; //OPCode EIP
-
-extern byte custommem; //Used in some instructions!
-extern uint_32 customoffset; //Offset to use!
-
-byte blockREP = 0; //Block the instruction from executing (REP with (E)CX=0
 
 OPTINLINE void CPU_resetInstructionSteps()
 {
@@ -1538,8 +1499,6 @@ void CPU_interruptcomplete()
 	CPU[activeCPU].InterruptReturnEIP = REG_EIP; //Make sure that interrupts behave with a correct EIP after faulting on REP prefixed instructions!
 }
 
-uint_32 last_eip;
-byte ismultiprefix = 0; //Are we multi-prefix?
 OPTINLINE byte CPU_readOP_prefix(byte *OP) //Reads OPCode with prefix(es)!
 {
 	CPU[activeCPU].cycles_Prefix = 0; //No cycles for the prefix by default!
@@ -1916,9 +1875,6 @@ void CPU_beforeexec()
 	}
 }
 
-byte gotREP = 0; //Default: no REP-prefix used!
-byte REPPending = 0; //Pending REP reset?
-
 void CPU_RealResetOP(byte doReset); //Rerun current Opcode? (From interrupt calls this recalls the interrupts, handling external calls in between)
 
 //specialReset: 1 for exhibiting bug and flushing PIQ, 0 otherwise
@@ -1936,8 +1892,6 @@ byte CPU_segmentOverridden(byte TheActiveCPU)
 	return (CPU[TheActiveCPU].segment_register != CPU_SEGMENT_DEFAULT); //Is the segment register overridden?
 }
 
-byte newREP = 1; //Are we a new repeating instruction (REP issued?)
-
 void CPU_resetTimings()
 {
 	CPU[activeCPU].cycles_HWOP = 0; //No hardware interrupt to use anymore!
@@ -1952,20 +1906,9 @@ void CPU_resetTimings()
 	CPU[activeCPU].cycles_EA = 0; //Reset EA cycles!
 }
 
-byte REPZ = 0; //Default to REP!
-byte didNewREP = 0, didRepeating=0; //Did we do a REP?
-
 extern BIU_type BIU[MAXCPUS]; //All possible BIUs!
-byte BIUresponsedummy = 0;
 
 //Stuff for CPU 286+ timing processing!
-extern byte BST_cnt; //How many of bit scan/test (forward) times are taken?
-extern byte protection_PortRightsLookedup; //Are the port rights looked up?
-extern byte didJump; //Did we jump this instruction?
-extern byte ENTER_L; //Level value of the ENTER instruction!
-extern byte hascallinterrupttaken_type; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task gate flag. Left at 0xFF when nothing is used(unknown case?)
-extern byte CPU_interruptraised; //Interrupt raised flag?
-
 void CPU_prepareHWint() //Prepares the CPU for hardware interrupts!
 {
 	MMU_resetaddr(); //Reset invalid address for our usage!
@@ -2506,8 +2449,6 @@ void CPU_afterexec() //Stuff to do after execution of the OPCode (cycular tasks 
 	checkProtectedModeDebuggerAfter(); //Check after executing the current instruction!
 }
 
-extern uint_32 destEIP;
-
 void CPU_RealResetOP(byte doReset) //Rerun current Opcode? (From interrupt calls this recalls the interrupts, handling external calls in between)
 {
 	if (likely(doReset)) //Not a repeating reset?
@@ -2528,7 +2469,6 @@ void CPU_resetOP() //Rerun current Opcode? (From interrupt calls this recalls th
 
 //8086+ exceptions (real mode)
 
-byte tempcycles;
 extern byte advancedlog; //Advanced log setting
 
 extern byte MMU_logging; //Are we logging from the MMU?

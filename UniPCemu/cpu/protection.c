@@ -54,10 +54,6 @@ Basic CPU active segment value retrieval.
 #define DESC_16BITS(x) (x)
 #endif
 
-extern byte hascallinterrupttaken_type; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task gate flag. Left at 0xFF when nothing is used(unknown case?)
-
-uint_32 CALLGATE_NUMARGUMENTS = 0; //The amount of arguments of the call gate!
-
 extern byte advancedlog; //Advanced log setting
 extern byte MMU_logging; //Are we logging from the MMU?
 byte motherboard_responds_to_shutdown = 1; //Motherboard responds to shutdown?
@@ -88,8 +84,6 @@ void CPU_doublefault()
 	CPU_onResettingFault();
 	CPU_executionphase_startinterrupt(EXCEPTION_DOUBLEFAULT,2|8,zerovalue); //Execute the double fault handler!
 }
-
-extern byte CPU_interruptraised; //Interrupt raised flag?
 
 byte CPU_faultraised(byte type)
 {
@@ -328,8 +322,6 @@ void CPU_StackFault(int_64 errorcode)
 		//Execute the interrupt!
 	}
 }
-
-extern byte protection_PortRightsLookedup; //Are the port rights looked up?
 
 void protection_nextOP() //We're executing the next OPcode?
 {
@@ -571,8 +563,6 @@ void CPU_calcSegmentPrecalcs(byte is_CS, SEGMENT_DESCRIPTOR *descriptor)
 	}
 }
 
-word LOADDESCRIPTOR_segmentval;
-
 sbyte LOADDESCRIPTOR(int segment, word segmentval, SEGMENT_DESCRIPTOR *container, word isJMPorCALL) //Result: 0=#GP, 1=container=descriptor.
 {
 	LOADDESCRIPTOR_segmentval = segmentval;
@@ -723,8 +713,6 @@ sbyte SAVEDESCRIPTOR(int segment, word segmentval, SEGMENT_DESCRIPTOR *container
 	return 1; //OK!
 }
 
-
-uint_32 destEIP; //Destination address for CS JMP instruction!
 
 byte CPU_handleInterruptGate(byte EXT, byte table, uint_32 descriptorbase, RAWSEGMENTDESCRIPTOR *theidtentry, word returnsegment, uint_32 returnoffset, int_64 errorcode, byte is_interrupt); //Execute a protected mode interrupt!
 
@@ -1154,7 +1142,6 @@ OPTINLINE byte invalidLimit(SEGMENT_DESCRIPTOR* descriptor, uint_64 offset)
 	//Only 1-bit testing!
 }
 
-byte CPU_MMU_checkrights_cause = 0; //What cause?
 //Used by the CPU(VERR/VERW)&MMU I/O! forreading=0: Write, 1=Read normal, 3=Read opcode
 
 OPTINLINE byte CPU_MMU_checkrights(int segment, word segmentval, uint_64 offset, byte forreading, SEGMENT_DESCRIPTOR* descriptor, byte addrtest, byte is_offset16)
@@ -1201,15 +1188,7 @@ byte CPU_MMU_checkrights_jump(int segment, word segmentval, uint_64 offset, byte
 	return CPU_MMU_checkrights(segment, segmentval, offset, forreading, descriptor, addrtest, is_offset16); //External call!
 }
 
-word segmentWritten_tempSS;
-uint_32 segmentWritten_tempESP;
-word segmentWritten_tempSP;
-extern word RETF_popbytes; //How many to pop?
-byte is_stackswitching=0; //Are we busy stack switching?
-
 byte RETF_checkSegmentRegisters[4] = {CPU_SEGMENT_ES,CPU_SEGMENT_FS,CPU_SEGMENT_GS,CPU_SEGMENT_DS}; //All segment registers to check for when returning to a lower privilege level!
-
-word segmentWrittenVal, isJMPorCALLval;
 
 byte CPU_segmentWritten_protectedmode_JMPCALL(word *value, word isJMPorCALL, SEGMENT_DESCRIPTOR* descriptor, byte isDifferentCPL)
 {
@@ -1798,8 +1777,6 @@ byte disallowPOPFI() //Allow POPF to change interrupt flag?
 	return checkInterruptFlagRestricted(); //Simply ignore the change when not priviledged!
 }
 
-byte portExceptionResult=0xFF;
-
 byte checkPortRights(word port) //Are we allowed to not use this port?
 {
 	if (checkPortRightsRestricted()) //We're to check the I/O permission bitmap! 286+ only!
@@ -1876,8 +1853,6 @@ byte getTSSIRmap(word intnr) //What are we to do with this interrupt? 0=Perform 
 	}
 	return 0; //Allow all for now!
 }
-
-extern byte immb; //For CPU_readOP result!
 
 //bit2=EXT when set.
 byte switchStacks(byte newCPL)

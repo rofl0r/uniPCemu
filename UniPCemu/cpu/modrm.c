@@ -42,11 +42,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 
 char modrm_sizes[4][256] = {"byte","word","dword","byte"}; //What size is used for the parameter?
 
-extern CPU_OpcodeInformation *currentOpcodeInformation; //The timing used for the current instruction! Used for stuff like invalid LOCK prefixes!
-
 extern byte advancedlog; //Advanced log setting
-
-byte thereg; //For function number!
 
 //whichregister: 1=R/M, other=register!
 OPTINLINE byte modrm_useSIB(MODRM_PARAMS *params, int size) //Use SIB byte?
@@ -125,10 +121,6 @@ OPTINLINE byte modrm_useDisplacement(MODRM_PARAMS *params, int size)
 //Use displacement (1||2||4) else 0?
 }
 
-int_32 modrm_addoffset = 0; //To add this to the calculated offset!
-
-extern byte cpudebugger; //Are we debugging?
-
 //Retrieves base offset to use
 
 void modrm_updatedsegment(word *location, word value, byte isJMPorCALL) //Check for updated segment registers!
@@ -144,12 +136,6 @@ void modrm_updatedsegment(word *location, word value, byte isJMPorCALL) //Check 
 		*location = value; //Write the value!
 	}
 }
-
-word modrm_lastsegment;
-uint_32 modrm_lastoffset;
-byte last_modrm; //Is the last opcode a modr/m read?
-
-extern MODRM_PARAMS params; //For getting all params for the CPU!
 
 void reset_modrm()
 {
@@ -268,8 +254,6 @@ byte modrm_write8_BIU(MODRM_PARAMS *params, int whichregister, byte value)
 	}
 	return 0; //Not ready!
 }
-
-extern uint_32 destEIP; //For control transfers!
 
 void modrm_write16(MODRM_PARAMS *params, int whichregister, word value, byte isJMPorCALL)
 {

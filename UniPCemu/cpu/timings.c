@@ -1121,18 +1121,6 @@ CPUPM_Timings CPUPMTimings[CPUPMTIMINGS_SIZE] = {
 	,{1,1,1,0xBA,0xFF,0x06,{{{{6,0,0},{8,0,0}}},{{{6,0,0},{8,0,0}}}}} //BTS r/m32,imm8
 };
 
-extern byte REPZ; //Default to REP!
-extern byte didNewREP, didRepeating; //Did we do a REP?
-extern MODRM_PARAMS params; //For getting all params for the CPU exection ModR/M data!
-
-//Stuff for CPU 286+ timing processing!
-byte BST_cnt = 0; //How many of bit scan/test (forward) times are taken?
-byte protection_PortRightsLookedup = 0; //Are the port rights looked up?
-byte didJump = 0; //Did we jump this instruction?
-byte ENTER_L = 0; //Level value of the ENTER instruction!
-byte hascallinterrupttaken_type = 0xFF; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task gate flag. Left at 0xFF when nothing is used(unknown case?)
-byte CPU_interruptraised = 0; //Interrupt raised flag?
-
 word timing286lookup[4][2][2][0x100][8][8]; //4 modes(bit0=protected mode when set, bit1=32-bit instruction when set), 2 memory modes, 2 0F possibilities, 256 instructions, 9 modr/m variants, no more than 8 possibilities for every instruction. About 73K memory consumed(unaligned).
 
 byte CPU_apply286cycles() //Apply the 80286+ cycles method. Result: 0 when to apply normal cycles. 1 when 80286+ cycles are applied!

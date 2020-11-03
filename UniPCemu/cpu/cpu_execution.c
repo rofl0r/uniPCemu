@@ -111,24 +111,11 @@ byte CPU_request_MMUwdw(sword segdesc, uint_32 offset, uint_32 val, byte is_offs
 
 //Execution phases itself!
 
-extern Handler currentOP_handler; //Current opcode handler!
 void CPU_executionphase_normal() //Executing an opcode?
 {
 	currentOP_handler(); //Now go execute the OPcode once in the runtime!
 	//Don't handle unknown opcodes here: handled by native CPU parser, defined in the opcode jmptbl.
 }
-
-struct
-{
-int whatsegment;
-SEGMENT_DESCRIPTOR LOADEDDESCRIPTOR;
-word *segment;
-word destinationtask;
-byte isJMPorCALL;
-byte gated;
-int_64 errorcode;
-} TASKSWITCH_INFO;
-byte taskswitch_result;
 
 void CPU_executionphase_taskswitch() //Are we to switch tasks?
 {
@@ -140,11 +127,6 @@ void CPU_executionphase_taskswitch() //Are we to switch tasks?
 	CPU[activeCPU].allowTF = 0; //Don't allow traps to trigger!
 }
 
-byte CPU_executionphaseinterrupt_nr = 0x00; //What interrupt to execute?
-byte CPU_executionphaseinterrupt_type = 0; //Are we a type3 interrupt(bit0) or external interrupt(bit1)?
-int_64 CPU_executionphaseinterrupt_errorcode = -1; //What code to push afterwards?
-byte CPU_executionphaseinterrupt_is_interrupt = 0; //int instruction?
-byte interrupt_result;
 extern byte singlestep; //Enable EMU-driven single step!
 
 void CPU_executionphase_interrupt() //Executing an interrupt?
@@ -170,8 +152,6 @@ void CPU_executionphase_interrupt() //Executing an interrupt?
 	}
 }
 
-Handler currentEUphasehandler = NULL; //Current execution phase handler, start of with none loaded yet!
-
 void CPU_executionphase_newopcode() //Starting a new opcode to handle?
 {
 	CPU_executionphaseinterrupt_is_interrupt = 0; //Not an interrupt!
@@ -180,8 +160,6 @@ void CPU_executionphase_newopcode() //Starting a new opcode to handle?
 
 
 
-extern word INTreturn_CS; //Return CS
-extern uint_32 INTreturn_EIP; //Return EIP
 //errorcode: >=0: error code, -1=No error code, -2=Plain INT without error code, -3=T-bit in TSS is being triggered, -4=VME V86-mode IVT-style interrupt.
 void CPU_executionphase_startinterrupt(byte vectornr, byte type, int_64 errorcode) //Starting a new interrupt to handle?
 {

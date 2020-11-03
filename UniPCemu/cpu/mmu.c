@@ -39,8 +39,6 @@ extern MMU_type MMU; //MMU itself!
 
 #define CPU286_WAITSTATE_DELAY 1
 
-byte writeword = 0; //Hi-end word written?
-
 byte memory_BIUdirectrb(uint_32 realaddress) //Direct read from real memory (with real data direct)!
 {
 	return BIU_directrb_external(realaddress, 0x100);
@@ -276,11 +274,6 @@ void processBUS(uint_32 address, byte index, byte data)
 }
 
 //OPcodes for the debugger!
-byte OPbuffer[256]; //A large opcode buffer!
-word OPlength = 0; //The length of the opcode buffer!
-
-extern byte cpudebugger; //To debug the CPU?
-
 void MMU_addOP(byte data)
 {
 	if (OPlength < sizeof(OPbuffer)) //Not finished yet?
@@ -295,7 +288,6 @@ void MMU_clearOP()
 }
 
 //CPU/EMU simple memory access routine.
-extern uint_32 wordaddress; //Word address used during memory access!
 
 byte checkDirectMMUaccess(uint_32 realaddress, byte readflags, byte CPL)
 {

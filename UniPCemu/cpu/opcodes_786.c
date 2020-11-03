@@ -28,13 +28,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/cpu/protection.h" //Protection support!
 #include "headers/cpu/biu.h" //condflushPIQ support!
 
-MODRM_PARAMS params; //For getting all params for the CPU!
-extern byte cpudebugger; //The debugging is on?
-extern byte thereg; //For function number!
-
 //Modr/m support, used when reg=NULL and custommem==0
-extern byte MODRM_src0; //What source is our modr/m? (1/2)
-extern byte MODRM_src1; //What source is our modr/m? (1/2)
 
 void CPU786_OP0F30() //WRMSR
 {
@@ -138,8 +132,6 @@ void CPU786_OP0F32() //RDMSR
 	REG_EDX = MSR->hi; //High dword of MSR #ECX
 	REG_EAX = MSR->lo; //Low dword of MSR #ECX
 }
-
-extern uint_32 destEIP; //Destination address for CS JMP instruction!
 
 byte loadSYSENTERLEAVEdescriptor(int segment, word value, byte PL)
 {

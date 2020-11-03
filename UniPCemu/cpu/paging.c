@@ -99,15 +99,8 @@ extern byte EMU_RUNNING; //1 when paging can be applied!
 
 extern byte advancedlog; //Advanced log setting
 extern byte MMU_logging; //Are we logging from the MMU?
-word PFflags;
 
-//Small little cache for the most recent tags that are read!
-byte mostrecentTAGvalid = 0; //Invalid tag to cache!
-sbyte mostrecentTAGway = -1; //Most recent tag read way!
-uint_32 mostrecentTAGread = 0; //Most recent read tag in the TLB!
-uint_32 mostrecentTAGmask = 0; //Most recent read tag mask in the TLB!
-uint_64 mostrecentTAGresult = 0; //The result of the most recent tag read!
-uint_32 mostrecentTAGpassthroughmask = 0xFFF; //The result of the most recent tag read!
+
 
 void raisePF(uint_32 address, word flags)
 {
@@ -425,8 +418,6 @@ byte CPU_Paging_checkPage(uint_32 address, byte readflags, byte CPL)
 {
 	return (isvalidpage(address,((readflags&(~0x10))==0),CPL,(readflags&0x10),0)==0); //Are we an invalid page? We've raised an error! Bit4 is set during Prefetch operations!
 }
-
-byte successfullpagemapping = 0;
 
 uint_64 mappagenonPSE(uint_32 address, byte iswrite, byte CPL) //Maps a page to real memory when needed!
 {

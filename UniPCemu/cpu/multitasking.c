@@ -40,10 +40,6 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 
 //Everything concerning TSS.
 
-extern byte hascallinterrupttaken_type; //INT gate type taken. Low 4 bits are the type. High 2 bits are privilege level/task gate flag. Left at 0xFF when nothing is used(unknown case?)
-
-extern uint_32 destEIP; //Destination address for CS JMP instruction!
-
 extern byte debugger_forceimmediatelogging; //Force immediate logging?
 
 void loadTSS16(TSS286 *TSS)

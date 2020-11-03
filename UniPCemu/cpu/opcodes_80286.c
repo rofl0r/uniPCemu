@@ -35,17 +35,6 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 //Reading of the 16-bit entries within descriptors!
 #define DESC_16BITS(x) SDL_SwapLE16(x)
 
-extern BIOS_Settings_TYPE BIOS_Settings; //BIOS Settings!
-extern MODRM_PARAMS params;    //For getting all params!
-extern MODRM_PTR info; //For storing ModR/M Info!
-extern word oper1, oper2; //Buffers!
-extern uint_32 oper1d, oper2d; //Buffers!
-extern byte immb;
-extern word immw;
-extern uint_32 imm32;
-extern byte thereg; //For function number!
-extern int_32 modrm_addoffset; //Add this offset to ModR/M reads!
-
 /*
 
 Interrupts:
@@ -73,14 +62,7 @@ Interrupts:
 
 extern Handler CurrentCPU_opcode0F_jmptbl[512]; //Our standard internal standard opcode jmptbl!
 
-extern char modrm_param1[256]; //Contains param/reg1
-extern char modrm_param2[256]; //Contains param/reg2
-extern byte cpudebugger; //CPU debugger active?
-extern byte custommem; //Custom memory address?
-
 //Modr/m support, used when reg=NULL and custommem==0
-extern byte MODRM_src0; //What destination operand in our modr/m? (1/2)
-extern byte MODRM_src1; //What source operand in our modr/m? (2/2)
 
 OPTINLINE byte CPU80286_instructionstepPOPtimeout(word base)
 {
@@ -384,10 +366,8 @@ void CPU286_OP0F00() //Various extended 286+ instructions GRP opcode.
 	}
 }
 
-word Rdata1, Rdata2; //3 words of data to access!
-
 void CPU286_OP0F01() //Various extended 286+ instruction GRP opcode.
-{
+
 	memcpy(&info,&params.info[MODRM_src0],sizeof(info)); //Store the address for debugging!
 	switch (thereg) //What function?
 	{
@@ -698,7 +678,6 @@ void CPU286_OP0F02() //LAR /r
 	CPUPROT2
 }
 
-extern byte protection_PortRightsLookedup; //Are the port rights looked up?
 void CPU286_OP0F03() //LSL /r
 {
 	uint_64 limit;
@@ -800,32 +779,6 @@ void CPU286_OP0F03() //LSL /r
 	CPUPROT2
 }
 
-#include "headers/packed.h" //Packed!
-typedef union PACKED
-{
-	struct
-	{
-		word baselow; //First word
-		word basehighaccessrights; //Second word low bits=base high, high=access rights!
-		word limit; //Third word
-	};
-	word data[3]; //All our descriptor cache data!
-} DESCRIPTORCACHE286;
-#include "headers/endpacked.h" //Finished!
-
-#include "headers/packed.h" //Packed!
-typedef union PACKED
-{
-	struct
-	{
-		word baselow; //First word
-		word basehigh; //Second word low bits, high=zeroed!
-		word limit; //Third word
-	};
-	word data[3];
-} DTRdata286;
-#include "headers/endpacked.h" //Finished!
-
 void CPU286_LOADALL_LoadDescriptor(DESCRIPTORCACHE286 *source, sword segment)
 {
 	CPU[activeCPU].SEG_DESCRIPTOR[segment].desc.limit_low = source->limit;
@@ -837,45 +790,6 @@ void CPU286_LOADALL_LoadDescriptor(DESCRIPTORCACHE286 *source, sword segment)
 	CPU[activeCPU].SEG_DESCRIPTOR[segment].desc.AccessRights = (source->basehighaccessrights>>8); //Access rights is completely used. Present being 0 makes the register unfit to read (#GP is fired).
 	CPU_calcSegmentPrecalcs((segment==CPU_SEGMENT_CS)?1:0,&CPU[activeCPU].SEG_DESCRIPTOR[segment]); //Calculate the precalcs!
 }
-
-#include "headers/packed.h" //Packed
-static union PACKED
-{
-	struct
-	{
-		word unused[3];
-		word MSW;
-		word unused2[7];
-		word TR;
-		word flags;
-		word IP;
-		word LDT;
-		word DS;
-		word SS;
-		word CS;
-		word ES;
-		word DI;
-		word SI;
-		word BP;
-		word SP;
-		word BX;
-		word DX;
-		word CX;
-		word AX;
-		DESCRIPTORCACHE286 ESdescriptor;
-		DESCRIPTORCACHE286 CSdescriptor;
-		DESCRIPTORCACHE286 SSdescriptor;
-		DESCRIPTORCACHE286 DSdescriptor;
-		DTRdata286 GDTR;
-		DESCRIPTORCACHE286 LDTdescriptor;
-		DTRdata286 IDTR;
-		DESCRIPTORCACHE286 TSSdescriptor;
-	} fields; //Fields
-	word dataw[0x33]; //Word-sized data to be loaded, if any!
-} LOADALL286DATA;
-#include "headers/endpacked.h"
-
-word loadall286loader[0x33]; //Word-sized data to be loaded, if any!
 
 void CPU286_OP0F05() //Undocumented LOADALL instruction
 {

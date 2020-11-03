@@ -53,20 +53,12 @@ void CPU_getint(byte intnr, word *segment, word *offset) //Set real mode IVT ent
 	*offset = MMU_rw(-1,0x0000,(intnr<<2),0,0); //Copy offset!
 }
 
-extern uint_32 destEIP;
-
 //Interrupt support for timings!
-extern byte CPU_interruptraised; //Interrupt raised flag?
-
-word oldCS, oldIP, waitingforiret=0;
-
 extern byte singlestep; //Enable EMU-driven single step!
 extern byte allow_debuggerstep; //Disabled by default: needs to be enabled by our BIOS!
 extern byte advancedlog; //Advanced log setting
 
 extern byte MMU_logging; //Are we logging from the MMU?
-extern byte REPPending; //Pending REP reset?
-word destINTCS, destINTIP;
 byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorcode, byte is_interrupt) //Used by soft (below) and exceptions/hardware!
 {
 	byte checkinterruptstep;
@@ -189,18 +181,11 @@ byte CPU_customint(byte intnr, word retsegment, uint_32 retoffset, int_64 errorc
 	return CPU_ProtectedModeInterrupt(intnr,retsegment,retoffset,errorcode,is_interrupt); //Execute the protected mode interrupt!
 }
 
-word INTreturn_CS=0xCCCC;
-uint_32 INTreturn_EIP=0xCCCCCCCC;
-
 byte CPU_INT(byte intnr, int_64 errorcode, byte is_interrupt) //Call an software interrupt; WARNING: DON'T HANDLE ANYTHING BUT THE REGISTERS ITSELF!
 {
 	//Now, jump to it!
 	return CPU_customint(intnr,INTreturn_CS,INTreturn_EIP,errorcode,is_interrupt); //Execute real interrupt, returning to current address!
 }
-
-byte NMIMasked = 0; //Are NMI masked?
-
-word IRET_IP=0, IRET_CS=0, IRET_FLAGS=0;
 
 void CPU_IRET()
 {
@@ -415,7 +400,7 @@ extern byte PPI62; //For XT support!
 byte NMI = 1; //NMI Disabled?
 
 byte NMIQueued = 0; //NMI raised to handle? This can be handled by an APIC!
-byte APICNMIQueued[MAXCPUS] = { 0 }; //APIC-issued NMI queued?
+byte APICNMIQueued[MAXCPUS] = { 0, 0 }; //APIC-issued NMI queued?
 
 void CPU_INTERNAL_execNMI()
 {

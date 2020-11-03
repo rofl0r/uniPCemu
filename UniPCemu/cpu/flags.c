@@ -218,8 +218,6 @@ void flag_subcoa32(uint32_t v1, uint64_t sub, uint64_t dst)
 
 //Start of the externally used calls to calculate flags!
 
-uint64_t dst, add, sub;
-
 void flag_adc8(uint8_t v1, uint8_t v2, uint8_t v3)
 {
 	add=(uint16_t)v2;

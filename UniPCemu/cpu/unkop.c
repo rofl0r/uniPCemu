@@ -51,8 +51,6 @@ void halt_modrm(char *message, ...) //Unknown modr/m?
 extern char debugger_command_text[256]; //Current command!
 extern byte debugger_set; //Debugger set?
 
-char tempbuf[256];
-
 extern byte advancedlog; //Advanced log setting
 
 extern byte MMU_logging; //Are we logging from the MMU?
