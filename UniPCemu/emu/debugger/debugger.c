@@ -1629,6 +1629,7 @@ void debugger_step() //Processes the debugging step!
 void debugger_setcommand(char *text, ...)
 {
 	char *c;
+	if (activeCPU) return; //Only CPU #0!
 	if (cpudebugger && (debugger_set==0)) //Are we debugging?
 	{
 		va_list args; //Going to contain the list!
@@ -1655,6 +1656,7 @@ void debugger_setcommand(char *text, ...)
 void debugger_setprefix(char *text)
 {
 	char *c;
+	if (activeCPU) return; //Only CPU #0!
 	if ((debugger_prefix[0]=='\0') || (*text=='\0')) //No prefix yet or reset?
 	{
 		safestrcpy(debugger_prefix,sizeof(debugger_prefix),text); //Set prefix!
