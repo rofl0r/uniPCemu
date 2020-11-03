@@ -594,17 +594,22 @@ resetmmu:
 	}
 }
 
-extern byte BIU_cachedmemorysize; //For the BIU to flush it's cache!
+extern byte BIU_cachedmemorysize[MAXCPUS]; //For the BIU to flush it's cache!
 
 void MMU_RAMlayoutupdated()
 {
 	MMU_updatemaxsize(); //updated the maximum size!
 	MMU_precalcMemoryHoles(); //Precalculate the memory hole information!
 	//Invalidate CPU caches
-	if (unlikely(BIU_cachedmemorysize)) //Matched an active read cache(allowing self-modifying code)?
+	if (unlikely(BIU_cachedmemorysize[0])) //Matched an active read cache(allowing self-modifying code)?
 	{
 		memory_datasize = 0; //Invalidate the read cache to re-read memory!
-		BIU_cachedmemorysize = 0; //Invalidate the BIU cache as well!
+		BIU_cachedmemorysize[0] = 0; //Invalidate the BIU cache as well!
+	}
+	if (unlikely(BIU_cachedmemorysize[1])) //Matched an active read cache(allowing self-modifying code)?
+	{
+		memory_datasize = 0; //Invalidate the read cache to re-read memory!
+		BIU_cachedmemorysize[1] = 0; //Invalidate the BIU cache as well!
 	}
 }
 
@@ -851,7 +856,8 @@ void writeCompaqMMUregister(uint_32 originaladdress, byte value)
 	MMU.maxsize = MMU.size - (0x100000 - 0xA0000); //Limit the memory size!
 	MMU_updatemaxsize(); //updated the maximum size!
 	memory_datasize = 0; //Invalidate the read cache!
-	BIU_cachedmemorysize = 0; //Make the BIU properly aware by flushing it's caches!
+	BIU_cachedmemorysize[0] = 0; //Make the BIU properly aware by flushing it's caches!
+	BIU_cachedmemorysize[1] = 0; //Make the BIU properly aware by flushing it's caches!
 }
 
 void MMU_seti430fx()
@@ -862,7 +868,8 @@ void MMU_seti430fx()
 	MMU.maxsize = MMU.size; //Don't limit the memory size!
 	MMU_updatemaxsize(); //updated the maximum size!
 	memory_datasize = 0; //Invalidate the read cache!
-	BIU_cachedmemorysize = 0; //Make the BIU properly aware by flushing it's caches!
+	BIU_cachedmemorysize[0] = 0; //Make the BIU properly aware by flushing it's caches!
+	BIU_cachedmemorysize[1] = 0; //Make the BIU properly aware by flushing it's caches!
 	i430fx_MMUready(); //MMU is ready!
 }
 
@@ -1026,9 +1033,9 @@ OPTINLINE byte MMU_INTERNAL_directrb(uint_32 realaddress, word index, uint_32 *r
 }
 
 //Cache invalidation behaviour!
-extern uint_32 BIU_cachedmemoryaddr;
-extern uint_32 BIU_cachedmemoryread;
-extern byte BIU_cachedmemorysize;
+extern uint_32 BIU_cachedmemoryaddr[MAXCPUS];
+extern uint_32 BIU_cachedmemoryread[MAXCPUS];
+extern byte BIU_cachedmemorysize[MAXCPUS];
 
 OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, word index) //Direct write to real memory (with real data direct)!
 {
@@ -1039,10 +1046,15 @@ OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, word index
 	if (unlikely(emulateCompaqMMURegisters && (is_i430fx==0) && (realaddress==0x80C00000))) //Compaq special register?
 	{
 		writeCompaqMMUregister(originaladdress, value); //Update the Compaq MMU register!
-		if (unlikely(BIU_cachedmemorysize && (BIU_cachedmemoryaddr <= originaladdress) && ((BIU_cachedmemoryaddr + BIU_cachedmemorysize) > originaladdress))) //Matched an active read cache(allowing self-modifying code)?
+		if (unlikely(BIU_cachedmemorysize[0] && (BIU_cachedmemoryaddr[0] <= originaladdress) && ((BIU_cachedmemoryaddr[0] + BIU_cachedmemorysize[0]) > originaladdress))) //Matched an active read cache(allowing self-modifying code)?
 		{
 			memory_datasize = 0; //Invalidate the read cache to re-read memory!
-			BIU_cachedmemorysize = 0; //Invalidate the BIU cache as well!
+			BIU_cachedmemorysize[0] = 0; //Invalidate the BIU cache as well!
+		}
+		if (unlikely(BIU_cachedmemorysize[1] && (BIU_cachedmemoryaddr[1] <= originaladdress) && ((BIU_cachedmemoryaddr[1] + BIU_cachedmemorysize[1]) > originaladdress))) //Matched an active read cache(allowing self-modifying code)?
+		{
+			memory_datasize = 0; //Invalidate the read cache to re-read memory!
+			BIU_cachedmemorysize[1] = 0; //Invalidate the BIU cache as well!
 		}
 		memory_datawrittensize = 1; //Only 1 byte written!
 		return; //Count as a memory mapped register!
@@ -1051,10 +1063,15 @@ OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, word index
 	{
 		bushandler((byte)index, value); //Update the bus handler!
 	}
-	if (unlikely(BIU_cachedmemorysize && (BIU_cachedmemoryaddr <= originaladdress) && ((BIU_cachedmemoryaddr+BIU_cachedmemorysize)>originaladdress))) //Matched an active read cache(allowing self-modifying code)?
+	if (unlikely(BIU_cachedmemorysize[0] && (BIU_cachedmemoryaddr[0] <= originaladdress) && ((BIU_cachedmemoryaddr[0]+BIU_cachedmemorysize[0])>originaladdress))) //Matched an active read cache(allowing self-modifying code)?
 	{
 		memory_datasize = 0; //Invalidate the read cache to re-read memory!
-		BIU_cachedmemorysize = 0; //Invalidate the BIU cache as well!
+		BIU_cachedmemorysize[0] = 0; //Invalidate the BIU cache as well!
+	}
+	if (unlikely(BIU_cachedmemorysize[1] && (BIU_cachedmemoryaddr[1] <= originaladdress) && ((BIU_cachedmemoryaddr[1] + BIU_cachedmemorysize[1]) > originaladdress))) //Matched an active read cache(allowing self-modifying code)?
+	{
+		memory_datasize = 0; //Invalidate the read cache to re-read memory!
+		BIU_cachedmemorysize[1] = 0; //Invalidate the BIU cache as well!
 	}
 	precalcval = index_writeprecalcs[index]; //Lookup the precalc val!
 	if (unlikely(applyMemoryHoles(realaddress,precalcval))) //Overflow/invalid location?
@@ -1076,10 +1093,15 @@ OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, word index
 		{
 			*((uint_32*)&memorymapinfo[precalcval].cache[realaddress & MMU_BLOCKALIGNMENT]) = SDL_SwapLE32(memory_datawrite); //Write the data to the ROM!
 			memory_datawrittensize = 4; //Full dword written!
-			if (unlikely(isoverlappingw((uint_64)originaladdress,4,(uint_64)BIU_cachedmemoryaddr,BIU_cachedmemorysize))) //Cached?
+			if (unlikely(isoverlappingw((uint_64)originaladdress,4,(uint_64)BIU_cachedmemoryaddr[0],BIU_cachedmemorysize[0]))) //Cached?
 			{
 				memory_datasize = 0; //Invalidate the read cache to re-read memory!
-				BIU_cachedmemorysize = 0; //Invalidate the BIU cache as well!
+				BIU_cachedmemorysize[0] = 0; //Invalidate the BIU cache as well!
+			}
+			if (unlikely(isoverlappingw((uint_64)originaladdress, 4, (uint_64)BIU_cachedmemoryaddr[1], BIU_cachedmemorysize[1]))) //Cached?
+			{
+				memory_datasize = 0; //Invalidate the read cache to re-read memory!
+				BIU_cachedmemorysize[1] = 0; //Invalidate the BIU cache as well!
 			}
 		}
 		else
@@ -1088,10 +1110,15 @@ OPTINLINE void MMU_INTERNAL_directwb(uint_32 realaddress, byte value, word index
 			{
 				*((word*)(&memorymapinfo[precalcval].cache[realaddress & MMU_BLOCKALIGNMENT])) = SDL_SwapLE16(memory_datawrite); //Read the data from the ROM!
 				memory_datawrittensize = 2; //Full word written!
-				if (unlikely(BIU_cachedmemorysize && (BIU_cachedmemoryaddr <= (originaladdress + 1)) && ((BIU_cachedmemoryaddr + BIU_cachedmemorysize) > (originaladdress + 1)))) //Matched an active read cache(allowing self-modifying code)?
+				if (unlikely(BIU_cachedmemorysize[0] && (BIU_cachedmemoryaddr[0] <= (originaladdress + 1)) && ((BIU_cachedmemoryaddr[0] + BIU_cachedmemorysize[0]) > (originaladdress + 1)))) //Matched an active read cache(allowing self-modifying code)?
 				{
 					memory_datasize = 0; //Invalidate the read cache to re-read memory!
-					BIU_cachedmemorysize = 0; //Invalidate the BIU cache as well!
+					BIU_cachedmemorysize[0] = 0; //Invalidate the BIU cache as well!
+				}
+				if (unlikely(BIU_cachedmemorysize[1] && (BIU_cachedmemoryaddr[1] <= (originaladdress + 1)) && ((BIU_cachedmemoryaddr[1] + BIU_cachedmemorysize[1]) > (originaladdress + 1)))) //Matched an active read cache(allowing self-modifying code)?
+				{
+					memory_datasize = 0; //Invalidate the read cache to re-read memory!
+					BIU_cachedmemorysize[1] = 0; //Invalidate the BIU cache as well!
 				}
 			}
 			else //Enough to read a byte only?

@@ -1262,9 +1262,9 @@ void BIOSROM_updateTimers(DOUBLE timepassed)
 }
 
 
-extern uint_32 BIU_cachedmemoryaddr;
-extern uint_32 BIU_cachedmemoryread;
-extern byte BIU_cachedmemorysize; //To invalidate the BIU cache!
+extern uint_32 BIU_cachedmemoryaddr[MAXCPUS];
+extern uint_32 BIU_cachedmemoryread[MAXCPUS];
+extern byte BIU_cachedmemorysize[MAXCPUS]; //To invalidate the BIU cache!
 extern byte memory_datawrittensize; //How many bytes have been written to memory during a write!
 
 byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handler function */
@@ -1447,10 +1447,15 @@ byte OPTROM_writehandler(uint_32 offset, byte value)    /* A pointer to a handle
 					emufclose64(f); //Close the file!
 					OPT_ROMS[i][OPTROM_address] = value; //Write the data to the ROM in memory!
 					OPT_ROMS_shadow[i][ROMaddress] = value; //Write the data to the shadow ROM in memory!
-					if (unlikely(BIU_cachedmemorysize && (BIU_cachedmemoryaddr <= offset) && ((BIU_cachedmemoryaddr + BIU_cachedmemorysize) > offset))) //Matched an active read cache(allowing self-modifying code)?
+					if (unlikely(BIU_cachedmemorysize[0] && (BIU_cachedmemoryaddr[0] <= offset) && ((BIU_cachedmemoryaddr[0] + BIU_cachedmemorysize[0]) > offset))) //Matched an active read cache(allowing self-modifying code)?
 					{
 						memory_datasize = 0; //Only 1 byte invalidated!
-						BIU_cachedmemorysize = 0; //Make sure that the BIU has an updated copy of this in it's cache!
+						BIU_cachedmemorysize[0] = 0; //Make sure that the BIU has an updated copy of this in it's cache!
+					}
+					if (unlikely(BIU_cachedmemorysize[1] && (BIU_cachedmemoryaddr[1] <= offset) && ((BIU_cachedmemoryaddr[1] + BIU_cachedmemorysize[1]) > offset))) //Matched an active read cache(allowing self-modifying code)?
+					{
+						memory_datasize = 0; //Only 1 byte invalidated!
+						BIU_cachedmemorysize[1] = 0; //Make sure that the BIU has an updated copy of this in it's cache!
 					}
 					if (OPTROM_pending55_0AAA[i] && ((OPTROM_location[i]>>32)>0x0AAA)) //Pending write and within ROM range?
 					{

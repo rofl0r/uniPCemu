@@ -1221,8 +1221,8 @@ uint_32 i440fx_ioapic_base_mask;
 uint_32 i440fx_ioapic_base_match;
 
 extern byte memory_datawrittensize; //How many bytes have been written to memory during a write!
-extern uint_32 BIU_cachedmemoryaddr;
-extern byte BIU_cachedmemorysize;
+extern uint_32 BIU_cachedmemoryaddr[MAXCPUS];
+extern byte BIU_cachedmemorysize[MAXCPUS];
 extern byte memory_datasize; //The size of the data that has been read!
 byte APIC_memIO_wb(uint_32 offset, byte value)
 {
@@ -1515,10 +1515,15 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 		}
 	}
 
-	if (unlikely(isoverlappingw((uint_64)offset, 1, (uint_64)BIU_cachedmemoryaddr, BIU_cachedmemorysize))) //Cached?
+	if (unlikely(isoverlappingw((uint_64)offset, 1, (uint_64)BIU_cachedmemoryaddr[0], BIU_cachedmemorysize[0]))) //Cached?
 	{
 		memory_datasize = 0; //Invalidate the read cache to re-read memory!
-		BIU_cachedmemorysize = 0; //Invalidate the BIU cache as well!
+		BIU_cachedmemorysize[0] = 0; //Invalidate the BIU cache as well!
+	}
+	if (unlikely(isoverlappingw((uint_64)offset, 1, (uint_64)BIU_cachedmemoryaddr[1], BIU_cachedmemorysize[1]))) //Cached?
+	{
+		memory_datasize = 0; //Invalidate the read cache to re-read memory!
+		BIU_cachedmemorysize[1] = 0; //Invalidate the BIU cache as well!
 	}
 
 	memory_datawrittensize = 1; //Only 1 byte written!

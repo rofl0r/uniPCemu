@@ -24,6 +24,7 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/hardware/ems.h" //EMS support prototypes!
 #include "headers/support/zalloc.h" //Memory allocation support!
 #include "headers/support/locks.h" //Locking support!
+#include "headers/cpu/cpu.h" //CPU count support!
 
 word EMS_baseport = 0x260; //Base I/O port!
 uint_32 EMS_baseaddr = 0xE0000; //Base address!
@@ -49,9 +50,9 @@ byte readEMSMem(uint_32 address, byte *value)
 	return 1; //We're mapped!
 }
 
-extern uint_32 BIU_cachedmemoryaddr;
-extern uint_32 BIU_cachedmemoryread;
-extern byte BIU_cachedmemorysize; //To invalidate the BIU cache!
+extern uint_32 BIU_cachedmemoryaddr[MAXCPUS];
+extern uint_32 BIU_cachedmemoryread[MAXCPUS];
+extern byte BIU_cachedmemorysize[MAXCPUS]; //To invalidate the BIU cache!
 extern byte memory_datasize; //The size of the data that has been read!
 byte writeEMSMem(uint_32 address, byte value)
 {
@@ -67,10 +68,15 @@ byte writeEMSMem(uint_32 address, byte value)
 	memoryaddress |= address; //The address of the byte in memory!
 	if (memoryaddress >= EMS_size) return 0; //Out of range?
 	EMS[memoryaddress] = value; //Set the byte in memory!
-	if (unlikely(BIU_cachedmemorysize && (BIU_cachedmemoryaddr <= originaladdress) && ((BIU_cachedmemoryaddr + BIU_cachedmemorysize) > originaladdress))) //Matched an active read cache(allowing self-modifying code)?
+	if (unlikely(BIU_cachedmemorysize[0] && (BIU_cachedmemoryaddr[0] <= originaladdress) && ((BIU_cachedmemoryaddr[0] + BIU_cachedmemorysize[0]) > originaladdress))) //Matched an active read cache(allowing self-modifying code)?
 	{
 		memory_datasize = 0; //Invalidate the read cache to re-read memory!
-		BIU_cachedmemorysize = 0; //Invalidate the BIU cache as well!
+		BIU_cachedmemorysize[0] = 0; //Invalidate the BIU cache as well!
+	}
+	if (unlikely(BIU_cachedmemorysize[1] && (BIU_cachedmemoryaddr[1] <= originaladdress) && ((BIU_cachedmemoryaddr[1] + BIU_cachedmemorysize[1]) > originaladdress))) //Matched an active read cache(allowing self-modifying code)?
+	{
+		memory_datasize = 0; //Invalidate the read cache to re-read memory!
+		BIU_cachedmemorysize[1] = 0; //Invalidate the BIU cache as well!
 	}
 	return 1; //We're mapped!
 }
