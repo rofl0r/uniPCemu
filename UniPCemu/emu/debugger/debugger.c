@@ -168,8 +168,6 @@ OPTINLINE byte debugging() //Debugging?
 
 byte debuggerINT = 0; //Interrupt special trigger?
 
-extern word waitingforiret; //Logging until IRET?
-
 byte debugger_forceEIP()
 {
 	return ((DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT) || (DEBUGGER_LOG==DEBUGGERLOG_DEBUGGING_COMMONLOGFORMAT)); //Force EIP to be used?
@@ -206,7 +204,7 @@ byte debugger_logging()
 	}
 	enablelog |= startreached; //Start logging from this point(emulator internal debugger)!
 	enablelog |= harddebugging; //Same as startreached, but special operations only!
-	enablelog |= waitingforiret; //Waiting for IRET?
+	enablelog |= CPU[activeCPU].waitingforiret; //Waiting for IRET?
 	enablelog &= allow_debuggerstep; //Are we allowed to debug?
 	enablelog &= ((skipstep && ((DEBUGGER_LOG != DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP) && (DEBUGGER_LOG != DEBUGGERLOG_ALWAYS_DURINGSKIPSTEP_COMMONLOGFORMAT))) ^ 1)&1; //Disable when skipping?
 	return enablelog; //Logging?

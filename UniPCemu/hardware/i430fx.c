@@ -34,7 +34,7 @@ byte i430fx_memorymappings_write[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}; //All 
 byte SMRAM_enabled[MAXCPUS] = { 0,0 }; //SMRAM enabled?
 byte SMRAM_data = 1; //SMRAM responds to data accesses?
 byte SMRAM_locked = 0; //Are we locked?
-byte SMRAM_SMIACT[MAXCPUS] = 0; //SMI activated
+byte SMRAM_SMIACT[MAXCPUS] = { 0,0 }; //SMI activated
 extern byte MMU_memoryholespec; //memory hole specification? 0=Normal, 1=512K, 2=15M.
 byte i430fx_previousDRAM[8]; //Previous DRAM values
 byte i430fx_DRAMsettings[8]; //Previous DRAM values
