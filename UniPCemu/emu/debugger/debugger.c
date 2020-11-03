@@ -491,7 +491,7 @@ void debugger_logmemoryaccess(byte iswrite, uint_32 address, byte value, byte ty
 void debugger_beforeCPU() //Action before the CPU changes it's registers!
 {
 	if (activeCPU) return; //Only CPU #0!
-	if (cpudebugger) //To apply the debugger generator?
+	if (CPU[activeCPU].cpudebugger) //To apply the debugger generator?
 	{
 		static VERIFICATIONDATA verify, originalverify;
 		if (!CPU[activeCPU].repeating) //Not repeating an instruction?
