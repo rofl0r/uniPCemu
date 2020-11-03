@@ -40,7 +40,7 @@ byte lastwriteindex = 0;
 
 uint_32 PCI_device, PCI_currentaddress; //What registered device and data address is used(valid after a call to PCI_decodedevice)?
 byte PCI_transferring[MAXCPUS] = { 0,0 };
-byte PCI_lastindex = 0;
+byte PCI_lastindex[MAXCPUS] = { 0,0 };
 
 void PCI_finishtransfer()
 {
@@ -49,7 +49,7 @@ void PCI_finishtransfer()
 		PCI_transferring[activeCPU] = 0; //Not anymore!
 		if (configurationchanges[PCI_device]) //Change registered?
 		{
-			configurationchanges[PCI_device](PCI_currentaddress|PCI_lastindex,configurationdevices[PCI_device],configurationfunctions[PCI_device],1); //We've updated 1 byte of configuration data!
+			configurationchanges[PCI_device](PCI_currentaddress|PCI_lastindex[activeCPU],configurationdevices[PCI_device],configurationfunctions[PCI_device],1); //We've updated 1 byte of configuration data!
 		}
 	}
 }
@@ -118,7 +118,7 @@ OPTINLINE void PCI_write_data(uint_32 address, byte index, byte value) //Write d
 		if (configurationchanges[PCI_device]) //Change registered?
 		{
 			PCI_transferring[activeCPU] = 1; //Transferring!
-			PCI_lastindex = index; //Last index written!
+			PCI_lastindex[activeCPU] = index; //Last index written!
 			configurationchanges[PCI_device](PCI_currentaddress|index,configurationdevices[PCI_device],configurationfunctions[PCI_device],1); //We've updated 1 byte of configuration data!
 		}
 	}
