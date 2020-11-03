@@ -220,98 +220,98 @@ void flag_subcoa32(uint32_t v1, uint64_t sub, uint64_t dst)
 
 void flag_adc8(uint8_t v1, uint8_t v2, uint8_t v3)
 {
-	add=(uint16_t)v2;
-	dst = (uint16_t)v1 + (add + (uint16_t)v3);
-	flag_szp8((uint8_t)(dst&0xFF));
-	flag_adcoa8(v1,(uint16_t)add,(uint16_t)dst);
+	CPU[activeCPU].add=(uint16_t)v2;
+	CPU[activeCPU].dst = (uint16_t)v1 + (CPU[activeCPU].add + (uint16_t)v3);
+	flag_szp8((uint8_t)(CPU[activeCPU].dst&0xFF));
+	flag_adcoa8(v1,(uint16_t)CPU[activeCPU].add,(uint16_t)CPU[activeCPU].dst);
 }
 
 void flag_adc16(uint16_t v1, uint16_t v2, uint16_t v3)
 {
-	add = (uint32_t)v2;
-	dst = (uint32_t)v1 + (add + (uint32_t)v3);
-	flag_szp16((uint16_t)dst);
-	flag_adcoa16(v1,(uint32_t)add,(uint32_t)dst);
+	CPU[activeCPU].add = (uint32_t)v2;
+	CPU[activeCPU].dst = (uint32_t)v1 + (CPU[activeCPU].add + (uint32_t)v3);
+	flag_szp16((uint16_t)CPU[activeCPU].dst);
+	flag_adcoa16(v1,(uint32_t)CPU[activeCPU].add,(uint32_t)CPU[activeCPU].dst);
 }
 
 void flag_adc32(uint32_t v1, uint32_t v2, uint32_t v3)
 {
-	add = (uint64_t)v2;
-	dst = (uint64_t)v1 + (add + (uint64_t)v3);
-	flag_szp32((uint32_t)dst);
-	flag_adcoa32(v1,add,dst);
+	CPU[activeCPU].add = (uint64_t)v2;
+	CPU[activeCPU].dst = (uint64_t)v1 + (CPU[activeCPU].add + (uint64_t)v3);
+	flag_szp32((uint32_t)CPU[activeCPU].dst);
+	flag_adcoa32(v1, CPU[activeCPU].add, CPU[activeCPU].dst);
 }
 
 void flag_add8(uint8_t v1, uint8_t v2)
 {
-	add = (uint16_t)v2;
-	dst = (uint16_t)v1 + add;
-	flag_szp8((uint8_t)(dst&0xFF));
-	flag_adcoa8(v1,(uint16_t)add,(uint16_t)dst);
+	CPU[activeCPU].add = (uint16_t)v2;
+	CPU[activeCPU].dst = (uint16_t)v1 + CPU[activeCPU].add;
+	flag_szp8((uint8_t)(CPU[activeCPU].dst&0xFF));
+	flag_adcoa8(v1,(uint16_t)CPU[activeCPU].add,(uint16_t)CPU[activeCPU].dst);
 }
 
 void flag_add16(uint16_t v1, uint16_t v2)
 {
-	add = (uint32_t)v2;
-	dst = (uint32_t)v1 + add;
-	flag_szp16((uint16_t)dst);
-	flag_adcoa16(v1,(uint32_t)add,(uint32_t)dst);
+	CPU[activeCPU].add = (uint32_t)v2;
+	CPU[activeCPU].dst = (uint32_t)v1 + CPU[activeCPU].add;
+	flag_szp16((uint16_t)CPU[activeCPU].dst);
+	flag_adcoa16(v1,(uint32_t)CPU[activeCPU].add,(uint32_t)CPU[activeCPU].dst);
 }
 
 void flag_add32(uint32_t v1, uint32_t v2)
 {
-	add = (uint64_t)v2;
-	dst = (uint64_t)v1 + add;
-	flag_szp32((uint32_t)dst);
-	flag_adcoa32(v1,add,dst);
+	CPU[activeCPU].add = (uint64_t)v2;
+	CPU[activeCPU].dst = (uint64_t)v1 + CPU[activeCPU].add;
+	flag_szp32((uint32_t)CPU[activeCPU].dst);
+	flag_adcoa32(v1, CPU[activeCPU].add, CPU[activeCPU].dst);
 }
 
 void flag_sbb8(uint8_t v1, uint8_t v2, uint8_t v3)
 {
-	sub = (uint16_t)v2;
-	dst = (uint16_t)v1 - (sub + (uint16_t)v3);
-	flag_szp8(dst & 0xFF);
-	flag_subcoa8(v1,(uint16_t)sub,(uint16_t)dst);
+	CPU[activeCPU].sub = (uint16_t)v2;
+	CPU[activeCPU].dst = (uint16_t)v1 - (CPU[activeCPU].sub + (uint16_t)v3);
+	flag_szp8(CPU[activeCPU].dst & 0xFF);
+	flag_subcoa8(v1,(uint16_t)CPU[activeCPU].sub,(uint16_t)CPU[activeCPU].dst);
 }
 
 void flag_sbb16(uint16_t v1, uint16_t v2, uint16_t v3)
 {
-	sub = (uint16_t)v2;
-	dst = (uint32_t)v1 - (sub + (uint16_t)v3);
-	flag_szp16(dst & 0xFFFF);
-	flag_subcoa16(v1,(uint32_t)sub,(uint32_t)dst);
+	CPU[activeCPU].sub = (uint16_t)v2;
+	CPU[activeCPU].dst = (uint32_t)v1 - (CPU[activeCPU].sub + (uint16_t)v3);
+	flag_szp16(CPU[activeCPU].dst & 0xFFFF);
+	flag_subcoa16(v1,(uint32_t)CPU[activeCPU].sub,(uint32_t)CPU[activeCPU].dst);
 }
 
 void flag_sbb32(uint32_t v1, uint32_t v2, uint32_t v3)
 {
-	sub = (uint32_t)v2;
-	dst = (uint64_t)v1 - (sub + (uint32_t)v3);
-	flag_szp32(dst & 0xFFFFFFFF);
-	flag_subcoa32(v1,sub,dst);
+	CPU[activeCPU].sub = (uint32_t)v2;
+	CPU[activeCPU].dst = (uint64_t)v1 - (CPU[activeCPU].sub + (uint32_t)v3);
+	flag_szp32(CPU[activeCPU].dst & 0xFFFFFFFF);
+	flag_subcoa32(v1, CPU[activeCPU].sub, CPU[activeCPU].dst);
 }
 
 void flag_sub8(uint8_t v1, uint8_t v2)
 {
-	sub = (uint16_t)v2;
-	dst = (uint16_t)v1 - sub;
-	flag_szp8(dst&0xFF);
-	flag_subcoa8(v1,(uint16_t)sub,(uint16_t)dst);
+	CPU[activeCPU].sub = (uint16_t)v2;
+	CPU[activeCPU].dst = (uint16_t)v1 - CPU[activeCPU].sub;
+	flag_szp8(CPU[activeCPU].dst&0xFF);
+	flag_subcoa8(v1,(uint16_t)CPU[activeCPU].sub,(uint16_t)CPU[activeCPU].dst);
 }
 
 void flag_sub16(uint16_t v1, uint16_t v2)
 {
-	sub = (uint32_t)v2;
-	dst = (uint32_t)v1 - sub;
-	flag_szp16(dst & 0xFFFF);
-	flag_subcoa16(v1,(uint32_t)sub,(uint32_t)dst);
+	CPU[activeCPU].sub = (uint32_t)v2;
+	CPU[activeCPU].dst = (uint32_t)v1 - CPU[activeCPU].sub;
+	flag_szp16(CPU[activeCPU].dst & 0xFFFF);
+	flag_subcoa16(v1,(uint32_t)CPU[activeCPU].sub,(uint32_t)CPU[activeCPU].dst);
 }
 
 void flag_sub32(uint32_t v1, uint32_t v2)
 {
-	sub = (uint64_t)v2;
-	dst = (uint64_t)v1 - sub;
-	flag_szp32(dst & 0xFFFFFFFF);
-	flag_subcoa32(v1,sub,dst);
+	CPU[activeCPU].sub = (uint64_t)v2;
+	CPU[activeCPU].dst = (uint64_t)v1 - CPU[activeCPU].sub;
+	flag_szp32(CPU[activeCPU].dst & 0xFFFFFFFF);
+	flag_subcoa32(v1, CPU[activeCPU].sub, CPU[activeCPU].dst);
 }
 
 void CPU_filterflags()
