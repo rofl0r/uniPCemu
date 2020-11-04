@@ -1345,6 +1345,11 @@ void initCPU() //Initialize CPU for full system reset into known state!
 	CPU[activeCPU].newREP = 1; //Default value!
 	CPU[activeCPU].CPU_executionphaseinterrupt_errorcode = -1; //Default value!
 	CPU[activeCPU].hascallinterrupttaken_type = 0xFF; //Default value!
+	CPU[activeCPU].currentOP_handler = &CPU_unkOP; //No opcode mapped yet!
+	CPU[activeCPU].newREP = 1; //Default value!
+	CPU[activeCPU].INTreturn_CS = 0xCCCC; //Default value!
+	CPU[activeCPU].INTreturn_EIP = 0xCCCCCCCC; //Default value!
+	CPU[activeCPU].portExceptionResult = 0xFF; //Default value!
 	CPU_initMSRs(); //Initialize the MSRs and their mappings!
 	resetCPU(1); //Reset normally!
 	Paging_initTLB(); //Initialize the TLB for usage!
