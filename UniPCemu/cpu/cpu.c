@@ -1082,7 +1082,7 @@ OPTINLINE void CPU_initRegisters(word isInit) //Init the registers!
 		{
 			memset(&MSRbackup, 0, sizeof(MSRbackup)); //Cleared MSRs!
 		}
-		if ((isInit != 0x80) && (isInit!=0x100)) //Not local reset?
+		if ((isInit != 0x80) && ((isInit&0x100)==0)) //Not local reset?
 		{
 			free_CPUregisters(); //Free the CPU registers!
 		}
@@ -1096,7 +1096,7 @@ OPTINLINE void CPU_initRegisters(word isInit) //Init the registers!
 	{
 		CSAccessRights = 0x93; //Initialise the CS access rights!
 	}
-	if ((isInit != 0x80) && (isInit!=0x100)) //Needs allocation of registers?
+	if ((isInit != 0x80) && ((isInit&0x100)==0)) //Needs allocation of registers?
 	{
 		alloc_CPUregisters(); //Allocate the CPU registers!
 	}
