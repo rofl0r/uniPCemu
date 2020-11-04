@@ -1082,14 +1082,24 @@ OPTINLINE void CPU_initRegisters(byte isInit) //Init the registers!
 		{
 			memset(&MSRbackup, 0, sizeof(MSRbackup)); //Cleared MSRs!
 		}
-		free_CPUregisters(); //Free the CPU registers!
+		if (isInit != 0x80) //Not local reset?
+		{
+			free_CPUregisters(); //Free the CPU registers!
+		}
+		else
+		{
+			memset(CPU[activeCPU].registers, 0, sizeof(*CPU[activeCPU].registers)); //Simply clear!
+			CPU[activeCPU].oldCR0 = CPU[activeCPU].registers->CR0; //Save the old value for INIT purposes!
+		}
 	}
 	else
 	{
 		CSAccessRights = 0x93; //Initialise the CS access rights!
 	}
-
-	alloc_CPUregisters(); //Allocate the CPU registers!
+	if (isInit != 0x80) //Needs allocation of registers?
+	{
+		alloc_CPUregisters(); //Allocate the CPU registers!
+	}
 
 	if (!CPU[activeCPU].registers) return; //We can't work!
 	

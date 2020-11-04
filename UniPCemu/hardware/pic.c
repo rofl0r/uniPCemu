@@ -23,7 +23,6 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/hardware/ports.h" //Port support!
 #include "headers/mmu/mmuhandler.h" //Basic MMU handler support!
 #include "headers/cpu/cpu.h" //Emulated CPU support!
-#include "headers/support/locks.h" //Locking support for resetting the CPU!
 
 //PIC Info: http://www.brokenthorn.com/Resources/OSDevPic.html
 
@@ -693,9 +692,7 @@ byte LAPIC_executeVector(byte whichCPU, uint_32* vectorlo, byte IR, byte isIOAPI
 		//Can't be masked, bypasses IRR/ISR!
 		break;
 	case 5: //INIT or INIT deassert?
-		unlock(LOCK_CPU);
 		resetCPU(0x80); //Special reset of the CPU: INIT only!
-		lock(LOCK_CPU);
 		break;
 	case 7: //extINT?
 		if (LAPIC[whichCPU].enabled != 1) return 0; //Don't accept if disabled!
@@ -860,9 +857,7 @@ byte receiveCommandRegister(uint_32 destinationCPU, uint_32 *commandregister, by
 			{
 				backupactiveCPU = activeCPU; //Backup!
 				activeCPU = destinationCPU; //Active for reset!
-				unlock(LOCK_CPU);
 				resetCPU(0x80); //Special reset of the CPU: INIT only!
-				lock(LOCK_CPU);
 				activeCPU = backupactiveCPU; //Restore backup!
 			}
 		}
