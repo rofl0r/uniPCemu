@@ -1188,10 +1188,6 @@ OPTINLINE void CMP_b(byte a, byte b, byte flags)
 
 //Modr/m support, used when reg=NULL and custommem==0
 
-//Custom memory support!
-byte custommem = 0; //Used in some instructions!
-uint_32 customoffset; //Offset to use!
-
 //Help functions:
 OPTINLINE byte CPU8086_internal_INC16(word *reg)
 {
@@ -2604,7 +2600,7 @@ OPTINLINE byte CPU8086_internal_MOV8(byte *dest, byte val, byte flags)
 		}
 		else //Memory destination?
 		{
-			if (custommem)
+			if (CPU[activeCPU].custommem)
 			{
 				if (checkMMUaccess(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU[activeCPU].customoffset&CPU[activeCPU].address_size),0,getCPL(),!CPU[activeCPU].CPU_Address_size,0)) //Error accessing memory?
 				{
@@ -2672,7 +2668,7 @@ OPTINLINE byte CPU8086_internal_MOV8(byte *dest, byte val, byte flags)
 	}
 	if (CPU[activeCPU].internalinstructionstep==1) //Execution step?
 	{
-		if (custommem)
+		if (CPU[activeCPU].custommem)
 		{
 			if (CPU8086_internal_stepwritedirectb(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU[activeCPU].customoffset&CPU[activeCPU].address_size),val,!CPU[activeCPU].CPU_Address_size)) return 1; //Write to memory directly!
 		}
@@ -2747,7 +2743,7 @@ OPTINLINE byte CPU8086_internal_MOV16(word *dest, word val, byte flags)
 		}
 		else //Memory?
 		{
-			if (custommem)
+			if (CPU[activeCPU].custommem)
 			{
 				if (checkMMUaccess16(CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU[activeCPU].customoffset&CPU[activeCPU].address_size),0|0x40,getCPL(),!CPU[activeCPU].CPU_Address_size,0|0x8)) //Error accessing memory?
 				{
@@ -2823,7 +2819,7 @@ OPTINLINE byte CPU8086_internal_MOV16(word *dest, word val, byte flags)
 	}
 	if (CPU[activeCPU].internalinstructionstep==1) //Execution step?
 	{
-		if (custommem)
+		if (CPU[activeCPU].custommem)
 		{
 			if (CPU8086_internal_stepwritedirectw(0,CPU_segment_index(CPU_SEGMENT_DS),CPU_segment(CPU_SEGMENT_DS),(CPU[activeCPU].customoffset&CPU[activeCPU].address_size),val,!CPU[activeCPU].CPU_Address_size)) return 1; //Write to memory directly!
 		}
@@ -5810,19 +5806,19 @@ void CPU8086_OPA2()
 {
 	INLINEREGISTER uint_32 theimm = CPU[activeCPU].immaddr32;
 	debugger_setcommand("MOV byte %s:[%04X],AL",CPU_textsegment(CPU_SEGMENT_DS),theimm);/*MOV [imm16],AL*/
-	custommem = 1;
-	customoffset = (theimm&CPU[activeCPU].address_size);
+	CPU[activeCPU].custommem = 1;
+	CPU[activeCPU].customoffset = (theimm&CPU[activeCPU].address_size);
 	if (CPU8086_internal_MOV8(NULL,REG_AL,1)) return;/*MOV [imm16],AL*/
-	custommem = 0;
+	CPU[activeCPU].custommem = 0;
 }
 void CPU8086_OPA3()
 {
 	INLINEREGISTER uint_32 theimm = CPU[activeCPU].immaddr32;
 	debugger_setcommand("MOV word %s:[%04X],AX",CPU_textsegment(CPU_SEGMENT_DS),theimm);/*MOV [imm16], AX*/
-	custommem = 1;
-	customoffset = (theimm&CPU[activeCPU].address_size);
+	CPU[activeCPU].custommem = 1;
+	CPU[activeCPU].customoffset = (theimm&CPU[activeCPU].address_size);
 	if (CPU8086_internal_MOV16(NULL,REG_AX,1)) return;/*MOV [imm16], AX*/
-	custommem = 0;
+	CPU[activeCPU].custommem = 0;
 }
 void CPU8086_OPA4()
 {
