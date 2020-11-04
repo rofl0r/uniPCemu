@@ -24,6 +24,10 @@ along with UniPCemu.  If not, see <https://www.gnu.org/licenses/>.
 #include "headers/mmu/mmuhandler.h" //Basic MMU handler support!
 #include "headers/cpu/cpu.h" //Emulated CPU support!
 
+#ifdef IS_PSP
+#define SDL_SwapLE16(x) (x)
+#endif
+
 //PIC Info: http://www.brokenthorn.com/Resources/OSDevPic.html
 
 //Are we disabled?
