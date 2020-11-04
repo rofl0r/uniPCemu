@@ -36,7 +36,7 @@ byte irr3_dirty = 0; //IRR3/IRR3_a is changed?
 
 struct
 {
-	byte enabled; //Enabled?
+	sbyte enabled; //Enabled? -1=CPU disabled, 0=Soft disable, 1=Enabled
 	//Basic information?
 	word needstermination; //APIC needs termination?
 	//CPU MSR information!
@@ -132,9 +132,10 @@ extern byte APICNMIQueued[MAXCPUS]; //APIC-issued NMI queued?
 //i8259.irr2 is the live status of each of the parallel interrupt lines!
 //i8259.irr3 is the identifier for request subchannels that are pending to be acnowledged(cleared when acnowledge and the interrupt is fired).
 
+//Result: 0=Block to let the APIC handle NMI, otherwise, handle NMI directly by the CPU instead of the APIC!
 byte CPU_NMI_APIC(byte whichCPU)
 {
-	return ((LAPIC[whichCPU].enabled==0) && (whichCPU==0)); //APIC not enabled = connected to CPU core 0!
+	return ((LAPIC[whichCPU].enabled==-1)?1:0); //APIC not disabled by the CPU!
 }
 
 void updateLAPICTimerSpeed(byte whichCPU)
@@ -152,7 +153,7 @@ void updateLAPICTimerSpeed(byte whichCPU)
 }
 
 //Handle everything that needs to be done when resetting the APIC!
-void resetAPIC(byte whichCPU)
+void resetIOAPIC(byte isHardReset)
 {
 	byte IRQnr;
 	for (IRQnr = 0; IRQnr < NUMITEMS(IOAPIC.IOAPIC_redirectionentry); ++IRQnr) //Handle all IRQ handlers we support!
@@ -161,6 +162,15 @@ void resetAPIC(byte whichCPU)
 	}
 	IOAPIC.IOAPIC_IMRset = ~0; //Mask all set!
 	IOAPIC.IOAPIC_IRRreq = 0; //Remove all pending requests!
+}
+
+void resetLAPIC(byte whichCPU, byte isHardReset)
+{
+	//Do something when resetting?
+	if (isHardReset)
+	{
+		LAPIC[whichCPU].LAPIC_ID =  ((whichCPU & 0xFF) << 24); //Physical CPU number to receive at!
+	}
 }
 
 void updateLAPICArbitrationIDregister(byte whichCPU)
@@ -182,7 +192,6 @@ void initAPIC(byte whichCPU)
 	LAPIC[whichCPU].LAPIC_version = 0x0010;
 	LAPIC[whichCPU].DestinationFormatRegister = ~0; //All bits set!
 	LAPIC[whichCPU].SpuriousInterruptVectorRegister = 0xFF; //Needs to be 0xFF!
-	LAPIC[whichCPU].LAPIC_ID |= ((whichCPU&0xF) << 24); //Physical CPU number to receive at!
 
 	switch (EMULATED_CPU)
 	{
@@ -199,7 +208,7 @@ void initAPIC(byte whichCPU)
 	LAPIC[whichCPU].LAPIC_version |= (1 << 24); //Broadcast EOI suppression supported!
 
 	//Update only 1 Local APIC!
-	resetAPIC(whichCPU); //Reset the APIC as well!
+	resetLAPIC(whichCPU,1); //Reset the APIC as well!
 	updateLAPICTimerSpeed(whichCPU); //Update the used timer speed!
 	updateLAPICArbitrationIDregister(whichCPU); //Update the Arbitration ID register with it's defaults!
 
@@ -217,10 +226,15 @@ void initAPIC(byte whichCPU)
 void APIC_enableIOAPIC(byte enabled)
 {
 	IOAPIC.enabled = enabled; //Enabled the IO APIC?
+	if (IOAPIC.enabled == 0) //Disabled?
+	{
+		resetIOAPIC(0); //Reset a IO APIC by software!
+	}
 }
 
 void init8259()
 {
+	byte whichCPU;
 	if (__HW_DISABLED) return; //Abort!
 	memset(&i8259, 0, sizeof(i8259));
 	memset(&LAPIC, 0, sizeof(LAPIC));
@@ -249,7 +263,10 @@ void init8259()
 	addr22 = IMCR = 0x00; //Default values after powerup for the IMCR and related register!
 
 	//Initialize all Local APICs!
-	initAPIC(0); //Only 1 Local APIC supported right now!
+	for (whichCPU = 0; whichCPU < numemulatedcpus; ++whichCPU)
+	{
+		initAPIC(whichCPU); //Only 1 Local APIC supported right now!
+	}
 }
 
 void APIC_errorTrigger(byte whichCPU); //Error has been triggered! Prototype!
@@ -429,11 +446,13 @@ void LAPIC_handletermination() //Handle termination on the APIC!
 	{
 		if (((LAPIC[activeCPU].SpuriousInterruptVectorRegister & 0x100) == 0) && ((LAPIC[activeCPU].prevSpuriousInterruptVectorRegister & 0x100))) //Cleared?
 		{
-			resetAPIC(activeCPU); //Reset the APIC!
+			resetLAPIC(activeCPU,0); //Reset the APIC!
+			LAPIC[activeCPU].enabled = 0; //Soft disabled!
 		}
 		else if (((LAPIC[activeCPU].prevSpuriousInterruptVectorRegister & 0x100) == 0) && ((LAPIC[activeCPU].SpuriousInterruptVectorRegister & 0x100))) //Set?
 		{
 			//LAPIC[activeCPU].IOAPIC_IRRreq = 0; //Remove all pending!
+			LAPIC[activeCPU].enabled = 1; //Soft enabled!
 		}
 	}
 
@@ -629,6 +648,7 @@ byte LAPIC_executeVector(byte whichCPU, uint_32* vectorlo, byte IR, byte isIOAPI
 	{
 	case 0: //Interrupt?
 	case 1: //Lowest priority?
+		if (LAPIC[whichCPU].enabled != 1) return 0; //Don't accept if disabled!
 	//Now, we have selected the highest priority IR! Start using it!
 		if (APIC_intnr < 0x10) //Invalid?
 		{
@@ -668,6 +688,7 @@ byte LAPIC_executeVector(byte whichCPU, uint_32* vectorlo, byte IR, byte isIOAPI
 		resetCPU(0x80); //Special reset of the CPU: INIT only!
 		break;
 	case 7: //extINT?
+		if (LAPIC[whichCPU].enabled != 1) return 0; //Don't accept if disabled!
 		if (LAPIC[whichCPU].LAPIC_extIntPending != -1) return 0; //Don't accept if it's already pending!
 		APIC_intnr = (sword)i8259_INTA(1); //Perform an INTA-style interrupt retrieval!
 		//Execute immediately!
@@ -772,6 +793,7 @@ byte receiveCommandRegister(uint_32 destinationCPU, uint_32 *commandregister, by
 	case 0: //Interrupt raise?
 	case 1: //Lowest priority?
 		if (isIOAPIC) return 1; //Not on IO APIC!
+		if (LAPIC[destinationCPU].enabled != 1) return 0; //Don't accept if disabled!
 		if ((*commandregister & 0xFF) < 0x10) //Invalid vector?
 		{
 			LAPIC_reportErrorStatus(destinationCPU, (1 << 5), 1); //Report an illegal vector being sent!
@@ -1294,7 +1316,7 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 	else if (is_internalexternalAPIC&1) //LAPIC?
 	{
 	notIOAPICW:
-		if (LAPIC[activeCPU].enabled == 0) return 0; //Not the APIC memory space enabled?
+		if (LAPIC[activeCPU].enabled == -1) return 0; //Not the APIC memory space enabled?
 		switch (address) //What is addressed?
 		{
 		case 0x0020:
@@ -1594,7 +1616,7 @@ byte APIC_memIO_rb(uint_32 offset, byte index)
 	else if (is_internalexternalAPIC & 1) //LAPIC?
 	{
 		notIOAPICR:
-		if (LAPIC[activeCPU].enabled == 0) return 0; //Not the APIC memory space enabled?
+		if (LAPIC[activeCPU].enabled == -1) return 0; //Not the APIC memory space enabled?
 		switch (address) //What is addressed?
 		{
 		case 0x0020:
@@ -1786,7 +1808,7 @@ void APIC_updateWindowMSR(uint_32 lo, uint_32 hi)
 	{
 		LAPIC[activeCPU].baseaddr |= (((uint_64)(LAPIC[activeCPU].windowMSRhi & 0xF)) << 32); //Extra bits from the high MSR on Pentium II and up!
 	}
-	LAPIC[activeCPU].enabled = ((LAPIC[activeCPU].windowMSRlo & 0x800) >> 11); //APIC space enabled?
+	LAPIC[activeCPU].enabled = ((LAPIC[activeCPU].windowMSRlo & 0x800) >> 11)?((LAPIC[activeCPU].SpuriousInterruptVectorRegister & 0x100)>>8):-1; //APIC space enabled? Leave soft mode alone(leave it as the register is set) or set to fully disabled!
 }
 
 byte readPollingMode(byte pic); //Prototype!
@@ -2126,7 +2148,7 @@ byte PICInterrupt() //We have an interrupt ready to process? This is the primary
 	}
 	if (getunprocessedinterrupt(0) && (IMCR!=0x01)) //Primary PIC interrupt? This is also affected by the IMCR!
 	{
-		if (LAPIC[activeCPU].enabled || activeCPU) //APIC enabled and taken control of the interrupt pin or not CPU #0?
+		if ((LAPIC[activeCPU].enabled==1) || activeCPU) //APIC enabled and taken control of the interrupt pin or not CPU #0?
 		{
 			return 0; //The connection from the INTR pin to the local APIC is active! Disable the normal interrupts(redirected to the LVT LINT0 register)!
 		}
