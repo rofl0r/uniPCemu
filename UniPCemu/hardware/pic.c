@@ -712,6 +712,7 @@ byte LAPIC_executeVector(byte whichCPU, uint_32* vectorlo, byte IR, byte isIOAPI
 
 void updateAPIC(uint_64 clockspassed, float timepassed)
 {
+	if (LAPIC[activeCPU].enabled != 1) return; //APIC not enabled?
 	if (LAPIC[activeCPU].errorstatustimeout) //Timeout pending?
 	{
 		LAPIC[activeCPU].errorstatustimeout -= timepassed; //Tick it!
@@ -885,15 +886,18 @@ void LAPIC_pollRequests(byte whichCPU)
 	byte destinationCPU; //What CPU is the destination?
 	byte logicaldestination;
 
-	if (NMIQueued && (LAPIC[whichCPU].LVTLINT1RegisterDirty == 0)) //NMI has been queued?
+	if (LAPIC[activeCPU].enabled == 1) //Enabled?
 	{
-		if ((LAPIC[whichCPU].LVTLINT1Register & (1 << 12)) == 0) //Not waiting to be delivered!
+		if (NMIQueued && (LAPIC[whichCPU].LVTLINT1RegisterDirty == 0)) //NMI has been queued?
 		{
-			if ((LAPIC[whichCPU].LVTLINT1Register & 0x10000) == 0) //Not masked?
+			if ((LAPIC[whichCPU].LVTLINT1Register & (1 << 12)) == 0) //Not waiting to be delivered!
 			{
-				NMIQueued = 0; //Not queued anymore!
-				LAPIC[whichCPU].LVTLINT1Register |= (1 << 12); //Start pending!
-				//Edge: raised when set(done here already). Lowered has weird effects for level-sensitive modes? So ignore them!
+				if ((LAPIC[whichCPU].LVTLINT1Register & 0x10000) == 0) //Not masked?
+				{
+					NMIQueued = 0; //Not queued anymore!
+					LAPIC[whichCPU].LVTLINT1Register |= (1 << 12); //Start pending!
+					//Edge: raised when set(done here already). Lowered has weird effects for level-sensitive modes? So ignore them!
+				}
 			}
 		}
 	}
@@ -2297,7 +2301,7 @@ byte nextintr()
 
 void LINT0_raiseIRQ(byte updatelivestatus)
 {
-	if (LAPIC[activeCPU].LVTLINT0RegisterDirty) return; //Not ready to handle?
+	if (LAPIC[activeCPU].LVTLINT0RegisterDirty || (LAPIC[activeCPU].enabled!=1)) return; //Not ready to handle?
 	if ((LAPIC[activeCPU].LVTLINT0Register & 0x10000) == 0) //Not masked?
 	{
 		switch ((LAPIC[activeCPU].LVTLINT0Register >> 8) & 7) //What mode?
