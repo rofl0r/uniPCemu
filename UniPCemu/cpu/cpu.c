@@ -1325,13 +1325,17 @@ void resetCPU(byte isInit) //Initialises the currently selected CPU!
 	{
 		CPU[activeCPU].waitingforSIPI = 1; //Waiting!
 	}
-	else if (activeCPU) //Waiting for SIPI after reset?
+	else //Normal reset?
 	{
-		CPU[activeCPU].waitingforSIPI = 1; //Waiting!
-	}
-	else //BSP reset?
-	{
-		CPU[activeCPU].waitingforSIPI = 0; //Active!
+		resetLAPIC(activeCPU, 1); //Hard reset of the APIC!
+		if (activeCPU) //Waiting for SIPI after reset?
+		{
+			CPU[activeCPU].waitingforSIPI = 1; //Waiting!
+		}
+		else //BSP reset?
+		{
+			CPU[activeCPU].waitingforSIPI = 0; //Active!
+		}
 	}
 	CPU[activeCPU].SIPIreceived = 0; //No SIPI received yet!
 }

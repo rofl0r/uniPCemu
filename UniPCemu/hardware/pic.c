@@ -171,6 +171,7 @@ void resetLAPIC(byte whichCPU, byte isHardReset)
 	{
 		LAPIC[whichCPU].LAPIC_ID =  ((whichCPU & 0xFF) << 24); //Physical CPU number to receive at!
 	}
+	//Enabled is already handled automatically by the call to the updating of the Window MSR!
 }
 
 void updateLAPICArbitrationIDregister(byte whichCPU)
