@@ -1323,6 +1323,7 @@ void resetCPU(byte isInit) //Initialises the currently selected CPU!
 	}
 	if (isInit==0x80) //INIT? Waiting for SIPI!
 	{
+		resetLAPIC(activeCPU, 2); //INIT reset of the APIC!
 		CPU[activeCPU].waitingforSIPI = 1; //Waiting!
 	}
 	else //Normal reset?
