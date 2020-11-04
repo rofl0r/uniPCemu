@@ -169,9 +169,11 @@ void resetLAPIC(byte whichCPU, byte isHardReset)
 	//Do something when resetting?
 	if (isHardReset)
 	{
+		initAPIC(whichCPU); //Initialize the APIC!
 		LAPIC[whichCPU].LAPIC_ID =  ((whichCPU & 0xFF) << 24); //Physical CPU number to receive at!
 	}
 	//Enabled is already handled automatically by the call to the updating of the Window MSR!
+	//Soft reset doesn't clear any data of the Local APIC!
 }
 
 void updateLAPICArbitrationIDregister(byte whichCPU)
