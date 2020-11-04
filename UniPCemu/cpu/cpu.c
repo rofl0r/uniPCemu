@@ -1066,7 +1066,7 @@ OPTINLINE void free_CPUregisters()
 }
 
 //isInit: bit 8 means that the INIT pin is raised without the RESET pin!
-OPTINLINE void CPU_initRegisters(byte isInit) //Init the registers!
+OPTINLINE void CPU_initRegisters(word isInit) //Init the registers!
 {
 	uint_32 MSRbackup[CPU_NUMMSRS];
 	uint_32 CSBase; //Base of CS!
@@ -1284,8 +1284,8 @@ uint_32 cpuaddresspins[16] = { //Bit0=XT, Bit1+=CPU
 							0xFFFFFFFF //80786 XT
 }; //CPU address wrapping lookup table!
 
-//isInit: bit 8 means that the INIT pin is raised without the RESET pin!
-void resetCPU(byte isInit) //Initialises the currently selected CPU!
+//isInit: bit 7 means that the INIT pin is raised without the RESET pin! bit 8 means RESET pin with INIT pin!
+void resetCPU(word isInit) //Initialises the currently selected CPU!
 {
 	CPU[activeCPU].allowInterrupts = CPU[activeCPU].previousAllowInterrupts = 1; //Default to allowing all interrupts to run!
 	CPU[activeCPU].TSC = 0; //Reset timestamp counter!

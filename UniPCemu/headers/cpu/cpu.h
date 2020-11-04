@@ -1325,7 +1325,7 @@ extern CPU_type CPU[MAXCPUS]; //All CPUs itself!
 //0x03 seems to be an alias of 0x01?
 
 void initCPU(); //Initialize CPU for full system reset into known state!
-void resetCPU(byte isInit); //Initialises CPU!
+void resetCPU(word isInit); //Initialises CPU!
 void doneCPU(); //Finish the CPU!
 void CPU_resetMode(); //Reset the mode to the default mode! (see above)
 byte CPU_getprefix(byte prefix); //Prefix set? (might be used by OPcodes!)
