@@ -1329,6 +1329,15 @@ void resetCPU(byte isInit) //Initialises the currently selected CPU!
 	else //Normal reset?
 	{
 		resetLAPIC(activeCPU, 1); //Hard reset of the APIC!
+		//Make sure the local APIC is using the current values!
+		if (EMULATED_CPU >= CPU_PENTIUMPRO) //Has APIC support?
+		{
+			APIC_updateWindowMSR(CPU[activeCPU].registers->genericMSR[MSRnumbers[0x1B] - 1].lo, CPU[activeCPU].registers->genericMSR[MSRnumbers[0x1B] - 1].hi); //Update the MSR for the hardware!
+		}
+		else
+		{
+			APIC_updateWindowMSR(0, 0); //Update the MSR for the hardware! Disable the APIC!
+		}
 		if (activeCPU) //Waiting for SIPI after reset?
 		{
 			CPU[activeCPU].waitingforSIPI = 1; //Waiting!
