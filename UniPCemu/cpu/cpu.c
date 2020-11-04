@@ -1088,8 +1088,8 @@ OPTINLINE void CPU_initRegisters(byte isInit) //Init the registers!
 		}
 		else
 		{
-			memset(CPU[activeCPU].registers, 0, sizeof(*CPU[activeCPU].registers)); //Simply clear!
 			CPU[activeCPU].oldCR0 = CPU[activeCPU].registers->CR0; //Save the old value for INIT purposes!
+			memset(CPU[activeCPU].registers, 0, sizeof(*CPU[activeCPU].registers)); //Simply clear!
 		}
 	}
 	else
