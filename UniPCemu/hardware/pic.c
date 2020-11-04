@@ -164,18 +164,6 @@ void resetIOAPIC(byte isHardReset)
 	IOAPIC.IOAPIC_IRRreq = 0; //Remove all pending requests!
 }
 
-void resetLAPIC(byte whichCPU, byte isHardReset)
-{
-	//Do something when resetting?
-	if (isHardReset)
-	{
-		initAPIC(whichCPU); //Initialize the APIC!
-		LAPIC[whichCPU].LAPIC_ID =  ((whichCPU & 0xFF) << 24); //Physical CPU number to receive at!
-	}
-	//Enabled is already handled automatically by the call to the updating of the Window MSR!
-	//Soft reset doesn't clear any data of the Local APIC!
-}
-
 void updateLAPICArbitrationIDregister(byte whichCPU)
 {
 	LAPIC[whichCPU].LAPIC_arbitrationIDregister = LAPIC[whichCPU].LAPIC_ID & (0xFF << 24); //Load the Arbitration ID register from the Local APIC ID register! All 8-bits are loaded!
@@ -211,7 +199,7 @@ void initAPIC(byte whichCPU)
 	LAPIC[whichCPU].LAPIC_version |= (1 << 24); //Broadcast EOI suppression supported!
 
 	//Update only 1 Local APIC!
-	resetLAPIC(whichCPU,1); //Reset the APIC as well!
+	resetLAPIC(whichCPU,3); //Reset the APIC as well!
 	updateLAPICTimerSpeed(whichCPU); //Update the used timer speed!
 	updateLAPICArbitrationIDregister(whichCPU); //Update the Arbitration ID register with it's defaults!
 
@@ -224,6 +212,22 @@ void initAPIC(byte whichCPU)
 	LAPIC[whichCPU].LVTLINT1Register = 0x10000; //Reset LINT1 register!
 	LAPIC[whichCPU].LVTErrorRegister = 0x10000; //Reset Error register!
 	LAPIC[whichCPU].LAPIC_extIntPending = -1; //No external interrupt pending yet!
+}
+
+void resetLAPIC(byte whichCPU, byte isHardReset)
+{
+	//Do something when resetting?
+	if (isHardReset)
+	{
+		if (isHardReset != 3) //Not called by the initAPIC function?
+		{
+			initAPIC(whichCPU); //Initialize the APIC!
+		}
+		//Updatinh the local APIC ID!
+		LAPIC[whichCPU].LAPIC_ID = ((whichCPU & 0xFF) << 24); //Physical CPU number to receive at!
+	}
+	//Enabled is already handled automatically by the call to the updating of the Window MSR!
+	//Soft reset doesn't clear any data of the Local APIC!
 }
 
 void APIC_enableIOAPIC(byte enabled)
