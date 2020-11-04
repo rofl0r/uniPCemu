@@ -1082,7 +1082,7 @@ OPTINLINE void CPU_initRegisters(byte isInit) //Init the registers!
 		{
 			memset(&MSRbackup, 0, sizeof(MSRbackup)); //Cleared MSRs!
 		}
-		if (isInit != 0x80) //Not local reset?
+		if ((isInit != 0x80) && (isInit!=0x100)) //Not local reset?
 		{
 			free_CPUregisters(); //Free the CPU registers!
 		}
@@ -1096,7 +1096,7 @@ OPTINLINE void CPU_initRegisters(byte isInit) //Init the registers!
 	{
 		CSAccessRights = 0x93; //Initialise the CS access rights!
 	}
-	if (isInit != 0x80) //Needs allocation of registers?
+	if ((isInit != 0x80) && (isInit!=0x100)) //Needs allocation of registers?
 	{
 		alloc_CPUregisters(); //Allocate the CPU registers!
 	}
@@ -1387,10 +1387,7 @@ void CPU_tickPendingReset()
 		if (BIU_resetRequested() && (CPU[activeCPU].instructionfetch.CPU_isFetching==1) && (CPU[activeCPU].resetPending != 2)) //Starting a new instruction or halted with pending Reset?
 		{
 			resetPendingFlag = CPU[activeCPU].resetPending; //The flag!
-			unlock(LOCK_CPU);
-			doneCPU(); //Finish the CPU!
-			resetCPU(0|(resetPendingFlag<<4)); //Simply fully reset the CPU on triple fault(e.g. reset pin result)!
-			lock(LOCK_CPU);
+			resetCPU(0x100|(resetPendingFlag<<4)); //Simply fully reset the CPU on triple fault(e.g. reset pin result)!
 			CPU[activeCPU].resetPending = 0; //Not pending reset anymore!
 		}
 	}
