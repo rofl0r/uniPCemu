@@ -265,11 +265,11 @@ void CPU_initMSRs()
 	if (EMULATED_CPU>=CPU_PENTIUMPRO) //Pro and up?
 	{
 		MSRmasklow[MSRnumbers[0x2A] - 1] = 0x1F | (0x1F << 6) | (0xF << 10) | (3<<16) | (3<<20) | (7<<22); //EBL_CR_POWERON
-		if (EMULATED_CPU >= CPU_PENTIUMPRO) //Pro and up?
+		if (EMULATED_CPU >= CPU_PENTIUM2) //Pentium 2 and up?
 		{
-			MSRmasklow[MSRnumbers[0x2A] - 1] &= ~(0x7 << 22); //Writeable, but ROM!
-			MSRmasklow[MSRnumbers[0x2A] - 1] &= ~(01 << 26); //Writeable, but ROM!
-			MSRmasklow[MSRnumbers[0x2A] - 1] |= (1 << 25); //Reserved!
+			MSRmasklow[MSRnumbers[0x2A] - 1] |= (0x7 << 22); //Writeable, but ROM!
+			MSRmasklow[MSRnumbers[0x2A] - 1] |= (1 << 26); //Writeable, but ROM!
+			MSRmasklow[MSRnumbers[0x2A] - 1] &= ~(1 << 25); //Reserved!
 		}
 		MSRmaskhigh[MSRnumbers[0x2A] - 1] = 0; //EBL_CR_POWERON
 		MSRmaskwritelow_readonly[MSRnumbers[0x2A] - 1] = MSRmasklow[MSRnumbers[0x2A] - 1]&~(0x1F|(3<<6)); //They're all readonly, except the first 6 bits that are defined!
