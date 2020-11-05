@@ -654,6 +654,7 @@ byte i8259_INTA(byte fromAPIC); //Prototype for the vector execution of the LAPI
 //Execute a requested vector on the Local APIC! Specify IR=0xFF for no actual IR! Result: 1=Accepted, 0=Not accepted!
 byte LAPIC_executeVector(byte whichCPU, uint_32* vectorlo, byte IR, byte isIOAPIC)
 {
+	byte backupactiveCPU;
 	byte APIC_intnr;
 	APIC_intnr = (*vectorlo & 0xFF); //What interrupt number?
 	switch ((*vectorlo >> 8) & 7) //What destination mode?
@@ -697,7 +698,10 @@ byte LAPIC_executeVector(byte whichCPU, uint_32* vectorlo, byte IR, byte isIOAPI
 		//Can't be masked, bypasses IRR/ISR!
 		break;
 	case 5: //INIT or INIT deassert?
+		backupactiveCPU = activeCPU; //Backup!
+		activeCPU = whichCPU; //Active for reset!
 		resetCPU(0x80); //Special reset of the CPU: INIT only!
+		activeCPU = backupactiveCPU; //Restore backup!
 		break;
 	case 7: //extINT?
 		if (LAPIC[whichCPU].enabled != 1) return 0; //Don't accept if disabled!
