@@ -268,7 +268,14 @@ void CPU_initMSRs()
 		MSRmaskwritelow_readonly[MSRnumbers[0x2A] - 1] = MSRmasklow[MSRnumbers[0x2A] - 1]&~(0x1F|(3<<6)); //They're all readonly, except the first 6 bits that are defined!
 		MSRmasklow[MSRnumbers[0x186] - 1] = ~0x200000; //EVNTSEL0 mask
 		MSRmaskhigh[MSRnumbers[0x186] - 1] = 0; //EVNTSEL0 mask
-		MSRmasklow[MSRnumbers[0x186] - 1] = ~0x600000; //EVNTSEL1 mask
+		if (EMULATED_CPU == CPU_PENTIUMPRO)
+		{
+			MSRmasklow[MSRnumbers[0x186] - 1] = ~0x600000; //EVNTSEL1 mask
+		}
+		else
+		{
+			MSRmasklow[MSRnumbers[0x186] - 1] = ~(1<<21); //EVNTSEL1 mask: bit 21 only!
+		}
 		MSRmaskhigh[MSRnumbers[0x186] - 1] = 0; //EVNTSEL1 mask
 		MSRmasklow[MSRnumbers[0x1D9] - 1] = (0x3<<8)|0x7F; //DEBUGCTLMSR mask
 		MSRmaskhigh[MSRnumbers[0x1D9] - 1] = 0; //DEBUGCTLMSR mask
