@@ -1386,18 +1386,24 @@ OPTINLINE byte coreHandler()
 			instructiontime = CPU[activeCPU].executed*CPU_speed_cycle; //Increase timing with the instruction time!
 		}
 
-		if (unlikely(EMULATED_CPU >= CPU_PENTIUM)) //Pentium has a time stamp counter?
-		{
-			//Tick the Pentium TSC!
-			uint_64 clocks;
-			CPU[activeCPU].TSCtiming += instructiontime; //Time some in realtime!
-			clocks = (uint_64)floor(CPU[activeCPU].TSCtiming / Pentiumtick); //How much to tick!
-			CPU[activeCPU].TSCtiming -= clocks * Pentiumtick; //Rest the time to keep us constant!
-			CPU[activeCPU].TSC += clocks; //Tick the clocks to keep us running!
-			updateAPIC(clocks,instructiontime); //Clock the APIC as well!
-		}
 		effectiveinstructiontime = MAX(effectiveinstructiontime,instructiontime); //Maximum CPU time passed!
 		} while (++activeCPU<numemulatedcpus); //More CPUs left to handle?
+
+		//Seperate timing for the TSC and APIC to keep them in sync!
+		if (unlikely(EMULATED_CPU >= CPU_PENTIUM)) //Pentium has a time stamp counter?
+		{
+			activeCPU = 0;
+			do
+			{
+				//Tick the Pentium TSC and APIC!
+				uint_64 clocks;
+				CPU[activeCPU].TSCtiming += effectiveinstructiontime; //Time some in realtime!
+				clocks = (uint_64)floor(CPU[activeCPU].TSCtiming / Pentiumtick); //How much to tick!
+				CPU[activeCPU].TSCtiming -= clocks * Pentiumtick; //Rest the time to keep us constant!
+				CPU[activeCPU].TSC += clocks; //Tick the clocks to keep us running!
+				updateAPIC(clocks, instructiontime); //Clock the APIC as well!
+			} while (++activeCPU < numemulatedcpus); //More CPUs left to handle?
+		}
 
 		activeCPU = 0; //Return to the BSP!
 		//Now, ticking the hardware!
