@@ -418,7 +418,6 @@ void initEMU(int full) //Init!
 	closeLogFile(0); //Close all log files!
 
 	MHZ14tick = (1000000000/(DOUBLE)MHZ14); //Initialize the 14 MHZ tick timing!
-	Pentiumtick = (1000000000/(DOUBLE)33000000.0); //Timing of the Pentium IPS TimeStamp Counter clock, at 33MHz!
 	MHZ14_ticktiming = 0.0; //Default to no time passed yet!
 
 	allcleared = 0; //Not cleared anymore!
@@ -466,6 +465,15 @@ void initEMU(int full) //Init!
 	}
 
 	numemulatedcpus = MAX(numemulatedcpus, 1); //At least 1 emulated CPU!
+
+	if (is_i430fx == 2) //66MHz instead?
+	{
+		Pentiumtick = (1000000000 / (DOUBLE)66000000.0); //Timing of the Pentium IPS TimeStamp Counter clock, at 33MHz!
+	}
+	else
+	{
+		Pentiumtick = (1000000000 / (DOUBLE)33000000.0); //Timing of the Pentium IPS TimeStamp Counter clock, at 33MHz!
+	}
 
 	debugrow("Initializing I/O port handling...");
 	Ports_Init(); //Initialise I/O port support!
