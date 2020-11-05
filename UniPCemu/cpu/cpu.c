@@ -1353,14 +1353,14 @@ void resetCPU(word isInit) //Initialises the currently selected CPU!
 	{
 		APIC_updateWindowMSR(activeCPU, 0, 0); //Update the MSR for the hardware! Disable the APIC!
 	}
-	if (isInit==0x80) //INIT? Waiting for SIPI!
+	if ((isInit==0x80) && activeCPU) //INIT? Waiting for SIPI on non-BSP!
 	{
 		resetLAPIC(activeCPU, 2); //INIT reset of the APIC!
 		CPU[activeCPU].waitingforSIPI = 1; //Waiting!
 	}
 	else //Normal reset?
 	{
-		resetLAPIC(activeCPU, 1); //Hard reset of the APIC!
+		resetLAPIC(activeCPU, (isInit == 0x80)?2:1); //Hard reset of the APIC? Depends on INIT vs RESET!
 		//Make sure the local APIC is using the current values!
 		if (EMULATED_CPU >= CPU_PENTIUMPRO) //Has APIC support?
 		{
