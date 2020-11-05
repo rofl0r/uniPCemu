@@ -697,7 +697,7 @@ byte LAPIC_executeVector(byte whichCPU, uint_32* vectorlo, byte IR, byte isIOAPI
 		APICNMIQueued[whichCPU] = 1; //APIC-issued NMI queued!
 		//Can't be masked, bypasses IRR/ISR!
 		break;
-	case 5: //INIT or INIT deassert?
+	case 5: //INIT?
 		backupactiveCPU = activeCPU; //Backup!
 		activeCPU = whichCPU; //Active for reset!
 		resetCPU(0x80); //Special reset of the CPU: INIT only!
