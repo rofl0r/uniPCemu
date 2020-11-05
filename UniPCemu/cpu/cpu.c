@@ -197,6 +197,7 @@ void CPU_initMSRs()
 		raiseError("cpu","Too many MSRs allocated! Amount: %i, limit: %i",MSRstorage, NUMITEMS(CPU[activeCPU].registers->genericMSR)); //Log it!
 		return; //Abort!
 	}
+	//MSRmasklow/high is what is able to be written by the CPU! Otherwise erroring out!
 	memset(&MSRmasklow, ~0, sizeof(MSRmasklow)); //Allow all bits!
 	memset(&MSRmaskhigh, ~0, sizeof(MSRmaskhigh)); //Allow all bits!
 	memset(&MSRmaskwritelow_readonly, 0, sizeof(MSRmaskwritelow_readonly)); //No read-only bits!
@@ -264,6 +265,12 @@ void CPU_initMSRs()
 	if (EMULATED_CPU>=CPU_PENTIUMPRO) //Pro and up?
 	{
 		MSRmasklow[MSRnumbers[0x2A] - 1] = 0x1F | (0x1F << 6) | (0xF << 10) | (3<<16) | (3<<20) | (7<<22); //EBL_CR_POWERON
+		if (EMULATED_CPU >= CPU_PENTIUMPRO) //Pro and up?
+		{
+			MSRmasklow[MSRnumbers[0x2A] - 1] &= ~(0x7 << 22); //Writeable, but ROM!
+			MSRmasklow[MSRnumbers[0x2A] - 1] &= ~(01 << 26); //Writeable, but ROM!
+			MSRmasklow[MSRnumbers[0x2A] - 1] |= (1 << 25); //Reserved!
+		}
 		MSRmaskhigh[MSRnumbers[0x2A] - 1] = 0; //EBL_CR_POWERON
 		MSRmaskwritelow_readonly[MSRnumbers[0x2A] - 1] = MSRmasklow[MSRnumbers[0x2A] - 1]&~(0x1F|(3<<6)); //They're all readonly, except the first 6 bits that are defined!
 		MSRmasklow[MSRnumbers[0x186] - 1] = ~0x200000; //EVNTSEL0 mask
@@ -279,7 +286,15 @@ void CPU_initMSRs()
 		MSRmaskhigh[MSRnumbers[0x186] - 1] = 0; //EVNTSEL1 mask
 		MSRmasklow[MSRnumbers[0x1D9] - 1] = (0x3<<8)|0x7F; //DEBUGCTLMSR mask
 		MSRmaskhigh[MSRnumbers[0x1D9] - 1] = 0; //DEBUGCTLMSR mask
+		if (EMULATED_CPU >= CPU_PENTIUM2)
+		{
+			MSRmasklow[MSRnumbers[0x1D9] - 1] |= 0xFFFF & (0x7F << 7); //DEBUGCTLMSR mask 13:7 are reserved!
+		}
 		MSRmasklow[MSRnumbers[0x1E0] - 1] = 2; //ROB_CR_BKUPTMPDR6 mask
+		if (EMULATED_CPU >= CPU_PENTIUM2)
+		{
+			MSRmasklow[MSRnumbers[0x1E0] - 1] |= 4; //ROB_CR_BKUPTMPDR6 mask
+		}
 		MSRmaskhigh[MSRnumbers[0x1E0] - 1] = 0; //ROB_CR_BKUPTMPDR mask
 		MSRmasklow[MSRnumbers[0x2FF] - 1] = 0x3|(3<<10); //MTRRdefType mask
 		MSRmaskhigh[MSRnumbers[0x2FF] - 1] = 0; //MTRRdefType mask
