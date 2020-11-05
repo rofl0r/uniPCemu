@@ -216,6 +216,7 @@ void initAPIC(byte whichCPU)
 	LAPIC[whichCPU].LVTLINT1Register = 0x10000; //Reset LINT1 register!
 	LAPIC[whichCPU].LVTErrorRegister = 0x10000; //Reset Error register!
 	LAPIC[whichCPU].LAPIC_extIntPending = -1; //No external interrupt pending yet!
+	APIC_updateWindowMSR(whichCPU, LAPIC[whichCPU].windowMSRlo, LAPIC[whichCPU].windowMSRhi); //Make sure that our enabled status is up-to-date!
 }
 
 void resetLAPIC(byte whichCPU, byte isHardReset)
@@ -1813,7 +1814,7 @@ byte APIC_memIO_rb(uint_32 offset, byte index)
 	return 0; //Not implemented yet!
 }
 
-void APIC_updateWindowMSR(uint_32 lo, uint_32 hi)
+void APIC_updateWindowMSR(byte whichCPU, uint_32 lo, uint_32 hi)
 {
 	//Update the window MSR!
 	LAPIC[activeCPU].windowMSRhi = hi; //High value of the MSR!

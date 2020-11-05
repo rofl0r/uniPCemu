@@ -123,7 +123,7 @@ void CPU586_OP0F30() //WRMSR
 
 	if (unlikely(REG_ECX == 0x1B)) //APIC MSR needs external hardware handling as well?
 	{
-		APIC_updateWindowMSR(CPU[activeCPU].registers->genericMSR[MSRnumbers[0x1B] - 1].lo, CPU[activeCPU].registers->genericMSR[MSRnumbers[0x1B] - 1].hi); //Update the MSR for the hardware!
+		APIC_updateWindowMSR(activeCPU,CPU[activeCPU].registers->genericMSR[MSRnumbers[0x1B] - 1].lo, CPU[activeCPU].registers->genericMSR[MSRnumbers[0x1B] - 1].hi); //Update the MSR for the hardware!
 	}
 }
 

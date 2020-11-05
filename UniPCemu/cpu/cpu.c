@@ -1347,11 +1347,11 @@ void resetCPU(word isInit) //Initialises the currently selected CPU!
 	{
 		CPU[activeCPU].registers->genericMSR[MSRnumbers[0x1B] - 1].lo = 0xFEE00800 | (activeCPU?0:0x100); //Initial value! We're the bootstrap processor! APIC enabled!
 		CPU[activeCPU].registers->genericMSR[MSRnumbers[0x1B] - 1].hi = 0; //Initial value!
-		APIC_updateWindowMSR(CPU[activeCPU].registers->genericMSR[MSRnumbers[0x1B] - 1].lo, CPU[activeCPU].registers->genericMSR[MSRnumbers[0x1B] - 1].hi); //Update the MSR for the hardware!
+		APIC_updateWindowMSR(activeCPU,CPU[activeCPU].registers->genericMSR[MSRnumbers[0x1B] - 1].lo, CPU[activeCPU].registers->genericMSR[MSRnumbers[0x1B] - 1].hi); //Update the MSR for the hardware!
 	}
 	else
 	{
-		APIC_updateWindowMSR(0, 0); //Update the MSR for the hardware! Disable the APIC!
+		APIC_updateWindowMSR(activeCPU, 0, 0); //Update the MSR for the hardware! Disable the APIC!
 	}
 	if (isInit==0x80) //INIT? Waiting for SIPI!
 	{
@@ -1364,11 +1364,11 @@ void resetCPU(word isInit) //Initialises the currently selected CPU!
 		//Make sure the local APIC is using the current values!
 		if (EMULATED_CPU >= CPU_PENTIUMPRO) //Has APIC support?
 		{
-			APIC_updateWindowMSR(CPU[activeCPU].registers->genericMSR[MSRnumbers[0x1B] - 1].lo, CPU[activeCPU].registers->genericMSR[MSRnumbers[0x1B] - 1].hi); //Update the MSR for the hardware!
+			APIC_updateWindowMSR(activeCPU,CPU[activeCPU].registers->genericMSR[MSRnumbers[0x1B] - 1].lo, CPU[activeCPU].registers->genericMSR[MSRnumbers[0x1B] - 1].hi); //Update the MSR for the hardware!
 		}
 		else
 		{
-			APIC_updateWindowMSR(0, 0); //Update the MSR for the hardware! Disable the APIC!
+			APIC_updateWindowMSR(activeCPU,0, 0); //Update the MSR for the hardware! Disable the APIC!
 		}
 		if (activeCPU) //Waiting for SIPI after reset?
 		{
