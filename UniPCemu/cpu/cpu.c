@@ -281,7 +281,7 @@ void CPU_initMSRs()
 		}
 		else
 		{
-			MSRmasklow[MSRnumbers[0x186] - 1] = ~(1<<21); //EVNTSEL1 mask: bit 21 only!
+			MSRmasklow[MSRnumbers[0x186] - 1] = ~0; //EVNTSEL1 mask: bit 21 only!
 		}
 		MSRmaskhigh[MSRnumbers[0x186] - 1] = 0; //EVNTSEL1 mask
 		MSRmasklow[MSRnumbers[0x1D9] - 1] = (0x3<<8)|0x7F; //DEBUGCTLMSR mask
