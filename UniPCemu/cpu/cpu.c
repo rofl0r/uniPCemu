@@ -277,7 +277,7 @@ void CPU_initMSRs()
 		MSRmaskhigh[MSRnumbers[0x186] - 1] = 0; //EVNTSEL0 mask
 		if (EMULATED_CPU == CPU_PENTIUMPRO)
 		{
-			MSRmasklow[MSRnumbers[0x186] - 1] = ~0x600000; //EVNTSEL1 mask
+			MSRmasklow[MSRnumbers[0x186] - 1] = (~0x600000)|(1<<21); //EVNTSEL1 mask
 		}
 		else
 		{
