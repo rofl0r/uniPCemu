@@ -802,7 +802,7 @@ void APIC_errorTrigger(byte whichCPU) //Error has been triggered!
 
 void updateAPICliveIRRs(); //Update the live IRRs as needed!
 
-byte receiveCommandRegister(uint_32 destinationCPU, uint_32 *commandregister, byte isIOAPIC)
+byte receiveCommandRegister(byte whichCPU, uint_32 destinationCPU, uint_32 *commandregister, byte isIOAPIC)
 {
 	byte backupactiveCPU;
 	switch ((*commandregister >> 8) & 7) //What is requested?
@@ -837,6 +837,17 @@ byte receiveCommandRegister(uint_32 destinationCPU, uint_32 *commandregister, by
 		break;
 	case 2: //SMI raised?
 		if (isIOAPIC) return 1; //Not on IO APIC!
+		break;
+	case 3: //Remote Read?
+		if (!isIOAPIC) //Not valid on IO APIC!
+		{
+			LAPIC[whichCPU].InterruptCommandRegisterLo |= 0x20000; //Default: Remote Read valid!
+			LAPIC[whichCPU].RemoteReadRegister = 0; //Set the remote read register accordingly?
+		}
+		else
+		{
+			return 0; //Don't accept it!
+		}
 		break;
 	case 4: //NMI raised?
 		if (isIOAPIC) return 1; //Not on IO APIC!
@@ -922,6 +933,10 @@ void LAPIC_pollRequests(byte whichCPU)
 	receiver = IOAPIC_receiver = 0; //Initialize receivers of the packet!
 	if (LAPIC[whichCPU].InterruptCommandRegisterLo & 0x1000) //Pending command being sent?
 	{
+		if (((LAPIC[whichCPU].InterruptCommandRegisterLo >> 8) & 7) == 3) //Remote read is to be executed?
+		{
+			LAPIC[whichCPU].InterruptCommandRegisterLo &= ~0x20000; //Default: Remote Read invalid!
+		}
 		switch ((LAPIC[whichCPU].InterruptCommandRegisterLo >> 18) & 3) //What destination type?
 		{
 		case 0: //Destination field?
@@ -978,7 +993,7 @@ void LAPIC_pollRequests(byte whichCPU)
 				{
 					if (receiver & (1 << destinationCPU)) //To receive?
 					{
-						if (receiveCommandRegister(destinationCPU, &LAPIC[whichCPU].InterruptCommandRegisterLo,0)) //Accepted?
+						if (receiveCommandRegister(whichCPU, destinationCPU, &LAPIC[whichCPU].InterruptCommandRegisterLo,0)) //Accepted?
 						{
 							receiver &= ~(1 << destinationCPU); //Received!
 						}
@@ -986,7 +1001,7 @@ void LAPIC_pollRequests(byte whichCPU)
 				}
 				if (IOAPIC_receiver) //IO APIC too?
 				{
-						if (receiveCommandRegister(0, &LAPIC[whichCPU].InterruptCommandRegisterLo,1)) //Accepted?
+						if (receiveCommandRegister(whichCPU, 0, &LAPIC[whichCPU].InterruptCommandRegisterLo,1)) //Accepted?
 						{
 							receiver &= ~(1 << destinationCPU); //Received!
 						}
@@ -1416,7 +1431,7 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 			break;
 		case 0x300:
 			whatregister = &LAPIC[activeCPU].InterruptCommandRegisterLo; //0300
-			ROMbits = (1<<12); //Fully writable! Pending to send isn't writable!
+			ROMbits = (1<<12)|(1<<17); //Fully writable! Pending to send isn't writable! Remote read status isn't writable!
 			break;
 		case 0x310:
 			whatregister = &LAPIC[activeCPU].InterruptCommandRegisterHi; //0310
@@ -1466,6 +1481,7 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 			ROMbits = 0; //Fully writable!
 			break;
 		default: //Unmapped?
+			LAPIC_reportErrorStatus(activeCPU, (1 << 7), 0); //Illegal address error!
 			return 0; //Unmapped!
 			break;
 		}
@@ -1759,6 +1775,7 @@ byte APIC_memIO_rb(uint_32 offset, byte index)
 			whatregister = &LAPIC[activeCPU].DivideConfigurationRegister; //03E0
 			break;
 		default: //Unmapped?
+			LAPIC_reportErrorStatus(activeCPU, (1 << 7), 0); //Illegal address error!
 			return 0; //Unmapped!
 			break;
 		}
