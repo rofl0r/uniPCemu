@@ -435,9 +435,12 @@ void LAPIC_handleunpendingerror(byte whichCPU)
 	}
 }
 
+byte APIC_errorTriggerDummy;
 void LAPIC_reportErrorStatus(byte whichcpu, uint_32 errorstatus, byte ignoreTrigger)
 {
-	if (APIC_errorTrigger(whichcpu) || ignoreTrigger) //Trigger ther error to start handling it! Only then record it in the ESR! NOt when set to ignore the trigger!
+	APIC_errorTriggerDummy = APIC_errorTrigger(whichcpu); //Trigger it when possible!
+	//if (APIC_errorTrigger(whichcpu) || ignoreTrigger) //Trigger ther error to start handling it! Only then record it in the ESR! NOt when set to ignore the trigger!
+	//Always set the error status register, even when the LVT is masked off!
 	{
 		LAPIC[whichcpu].errorstatusregisterpending |= errorstatus; //Reporting this delayed if needed, on the ESR!
 		if ((((LAPIC[whichcpu].LAPIC_version >> 16) & 0xFF)) > 3) //No delayed reporting?
