@@ -510,6 +510,7 @@ void LAPIC_handletermination() //Handle termination on the APIC!
 	{
 		LAPIC[activeCPU].ErrorStatusRegister = 0; //Clear the status register for new errors to be reported!
 		LAPIC_handleunpendingerror(activeCPU); //Handle pending!
+		//Also rearm the error reporting?
 	}
 
 	if (LAPIC[activeCPU].needstermination & 0x10) //Initial count register is written?
