@@ -794,7 +794,9 @@ void updateAPICliveIRRs(); //Update the live IRRs as needed!
 
 byte receiveCommandRegister(byte whichCPU, uint_32 destinationCPU, uint_32 *commandregister, byte isIOAPIC)
 {
+	uint_32 *whatregister;
 	byte backupactiveCPU;
+	uint_32 address;
 	switch ((*commandregister >> 8) & 7) //What is requested?
 	{
 	case 0: //Interrupt raise?
@@ -831,12 +833,122 @@ byte receiveCommandRegister(byte whichCPU, uint_32 destinationCPU, uint_32 *comm
 	case 3: //Remote Read?
 		if (!isIOAPIC) //Not valid on IO APIC!
 		{
-			LAPIC[whichCPU].InterruptCommandRegisterLo |= 0x20000; //Default: Remote Read valid!
-			LAPIC[whichCPU].RemoteReadRegister = 0; //Set the remote read register accordingly?
-		}
-		else
+		whatregister = NULL; //Default: unmapped!
+		switch (address) //What is addressed?
 		{
-			return 0; //Don't accept it!
+		case 0x0020:
+			whatregister = &LAPIC[activeCPU].LAPIC_ID; //0020
+			break;
+		case 0x0030:
+			whatregister = &LAPIC[activeCPU].LAPIC_version; //0030
+			break;
+		case 0x0080:
+			whatregister = &LAPIC[activeCPU].TaskPriorityRegister; //0080
+			break;
+		case 0x0090:
+			whatregister = &LAPIC[activeCPU].ArbitrationPriorityRegister; //0090
+			break;
+		case 0x00A0:
+			whatregister = &LAPIC[activeCPU].ProcessorPriorityRegister; //00A0
+			break;
+		case 0x00B0:
+			whatregister = &LAPIC[activeCPU].EOIregister; //00B0
+			break;
+		case 0x00C0:
+			whatregister = &LAPIC[activeCPU].RemoteReadRegister; //00C0
+			break;
+		case 0x00D0:
+			whatregister = &LAPIC[activeCPU].LogicalDestinationRegister; //00D0
+			break;
+		case 0x00E0:
+			whatregister = &LAPIC[activeCPU].DestinationFormatRegister; //00E0
+			break;
+		case 0x00F0:
+			whatregister = &LAPIC[activeCPU].SpuriousInterruptVectorRegister; //00F0
+			break;
+		case 0x0100:
+		case 0x0110:
+		case 0x0120:
+		case 0x0130:
+		case 0x0140:
+		case 0x0150:
+		case 0x0160:
+		case 0x0170:
+			whatregister = &LAPIC[activeCPU].ISR[((address - 0x100) >> 4)]; //ISRs! 0100-0170
+			break;
+		case 0x0180:
+		case 0x0190:
+		case 0x01A0:
+		case 0x01B0:
+		case 0x01C0:
+		case 0x01D0:
+		case 0x01E0:
+		case 0x01F0:
+			whatregister = &LAPIC[activeCPU].TMR[((address - 0x180) >> 4)]; //TMRs! 0180-01F0
+			break;
+		case 0x0200:
+		case 0x0210:
+		case 0x0220:
+		case 0x0230:
+		case 0x0240:
+		case 0x0250:
+		case 0x0260:
+		case 0x0270:
+			whatregister = &LAPIC[activeCPU].IRR[((address - 0x200) >> 4)]; //ISRs! 0200-0270
+			break;
+		case 0x280:
+			whatregister = &LAPIC[activeCPU].ErrorStatusRegister; //0280
+			break;
+		case 0x2F0:
+			whatregister = &LAPIC[activeCPU].LVTCorrectedMachineCheckInterruptRegister; //02F0
+			break;
+		case 0x300:
+			whatregister = &LAPIC[activeCPU].InterruptCommandRegisterLo; //0300
+			break;
+		case 0x310:
+			whatregister = &LAPIC[activeCPU].InterruptCommandRegisterHi; //0310
+			break;
+		case 0x320:
+			whatregister = &LAPIC[activeCPU].LVTTimerRegister; //0320
+			break;
+		case 0x330:
+			whatregister = &LAPIC[activeCPU].LVTThermalSensorRegister; //0330
+			break;
+		case 0x340:
+			whatregister = &LAPIC[activeCPU].LVTPerformanceMonitoringCounterRegister; //0340
+			break;
+		case 0x350:
+			whatregister = &LAPIC[activeCPU].LVTLINT0Register; //0350
+			break;
+		case 0x360:
+			whatregister = &LAPIC[activeCPU].LVTLINT1Register; //0560
+			break;
+		case 0x370:
+			whatregister = &LAPIC[activeCPU].LVTErrorRegister; //0370
+			break;
+		case 0x380:
+			whatregister = &LAPIC[activeCPU].InitialCountRegister; //0380
+			break;
+		case 0x390:
+			whatregister = &LAPIC[activeCPU].CurrentCountRegister; //0390
+			break;
+		case 0x3E0:
+			whatregister = &LAPIC[activeCPU].DivideConfigurationRegister; //03E0
+			break;
+		default: //Unmapped?
+			whatregister = NULL; //Unmapped!
+			break;
+		}
+		if (whatregister) //Mapped register?
+		{
+			LAPIC[whichCPU].RemoteReadRegister = *whatregister; //Set the remote read register accordingly?
+			LAPIC[whichCPU].InterruptCommandRegisterLo |= 0x20000; //Remote Read valid!
+		}
+		//Invalid register: leave the result being invalid or not! Leave the last loaded value in place! If any hardware succeeds, it's overwriting the result with a valid value and correct data!
+		}
+		else //IO APIC?
+		{
+			return 1; //Accept and ignore! Invalid result!
 		}
 		break;
 	case 4: //NMI raised?
