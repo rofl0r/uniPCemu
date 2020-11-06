@@ -988,7 +988,7 @@ void LAPIC_pollRequests(byte whichCPU)
 				{
 						if (receiveCommandRegister(0, &LAPIC[whichCPU].InterruptCommandRegisterLo,1)) //Accepted?
 						{
-							receiver &= ~(1 << destinationCPU); //Received!
+							IOAPIC_receiver = 0; //Received!
 						}
 				}
 				if (receiver) //Failed to send all?
