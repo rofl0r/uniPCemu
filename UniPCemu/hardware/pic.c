@@ -139,7 +139,7 @@ extern byte APICNMIQueued[MAXCPUS]; //APIC-issued NMI queued?
 //Result: 0=Block to let the APIC handle NMI, otherwise, handle NMI directly by the CPU instead of the APIC!
 byte CPU_NMI_APIC(byte whichCPU)
 {
-	return ((LAPIC[whichCPU].enabled==-1)?1:0); //APIC not disabled by the CPU!
+	return (((LAPIC[whichCPU].enabled==-1) && (whichCPU))?1:0); //APIC not disabled by the CPU! When not BSP, disable NMI (not connected to the other CPUs)!
 }
 
 void updateLAPICTimerSpeed(byte whichCPU)
@@ -2175,7 +2175,7 @@ byte PICInterrupt() //We have an interrupt ready to process? This is the primary
 	}
 	if (getunprocessedinterrupt(0) && (IMCR!=0x01)) //Primary PIC interrupt? This is also affected by the IMCR!
 	{
-		if ((LAPIC[activeCPU].enabled==1) || activeCPU) //APIC enabled and taken control of the interrupt pin or not CPU #0?
+		if ((LAPIC[activeCPU].enabled==1) || activeCPU) //APIC enabled and taken control of the interrupt pin or not CPU #0? When not BSP, disable INTR (not connected to the other CPUs)!
 		{
 			return 0; //The connection from the INTR pin to the local APIC is active! Disable the normal interrupts(redirected to the LVT LINT0 register)!
 		}
