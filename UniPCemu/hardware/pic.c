@@ -833,6 +833,7 @@ byte receiveCommandRegister(byte whichCPU, uint_32 destinationCPU, uint_32 *comm
 	case 3: //Remote Read?
 		if (!isIOAPIC) //Not valid on IO APIC!
 		{
+		address = ((*commandregister & 0xFF)<<4); //The APIC address being addressed(multiple of 16, being addressed divided by 16, e.g. address 020h=02h)
 		whatregister = NULL; //Default: unmapped!
 		switch (address) //What is addressed?
 		{
