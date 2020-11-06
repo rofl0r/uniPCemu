@@ -93,10 +93,10 @@ struct
 	uint_32 CurrentCountRegisterlatched; //Latched timer!
 	sword LAPIC_extIntPending;
 	uint_32 errorstatusregisterpending; //Pending bits in the error status register!
-	DOUBLE errorstatustimeout;
 } LAPIC[MAXCPUS]; //The Local APIC that's emulated!
 
 byte lastLAPICAccepted[MAXCPUS]; //Last APIC accepted LVT result!
+byte discardErrorTriggerResult[MAXCPUS]; //Discarded error trigger result!
 
 struct
 {
@@ -139,7 +139,7 @@ extern byte APICNMIQueued[MAXCPUS]; //APIC-issued NMI queued?
 //Result: 0=Block to let the APIC handle NMI, otherwise, handle NMI directly by the CPU instead of the APIC!
 byte CPU_NMI_APIC(byte whichCPU)
 {
-	return ((LAPIC[whichCPU].enabled==-1)?1:0); //APIC not disabled by the CPU!
+	return (((LAPIC[whichCPU].enabled==-1) && (whichCPU))?1:0); //APIC not disabled by the CPU! When not BSP, disable NMI (not connected to the other CPUs)!
 }
 
 void updateLAPICTimerSpeed(byte whichCPU)
@@ -195,7 +195,7 @@ void initAPIC(byte whichCPU)
 		break;
 	case CPU_PENTIUMPRO:
 	case CPU_PENTIUM2:
-		LAPIC[whichCPU].LAPIC_version |= 0x30000; //4 LVT entries? Or 5? Bochs says P6=4 entries?
+		LAPIC[whichCPU].LAPIC_version |= 0x40000; //4 LVT entries? Or 5? Bochs says P6=4 entries? We use 5!
 		break;
 	default:
 		break;
@@ -281,7 +281,7 @@ void init8259()
 	}
 }
 
-void APIC_errorTrigger(byte whichCPU); //Error has been triggered! Prototype!
+byte APIC_errorTrigger(byte whichCPU); //Error has been triggered! Prototype!
 
 byte APIC_getISRV(byte whichCPU)
 {
@@ -428,22 +428,25 @@ void LAPIC_broadcastEOI(byte whichCPU, byte vectornumber)
 
 void LAPIC_handleunpendingerror(byte whichCPU)
 {
-	LAPIC[whichCPU].ErrorStatusRegister |= LAPIC[whichCPU].errorstatusregisterpending;
-	LAPIC[whichCPU].errorstatusregisterpending = 0; //Not pending anymore!
-	APIC_errorTrigger(whichCPU);
+	if (LAPIC[whichCPU].errorstatusregisterpending) //Pending error?
+	{
+		LAPIC[whichCPU].ErrorStatusRegister |= LAPIC[whichCPU].errorstatusregisterpending;
+		LAPIC[whichCPU].errorstatusregisterpending = 0; //Not pending anymore!
+	}
 }
 
-void LAPIC_reportErrorStatus(byte whichcpu, uint_32 errorstatus, byte delayedreporting)
+byte APIC_errorTriggerDummy;
+void LAPIC_reportErrorStatus(byte whichcpu, uint_32 errorstatus, byte ignoreTrigger)
 {
-	LAPIC[whichcpu].errorstatusregisterpending |= errorstatus; //Reporting this delayed!
-	if (((((LAPIC[whichcpu].LAPIC_version >> 16) & 0xFF))<=3) || (delayedreporting==0)) //No delayed reporting?
+	APIC_errorTriggerDummy = APIC_errorTrigger(whichcpu); //Trigger it when possible!
+	//if (APIC_errorTrigger(whichcpu) || ignoreTrigger) //Trigger ther error to start handling it! Only then record it in the ESR! NOt when set to ignore the trigger!
+	//Always set the error status register, even when the LVT is masked off!
 	{
-		LAPIC[whichcpu].errorstatustimeout = (DOUBLE)0; //No timeout anymore!
-		LAPIC_handleunpendingerror(whichcpu); //Unpend immediately!
-	}
-	else
-	{
-		LAPIC[whichcpu].errorstatustimeout = 10000.0f; //Small timeout!
+		LAPIC[whichcpu].errorstatusregisterpending |= errorstatus; //Reporting this delayed if needed, on the ESR!
+		if ((((LAPIC[whichcpu].LAPIC_version >> 16) & 0xFF)) > 3) //No delayed reporting?
+		{
+			LAPIC_handleunpendingerror(whichcpu); //Unpend the error status register (ESR) immediately!
+		}
 	}
 }
 
@@ -506,11 +509,8 @@ void LAPIC_handletermination() //Handle termination on the APIC!
 	if (LAPIC[activeCPU].needstermination & 8) //Error status register needs termination?
 	{
 		LAPIC[activeCPU].ErrorStatusRegister = 0; //Clear the status register for new errors to be reported!
-		if (LAPIC[activeCPU].errorstatustimeout) //Timeout pending?
-		{
-			LAPIC[activeCPU].errorstatustimeout = (DOUBLE)0; //Stop timing!
-			LAPIC_handleunpendingerror(activeCPU); //Handle pending!
-		}
+		LAPIC_handleunpendingerror(activeCPU); //Handle pending!
+		//Also rearm the error reporting?
 	}
 
 	if (LAPIC[activeCPU].needstermination & 0x10) //Initial count register is written?
@@ -530,12 +530,9 @@ void LAPIC_handletermination() //Handle termination on the APIC!
 		updateLAPICTimerSpeed(activeCPU); //Update the timer speed!
 	}
 
-	if (LAPIC[activeCPU].needstermination & 0x40) //Error Status Interrupt is written?
+	if (LAPIC[activeCPU].needstermination & 0x40) //Error Status Interrupt LVT is written?
 	{
-		if (LAPIC[activeCPU].ErrorStatusRegister && ((LAPIC[activeCPU].LVTErrorRegister&0x10000)==0)) //Error marked and interrupt enabled?
-		{
-			APIC_errorTrigger(activeCPU); //Error interrupt is triggered!
-		}
+		//Don't trigger any error when this error status LVT register is written!
 	}
 
 	if (LAPIC[activeCPU].needstermination & 0x80) //TPR needs termination?
@@ -728,15 +725,6 @@ byte LAPIC_executeVector(byte whichCPU, uint_32* vectorlo, byte IR, byte isIOAPI
 void updateAPIC(uint_64 clockspassed, float timepassed)
 {
 	if (LAPIC[activeCPU].enabled != 1) return; //APIC not enabled?
-	if (LAPIC[activeCPU].errorstatustimeout) //Timeout pending?
-	{
-		LAPIC[activeCPU].errorstatustimeout -= timepassed; //Tick it!
-		if (LAPIC[activeCPU].errorstatustimeout <= 0.0) //Timeout?
-		{
-			LAPIC[activeCPU].errorstatustimeout = (DOUBLE)0; //Stop timing!
-			LAPIC_handleunpendingerror(activeCPU); //Handle pending!
-		}
-	}
 	if (!clockspassed) return; //Nothing passed?
 	if (LAPIC[activeCPU].CurrentCountRegister) //Count busy?
 	{
@@ -789,20 +777,22 @@ void updateAPIC(uint_64 clockspassed, float timepassed)
 	}
 }
 
-void APIC_errorTrigger(byte whichCPU) //Error has been triggered!
+byte APIC_errorTrigger(byte whichCPU) //Error has been triggered!
 {
 	if ((LAPIC[whichCPU].LVTErrorRegister & 0x10000)==0) //Not masked?
 	{
 		if ((LAPIC[whichCPU].LVTErrorRegister & (1 << 12)) == 0) //The IO or Local APIC can receive the request!
 		{
 			LAPIC[whichCPU].LVTErrorRegister |= (1 << 12); //Start pending!
+			return 1; //Pending!
 		}
 	}
+	return 0; //Masked off or already pending!
 }
 
 void updateAPICliveIRRs(); //Update the live IRRs as needed!
 
-byte receiveCommandRegister(uint_32 destinationCPU, uint_32 *commandregister, byte isIOAPIC)
+byte receiveCommandRegister(byte whichCPU, uint_32 destinationCPU, uint_32 *commandregister, byte isIOAPIC)
 {
 	byte backupactiveCPU;
 	switch ((*commandregister >> 8) & 7) //What is requested?
@@ -813,7 +803,7 @@ byte receiveCommandRegister(uint_32 destinationCPU, uint_32 *commandregister, by
 		if (LAPIC[destinationCPU].enabled != 1) return 0; //Don't accept if disabled!
 		if ((*commandregister & 0xFF) < 0x10) //Invalid vector?
 		{
-			LAPIC_reportErrorStatus(destinationCPU, (1 << 5), 1); //Report an illegal vector being sent!
+			LAPIC_reportErrorStatus(destinationCPU, (1 << 5),1); //Report an illegal vector being sent!
 		}
 		else if ((LAPIC[destinationCPU].IRR[(*commandregister & 0xFF) >> 5] & (1 << ((*commandregister & 0xFF) & 0x1F))) == 0) //Ready to receive?
 		{
@@ -837,6 +827,17 @@ byte receiveCommandRegister(uint_32 destinationCPU, uint_32 *commandregister, by
 		break;
 	case 2: //SMI raised?
 		if (isIOAPIC) return 1; //Not on IO APIC!
+		break;
+	case 3: //Remote Read?
+		if (!isIOAPIC) //Not valid on IO APIC!
+		{
+			LAPIC[whichCPU].InterruptCommandRegisterLo |= 0x20000; //Default: Remote Read valid!
+			LAPIC[whichCPU].RemoteReadRegister = 0; //Set the remote read register accordingly?
+		}
+		else
+		{
+			return 0; //Don't accept it!
+		}
 		break;
 	case 4: //NMI raised?
 		if (isIOAPIC) return 1; //Not on IO APIC!
@@ -875,7 +876,7 @@ byte receiveCommandRegister(uint_32 destinationCPU, uint_32 *commandregister, by
 		if (isIOAPIC) return 1; //Not on IO APIC!
 		if ((*commandregister & 0xFF) < 0x10) //Invalid vector?
 		{
-			LAPIC_reportErrorStatus(destinationCPU, (1 << 5), 1); //Report an illegal vector being sent!
+			LAPIC_reportErrorStatus(destinationCPU, (1 << 5),1); //Report an illegal vector being sent!
 		}
 		else //Valid vector!
 		{
@@ -922,6 +923,10 @@ void LAPIC_pollRequests(byte whichCPU)
 	receiver = IOAPIC_receiver = 0; //Initialize receivers of the packet!
 	if (LAPIC[whichCPU].InterruptCommandRegisterLo & 0x1000) //Pending command being sent?
 	{
+		if (((LAPIC[whichCPU].InterruptCommandRegisterLo >> 8) & 7) == 3) //Remote read is to be executed?
+		{
+			LAPIC[whichCPU].InterruptCommandRegisterLo &= ~0x20000; //Default: Remote Read invalid!
+		}
 		switch ((LAPIC[whichCPU].InterruptCommandRegisterLo >> 18) & 3) //What destination type?
 		{
 		case 0: //Destination field?
@@ -978,7 +983,7 @@ void LAPIC_pollRequests(byte whichCPU)
 				{
 					if (receiver & (1 << destinationCPU)) //To receive?
 					{
-						if (receiveCommandRegister(destinationCPU, &LAPIC[whichCPU].InterruptCommandRegisterLo,0)) //Accepted?
+						if (receiveCommandRegister(whichCPU, destinationCPU, &LAPIC[whichCPU].InterruptCommandRegisterLo,0)) //Accepted?
 						{
 							receiver &= ~(1 << destinationCPU); //Received!
 						}
@@ -986,19 +991,19 @@ void LAPIC_pollRequests(byte whichCPU)
 				}
 				if (IOAPIC_receiver) //IO APIC too?
 				{
-						if (receiveCommandRegister(0, &LAPIC[whichCPU].InterruptCommandRegisterLo,1)) //Accepted?
+						if (receiveCommandRegister(whichCPU, 0, &LAPIC[whichCPU].InterruptCommandRegisterLo,1)) //Accepted?
 						{
 							IOAPIC_receiver = 0; //Received!
 						}
 				}
 				if (receiver) //Failed to send all?
 				{
-					LAPIC_reportErrorStatus(whichCPU, (1 << 2), 1); //Report an send accept error! Not all responded on the bus!
+					LAPIC_reportErrorStatus(whichCPU, (1 << 2),1); //Report an send accept error! Not all responded on the bus!
 				}
 			}
 			else //No receivers?
 			{
-				LAPIC_reportErrorStatus(whichCPU, (1 << 2), 1); //Report an send accept error! Nothing responded on the bus!
+				LAPIC_reportErrorStatus(whichCPU, (1 << 2),1); //Report an send accept error! Nothing responded on the bus!
 			}
 			break;
 		case 3: //All but ourselves?
@@ -1140,7 +1145,7 @@ void IOAPIC_pollRequests()
 			}
 			if (receiver == 0) //No receivers?
 			{
-				LAPIC_reportErrorStatus(0, (1 << 3), 0); //Report an receive accept error! Where to report this?
+				LAPIC_reportErrorStatus(0, (1 << 3),0); //Report an receive accept error! Where to report this?
 			}
 			else
 			{
@@ -1416,7 +1421,7 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 			break;
 		case 0x300:
 			whatregister = &LAPIC[activeCPU].InterruptCommandRegisterLo; //0300
-			ROMbits = (1<<12); //Fully writable! Pending to send isn't writable!
+			ROMbits = (1<<12)|(1<<17); //Fully writable! Pending to send isn't writable! Remote read status isn't writable!
 			break;
 		case 0x310:
 			whatregister = &LAPIC[activeCPU].InterruptCommandRegisterHi; //0310
@@ -1466,6 +1471,7 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 			ROMbits = 0; //Fully writable!
 			break;
 		default: //Unmapped?
+			LAPIC_reportErrorStatus(activeCPU, (1 << 7),0); //Illegal address error!
 			return 0; //Unmapped!
 			break;
 		}
@@ -1759,6 +1765,7 @@ byte APIC_memIO_rb(uint_32 offset, byte index)
 			whatregister = &LAPIC[activeCPU].DivideConfigurationRegister; //03E0
 			break;
 		default: //Unmapped?
+			LAPIC_reportErrorStatus(activeCPU, (1 << 7),0); //Illegal address error!
 			return 0; //Unmapped!
 			break;
 		}
@@ -2168,7 +2175,7 @@ byte PICInterrupt() //We have an interrupt ready to process? This is the primary
 	}
 	if (getunprocessedinterrupt(0) && (IMCR!=0x01)) //Primary PIC interrupt? This is also affected by the IMCR!
 	{
-		if ((LAPIC[activeCPU].enabled==1) || activeCPU) //APIC enabled and taken control of the interrupt pin or not CPU #0?
+		if ((LAPIC[activeCPU].enabled==1) || activeCPU) //APIC enabled and taken control of the interrupt pin or not CPU #0? When not BSP, disable INTR (not connected to the other CPUs)!
 		{
 			return 0; //The connection from the INTR pin to the local APIC is active! Disable the normal interrupts(redirected to the LVT LINT0 register)!
 		}
