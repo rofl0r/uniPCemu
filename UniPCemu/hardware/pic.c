@@ -689,7 +689,7 @@ byte isAPICPhysicaldestination(byte whichCPU, byte isLAPICorIOAPIC, byte physica
 	return 0; //No match!
 }
 
-byte i8259_INTA(byte fromAPIC); //Prototype for the vector execution of the LAPIC for ExtINT modes!
+byte i8259_INTA(byte whichCPU, byte fromAPIC); //Prototype for the vector execution of the LAPIC for ExtINT modes!
 
 //Execute a requested vector on the Local APIC! Specify IR=0xFF for no actual IR! Result: 1=Accepted, 0=Not accepted!
 byte LAPIC_executeVector(byte whichCPU, uint_32* vectorlo, byte IR, byte isIOAPIC)
@@ -746,7 +746,7 @@ byte LAPIC_executeVector(byte whichCPU, uint_32* vectorlo, byte IR, byte isIOAPI
 	case 7: //extINT?
 		if (LAPIC[whichCPU].enabled != 1) return 0; //Don't accept if disabled!
 		if (LAPIC[whichCPU].LAPIC_extIntPending != -1) return 0; //Don't accept if it's already pending!
-		APIC_intnr = (sword)i8259_INTA(1); //Perform an INTA-style interrupt retrieval!
+		APIC_intnr = (sword)i8259_INTA(whichCPU, 1); //Perform an INTA-style interrupt retrieval!
 		//Execute immediately!
 		LAPIC[whichCPU].LAPIC_extIntPending = (sword)APIC_intnr; //We're pending now!
 		break;
@@ -1058,7 +1058,7 @@ void LAPIC_pollRequests(byte whichCPU)
 	byte destinationCPU; //What CPU is the destination?
 	byte logicaldestination;
 
-	if (LAPIC[activeCPU].enabled == 1) //Enabled?
+	if (LAPIC[whichCPU].enabled == 1) //Enabled?
 	{
 		if (NMIQueued && (LAPIC[whichCPU].LVTLINT1RegisterDirty == 0)) //NMI has been queued?
 		{
@@ -2024,14 +2024,14 @@ byte APIC_memIO_rb(uint_32 offset, byte index)
 void APIC_updateWindowMSR(byte whichCPU, uint_32 lo, uint_32 hi)
 {
 	//Update the window MSR!
-	LAPIC[activeCPU].windowMSRhi = hi; //High value of the MSR!
-	LAPIC[activeCPU].windowMSRlo = lo; //Low value of the MSR!
-	LAPIC[activeCPU].baseaddr = (uint_64)(LAPIC[activeCPU].windowMSRlo & 0xFFFFF000); //Base address for the APIC!
+	LAPIC[whichCPU].windowMSRhi = hi; //High value of the MSR!
+	LAPIC[whichCPU].windowMSRlo = lo; //Low value of the MSR!
+	LAPIC[whichCPU].baseaddr = (uint_64)(LAPIC[whichCPU].windowMSRlo & 0xFFFFF000); //Base address for the APIC!
 	if (EMULATED_CPU >= CPU_PENTIUMPRO) //4 more pins for the Pentium Pro!
 	{
-		LAPIC[activeCPU].baseaddr |= (((uint_64)(LAPIC[activeCPU].windowMSRhi & 0xF)) << 32); //Extra bits from the high MSR on Pentium II and up!
+		LAPIC[whichCPU].baseaddr |= (((uint_64)(LAPIC[whichCPU].windowMSRhi & 0xF)) << 32); //Extra bits from the high MSR on Pentium II and up!
 	}
-	LAPIC[activeCPU].enabled = ((LAPIC[activeCPU].windowMSRlo & 0x800) >> 11)?((LAPIC[activeCPU].SpuriousInterruptVectorRegister & 0x100)>>8):-1; //APIC space enabled? Leave soft mode alone(leave it as the register is set) or set to fully disabled!
+	LAPIC[whichCPU].enabled = ((LAPIC[whichCPU].windowMSRlo & 0x800) >> 11)?((LAPIC[whichCPU].SpuriousInterruptVectorRegister & 0x100)>>8):-1; //APIC space enabled? Leave soft mode alone(leave it as the register is set) or set to fully disabled!
 }
 
 byte readPollingMode(byte pic); //Prototype!
@@ -2443,7 +2443,7 @@ byte readPollingMode(byte pic)
 	return 0x00; //No interrupt available!
 }
 
-byte i8259_INTA(byte fromAPIC)
+byte i8259_INTA(byte whichCPU, byte fromAPIC)
 {
 	byte loopdet = 1;
 	byte IR;
@@ -2494,7 +2494,7 @@ unknownSlaveIR: //Slave has exited out to prevent looping!
 	lastinterrupt = getint(PICnr, 7); //Unknown, dispatch through IR7 of the used PIC!
 	if (fromAPIC) //Was it from the APIC? Spurious interrupt handling!
 	{
-		lastinterrupt = (LAPIC[activeCPU].SpuriousInterruptVectorRegister & 0xFF); //Give the APIC spurious interrupt vector instead!
+		lastinterrupt = (LAPIC[whichCPU].SpuriousInterruptVectorRegister & 0xFF); //Give the APIC spurious interrupt vector instead!
 	}
 	interruptsaved = 1; //Gotten!
 	return lastinterrupt; //No result: unk interrupt!
@@ -2514,7 +2514,7 @@ byte nextintr()
 		return (byte)result; //Give the interrupt vector number!
 	}
 
-	return i8259_INTA(0); //Perform a normal INTA and give the interrupt number!
+	return i8259_INTA(activeCPU, 0); //Perform a normal INTA and give the interrupt number!
 }
 
 void LINT0_raiseIRQ(byte updatelivestatus)
