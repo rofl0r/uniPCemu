@@ -1063,10 +1063,10 @@ void LAPIC_pollRequests(byte whichCPU)
 						receiver |= (1<<destinationCPU); //Receive it on LAPIC!
 					}
 				}
-			}
-			if (isAPICPhysicaldestination(0, 1, ((LAPIC[whichCPU].InterruptCommandRegisterHi >> 24) & 0xF)) == 1) //IO APIC?
-			{
-				IOAPIC_receiver |= 1; //Receive it on LAPIC!
+				if (isAPICPhysicaldestination(0, 1, ((LAPIC[whichCPU].InterruptCommandRegisterHi >> 24) & 0xF)) == 1) //IO APIC?
+				{
+					IOAPIC_receiver |= 1; //Receive it on LAPIC!
+				}
 			}
 			if (receiver|IOAPIC_receiver) //Received on some Local APICs?
 			{
@@ -1225,7 +1225,8 @@ void IOAPIC_pollRequests()
 		IR = APIC_highestpriorityIR; //The IR for the highest priority!
 		//Now, receive the IO APIC entry at the destination!
 
-		receiver = 0; //Default: no recveivers!
+		receiver = 0; //Default: no receivers!
+		//Only support receiving these packets on the Local APICs! Not on the IO APIC!
 		if (IOAPIC.IOAPIC_redirectionentry[IR][0] & 0x800) //Logical destination?
 		{
 			logicaldestination = ((IOAPIC.IOAPIC_redirectionentry[IR][1] >> 24) & 0xFF); //What is the logical destination?
