@@ -250,8 +250,9 @@ void resetLAPIC(byte whichCPU, byte isHardReset)
 			LAPIC[whichCPU].InitialCountRegister = 0; //Cleared!
 			LAPIC[whichCPU].CurrentCountRegister = 0; //Cleared!
 			LAPIC[whichCPU].CurrentCountRegisterlatched = 0; //Not latched anymore!
-			LAPIC[whichCPU].needstermination = ~0; //Init all statuses!
+			LAPIC[whichCPU].needstermination = ~0 & ~4; //Init all statuses! Don't set ICR pending bit!
 			LAPIC[whichCPU].LAPIC_globalrequirestermination = ~0; //Init all statuses!
+			LAPIC[whichCPU].SpuriousInterruptVectorRegister = 0xFF; //Always set to this value, it's soft disabling the Local APIC by default!
 			backupactiveCPU = activeCPU; //Backup!
 			activeCPU = whichCPU; //Which one to reset!
 			APIC_handletermination(); //Handle the termination!
@@ -500,6 +501,7 @@ void LAPIC_handletermination() //Handle termination on the APIC!
 	{
 		if (((LAPIC[activeCPU].SpuriousInterruptVectorRegister & 0x100) == 0) && ((LAPIC[activeCPU].prevSpuriousInterruptVectorRegister & 0x100))) //Cleared?
 		{
+			LAPIC[activeCPU].prevSpuriousInterruptVectorRegister = LAPIC[activeCPU].SpuriousInterruptVectorRegister; //Prevent loops!
 			resetLAPIC(activeCPU,0); //Reset the APIC!
 			LAPIC[activeCPU].enabled = 0; //Soft disabled!
 		}
