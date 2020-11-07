@@ -844,34 +844,34 @@ byte receiveCommandRegister(byte whichCPU, uint_32 destinationCPU, uint_32 *comm
 			switch (address) //What is addressed?
 			{
 			case 0x0020:
-				whatregister = &LAPIC[activeCPU].LAPIC_ID; //0020
+				whatregister = &LAPIC[destinationCPU].LAPIC_ID; //0020
 				break;
 			case 0x0030:
-				whatregister = &LAPIC[activeCPU].LAPIC_version; //0030
+				whatregister = &LAPIC[destinationCPU].LAPIC_version; //0030
 				break;
 			case 0x0080:
-				whatregister = &LAPIC[activeCPU].TaskPriorityRegister; //0080
+				whatregister = &LAPIC[destinationCPU].TaskPriorityRegister; //0080
 				break;
 			case 0x0090:
-				whatregister = &LAPIC[activeCPU].ArbitrationPriorityRegister; //0090
+				whatregister = &LAPIC[destinationCPU].ArbitrationPriorityRegister; //0090
 				break;
 			case 0x00A0:
-				whatregister = &LAPIC[activeCPU].ProcessorPriorityRegister; //00A0
+				whatregister = &LAPIC[destinationCPU].ProcessorPriorityRegister; //00A0
 				break;
 			case 0x00B0:
-				whatregister = &LAPIC[activeCPU].EOIregister; //00B0
+				whatregister = &LAPIC[destinationCPU].EOIregister; //00B0
 				break;
 			case 0x00C0:
-				whatregister = &LAPIC[activeCPU].RemoteReadRegister; //00C0
+				whatregister = &LAPIC[destinationCPU].RemoteReadRegister; //00C0
 				break;
 			case 0x00D0:
-				whatregister = &LAPIC[activeCPU].LogicalDestinationRegister; //00D0
+				whatregister = &LAPIC[destinationCPU].LogicalDestinationRegister; //00D0
 				break;
 			case 0x00E0:
-				whatregister = &LAPIC[activeCPU].DestinationFormatRegister; //00E0
+				whatregister = &LAPIC[destinationCPU].DestinationFormatRegister; //00E0
 				break;
 			case 0x00F0:
-				whatregister = &LAPIC[activeCPU].SpuriousInterruptVectorRegister; //00F0
+				whatregister = &LAPIC[destinationCPU].SpuriousInterruptVectorRegister; //00F0
 				break;
 			case 0x0100:
 			case 0x0110:
@@ -881,7 +881,7 @@ byte receiveCommandRegister(byte whichCPU, uint_32 destinationCPU, uint_32 *comm
 			case 0x0150:
 			case 0x0160:
 			case 0x0170:
-				whatregister = &LAPIC[activeCPU].ISR[((address - 0x100) >> 4)]; //ISRs! 0100-0170
+				whatregister = &LAPIC[destinationCPU].ISR[((address - 0x100) >> 4)]; //ISRs! 0100-0170
 				break;
 			case 0x0180:
 			case 0x0190:
@@ -891,7 +891,7 @@ byte receiveCommandRegister(byte whichCPU, uint_32 destinationCPU, uint_32 *comm
 			case 0x01D0:
 			case 0x01E0:
 			case 0x01F0:
-				whatregister = &LAPIC[activeCPU].TMR[((address - 0x180) >> 4)]; //TMRs! 0180-01F0
+				whatregister = &LAPIC[destinationCPU].TMR[((address - 0x180) >> 4)]; //TMRs! 0180-01F0
 				break;
 			case 0x0200:
 			case 0x0210:
@@ -901,46 +901,46 @@ byte receiveCommandRegister(byte whichCPU, uint_32 destinationCPU, uint_32 *comm
 			case 0x0250:
 			case 0x0260:
 			case 0x0270:
-				whatregister = &LAPIC[activeCPU].IRR[((address - 0x200) >> 4)]; //ISRs! 0200-0270
+				whatregister = &LAPIC[destinationCPU].IRR[((address - 0x200) >> 4)]; //ISRs! 0200-0270
 				break;
 			case 0x280:
-				whatregister = &LAPIC[activeCPU].ErrorStatusRegister; //0280
+				whatregister = &LAPIC[destinationCPU].ErrorStatusRegister; //0280
 				break;
 			case 0x2F0:
-				whatregister = &LAPIC[activeCPU].LVTCorrectedMachineCheckInterruptRegister; //02F0
+				whatregister = &LAPIC[destinationCPU].LVTCorrectedMachineCheckInterruptRegister; //02F0
 				break;
 			case 0x300:
-				whatregister = &LAPIC[activeCPU].InterruptCommandRegisterLo; //0300
+				whatregister = &LAPIC[destinationCPU].InterruptCommandRegisterLo; //0300
 				break;
 			case 0x310:
-				whatregister = &LAPIC[activeCPU].InterruptCommandRegisterHi; //0310
+				whatregister = &LAPIC[destinationCPU].InterruptCommandRegisterHi; //0310
 				break;
 			case 0x320:
-				whatregister = &LAPIC[activeCPU].LVTTimerRegister; //0320
+				whatregister = &LAPIC[destinationCPU].LVTTimerRegister; //0320
 				break;
 			case 0x330:
-				whatregister = &LAPIC[activeCPU].LVTThermalSensorRegister; //0330
+				whatregister = &LAPIC[destinationCPU].LVTThermalSensorRegister; //0330
 				break;
 			case 0x340:
-				whatregister = &LAPIC[activeCPU].LVTPerformanceMonitoringCounterRegister; //0340
+				whatregister = &LAPIC[destinationCPU].LVTPerformanceMonitoringCounterRegister; //0340
 				break;
 			case 0x350:
-				whatregister = &LAPIC[activeCPU].LVTLINT0Register; //0350
+				whatregister = &LAPIC[destinationCPU].LVTLINT0Register; //0350
 				break;
 			case 0x360:
-				whatregister = &LAPIC[activeCPU].LVTLINT1Register; //0560
+				whatregister = &LAPIC[destinationCPU].LVTLINT1Register; //0560
 				break;
 			case 0x370:
-				whatregister = &LAPIC[activeCPU].LVTErrorRegister; //0370
+				whatregister = &LAPIC[destinationCPU].LVTErrorRegister; //0370
 				break;
 			case 0x380:
-				whatregister = &LAPIC[activeCPU].InitialCountRegister; //0380
+				whatregister = &LAPIC[destinationCPU].InitialCountRegister; //0380
 				break;
 			case 0x390:
-				whatregister = &LAPIC[activeCPU].CurrentCountRegister; //0390
+				whatregister = &LAPIC[destinationCPU].CurrentCountRegister; //0390
 				break;
 			case 0x3E0:
-				whatregister = &LAPIC[activeCPU].DivideConfigurationRegister; //03E0
+				whatregister = &LAPIC[destinationCPU].DivideConfigurationRegister; //03E0
 				break;
 			default: //Unmapped?
 				whatregister = NULL; //Unmapped!
