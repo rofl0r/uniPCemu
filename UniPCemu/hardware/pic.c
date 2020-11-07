@@ -212,28 +212,63 @@ void initAPIC(byte whichCPU)
 	updateLAPICArbitrationIDregister(whichCPU); //Update the Arbitration ID register with it's defaults!
 
 	//Local APIC interrupt support!
-	LAPIC[whichCPU].LVTCorrectedMachineCheckInterruptRegister = 0x10000; //Reset CMCI register!
-	LAPIC[whichCPU].LVTTimerRegister = 0x10000; //Reset Timer register!
-	LAPIC[whichCPU].LVTThermalSensorRegister = 0x10000; //Thermal sensor register!
-	LAPIC[whichCPU].LVTPerformanceMonitoringCounterRegister = 0x10000; //Performance monitoring counter register!
-	LAPIC[whichCPU].LVTLINT0Register = 0x10000; //Reset LINT0 register!
-	LAPIC[whichCPU].LVTLINT1Register = 0x10000; //Reset LINT1 register!
-	LAPIC[whichCPU].LVTErrorRegister = 0x10000; //Reset Error register!
 	LAPIC[whichCPU].LAPIC_extIntPending = -1; //No external interrupt pending yet!
 	APIC_updateWindowMSR(whichCPU, LAPIC[whichCPU].windowMSRlo, LAPIC[whichCPU].windowMSRhi); //Make sure that our enabled status is up-to-date!
 }
 
 void resetLAPIC(byte whichCPU, byte isHardReset)
 {
+	byte backupactiveCPU;
 	//Do something when resetting?
 	if (isHardReset)
 	{
-		if (isHardReset != 3) //Not called by the initAPIC function?
+		if ((isHardReset != 3) && (isHardReset!=2)) //Not called by the initAPIC function? Also not a INIT call(type 2)?
 		{
 			initAPIC(whichCPU); //Initialize the APIC!
 		}
-		//Updatinh the local APIC ID!
+
+		//Updating the local APIC ID always!
 		LAPIC[whichCPU].LAPIC_ID = ((whichCPU & 0xFF) << 24); //Physical CPU number to receive at!
+
+		if (isHardReset & 1) //Full reset of the LAPIC? Type 2(INIT) isn't applied here! Types 1(normal reset) and 3(Initialization of the board) apply here as a RESET handling!
+		{
+			//Power-up or RESET state specific!
+			LAPIC[whichCPU].LVTCorrectedMachineCheckInterruptRegister = 0x10000; //Reset CMCI register!
+			LAPIC[whichCPU].LVTTimerRegister = 0x10000; //Reset Timer register!
+			LAPIC[whichCPU].LVTThermalSensorRegister = 0x10000; //Thermal sensor register!
+			LAPIC[whichCPU].LVTPerformanceMonitoringCounterRegister = 0x10000; //Performance monitoring counter register!
+			LAPIC[whichCPU].LVTLINT0Register = 0x10000; //Reset LINT0 register!
+			LAPIC[whichCPU].LVTLINT1Register = 0x10000; //Reset LINT1 register!
+			LAPIC[whichCPU].LVTErrorRegister = 0x10000; //Reset Error register!
+			memset(&LAPIC[whichCPU].IRR, 0, sizeof(LAPIC[whichCPU].IRR)); //Cleared!
+			memset(&LAPIC[whichCPU].ISR, 0, sizeof(LAPIC[whichCPU].ISR)); //Cleared!
+			memset(&LAPIC[whichCPU].TMR, 0, sizeof(LAPIC[whichCPU].TMR)); //Cleared!
+			LAPIC[whichCPU].InterruptCommandRegisterLo = LAPIC[whichCPU].InterruptCommandRegisterHi = 0; //Cleared!
+			LAPIC[whichCPU].LogicalDestinationRegister = 0; //Cleared!
+			LAPIC[whichCPU].TaskPriorityRegister = 0; //Cleared!
+			LAPIC[whichCPU].DestinationFormatRegister = ~0; //All 1s!
+			LAPIC[whichCPU].InitialCountRegister = 0; //Cleared!
+			LAPIC[whichCPU].CurrentCountRegister = 0; //Cleared!
+			LAPIC[whichCPU].CurrentCountRegisterlatched = 0; //Not latched anymore!
+			LAPIC[whichCPU].needstermination = ~0; //Init all statuses!
+			LAPIC[whichCPU].LAPIC_globalrequirestermination = ~0; //Init all statuses!
+			backupactiveCPU = activeCPU; //Backup!
+			activeCPU = whichCPU; //Which one to reset!
+			APIC_handletermination(); //Handle the termination!
+			activeCPU = backupactiveCPU; //Restore the active CPU!
+			updateLAPICTimerSpeed(whichCPU); //Update the used timer speed!
+		}
+	}
+	else //Soft disabled?
+	{
+		//Set the mask on all LVT entries! They become read-only!
+		LAPIC[whichCPU].LVTCorrectedMachineCheckInterruptRegister |= 0x10000; //Reset CMCI register!
+		LAPIC[whichCPU].LVTTimerRegister |= 0x10000; //Reset Timer register!
+		LAPIC[whichCPU].LVTThermalSensorRegister |= 0x10000; //Thermal sensor register!
+		LAPIC[whichCPU].LVTPerformanceMonitoringCounterRegister |= 0x10000; //Performance monitoring counter register!
+		LAPIC[whichCPU].LVTLINT0Register |= 0x10000; //Reset LINT0 register!
+		LAPIC[whichCPU].LVTLINT1Register |= 0x10000; //Reset LINT1 register!
+		LAPIC[whichCPU].LVTErrorRegister |= 0x10000; //Reset Error register!
 	}
 	//Enabled is already handled automatically by the call to the updating of the Window MSR!
 	//Soft reset doesn't clear any data of the Local APIC!
@@ -281,7 +316,7 @@ void init8259()
 	//Initialize all Local APICs!
 	for (whichCPU = 0; whichCPU < numemulatedcpus; ++whichCPU)
 	{
-		initAPIC(whichCPU); //Only 1 Local APIC supported right now!
+		initAPIC(whichCPU); //Only all Local APIC supported right now!
 	}
 }
 
@@ -1549,6 +1584,10 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 		case 0x2F0:
 			whatregister = &LAPIC[activeCPU].LVTCorrectedMachineCheckInterruptRegister; //02F0
 			ROMbits = (1<<12); //Fully writable!
+			if (LAPIC[activeCPU].enabled == 0) //Soft disabled?
+			{
+				ROMbits |= (1 << 16); //The mask is ROM!
+			}
 			break;
 		case 0x300:
 			whatregister = &LAPIC[activeCPU].InterruptCommandRegisterLo; //0300
@@ -1563,32 +1602,56 @@ byte APIC_memIO_wb(uint_32 offset, byte value)
 			ROMbits = (1<<12); //Fully writable!
 			LAPIC[activeCPU].LVTTimerRegisterDirty = 1; //Dirty!
 			LAPIC[activeCPU].needstermination |= 0x100; //Needs termination!
+			if (LAPIC[activeCPU].enabled == 0) //Soft disabled?
+			{
+				ROMbits |= (1 << 16); //The mask is ROM!
+			}
 			break;
 		case 0x330:
 			whatregister = &LAPIC[activeCPU].LVTThermalSensorRegister; //0330
 			ROMbits = (1<<12); //Fully writable!
+			if (LAPIC[activeCPU].enabled == 0) //Soft disabled?
+			{
+				ROMbits |= (1 << 16); //The mask is ROM!
+			}
 			break;
 		case 0x340:
 			whatregister = &LAPIC[activeCPU].LVTPerformanceMonitoringCounterRegister; //0340
 			ROMbits = (1<<12); //Fully writable!
+			if (LAPIC[activeCPU].enabled == 0) //Soft disabled?
+			{
+				ROMbits |= (1 << 16); //The mask is ROM!
+			}
 			break;
 		case 0x350:
 			whatregister = &LAPIC[activeCPU].LVTLINT0Register; //0350
 			ROMbits = (1<<12); //Fully writable!
 			LAPIC[activeCPU].LVTLINT0RegisterDirty = 1; //Dirty!
 			LAPIC[activeCPU].needstermination |= 0x100; //Needs termination!
+			if (LAPIC[activeCPU].enabled == 0) //Soft disabled?
+			{
+				ROMbits |= (1 << 16); //The mask is ROM!
+			}
 			break;
 		case 0x360:
 			whatregister = &LAPIC[activeCPU].LVTLINT1Register; //0560
 			ROMbits = (1<<12); //Fully writable!
 			LAPIC[activeCPU].LVTLINT1RegisterDirty = 1; //Dirty!
 			LAPIC[activeCPU].needstermination |= 0x100; //Needs termination!
+			if (LAPIC[activeCPU].enabled == 0) //Soft disabled?
+			{
+				ROMbits |= (1 << 16); //The mask is ROM!
+			}
 			break;
 		case 0x370:
 			whatregister = &LAPIC[activeCPU].LVTErrorRegister; //0370
 			ROMbits = (1<<12); //Fully writable!
 			LAPIC[activeCPU].LVTErrorRegisterDirty = 1; //Dirty!
 			LAPIC[activeCPU].needstermination |= 0x100; //Needs termination!
+			if (LAPIC[activeCPU].enabled == 0) //Soft disabled?
+			{
+				ROMbits |= (1 << 16); //The mask is ROM!
+			}
 			break;
 		case 0x380:
 			whatregister = &LAPIC[activeCPU].InitialCountRegister; //0380
