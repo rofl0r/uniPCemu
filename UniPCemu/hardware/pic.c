@@ -1063,7 +1063,7 @@ void LAPIC_pollRequests(byte whichCPU)
 						receiver |= (1<<destinationCPU); //Receive it on LAPIC!
 					}
 				}
-				if (isAPICPhysicaldestination(0, 1, ((LAPIC[whichCPU].InterruptCommandRegisterHi >> 24) & 0xF)) == 1) //IO APIC?
+				if (isAPICPhysicaldestination(0, 1, ((LAPIC[whichCPU].InterruptCommandRegisterHi >> 24) & 0xF)) == 2) //IO APIC?
 				{
 					IOAPIC_receiver |= 1; //Receive it on LAPIC!
 				}
