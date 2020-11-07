@@ -93,6 +93,10 @@ struct
 	uint_32 CurrentCountRegisterlatched; //Latched timer!
 	sword LAPIC_extIntPending;
 	uint_32 errorstatusregisterpending; //Pending bits in the error status register!
+
+	//Bookkeeping of the sending packet to various APICs pending!
+	uint_32 InterruptCommandRegisterPendingReceiver; //Receivers still pending receiving!
+	uint_32 InterruptCommandRegisterPendingIOAPIC; //IO APIC still pending receiving!
 } LAPIC[MAXCPUS]; //The Local APIC that's emulated!
 
 byte lastLAPICAccepted[MAXCPUS]; //Last APIC accepted LVT result!
@@ -504,6 +508,8 @@ void LAPIC_handletermination() //Handle termination on the APIC!
 	if (LAPIC[activeCPU].needstermination & 4) //Needs termination due to sending a command?
 	{
 		LAPIC[activeCPU].InterruptCommandRegisterLo |= (1 << 12); //Start to become pending!
+		LAPIC[activeCPU].InterruptCommandRegisterPendingIOAPIC = ~0; //Any possible pending!
+		LAPIC[activeCPU].InterruptCommandRegisterPendingReceiver = ~0; //Any possible pending!
 	}
 
 	if (LAPIC[activeCPU].needstermination & 8) //Error status register needs termination?
@@ -1036,9 +1042,12 @@ void LAPIC_pollRequests(byte whichCPU)
 	receiver = IOAPIC_receiver = 0; //Initialize receivers of the packet!
 	if (LAPIC[whichCPU].InterruptCommandRegisterLo & 0x1000) //Pending command being sent?
 	{
-		if (((LAPIC[whichCPU].InterruptCommandRegisterLo >> 8) & 7) == 3) //Remote read is to be executed?
+		if (LAPIC[whichCPU].InterruptCommandRegisterPendingReceiver == (uint_32)~0) //Starting up a new command that's starting to process?
 		{
-			LAPIC[whichCPU].InterruptCommandRegisterLo &= ~0x20000; //Default: Remote Read invalid!
+			if (((LAPIC[whichCPU].InterruptCommandRegisterLo >> 8) & 7) == 3) //Remote read is to be executed?
+			{
+				LAPIC[whichCPU].InterruptCommandRegisterLo &= ~0x20000; //Default: Remote Read invalid!
+			}
 		}
 		switch ((LAPIC[whichCPU].InterruptCommandRegisterLo >> 18) & 3) //What destination type?
 		{
@@ -1094,22 +1103,30 @@ void LAPIC_pollRequests(byte whichCPU)
 			{
 				for (destinationCPU = 0; destinationCPU < MIN(NUMITEMS(LAPIC),numemulatedcpus); ++destinationCPU) //Try all CPUs!
 				{
-					if (receiver & (1 << destinationCPU)) //To receive?
+					if (receiver & LAPIC[whichCPU].InterruptCommandRegisterPendingReceiver & (1 << destinationCPU)) //To receive and not received here yet?
 					{
 						if (receiveCommandRegister(whichCPU, destinationCPU, &LAPIC[whichCPU].InterruptCommandRegisterLo,0)) //Accepted?
 						{
 							receiver &= ~(1 << destinationCPU); //Received!
+							LAPIC[whichCPU].InterruptCommandRegisterPendingReceiver &= ~(1 << destinationCPU); //Received!
 						}
 					}
 				}
 				if (IOAPIC_receiver) //IO APIC too?
 				{
-						if (receiveCommandRegister(whichCPU, 0, &LAPIC[whichCPU].InterruptCommandRegisterLo,1)) //Accepted?
+					if (LAPIC[whichCPU].InterruptCommandRegisterPendingIOAPIC) //Still pending?
+					{
+						if (receiveCommandRegister(whichCPU, 0, &LAPIC[whichCPU].InterruptCommandRegisterLo, 1)) //Accepted?
 						{
-							IOAPIC_receiver = 0; //Received!
+							IOAPIC_receiver = LAPIC[whichCPU].InterruptCommandRegisterPendingIOAPIC = 0; //Received!
 						}
+					}
 				}
-				if (receiver) //Failed to send all?
+				if ((receiver & LAPIC[whichCPU].InterruptCommandRegisterPendingReceiver) || (IOAPIC_receiver & LAPIC[whichCPU].InterruptCommandRegisterPendingIOAPIC)) //Still pending to receive somewhere?
+				{
+					LAPIC[whichCPU].InterruptCommandRegisterLo |= 0x1000; //We're still receiving it somewhere!
+				}
+				else if (receiver) //Failed to send all when transaction completed?
 				{
 					LAPIC_reportErrorStatus(whichCPU, (1 << 2),1); //Report an send accept error! Not all responded on the bus!
 				}
