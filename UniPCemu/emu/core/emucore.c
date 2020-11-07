@@ -1207,6 +1207,12 @@ OPTINLINE byte coreHandler()
 				CPU[activeCPU].destEIP = 0;
 				destCS = (CPU[activeCPU].SIPIreceived&0xFF)<<8;
 				segmentWritten(CPU_SEGMENT_CS,destCS,1); //Jump to the designated address!
+				CPU[activeCPU].exec_lastCS = CPU[activeCPU].exec_CS;
+				CPU[activeCPU].exec_lastEIP = CPU[activeCPU].exec_EIP;
+				CPU[activeCPU].exec_CS = REG_CS; //Save for error handling!
+				CPU[activeCPU].exec_EIP = (REG_EIP & CPU[activeCPU].SEG_DESCRIPTOR[CPU_SEGMENT_CS].PRECALCS.roof); //Save for error handling!
+				CPU_prepareHWint(); //Prepares the CPU for hardware interrupts!
+				CPU_commitState(); //Save fault data to go back to when exceptions occur!
 				CPU[activeCPU].SIPIreceived = 0; //Not received anymore!
 				goto resumeFromHLT; //We're resuming from HLT state!
 			}
